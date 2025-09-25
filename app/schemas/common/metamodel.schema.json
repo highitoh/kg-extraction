@@ -1,0 +1,55 @@
+{
+  "$id": "https://github.com/highitoh/kg-extraction/schemas/common/metamodel.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Metamodel",
+  "type": "object",
+  "description": "メタモデルの定義",
+  "properties": {
+    "classes": {
+      "type": "array",
+      "description": "メタモデルに定義されたクラス",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "iri": {
+            "type": "string",
+            "format": "uri",
+            "description": "識別子(IRI)"
+          }
+        },
+        "required": ["iri"]
+      }
+    },
+    "properties": {
+      "type": "array",
+      "description": "メタモデルに定義されたプロパティ",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "iri": {
+            "type": "string",
+            "format": "uri",
+            "description": "識別子(IRI)"
+          },
+          "src_iri": {
+            "type": "string",
+            "format": "uri",
+            "description": "プロパティの出発点となるクラスのIRI"
+          },
+          "dest_iri": {
+            "type": "string",
+            "format": "uri",
+            "description": "プロパティの到達点となるクラスのIRI"
+          }
+        },
+        "required": ["iri", "src_iri", "dest_iri"]
+      }
+    }
+  },
+  "required": ["classes", "properties"],
+  "additionalProperties": false
+}

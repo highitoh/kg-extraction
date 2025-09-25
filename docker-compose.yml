@@ -1,0 +1,28 @@
+version: '3.8'
+
+services:
+  app:
+    build:
+      context: ./app
+      dockerfile: Dockerfile
+    container_name: app_container
+    entrypoint: ["/bin/sh","-c","echo Container started\n trap \"exit 0\" 15\n \n exec \"$@\"\n while sleep 1 & wait $!; do :; done","-"]
+    command: ["sleep","infinity"]
+    volumes:
+      - .:/workspace:rw
+    restart: "no"
+  neo4j:
+    image: neo4j:5
+    container_name: neo4j_container
+    environment:
+      - NEO4J_AUTH=neo4j/neo4jpassword
+      - NEO4J_initial_dbms_default__database=partner
+    ports:
+      - "7474:7474"   # HTTP (Browser)
+      - "7687:7687"   # Bolt
+    volumes:
+      - ./neo4j/import:/var/lib/neo4j/import:rw
+      - ./neo4j/data:/data:rw
+      - ./neo4j/logs:/logs:rw
+      - ./neo4j/plugins:/plugins:rw
+    restart: "no"

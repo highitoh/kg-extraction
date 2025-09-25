@@ -1,0 +1,17 @@
+{
+  "$id": "https://github.com/highitoh/kg-extraction/schemas/class-chain/input.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ClassChainInput",
+  "type": "object",
+  "description": "クラス抽出の入力情報",
+  "properties": {
+    "view_info": {
+      "$ref": "https://github.com/highitoh/kg-extraction/schemas/view-chain/output.schema.json"
+    },
+    "metamodel": {
+      "$ref": "https://github.com/highitoh/kg-extraction/schemas/common/metamodel.schema.json"
+    }
+  },
+  "required": ["view_info", "metamodel"],
+  "additionalProperties": false
+}

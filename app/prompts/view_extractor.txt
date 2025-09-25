@@ -1,0 +1,21 @@
+以下のテキストから、各《ビュー》を説明する【文章】を抽出してください。
+曖昧・一般論・手がかり不足は抽出しないでください。出力は必ず JSON のみ。
+各配列は原文からの"抜き出し"（重複や言い換え禁止）。
+
+《ビュー》:
+- value_analysis: "ステークホルダやステークホルダが受ける価値を説明する文章"
+- business_concept: "プロジェクトチームの活動方針を方向付けるビジョンやコンセプトを説明する文章"
+- business_requirement: "プロジェクトチームが実現すべき業務要求を説明する文章"
+- system_requirement: "システムが実現すべき技術的仕様を説明する文章"
+- system_component: "モジュールやライブラリ、サービスといったシステムの構成を説明する文章"
+- data_analysis: "データ分析の目的や結果、データセットを説明する文章"
+
+出力は次の JSON オブジェクトだけ:
+{
+  "value_analysis": ["..."],
+  "business_concept": ["..."],
+  "business_requirement": ["..."],
+  "system_requirement": ["..."],
+  "system_component": ["..."],
+  "data_analysis": ["..."]
+}

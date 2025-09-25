@@ -1,0 +1,40 @@
+{
+  "$id": "https://github.com/highitoh/kg-extraction/schemas/pdf-text-chain/output.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "PDFTextChainOutput",
+  "type": "object",
+  "description": "PDFファイル文章抽出の出力情報",
+  "properties": {
+    "id": {
+      "type": "string",
+      "description": "抽出ID"
+    },
+    "file_name": {
+      "type": "string",
+      "description": "PDFファイル名"
+    },
+    "sentences": {
+      "type": "array",
+      "description": "PDFファイルの抽出文章情報",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "line": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "文書全体での行番号（1始まり）"
+          },
+          "text": {
+            "type": "string",
+            "description": "抽出文章"
+          }
+        },
+        "required": ["line", "text"]
+      }
+    }
+  },
+  "required": ["id", "file_name", "sentences"],
+  "additionalProperties": false
+}

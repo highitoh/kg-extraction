@@ -1,0 +1,43 @@
+{
+  "$id": "https://github.com/highitoh/kg-extraction/schemas/view-chain/output.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ViewChainOutput",
+  "type": "object",
+  "description": "ビュー記述抽出の入力情報",
+  "properties": {
+    "id": {
+      "type": "string",
+      "description": "抽出ID"
+    },
+    "views": {
+      "type": "array",
+      "description": "各抽出ビュー記述情報",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "type": { "type": "string", "description": "ビュー種別" },
+          "texts": {
+            "type": "array",
+            "description": "抽出ビュー記述情報",
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "file_id": { "type": "string", "description": "ファイルID" },
+                "line": { "type": "integer", "minimum": 1, "description": "行番号（1始まり）" },
+                "text": { "type": "string", "description": "抽出ビュー記述" }
+              },
+              "required": ["file_id", "line", "text"]
+            }
+          }
+        },
+        "required": ["type", "texts"]
+      }
+    }
+  },
+  "required": ["id", "views"],
+  "additionalProperties": false
+}

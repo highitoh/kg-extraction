@@ -1,0 +1,15 @@
+{
+  "$id": "https://github.com/highitoh/kg-extraction/schemas/turtle-generator/output.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "TurtleGeneratorOutput",
+  "type": "object",
+  "description": "Turtle生成の出力情報",
+  "properties": {
+    "turtle": {
+      "type": "string",
+      "description": "生成されたTurtle文字列。"
+    }
+  },
+  "required": ["turtle"],
+  "additionalProperties": false
+}

@@ -1,0 +1,44 @@
+{
+  "$id": "https://github.com/highitoh/kg-extraction/schemas/text-filter/output.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "TextFilterOutput",
+  "type": "object",
+  "description": "テキストフィルタの出力情報",
+  "properties": {
+    "id": {
+      "type": "string",
+      "description": "フィルタ実行ID"
+    },
+    "file_id": {
+      "type": "string",
+      "description": "対象ファイルID"
+    },
+    "file_name": {
+      "type": "string",
+      "description": "対象ファイル名"
+    },
+    "items": {
+      "type": "array",
+      "description": "フィルタ後のテキスト情報",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "line": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "行番号（1始まり）。"
+          },
+          "text": {
+            "type": "string",
+            "description": "抽出テキスト"
+          }
+        },
+        "required": ["line", "text"]
+      }
+    }
+  },
+  "required": ["id", "file_id", "file_name", "items"],
+  "additionalProperties": false
+}

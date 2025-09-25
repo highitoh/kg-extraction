@@ -1,0 +1,44 @@
+{
+  "$id": "https://github.com/highitoh/kg-extraction/schemas/class-chain/output.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ClassChainOutput",
+  "type": "object",
+  "description": "クラス抽出の出力情報",
+  "properties": {
+    "id": {
+      "type": "string",
+      "description": "抽出ID"
+    },
+    "classes": {
+      "type": "array",
+      "description": "クラス個体の抽出情報",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "クラス個体ID"
+          },
+          "class_iri": {
+            "type": "string",
+            "format": "uri",
+            "description": "メタモデルのクラスIRI。"
+          },
+          "label": {
+            "type": "string",
+            "description": "抽出クラス"
+          },
+          "file_id": {
+            "type": "string",
+            "description": "抽出元ファイルID"
+          }
+        },
+        "required": ["id", "class_iri", "label", "file_id"]
+      }
+    }
+  },
+  "required": ["id", "classes"],
+  "additionalProperties": false
+}

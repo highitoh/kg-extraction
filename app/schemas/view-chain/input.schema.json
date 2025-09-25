@@ -1,0 +1,38 @@
+{
+  "$id": "https://github.com/highitoh/kg-extraction/schemas/view-chain/input.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ViewChainInput",
+  "type": "object",
+  "description": "ビュー記述抽出の入力情報",
+  "properties": {
+    "target": {
+      "type": "object",
+      "description": "抽出対象の文章情報",
+      "additionalProperties": false,
+      "properties": {
+        "id": { "type": "string", "description": "抽出ID" },
+        "file_id": { "type": "string", "description": "ファイルID" },
+        "sentences": {
+          "type": "array",
+          "description": "抽出文章情報",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "line": { "type": "integer", "minimum": 1, "description": "文書全体での行番号（1始まり）" },
+              "text": { "type": "string", "description": "抽出文章" }
+            },
+            "required": ["line", "text"]
+          }
+        }
+      },
+      "required": ["id", "file_name", "sentences"]
+    },
+    "metamodel": {
+      "$ref": "https://github.com/highitoh/kg-extraction/schemas/common/metamodel.schema.json"
+    }
+  },
+  "required": ["target", "metamodel"],
+  "additionalProperties": false
+}

@@ -1,0 +1,17 @@
+{
+  "$id": "https://github.com/highitoh/kg-extraction/schemas/turtle-generator/input.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "TurtleGeneratorInput",
+  "type": "object",
+  "description": "Turtle生成の入力情報",
+  "properties": {
+    "class_info": {
+      "$ref": "https://github.com/highitoh/kg-extraction/schemas/class-chain/output.schema.json"
+    },
+    "property_info": {
+      "$ref": "https://github.com/highitoh/kg-extraction/schemas/property-chain/output.schema.json"
+    }
+  },
+  "required": ["class_info", "property_info"],
+  "additionalProperties": false
+}

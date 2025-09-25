@@ -1,0 +1,44 @@
+{
+  "$id": "https://github.com/highitoh/kg-extraction/schemas/property-chain/output.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "PropertyChainOutput",
+  "type": "object",
+  "description": "プロパティ（関係）抽出の出力情報",
+  "properties": {
+    "id": {
+      "type": "string",
+      "description": "抽出ID"
+    },
+    "properties": {
+      "type": "array",
+      "description": "プロパティ抽出情報",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "プロパティID"
+          },
+          "src_id": {
+            "type": "string",
+            "description": "関係の出発点となるクラス個体ID"
+          },
+          "property_iri": {
+            "type": "string",
+            "format": "uri",
+            "description": "メタモデルで定義されたプロパティのIRI。"
+          },
+          "dest_id": {
+            "type": "string",
+            "description": "関係の到達点となるクラス個体ID"
+          }
+        },
+        "required": ["id", "src_id", "property_iri", "dest_id"]
+      }
+    }
+  },
+  "required": ["id", "properties"],
+  "additionalProperties": false
+}

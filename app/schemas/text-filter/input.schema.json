@@ -1,0 +1,35 @@
+{
+  "$id": "https://github.com/highitoh/kg-extraction/schemas/text-filter/input.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "TextFilterInput",
+  "type": "object",
+  "description": "テキストフィルタの入力情報",
+  "properties": {
+    "source": {
+      "description": "フィルタ対象テキスト情報",
+      "oneOf": [
+        { "$ref": "https://github.com/highitoh/kg-extraction/schemas/text-extraction/output.schema.json" },
+        { "$ref": "https://github.com/highitoh/kg-extraction/schemas/text-filter/output.schema.json" }
+      ]
+    },
+    "filter": {
+      "type": "object",
+      "description": "フィルタ情報",
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "フィルタ名"
+        },
+        "params": {
+          "type": "object",
+          "description": "フィルタパラメータ（任意）",
+          "additionalProperties": true
+        }
+      },
+      "required": ["name"]
+    }
+  },
+  "required": ["source", "filter"],
+  "additionalProperties": false
+}
