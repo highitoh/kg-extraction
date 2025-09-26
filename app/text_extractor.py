@@ -5,9 +5,13 @@ import uuid
 from langchain.schema.runnable import Runnable
 from langchain_core.runnables.config import RunnableConfig
 import pdfplumber
+from logger import Logger
 
 class TextExtractor(Runnable):
     """ファイルからテキストを抽出するタスク"""
+
+    def __init__(self):
+        self.logger = Logger("app/log/text_extractor")
 
     def _extract_text(self, pdf_path: str) -> str:
         """
@@ -49,8 +53,13 @@ class TextExtractor(Runnable):
                     "text": line_text.strip()
                 })
 
-        return {
+        output = {
             "id": str(uuid.uuid4()),
             "file_name": os.path.basename(file_path),
             "sentences": sentences
         }
+
+        # 出力JSONをログに保存
+        self.logger.save_log(output, "text_extractor_output_")
+
+        return output

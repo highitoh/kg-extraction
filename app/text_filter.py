@@ -7,6 +7,7 @@ from langchain.schema.runnable import Runnable
 from langchain_core.runnables.config import RunnableConfig
 from langchain_core.messages import HumanMessage
 from langchain_openai import ChatOpenAI
+from logger import Logger
 
 class TextFilter(Runnable):
     """抽出テキストをフィルタリングするタスク"""
@@ -20,6 +21,7 @@ class TextFilter(Runnable):
             temperature=0.0
         )
         self._llm_json = self._llm.bind(response_format={"type": "json_object"})
+        self.logger = Logger("app/log/text_filter")
 
     async def _classify_text(self, sentences: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         """LLMを使用してテキストを分類し、文章のみを抽出"""
@@ -71,8 +73,13 @@ class TextFilter(Runnable):
         # LLMを使用して文章のみを抽出
         filtered_sentences = asyncio.run(self._classify_text(sentences))
 
-        return {
+        output = {
             "id": str(uuid.uuid4()),
             "file_name": source["file_name"],
             "sentences": filtered_sentences
         }
+
+        # 出力JSONをログに保存
+        self.logger.save_log(output, "text_filter_output_")
+
+        return output
