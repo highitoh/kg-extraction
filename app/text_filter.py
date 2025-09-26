@@ -13,7 +13,7 @@ class TextFilter(Runnable):
     """抽出テキストをフィルタリングするタスク"""
 
     def __init__(self):
-        with open("prompts/sentence_filter.txt", "r", encoding="utf-8") as f:
+        with open("./prompts/sentence_filter.txt", "r", encoding="utf-8") as f:
             self.classification_prompt = f.read()
 
         self._llm = ChatOpenAI(
@@ -21,7 +21,7 @@ class TextFilter(Runnable):
             temperature=0.0
         )
         self._llm_json = self._llm.bind(response_format={"type": "json_object"})
-        self.logger = Logger("app/log/text_filter")
+        self.logger = Logger("./log/text_filter")
 
     async def _classify_text(self, sentences: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         """LLMを使用してテキストを分類し、文章のみを抽出"""
@@ -83,3 +83,29 @@ class TextFilter(Runnable):
         self.logger.save_log(output, "text_filter_output_")
 
         return output
+
+if __name__ == "__main__":
+    # テスト用の入力データ
+    test_input = {
+        "source": {
+            "file_name": "test.pdf",
+            "sentences": [
+                {"line": 1, "text": "これは通常の文章です。"},
+                {"line": 2, "text": "株式会社テスト"},
+                {"line": 3, "text": "もう一つの文章example。"},
+                {"line": 4, "text": "図1: グラフの説明"},
+                {"line": 5, "text": "最後の文章です。"}
+            ]
+        }
+    }
+
+    # TextFilterのインスタンス作成とテスト実行
+    text_filter = TextFilter()
+    result = text_filter.invoke(test_input)
+
+    print("TextFilter Test Result:")
+    print(f"File name: {result['file_name']}")
+    print(f"Filtered sentences count: {len(result['sentences'])}")
+    for sentence in result["sentences"]:
+        print(f"  Line {sentence['line']}: {sentence['text']}")
+    print(f"Output ID: {result['id']}")

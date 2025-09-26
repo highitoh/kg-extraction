@@ -11,7 +11,7 @@ class TextExtractor(Runnable):
     """ファイルからテキストを抽出するタスク"""
 
     def __init__(self):
-        self.logger = Logger("app/log/text_extractor")
+        self.logger = Logger("./log/text_extractor")
 
     def _extract_text(self, pdf_path: str) -> str:
         """
@@ -63,3 +63,9 @@ class TextExtractor(Runnable):
         self.logger.save_log(output, "text_extractor_output_")
 
         return output
+
+
+if __name__ == "__main__":
+    extractor = TextExtractor()
+    result = extractor.invoke({"files": [{"path": "../doc/sample.pdf"}]})
+    print(f"処理結果: {result}")
