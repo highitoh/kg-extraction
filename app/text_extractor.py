@@ -36,23 +36,21 @@ class TextExtractor(Runnable):
         # output: TextExtractorOutput
 
         file_path = input["files"][0]["path"]
-        file_id = str(uuid.uuid4())
 
         # PDFからテキストを抽出
         extracted_text = self._extract_text(file_path)
 
         # テキストを行ごとに分割
-        items = []
+        sentences = []
         for line_num, line_text in enumerate(extracted_text.split('\n'), 1):
             if line_text.strip():  # 空行は除外
-                items.append({
+                sentences.append({
                     "line": line_num,
                     "text": line_text.strip()
                 })
 
         return {
             "id": str(uuid.uuid4()),
-            "file_id": file_id,
             "file_name": os.path.basename(file_path),
-            "items": items
+            "sentences": sentences
         }

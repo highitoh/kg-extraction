@@ -2,43 +2,5 @@
   "$id": "https://github.com/highitoh/kg-extraction/schemas/text-extractor/output.schema.json",
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "TextExtractorOutput",
-  "type": "object",
-  "description": "ファイルからのテキスト抽出の出力情報",
-  "properties": {
-    "id": {
-      "type": "string",
-      "description": "抽出ID"
-    },
-    "file_id": {
-      "type": "string",
-      "description": "抽出対象ファイルID"
-    },
-    "file_name": {
-      "type": "string",
-      "description": "抽出対象ファイル名"
-    },
-    "lines": {
-      "type": "array",
-      "description": "抽出テキスト情報",
-      "minItems": 1,
-      "items": {
-        "type": "object",
-        "additionalProperties": false,
-        "properties": {
-          "line": {
-            "type": "integer",
-            "minimum": 1,
-            "description": "ファイル全体での行番号（1始まり）"
-          },
-          "text": {
-            "type": "string",
-            "description": "抽出テキスト"
-          }
-        },
-        "required": ["line", "text"]
-      }
-    }
-  },
-  "required": ["id", "file_id", "file_name", "lines"],
-  "additionalProperties": false
+  "$ref": "../pdf-text-chain/output.schema.json"
 }

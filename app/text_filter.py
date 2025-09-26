@@ -21,12 +21,12 @@ class TextFilter(Runnable):
         )
         self._llm_json = self._llm.bind(response_format={"type": "json_object"})
 
-    async def _classify_text(self, items: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    async def _classify_text(self, sentences: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         """LLMを使用してテキストを分類し、文章のみを抽出"""
         # 行番号付きテキストを作成
         numbered_text = ""
-        for item in items:
-            numbered_text += f"{item['line']}: {item['text']}\n"
+        for sentence in sentences:
+            numbered_text += f"{sentence['line']}: {sentence['text']}\n"
 
         msg = HumanMessage(
             content=self.classification_prompt + f"\n\n# 対象テキスト\n{numbered_text}"
@@ -41,19 +41,19 @@ class TextFilter(Runnable):
                 return []
 
             # "文章"に分類された行のみを抽出
-            sentence_items = []
+            filtered_sentences = []
             for classification in classifications:
                 if classification.get("content") == "文章":
                     start_text = classification.get("startLine", "")
                     end_text = classification.get("endLine", "")
 
                     # 該当する行を特定して追加
-                    for item in items:
-                        if start_text in item["text"] or end_text in item["text"] or item["text"] in start_text:
-                            sentence_items.append(item)
+                    for sentence in sentences:
+                        if start_text in sentence["text"] or end_text in sentence["text"] or sentence["text"] in start_text:
+                            filtered_sentences.append(sentence)
                             break
 
-            return sentence_items
+            return filtered_sentences
 
         except Exception as e:
             print(f"テキスト分類中にエラーが発生しました: {e}")
@@ -65,15 +65,14 @@ class TextFilter(Runnable):
 
         source = input["source"]
 
-        # TextExtractorOutput/TextFilterOutputの両方から"items"を取得
-        items = source.get("items", [])
+        # TextExtractorOutput/TextFilterOutputの両方から"sentences"を取得
+        sentences = source.get("sentences", [])
 
         # LLMを使用して文章のみを抽出
-        filtered_items = asyncio.run(self._classify_text(items))
+        filtered_sentences = asyncio.run(self._classify_text(sentences))
 
         return {
             "id": str(uuid.uuid4()),
-            "file_id": source["file_id"],
             "file_name": source["file_name"],
-            "items": filtered_items
+            "sentences": filtered_sentences
         }
