@@ -40,7 +40,7 @@ class TextFilter(Runnable):
 
             classifications = json.loads(raw_content)
             if not isinstance(classifications, list):
-                return []
+                classifications = [classifications]
 
             # "文章"に分類された行のみを抽出
             filtered_sentences = []
@@ -49,11 +49,21 @@ class TextFilter(Runnable):
                     start_text = classification.get("startLine", "")
                     end_text = classification.get("endLine", "")
 
-                    # 該当する行を特定して追加
-                    for sentence in sentences:
-                        if start_text in sentence["text"] or end_text in sentence["text"] or sentence["text"] in start_text:
-                            filtered_sentences.append(sentence)
-                            break
+                    # startLineとendLineの範囲内のすべての行を抽出
+                    start_index = None
+                    end_index = None
+
+                    # startLineとendLineのインデックスを特定
+                    for i, sentence in enumerate(sentences):
+                        if start_text in sentence["text"] or sentence["text"] in start_text:
+                            start_index = i
+                        if end_text in sentence["text"] or sentence["text"] in end_text:
+                            end_index = i
+
+                    # 範囲が特定できた場合、その範囲のすべての行を追加
+                    if start_index is not None and end_index is not None:
+                        for i in range(start_index, end_index + 1):
+                            filtered_sentences.append(sentences[i])
 
             return filtered_sentences
 
