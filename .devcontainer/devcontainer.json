@@ -18,7 +18,8 @@
 		// コンテナでNode.jsをインストールしていない場合は、併せてインストールする
 		"ghcr.io/devcontainers/features/node:1": {},
 		"ghcr.io/anthropics/devcontainer-features/claude-code:1.0": {}
-	}
+	},
+	"postCreateCommand": "npm install -g git-cz"
 }
 
 // // For format details, see https://aka.ms/devcontainer.json. For config options, see the
