@@ -1,0 +1,32 @@
+{
+  "type": "object",
+  "properties": {
+    "items": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "content": {
+            "type": "string",
+            "description": "記述分類"
+          },
+          "startLine": {
+            "type": "integer",
+            "description": "開始行数(1始まり)",
+            "minimum": 1
+          },
+          "endLine": {
+            "type": "integer",
+            "description": "終了行数(1始まり)",
+            "minimum": 1
+          }
+        },
+        "required": ["content", "startLine", "endLine"],
+        "additionalProperties": false
+      },
+      "minItems": 0
+    }
+  },
+  "required": ["items"],
+  "additionalProperties": false
+}

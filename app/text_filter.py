@@ -8,6 +8,7 @@ from langchain_core.runnables.config import RunnableConfig
 from langchain_core.messages import HumanMessage
 from langchain_openai import ChatOpenAI
 from logger import Logger
+from chunk_creator import ChunkCreator
 
 class TextFilter(Runnable):
     """抽出テキストをフィルタリングするタスク"""
@@ -16,60 +17,116 @@ class TextFilter(Runnable):
         with open("./prompts/sentence_filter.txt", "r", encoding="utf-8") as f:
             self.classification_prompt = f.read()
 
+        # Load JSON schema from file
+        with open("./schemas/text-filter/llm.schema.json", "r", encoding="utf-8") as f:
+            schema = json.load(f)
+
         self._llm = ChatOpenAI(
-            model="gpt-4o-mini",
+            model="gpt-5-nano",
             temperature=0.0
         )
-        self._llm_json = self._llm.bind(response_format={"type": "json_object"})
+        self._llm_json = self._llm.bind(response_format={"type": "json_schema", "json_schema": {"name": "text_filter_schema", "schema": schema}})
         self.logger = Logger("./log/text_filter")
+        self.chunk_creator = ChunkCreator(max_chars=1600, overlap_chars=200)
 
-    async def _classify_text(self, sentences: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
-        """LLMを使用してテキストを分類し、文章のみを抽出"""
-        # 行番号付きテキストを作成
-        numbered_text = ""
-        for sentence in sentences:
-            numbered_text += f"{sentence['line']}: {sentence['text']}\n"
-
+    async def _classify_chunk(self, chunk_text: str, chunk_sentences: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        """チャンクのテキストを分類し、文章のみを抽出"""
         msg = HumanMessage(
-            content=self.classification_prompt + f"\n\n# 対象テキスト\n{numbered_text}"
+            content=self.classification_prompt + f"\n\n# 対象テキスト\n{chunk_text}"
         )
 
         try:
             ai = await self._llm_json.ainvoke([msg])
             raw_content = ai.content if isinstance(ai.content, str) else str(ai.content)
 
-            classifications = json.loads(raw_content)
-            if not isinstance(classifications, list):
-                classifications = [classifications]
+            response_data = json.loads(raw_content)
+
+            # JSONスキーマ: {"items": [...]} 形式
+            classifications = response_data.get("items", [])
 
             # "文章"に分類された行のみを抽出
             filtered_sentences = []
             for classification in classifications:
                 if classification.get("content") == "文章":
-                    start_text = classification.get("startLine", "")
-                    end_text = classification.get("endLine", "")
+                    start_line = classification.get("startLine")
+                    end_line = classification.get("endLine")
 
-                    # startLineとendLineの範囲内のすべての行を抽出
-                    start_index = None
-                    end_index = None
-
-                    # startLineとendLineのインデックスを特定
-                    for i, sentence in enumerate(sentences):
-                        if start_text in sentence["text"] or sentence["text"] in start_text:
-                            start_index = i
-                        if end_text in sentence["text"] or sentence["text"] in end_text:
-                            end_index = i
-
-                    # 範囲が特定できた場合、その範囲のすべての行を追加
-                    if start_index is not None and end_index is not None:
-                        for i in range(start_index, end_index + 1):
-                            filtered_sentences.append(sentences[i])
+                    # startLineとendLineが整数として取得されることを確認
+                    if isinstance(start_line, int) and isinstance(end_line, int):
+                        # 指定された行番号範囲内のすべての行を抽出
+                        for sentence in chunk_sentences:
+                            if start_line <= sentence["line"] <= end_line:
+                                filtered_sentences.append(sentence)
 
             return filtered_sentences
 
         except Exception as e:
-            print(f"テキスト分類中にエラーが発生しました: {e}")
+            print(f"チャンク分類中にエラーが発生しました: {e}")
             return []
+
+    def _create_chunks_with_sentences(self, sentences: List[Dict[str, Any]]) -> List[tuple]:
+        """文章データをチャンクに分割し、各チャンクに対応する文章リストを作成"""
+        # 全体のテキストを作成
+        full_text = "\n".join([f"Line {s['line']}: {s['text']}" for s in sentences])
+
+        # テキストをチャンクに分割
+        chunks = self.chunk_creator.create(full_text)
+
+        chunk_data = []
+        for chunk in chunks:
+            # チャンク内の行番号を抽出
+            chunk_sentences = []
+            lines = chunk.split("\n")
+            for line in lines:
+                if line.strip().startswith("Line "):
+                    try:
+                        line_num = int(line.split(":")[0].replace("Line ", ""))
+                        # 対応する文章データを検索
+                        for sentence in sentences:
+                            if sentence["line"] == line_num:
+                                chunk_sentences.append(sentence)
+                                break
+                    except (ValueError, IndexError):
+                        continue
+
+            if chunk_sentences:
+                chunk_data.append((chunk, chunk_sentences))
+
+        return chunk_data
+
+    async def _classify_text(self, sentences: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        """LLMを使用してテキストを並列分類し、文章のみを抽出"""
+        # チャンクを作成
+        chunk_data = self._create_chunks_with_sentences(sentences)
+
+        # 各チャンクを並列処理
+        tasks = []
+        for chunk_text, chunk_sentences in chunk_data:
+            task = self._classify_chunk(chunk_text, chunk_sentences)
+            tasks.append(task)
+
+        # 並列実行
+        results = await asyncio.gather(*tasks, return_exceptions=True)
+
+        # 結果をマージ（重複排除）
+        filtered_sentences = []
+        seen_lines = set()
+
+        for result in results:
+            if isinstance(result, Exception):
+                print(f"チャンク処理中にエラーが発生しました: {result}")
+                continue
+
+            for sentence in result:
+                line_num = sentence["line"]
+                if line_num not in seen_lines:
+                    filtered_sentences.append(sentence)
+                    seen_lines.add(line_num)
+
+        # 行番号順にソート
+        filtered_sentences.sort(key=lambda x: x["line"])
+
+        return filtered_sentences
 
     def invoke(self, input: Dict[str, Any], config: RunnableConfig = None) -> Dict[str, Any]:
         # input: TextFilterInput
