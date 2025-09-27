@@ -3,16 +3,9 @@
 
 import os
 import re
-import json
 import uuid
-import asyncio
 from datetime import datetime
-from dataclasses import dataclass
-from typing import List, Dict, Any, Optional, Tuple, Union
-
-from langchain_openai import ChatOpenAI
-from langchain_core.messages import HumanMessage
-
+from typing import Dict, Any, Optional, Tuple
 
 # ---------- ユーティリティ ----------
 def _normalize_ws(s: str) -> str:
@@ -36,8 +29,8 @@ class TurtleGenerator:
     def __init__(
         self,
         *,
-        base_prefix: str = "http://example.com/kg#",
-        output_dir: str = "/workspace/app/output",
+        base_prefix: str = "https://github.com/highitoh/kg-extraction#",
+        output_dir: str = "./output",
     ):
         self.base_prefix = base_prefix
         self.output_dir = output_dir
@@ -47,8 +40,8 @@ class TurtleGenerator:
 
     def _iri(self, path: str) -> str:
         """
-        ex: のプレフィックス表記ではなく、<http://…> のフルIRIを返す。
-        例) path="Extraction/0-aaaa" -> "<http://example.com/kg#Extraction/0-aaaa>"
+        ex: のプレフィックス表記ではなく、<https://…> のフルIRIを返す。
+        例) path="Extraction/0-aaaa" -> "<https://github.com/highitoh/kg-extraction#Extraction/0-aaaa>"
         """
         base = self.base_prefix.rstrip("#/") + "#"
         return f"<{base}{path}>"
@@ -72,7 +65,7 @@ class TurtleGenerator:
         header_lines = [
             f"# Generated on {datetime.now().isoformat()}",
             "",
-            "@prefix ex: <http://example.com/kg#> .",
+            "@prefix ex: <https://github.com/highitoh/kg-extraction#> .",
             "@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .",
             "@prefix owl: <http://www.w3.org/2002/07/owl#> .",
             "@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .",
