@@ -191,3 +191,68 @@ class ViewExtractor(Runnable):
 
         return output
 
+
+if __name__ == "__main__":
+    # テスト用のサンプルデータ
+    sample_input = {
+        "target": {
+            "id": "test_001",
+            "file_id": "sample_file",
+            "sentences": [
+                {
+                    "lines": [1, 2],
+                    "text": "システムは顧客情報を管理する必要がある。"
+                },
+                {
+                    "lines": [3, 4],
+                    "text": "顧客データベースには氏名、住所、電話番号を格納する。"
+                },
+                {
+                    "lines": [5, 6],
+                    "text": "プロジェクトの目的は売上向上である。"
+                },
+                {
+                    "lines": [7, 8],
+                    "text": "APIサーバーはRESTfulな設計で構築する。"
+                }
+            ]
+        },
+        "metamodel": {
+            "version": "1.0",
+            "domain": "business"
+        }
+    }
+
+    # ViewExtractorのインスタンス作成
+    print("ViewExtractor テスト開始...")
+    extractor = ViewExtractor(
+        model="gpt-5-nano",
+        temperature=0.0,
+        max_concurrency=2,  # テスト用に並列数を制限
+        progress=True,
+        max_spans_per_label=2  # テスト用に制限
+    )
+
+    print(f"対象ビュー: {extractor.views}")
+
+    try:
+        # テスト実行
+        result = extractor.invoke(sample_input)
+
+        print("\n=== テスト結果 ===")
+        print(f"出力ID: {result['id']}")
+        print(f"抽出されたビュー数: {len(result['views'])}")
+
+        for view in result['views']:
+            print(f"\nビュー種別: {view['type']}")
+            print(f"抽出テキスト数: {len(view['texts'])}")
+            for i, text in enumerate(view['texts'][:2]):  # 最初の2件のみ表示
+                print(f"  [{i+1}] {text['text']} (lines: {text['lines']})")
+
+        print("\n✅ ViewExtractor テスト完了")
+
+    except Exception as e:
+        print(f"\n❌ テスト実行エラー: {e}")
+        import traceback
+        traceback.print_exc()
+

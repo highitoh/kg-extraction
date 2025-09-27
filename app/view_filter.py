@@ -132,3 +132,104 @@ class ViewFilter(Runnable):
         self.logger.save_log(output)
 
         return output
+
+
+if __name__ == "__main__":
+    import uuid
+
+    # テスト用のサンプルデータ（重複を含む）
+    sample_input = {
+        "id": str(uuid.uuid4()),
+        "views": [
+            {
+                "type": "business_concept",
+                "texts": [
+                    {
+                        "file_id": "test_file",
+                        "lines": [1, 2],
+                        "text": "顧客管理システム"
+                    },
+                    {
+                        "file_id": "test_file",
+                        "lines": [3, 4],
+                        "text": "顧客管理システムの開発"  # 包含関係（長い方）
+                    },
+                    {
+                        "file_id": "test_file",
+                        "lines": [5, 6],
+                        "text": "顧客管理システム"  # 完全一致（重複）
+                    }
+                ]
+            },
+            {
+                "type": "system_requirement",
+                "texts": [
+                    {
+                        "file_id": "test_file",
+                        "lines": [7, 8],
+                        "text": "データベース連携機能"
+                    },
+                    {
+                        "file_id": "test_file",
+                        "lines": [9, 10],
+                        "text": "データベース連携"  # 包含関係（短い方）
+                    },
+                    {
+                        "file_id": "test_file",
+                        "lines": [11, 12],
+                        "text": "API設計要件"
+                    }
+                ]
+            },
+            {
+                "type": "data_analysis",
+                "texts": [
+                    {
+                        "file_id": "test_file",
+                        "lines": [13, 14],
+                        "text": "売上データ分析"
+                    }
+                ]
+            }
+        ]
+    }
+
+    # ViewFilterのインスタンス作成
+    print("ViewFilter テスト開始...")
+    filter_instance = ViewFilter(progress=True)
+
+    print("\n=== 元のデータ ===")
+    for view in sample_input["views"]:
+        print(f"ビュー種別: {view['type']}")
+        for i, text in enumerate(view["texts"]):
+            print(f"  [{i+1}] {text['text']} (lines: {text['lines']})")
+
+    try:
+        # テスト実行
+        result = filter_instance.invoke(sample_input)
+
+        print("\n=== フィルタリング結果 ===")
+        print(f"出力ID: {result['id']}")
+        print(f"フィルタ後のビュー数: {len(result['views'])}")
+
+        for view in result['views']:
+            print(f"\nビュー種別: {view['type']}")
+            print(f"テキスト数: {len(view['texts'])}")
+            for i, text in enumerate(view['texts']):
+                print(f"  [{i+1}] {text['text']} (lines: {text['lines']})")
+
+        # 重複削除の検証
+        original_text_count = sum(len(v.get("texts", [])) for v in sample_input["views"])
+        filtered_text_count = sum(len(v.get("texts", [])) for v in result["views"])
+
+        print(f"\n=== 統計情報 ===")
+        print(f"元のテキスト数: {original_text_count}")
+        print(f"フィルタ後のテキスト数: {filtered_text_count}")
+        print(f"削除されたテキスト数: {original_text_count - filtered_text_count}")
+
+        print("\n✅ ViewFilter テスト完了")
+
+    except Exception as e:
+        print(f"\n❌ テスト実行エラー: {e}")
+        import traceback
+        traceback.print_exc()
