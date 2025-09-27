@@ -153,3 +153,90 @@ class ClassExtractor(Runnable):
         self.logger.save_log(output)
 
         return output
+
+
+if __name__ == "__main__":
+    import json
+
+    # Create ClassExtractor instance
+    extractor = ClassExtractor()
+
+    # Sample input data for testing
+    sample_input = {
+        "view_info": {
+            "id": "test-view-001",
+            "views": [
+                {
+                    "type": "business_concept",
+                    "texts": [
+                        {
+                            "file_id": "file-001",
+                            "line": 10,
+                            "text": "顧客管理システムでは、ユーザー登録と認証を処理します"
+                        },
+                        {
+                            "file_id": "file-001",
+                            "line": 20,
+                            "text": "注文管理システムが商品の受注と配送を担当します"
+                        }
+                    ]
+                },
+                {
+                    "type": "system_component",
+                    "texts": [
+                        {
+                            "file_id": "file-002",
+                            "line": 5,
+                            "text": "データベース接続モジュールとAPIゲートウェイの実装"
+                        },
+                        {
+                            "file_id": "file-002",
+                            "line": 15,
+                            "text": "認証サービスと権限管理サービスの構成"
+                        }
+                    ]
+                },
+                {
+                    "type": "data_analysis",
+                    "texts": [
+                        {
+                            "file_id": "file-003",
+                            "line": 3,
+                            "text": "売上データの集計と顧客行動の分析機能"
+                        }
+                    ]
+                }
+            ]
+        }
+    }
+
+    print("=== ClassExtractor Test ===")
+    print("Input:")
+    print(json.dumps(sample_input, ensure_ascii=False, indent=2))
+    print("\n" + "="*50 + "\n")
+
+    try:
+        # Execute ClassExtractor
+        result = extractor.invoke(sample_input)
+
+        print("Output:")
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+
+        print(f"\nSummary:")
+        print(f"- Total classes extracted: {len(result['classes'])}")
+
+        # Group by view type for display
+        classes_by_view = {}
+        for cls in result["classes"]:
+            view_type = cls["class_iri"].replace("ex:", "").replace("Class", "")
+            if view_type not in classes_by_view:
+                classes_by_view[view_type] = []
+            classes_by_view[view_type].append(cls["label"])
+
+        for view_type, labels in classes_by_view.items():
+            print(f"- {view_type}: {len(labels)} classes - {', '.join(labels)}")
+
+    except Exception as e:
+        print(f"Error: {e}")
+        import traceback
+        traceback.print_exc()
