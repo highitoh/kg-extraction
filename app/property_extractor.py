@@ -137,3 +137,87 @@ class PropertyExtractor(Runnable):
         self.logger.save_log(output)
 
         return output
+
+
+if __name__ == "__main__":
+    import json
+
+    # Create PropertyExtractor instance
+    extractor = PropertyExtractor()
+
+    # Sample input data for testing (class_info with classes)
+    sample_input = {
+        "class_info": {
+            "id": "test-class-001",
+            "classes": [
+                {
+                    "id": "cls-001",
+                    "class_iri": "ex:CustomerManagementSystem",
+                    "label": "顧客管理システム",
+                    "file_id": "file-001"
+                },
+                {
+                    "id": "cls-002",
+                    "class_iri": "ex:UserRegistration",
+                    "label": "ユーザー登録",
+                    "file_id": "file-001"
+                },
+                {
+                    "id": "cls-003",
+                    "class_iri": "ex:Authentication",
+                    "label": "認証",
+                    "file_id": "file-001"
+                },
+                {
+                    "id": "cls-004",
+                    "class_iri": "ex:OrderManagementSystem",
+                    "label": "注文管理システム",
+                    "file_id": "file-002"
+                },
+                {
+                    "id": "cls-005",
+                    "class_iri": "ex:DatabaseModule",
+                    "label": "データベース接続モジュール",
+                    "file_id": "file-002"
+                },
+                {
+                    "id": "cls-006",
+                    "class_iri": "ex:ApiGateway",
+                    "label": "APIゲートウェイ",
+                    "file_id": "file-002"
+                }
+            ]
+        },
+        "metamodel": {}
+    }
+
+    print("=== PropertyExtractor Test ===")
+    print("Input:")
+    print(json.dumps(sample_input, ensure_ascii=False, indent=2))
+    print("\n" + "="*50 + "\n")
+
+    try:
+        # Execute PropertyExtractor
+        result = extractor.invoke(sample_input)
+
+        print("Output:")
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+
+        print(f"\nSummary:")
+        print(f"- Total properties extracted: {len(result['properties'])}")
+
+        # Display each property relationship
+        for i, prop in enumerate(result["properties"], 1):
+            # Find source and destination class labels for display
+            src_class = next((c for c in sample_input["class_info"]["classes"] if c["id"] == prop["src_id"]), None)
+            dest_class = next((c for c in sample_input["class_info"]["classes"] if c["id"] == prop["dest_id"]), None)
+
+            src_label = src_class["label"] if src_class else prop["src_id"]
+            dest_label = dest_class["label"] if dest_class else prop["dest_id"]
+
+            print(f"- Property {i}: {src_label} --[{prop['property_iri']}]--> {dest_label}")
+
+    except Exception as e:
+        print(f"Error: {e}")
+        import traceback
+        traceback.print_exc()
