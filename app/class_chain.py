@@ -1,17 +1,16 @@
-from langchain.schema.runnable import RunnableSequence
+from langchain.schema.runnable import RunnableSequence, Runnable
 
 from class_extractor import ClassExtractor
 #from class_filter import ClassFilter
 
-def create_class_chain() -> RunnableSequence:
+def create_class_chain() -> Runnable:
     """
     Create class extraction chain:
       ClassExtractor -> ClassFilter
     """
     extractor = ClassExtractor()
     #class_filter = ClassFilter()
-    return RunnableSequence(steps=[extractor])
-
+    return extractor
 
 if __name__ == "__main__":
     import json
