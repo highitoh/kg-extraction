@@ -1,11 +1,11 @@
 import logging
 
-from langchain.schema.runnable import RunnableSequence
+from langchain.schema.runnable import Runnable
 
 from view_extractor import ViewExtractor
 from view_filter import ViewFilter
 
-def create_view_chain() -> RunnableSequence:
+def create_view_chain() -> Runnable:
     """
     ビュー記述抽出チェイン:
       ViewExtractor -> ViewFilter -> ViewChainLogger
@@ -13,7 +13,7 @@ def create_view_chain() -> RunnableSequence:
     """
     extractor = ViewExtractor()
     view_filter = ViewFilter()
-    return RunnableSequence(steps=[extractor, view_filter])
+    return extractor | view_filter
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
