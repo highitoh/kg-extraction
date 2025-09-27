@@ -21,17 +21,21 @@
         "type": "object",
         "additionalProperties": false,
         "properties": {
-          "line": {
-            "type": "integer",
-            "minimum": 1,
-            "description": "文書全体での行番号（1始まり）"
+          "lines": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "minItems": 1,
+            "description": "文書全体での行番号（1始まり）の配列"
           },
           "text": {
             "type": "string",
             "description": "抽出文章"
           }
         },
-        "required": ["line", "text"]
+        "required": ["lines", "text"]
       }
     }
   },

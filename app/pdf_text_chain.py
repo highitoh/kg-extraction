@@ -5,19 +5,23 @@ from langchain_core.runnables.config import RunnableConfig
 
 from text_extractor import TextExtractor
 from text_filter import TextFilter
+from text_transformer import TextTransformer
 
 class PDFTextChain(Runnable):
     """PDFテキスト抽出チェイン"""
 
     def __init__(self):
         self.extractor = TextExtractor()
+        self.transformer = TextTransformer()
         self.filter = TextFilter()
 
     def invoke(self, input: Dict[str, Any], config: RunnableConfig = None) -> Dict[str, Any]:
         # Step 1: テキスト抽出
         extracted = self.extractor.invoke(input, config)
-        # Step 2: フィルタリング
-        filtered = self.filter.invoke({"source": extracted, "filter": {"name": "dummy"}}, config)
+        # Step 2: テキスト連結
+        transformed = self.transformer.invoke(extracted)
+        # Step 3: フィルタリング
+        filtered = self.filter.invoke({"source": transformed, "filter": {"name": "dummy"}}, config)
         return filtered
 
 

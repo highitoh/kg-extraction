@@ -1,0 +1,7 @@
+{
+  "$id": "https://github.com/highitoh/kg-extraction/schemas/text-transformer/output.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "TextTransformerOutput",
+  "description": "テキスト整形の出力情報",
+  "$ref": "https://github.com/highitoh/kg-extraction/schemas/pdf-text-chain/output.schema.json"
+}

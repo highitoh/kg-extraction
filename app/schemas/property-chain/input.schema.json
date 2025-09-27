@@ -13,5 +13,5 @@
     }
   },
   "required": ["class_info", "metamodel"],
-  "additionalProperties": "false"
+  "additionalProperties": false
 }

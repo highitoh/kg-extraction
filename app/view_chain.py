@@ -164,14 +164,14 @@ class ViewExtractor(Runnable):
             for result in chunk_results:
                 spans = result["spans"].get(view_type, [])
                 for span in spans:
-                    # 元の文からline番号を推定（簡易実装）
+                    # 元の文からlines番号を推定（簡易実装）
                     matching_sentence = next(
                         (s for s in sentences if span in s["text"]),
-                        sentences[0] if sentences else {"line": 1}
+                        sentences[0] if sentences else {"lines": [1]}
                     )
                     texts.append({
                         "file_id": file_id,
-                        "line": matching_sentence.get("line", 1),
+                        "lines": matching_sentence.get("lines", [1]),
                         "text": span,
                     })
 
@@ -342,8 +342,8 @@ if __name__ == "__main__":
             "file_id": "file-abc",
             "file_name": "sample.pdf",
             "sentences": [
-                {"line": 1, "text": "本書はシステムのビジョンを述べる。"},
-                {"line": 2, "text": "利用者は注文をアプリから行える。"},
+                {"lines": [1], "text": "本書はシステムのビジョンを述べる。"},
+                {"lines": [2], "text": "利用者は注文をアプリから行える。"},
             ],
         },
         "metamodel": {

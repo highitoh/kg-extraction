@@ -49,7 +49,7 @@ class TextExtractor(Runnable):
         for line_num, line_text in enumerate(extracted_text.split('\n'), 1):
             if line_text.strip():  # 空行は除外
                 sentences.append({
-                    "line": line_num,
+                    "lines": [line_num],
                     "text": line_text.strip()
                 })
 
