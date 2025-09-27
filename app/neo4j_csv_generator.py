@@ -8,8 +8,7 @@ bk/rdf_to_property_graph.pyのロジックを参考に、JSONスキーマから�
 import os
 import csv
 import json
-from typing import Dict, Set, Tuple, Optional, Any
-from pathlib import Path
+from typing import Dict, Set, Tuple, Any
 
 
 class Neo4jCSVGenerator:
@@ -36,7 +35,7 @@ class Neo4jCSVGenerator:
         "id",                # プロパティID
     ]
 
-    def __init__(self, output_dir: str = "app/output"):
+    def __init__(self, output_dir: str = "./output"):
         self.output_dir = output_dir
         os.makedirs(self.output_dir, exist_ok=True)
 
@@ -173,13 +172,13 @@ def main():
             "classes": [
                 {
                     "id": "class_001",
-                    "class_iri": "http://example.com/kg#Stakeholder",
+                    "class_iri": "https://github.com/highitoh/kg-extraction#Stakeholder",
                     "label": "店舗スタッフ",
                     "file_id": "file_001"
                 },
                 {
                     "id": "class_002",
-                    "class_iri": "http://example.com/kg#Value",
+                    "class_iri": "https://github.com/highitoh/kg-extraction#Value",
                     "label": "待ち時間短縮",
                     "file_id": "file_001"
                 }
@@ -191,7 +190,7 @@ def main():
                 {
                     "id": "prop_001",
                     "src_id": "class_001",
-                    "property_iri": "http://example.com/kg#hasValue",
+                    "property_iri": "https://github.com/highitoh/kg-extraction#hasValue",
                     "dest_id": "class_002"
                 }
             ]
