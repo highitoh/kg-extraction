@@ -1,16 +1,16 @@
-from langchain.schema.runnable import RunnableSequence
+from langchain.schema.runnable import Runnable
 
 from property_extractor import PropertyExtractor
-from property_filter import PropertyFilter
+#from property_filter import PropertyFilter
 
-def create_property_chain() -> RunnableSequence:
+def create_property_chain() -> Runnable:
     """
     プロパティ抽出チェーン:
       PropertyExtractor -> PropertyFilter
     """
     extractor = PropertyExtractor()
-    property_filter = PropertyFilter()
-    return RunnableSequence(steps=[extractor, property_filter])
+    #property_filter = PropertyFilter()
+    return extractor
 
 
 if __name__ == "__main__":
