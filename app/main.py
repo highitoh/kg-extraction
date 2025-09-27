@@ -8,12 +8,12 @@ import json
 from typing import Dict, Any
 from langchain.schema.runnable import Runnable, RunnableSequence
 
-from .pdf_text_chain import PDFTextChain
-from .view_chain import create_view_chain
-from .class_chain import create_class_chain
-from .property_chain import create_property_chain
-from .turtle_generator import TurtleGenerator
-from .neo4j_csv_generator import Neo4jCSVGenerator
+from pdf_text_chain import PDFTextChain
+from view_chain import create_view_chain
+from class_chain import create_class_chain
+from property_chain import create_property_chain
+from turtle_generator import TurtleGenerator
+from neo4j_csv_generator import Neo4jCSVGenerator
 
 
 class DataTransformer(Runnable):
@@ -138,7 +138,7 @@ def create_knowledge_extraction_chain(output_dir: str = "/workspace/app/output")
     class_to_property_transformer = DataTransformer("class_to_property")
 
     # チェインを連結
-    return RunnableSequence(steps=[
+    return RunnableSequence(
         pdf_chain,                          # PDFTextChainInput -> PDFTextChainOutput
         pdf_to_view_transformer,            # PDFTextChainOutput -> ViewChainInput
         view_chain,                         # ViewChainInput -> ViewChainOutput
@@ -146,7 +146,7 @@ def create_knowledge_extraction_chain(output_dir: str = "/workspace/app/output")
         class_chain,                        # ClassChainInput -> ClassChainOutput
         class_to_property_transformer,      # ClassChainOutput -> PropertyChainInput
         property_output_chain,              # PropertyChainInput -> Final Output
-    ])
+    )
 
 
 def run_knowledge_extraction(pdf_path: str, output_dir: str = "/workspace/app/output") -> Dict[str, Any]:
@@ -181,7 +181,7 @@ if __name__ == "__main__":
     if len(sys.argv) > 1:
         pdf_path = sys.argv[1]
     else:
-        pdf_path = "sample.pdf"  # デフォルトファイル
+        pdf_path = "../doc/sample.pdf"
 
     if not os.path.exists(pdf_path):
         print(f"Error: PDF file not found: {pdf_path}")
