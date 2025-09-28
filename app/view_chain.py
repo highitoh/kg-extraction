@@ -25,8 +25,8 @@ if __name__ == "__main__":
             "file_id": "file-abc",
             "file_name": "sample.pdf",
             "sentences": [
-                {"lines": [1], "text": "本書はシステムのビジョンを述べる。"},
-                {"lines": [2], "text": "利用者は注文をアプリから行える。"},
+                {"text": "本書はシステムのビジョンを述べる。"},
+                {"text": "利用者は注文をアプリから行える。"},
             ],
         },
         "metamodel": {

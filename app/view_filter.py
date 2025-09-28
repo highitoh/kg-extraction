@@ -146,17 +146,14 @@ if __name__ == "__main__":
                 "texts": [
                     {
                         "file_id": "test_file",
-                        "lines": [1, 2],
                         "text": "顧客管理システム"
                     },
                     {
                         "file_id": "test_file",
-                        "lines": [3, 4],
                         "text": "顧客管理システムの開発"  # 包含関係（長い方）
                     },
                     {
                         "file_id": "test_file",
-                        "lines": [5, 6],
                         "text": "顧客管理システム"  # 完全一致（重複）
                     }
                 ]
@@ -166,17 +163,14 @@ if __name__ == "__main__":
                 "texts": [
                     {
                         "file_id": "test_file",
-                        "lines": [7, 8],
                         "text": "データベース連携機能"
                     },
                     {
                         "file_id": "test_file",
-                        "lines": [9, 10],
                         "text": "データベース連携"  # 包含関係（短い方）
                     },
                     {
                         "file_id": "test_file",
-                        "lines": [11, 12],
                         "text": "API設計要件"
                     }
                 ]
@@ -186,7 +180,6 @@ if __name__ == "__main__":
                 "texts": [
                     {
                         "file_id": "test_file",
-                        "lines": [13, 14],
                         "text": "売上データ分析"
                     }
                 ]
@@ -202,7 +195,7 @@ if __name__ == "__main__":
     for view in sample_input["views"]:
         print(f"ビュー種別: {view['type']}")
         for i, text in enumerate(view["texts"]):
-            print(f"  [{i+1}] {text['text']} (lines: {text['lines']})")
+            print(f"  [{i+1}] {text['text']}")
 
     try:
         # テスト実行
@@ -216,7 +209,7 @@ if __name__ == "__main__":
             print(f"\nビュー種別: {view['type']}")
             print(f"テキスト数: {len(view['texts'])}")
             for i, text in enumerate(view['texts']):
-                print(f"  [{i+1}] {text['text']} (lines: {text['lines']})")
+                print(f"  [{i+1}] {text['text']}")
 
         # 重複削除の検証
         original_text_count = sum(len(v.get("texts", [])) for v in sample_input["views"])

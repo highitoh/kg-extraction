@@ -46,10 +46,9 @@ class TextExtractor(Runnable):
 
         # テキストを行ごとに分割
         sentences = []
-        for line_num, line_text in enumerate(extracted_text.split('\n'), 1):
+        for line_text in extracted_text.split('\n'):
             if line_text.strip():  # 空行は除外
                 sentences.append({
-                    "lines": [line_num],
                     "text": line_text.strip()
                 })
 

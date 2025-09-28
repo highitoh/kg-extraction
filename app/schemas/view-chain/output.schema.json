@@ -27,18 +27,9 @@
               "additionalProperties": false,
               "properties": {
                 "file_id": { "type": "string", "description": "ファイルID" },
-                "lines": {
-                  "type": "array",
-                  "items": {
-                    "type": "integer",
-                    "minimum": 1
-                  },
-                  "minItems": 1,
-                  "description": "文書全体での行番号（1始まり）の配列"
-                },
                 "text": { "type": "string", "description": "抽出ビュー記述" }
               },
-              "required": ["file_id", "lines", "text"]
+              "required": ["file_id", "text"]
             }
           }
         },

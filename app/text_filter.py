@@ -71,33 +71,28 @@ class TextFilter(Runnable):
     def _create_chunks_with_sentences(self, sentences: List[Dict[str, Any]]) -> List[tuple]:
         """文章データをチャンクに分割し、各チャンクに対応する文章リストを作成"""
         # 全体のテキストを作成
-        full_text = "\n".join([f"Lines {s['lines'][0] if isinstance(s['lines'], list) else s['lines']}: {s['text']}" for s in sentences])
+        full_text = "\n".join([s['text'] for s in sentences])
 
         # テキストをチャンクに分割
         chunks = self.chunk_creator.create(full_text)
 
         chunk_data = []
-        for chunk in chunks:
-            # チャンク内の行番号を抽出
+        for i, chunk in enumerate(chunks):
+            # チャンク内のテキストに対応する文章を特定
             chunk_sentences = []
-            lines = chunk.split("\n")
-            for line in lines:
-                if line.strip().startswith("Lines "):
-                    try:
-                        line_num = int(line.split(":")[0].replace("Lines ", ""))
-                        # 対応する文章データを検索
-                        for sentence in sentences:
-                            sentence_lines = sentence["lines"]
-                            if isinstance(sentence_lines, list):
-                                if line_num in sentence_lines:
-                                    chunk_sentences.append(sentence)
-                                    break
-                            else:
-                                if sentence_lines == line_num:
-                                    chunk_sentences.append(sentence)
-                                    break
-                    except (ValueError, IndexError):
-                        continue
+            chunk_lines = chunk.split("\n")
+
+            for line in chunk_lines:
+                line = line.strip()
+                if not line:
+                    continue
+
+                # テキストマッチングで対応する文章を検索
+                for sentence in sentences:
+                    sentence_text = sentence["text"].strip()
+                    if line in sentence_text or sentence_text in line:
+                        if sentence not in chunk_sentences:
+                            chunk_sentences.append(sentence)
 
             if chunk_sentences:
                 chunk_data.append((chunk, chunk_sentences))
@@ -120,7 +115,7 @@ class TextFilter(Runnable):
 
         # 結果をマージ（重複排除）
         filtered_sentences = []
-        seen_lines = set()
+        seen_texts = set()
 
         for result in results:
             if isinstance(result, Exception):
@@ -128,17 +123,10 @@ class TextFilter(Runnable):
                 continue
 
             for sentence in result:
-                sentence_lines = sentence["lines"]
-                if isinstance(sentence_lines, list):
-                    line_key = tuple(sentence_lines)
-                else:
-                    line_key = sentence_lines
-                if line_key not in seen_lines:
+                sentence_text = sentence["text"]
+                if sentence_text not in seen_texts:
                     filtered_sentences.append(sentence)
-                    seen_lines.add(line_key)
-
-        # 行番号順にソート
-        filtered_sentences.sort(key=lambda x: x["lines"][0] if isinstance(x["lines"], list) else x["lines"])
+                    seen_texts.add(sentence_text)
 
         return filtered_sentences
 
@@ -171,11 +159,11 @@ if __name__ == "__main__":
         "source": {
             "file_name": "test.pdf",
             "sentences": [
-                {"lines": [1], "text": "これは通常の文章です。"},
-                {"lines": [2], "text": "株式会社テスト"},
-                {"lines": [3], "text": "もう一つの文章example。"},
-                {"lines": [4], "text": "図1: グラフの説明"},
-                {"lines": [5], "text": "最後の文章です。"}
+                {"text": "これは通常の文章です。"},
+                {"text": "株式会社テスト"},
+                {"text": "もう一つの文章example。"},
+                {"text": "図1: グラフの説明"},
+                {"text": "最後の文章です。"}
             ]
         }
     }
@@ -188,5 +176,5 @@ if __name__ == "__main__":
     print(f"File name: {result['file_name']}")
     print(f"Filtered sentences count: {len(result['sentences'])}")
     for sentence in result["sentences"]:
-        print(f"  Line {sentence['lines']}: {sentence['text']}")
+        print(f"  Text: {sentence['text']}")
     print(f"Output ID: {result['id']}")

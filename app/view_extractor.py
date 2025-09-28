@@ -164,14 +164,8 @@ class ViewExtractor(Runnable):
             for result in chunk_results:
                 spans = result["spans"].get(view_type, [])
                 for span in spans:
-                    # 元の文からlines番号を推定（簡易実装）
-                    matching_sentence = next(
-                        (s for s in sentences if span in s["text"]),
-                        sentences[0] if sentences else {"lines": [1]}
-                    )
                     texts.append({
                         "file_id": file_id,
-                        "lines": matching_sentence.get("lines", [1]),
                         "text": span,
                     })
 
@@ -200,19 +194,15 @@ if __name__ == "__main__":
             "file_id": "sample_file",
             "sentences": [
                 {
-                    "lines": [1, 2],
                     "text": "システムは顧客情報を管理する必要がある。"
                 },
                 {
-                    "lines": [3, 4],
                     "text": "顧客データベースには氏名、住所、電話番号を格納する。"
                 },
                 {
-                    "lines": [5, 6],
                     "text": "プロジェクトの目的は売上向上である。"
                 },
                 {
-                    "lines": [7, 8],
                     "text": "APIサーバーはRESTfulな設計で構築する。"
                 }
             ]
@@ -247,7 +237,7 @@ if __name__ == "__main__":
             print(f"\nビュー種別: {view['type']}")
             print(f"抽出テキスト数: {len(view['texts'])}")
             for i, text in enumerate(view['texts'][:2]):  # 最初の2件のみ表示
-                print(f"  [{i+1}] {text['text']} (lines: {text['lines']})")
+                print(f"  [{i+1}] {text['text']}")
 
         print("\n✅ ViewExtractor テスト完了")
 

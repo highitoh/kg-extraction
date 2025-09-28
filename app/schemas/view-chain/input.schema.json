@@ -20,18 +20,9 @@
             "type": "object",
             "additionalProperties": false,
             "properties": {
-              "lines": {
-                "type": "array",
-                "items": {
-                  "type": "integer",
-                  "minimum": 1
-                },
-                "minItems": 1,
-                "description": "文書全体での行番号（1始まり）の配列"
-              },
               "text": { "type": "string", "description": "抽出文章" }
             },
-            "required": ["lines", "text"]
+            "required": ["text"]
           }
         }
       },
