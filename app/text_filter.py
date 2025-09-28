@@ -23,7 +23,8 @@ class TextFilter(Runnable):
 
         self._llm = ChatOpenAI(
             model="gpt-5-nano",
-            temperature=0.0
+            temperature=0.0,
+            reasoning={"effort": "minimal"}
         )
         self._llm_json = self._llm.bind(response_format={"type": "json_schema", "json_schema": {"name": "text_filter_schema", "schema": schema}})
         self.logger = Logger("./log/text_filter")
@@ -37,7 +38,14 @@ class TextFilter(Runnable):
 
         try:
             ai = await self._llm_json.ainvoke([msg])
-            raw_content = ai.content if isinstance(ai.content, str) else str(ai.content)
+
+            # ai.contentが配列形式の場合はtext属性を取得
+            if isinstance(ai.content, list) and len(ai.content) > 0 and 'text' in ai.content[0]:
+                raw_content = ai.content[0]['text']
+            elif isinstance(ai.content, str):
+                raw_content = ai.content
+            else:
+                raw_content = str(ai.content)
 
             response_data = json.loads(raw_content)
 
