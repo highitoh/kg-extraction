@@ -10,18 +10,12 @@
             "type": "string",
             "description": "記述分類"
           },
-          "startLine": {
-            "type": "integer",
-            "description": "開始行数(1始まり)",
-            "minimum": 1
-          },
-          "endLine": {
-            "type": "integer",
-            "description": "終了行数(1始まり)",
-            "minimum": 1
+          "text": {
+            "type": "string",
+            "description": "全てのテキスト内容"
           }
         },
-        "required": ["content", "startLine", "endLine"],
+        "required": ["content", "text"],
         "additionalProperties": false
       },
       "minItems": 0

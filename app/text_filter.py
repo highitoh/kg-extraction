@@ -41,29 +41,26 @@ class TextFilter(Runnable):
 
             response_data = json.loads(raw_content)
 
+            # LLMの分類結果をログ出力
+            self.logger.save_log(response_data, "llm_classification_response_")
+
             # JSONスキーマ: {"items": [...]} 形式
             classifications = response_data.get("items", [])
 
-            # "文章"に分類された行のみを抽出
+            # "文章"に分類されたテキストを抽出
             filtered_sentences = []
             for classification in classifications:
                 if classification.get("content") == "文章":
-                    start_line = classification.get("startLine")
-                    end_line = classification.get("endLine")
+                    classified_text = classification.get("text")
 
-                    # startLineとendLineが整数として取得されることを確認
-                    if isinstance(start_line, int) and isinstance(end_line, int):
-                        # 指定された行番号範囲内のすべての行を抽出
+                    # 分類されたテキストが文字列として取得されることを確認
+                    if isinstance(classified_text, str):
+                        # チャンク内の文章と照合して該当するものを抽出
                         for sentence in chunk_sentences:
-                            sentence_lines = sentence["lines"]
-                            # linesが配列の場合、その中の任意の行番号が範囲内にあるかチェック
-                            if isinstance(sentence_lines, list):
-                                if any(start_line <= line <= end_line for line in sentence_lines):
-                                    filtered_sentences.append(sentence)
-                            else:
-                                # 整数の場合の処理（後方互換性）
-                                if start_line <= sentence_lines <= end_line:
-                                    filtered_sentences.append(sentence)
+                            sentence_text = sentence["text"]
+                            # 分類されたテキストが文章内に含まれているかチェック
+                            if classified_text.strip() in sentence_text or sentence_text.strip() in classified_text:
+                                filtered_sentences.append(sentence)
 
             return filtered_sentences
 
