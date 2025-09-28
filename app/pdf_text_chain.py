@@ -19,9 +19,9 @@ class PDFTextChain(Runnable):
         # Step 1: テキスト抽出
         extracted = self.extractor.invoke(input, config)
         # Step 2: テキスト連結
-        transformed = self.transformer.invoke(extracted)
+        # transformed = self.transformer.invoke(extracted)
         # Step 3: フィルタリング
-        filtered = self.filter.invoke({"source": transformed, "filter": {"name": "dummy"}}, config)
+        filtered = self.filter.invoke({"source": extracted, "filter": {"name": "dummy"}}, config)
         return filtered
 
 
