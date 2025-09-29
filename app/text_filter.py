@@ -1,188 +1,211 @@
-from typing import Any, Dict, List
-import asyncio
-import json
+# text_filter.py (修正版: 目次・ページ番号を削除)
+
+from __future__ import annotations
+from typing import Any, Dict, List, Tuple
+import re
 import uuid
 
 from langchain.schema.runnable import Runnable
 from langchain_core.runnables.config import RunnableConfig
-from langchain_core.messages import HumanMessage
-from langchain_openai import ChatOpenAI
-from logger import Logger
-from chunk_creator import ChunkCreator
+
+try:
+    from logger import Logger
+except Exception:
+    class Logger:
+        def __init__(self, *_args, **_kwargs): ...
+        def save_log(self, *_args, **_kwargs): ...
+        def info(self, *_args, **_kwargs): ...
+        def error(self, *_args, **_kwargs): ...
+
+try:
+    from chunk_creator import ChunkCreator
+except Exception:
+    ChunkCreator = None
+
 
 class TextFilter(Runnable):
-    """抽出テキストをフィルタリングするタスク"""
+    BULLET_PATTERNS = [
+        r"^\s*[\u2022\u30fb\-\–\—\*▶・•]\s+",
+        r"^\s*\(\d+\)\s+",
+        r"^\s*\d+[\.\)]\s+",
+        r"^\s*[a-zA-Z][\.\)]\s+",
+        r"^\s*[①-⑳]\s+",
+        r"^\s*-\s+\[\s?[xX]?\s?\]\s+",
+    ]
+    BULLET_RE = re.compile("|".join(BULLET_PATTERNS))
+    SENT_END_RE = re.compile(r"[。！？!?](?:[)”\]\}』」】〉》]*)\s*$")
+
+    # === 追加: 除外パターン（目次・ページ番号） ===
+    EXCLUDE_PATTERNS = [
+        re.compile(r"^\s*目\s*次\s*$"),          # 「目 次」
+        re.compile(r"^\s*別\d+-\d+\s*$"),       # 「別8-1」「別8-5」など
+    ]
 
     def __init__(self):
-        with open("./prompts/sentence_filter.txt", "r", encoding="utf-8") as f:
-            self.classification_prompt = f.read()
-
-        # Load JSON schema from file
-        with open("./schemas/text-filter/llm.schema.json", "r", encoding="utf-8") as f:
-            schema = json.load(f)
-
-        self._llm = ChatOpenAI(
-            model="gpt-5-nano",
-            temperature=0.0,
-            reasoning={"effort": "minimal"}
-        )
-        self._llm_json = self._llm.bind(response_format={"type": "json_schema", "json_schema": {"name": "text_filter_schema", "schema": schema}})
         self.logger = Logger("./log/text_filter")
-        self.chunk_creator = ChunkCreator(max_chars=1600, overlap_chars=200)
-
-    async def _classify_chunk(self, chunk_text: str, chunk_sentences: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
-        """チャンクのテキストを分類し、文章のみを抽出"""
-        msg = HumanMessage(
-            content=self.classification_prompt + f"\n\n# 対象テキスト\n{chunk_text}"
-        )
-
-        try:
-            ai = await self._llm_json.ainvoke([msg])
-
-            # ai.contentが配列形式の場合はtext属性を取得
-            if isinstance(ai.content, list) and len(ai.content) > 0 and 'text' in ai.content[0]:
-                raw_content = ai.content[0]['text']
-            elif isinstance(ai.content, str):
-                raw_content = ai.content
-            else:
-                raw_content = str(ai.content)
-
-            response_data = json.loads(raw_content)
-
-            # LLMの分類結果をログ出力
-            self.logger.save_log(response_data, "llm_classification_response_")
-
-            # JSONスキーマ: {"items": [...]} 形式
-            classifications = response_data.get("items", [])
-
-            # "文章"に分類されたテキストを抽出
-            filtered_sentences = []
-            for classification in classifications:
-                if classification.get("content") == "文章":
-                    classified_text = classification.get("text")
-
-                    # 分類されたテキストが文字列として取得されることを確認
-                    if isinstance(classified_text, str):
-                        # チャンク内の文章と照合して該当するものを抽出
-                        for sentence in chunk_sentences:
-                            sentence_text = sentence["text"]
-                            # 分類されたテキストが文章内に含まれているかチェック
-                            if classified_text.strip() in sentence_text or sentence_text.strip() in classified_text:
-                                filtered_sentences.append(sentence)
-
-            return filtered_sentences
-
-        except Exception as e:
-            print(f"チャンク分類中にエラーが発生しました: {e}")
-            return []
-
-    def _create_chunks_with_sentences(self, sentences: List[Dict[str, Any]]) -> List[tuple]:
-        """文章データをチャンクに分割し、各チャンクに対応する文章リストを作成"""
-        # 全体のテキストを作成
-        full_text = "\n".join([s['text'] for s in sentences])
-
-        # テキストをチャンクに分割
-        chunks = self.chunk_creator.create(full_text)
-
-        chunk_data = []
-        for i, chunk in enumerate(chunks):
-            # チャンク内のテキストに対応する文章を特定
-            chunk_sentences = []
-            chunk_lines = chunk.split("\n")
-
-            for line in chunk_lines:
-                line = line.strip()
-                if not line:
-                    continue
-
-                # テキストマッチングで対応する文章を検索
-                for sentence in sentences:
-                    sentence_text = sentence["text"].strip()
-                    if line in sentence_text or sentence_text in line:
-                        if sentence not in chunk_sentences:
-                            chunk_sentences.append(sentence)
-
-            if chunk_sentences:
-                chunk_data.append((chunk, chunk_sentences))
-
-        return chunk_data
-
-    async def _classify_text(self, sentences: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
-        """LLMを使用してテキストを並列分類し、文章のみを抽出"""
-        # チャンクを作成
-        chunk_data = self._create_chunks_with_sentences(sentences)
-
-        # 各チャンクを並列処理
-        tasks = []
-        for chunk_text, chunk_sentences in chunk_data:
-            task = self._classify_chunk(chunk_text, chunk_sentences)
-            tasks.append(task)
-
-        # 並列実行
-        results = await asyncio.gather(*tasks, return_exceptions=True)
-
-        # 結果をマージ（重複排除）
-        filtered_sentences = []
-        seen_texts = set()
-
-        for result in results:
-            if isinstance(result, Exception):
-                print(f"チャンク処理中にエラーが発生しました: {result}")
-                continue
-
-            for sentence in result:
-                sentence_text = sentence["text"]
-                if sentence_text not in seen_texts:
-                    filtered_sentences.append(sentence)
-                    seen_texts.add(sentence_text)
-
-        return filtered_sentences
 
     def invoke(self, input: Dict[str, Any], config: RunnableConfig = None) -> Dict[str, Any]:
-        # input: TextFilterInput
-        # output: TextFilterOutput
+        self._validate_input_minimally(input)
+        src = input["source"]
+        params = input.get("filter", {}).get("params", {}) or {}
 
-        source = input["source"]
-
-        # TextExtractorOutput/TextFilterOutputの両方から"sentences"を取得
-        sentences = source.get("sentences", [])
-
-        # LLMを使用して文章のみを抽出
-        filtered_sentences = asyncio.run(self._classify_text(sentences))
+        file_name, lines = self._collect_lines(src)
+        max_chars = int(params.get("max_chars", 0)) or 0
+        if ChunkCreator and max_chars > 0:
+            chunks = ChunkCreator(max_chars=max_chars).create("\n".join(lines))
+            sentences: List[str] = []
+            for ch in chunks:
+                chunk_lines = ch.splitlines()
+                sentences.extend(self._lines_to_sentences(chunk_lines))
+        else:
+            sentences = self._lines_to_sentences(lines)
 
         output = {
             "id": str(uuid.uuid4()),
-            "file_name": source["file_name"],
-            "sentences": filtered_sentences
+            "file_name": file_name,
+            "sentences": [{"text": s} for s in sentences if s.strip()]
         }
-
-        # 出力JSONをログに保存
-        self.logger.save_log(output, "text_filter_output_")
-
+        try:
+            self.logger.save_log(output, "text_filter_output_")
+        except Exception:
+            pass
         return output
 
+    def _collect_lines(self, src: Dict[str, Any]) -> Tuple[str, List[str]]:
+        file_name = src.get("file_name", src.get("filename", "unknown"))
+        sents = src.get("sentences", [])
+        lines = []
+        for s in sents:
+            t = (s.get("text") if isinstance(s, dict) else str(s)).rstrip("\n")
+            if t is not None:
+                lines.append(t)
+        return file_name, lines
+
+    def _lines_to_sentences(self, lines: List[str]) -> List[str]:
+        sentences: List[str] = []
+        i = 0
+        N = len(lines)
+
+        while i < N:
+            line = self._normalize_inline_whitespace(lines[i])
+
+            # --- 除外パターンの判定 ---
+            if any(p.match(line) for p in self.EXCLUDE_PATTERNS):
+                i += 1
+                continue
+
+            if not line.strip():
+                i += 1
+                continue
+
+            if self._is_bullet(line):
+                sentence, jump = self._consume_bullet_item(lines, i)
+                sentences.append(sentence)
+                i = jump
+                continue
+
+            buf = [line]
+            i += 1
+            while i < N:
+                nxt = self._normalize_inline_whitespace(lines[i])
+                if not nxt.strip():
+                    break
+                if self._is_bullet(nxt):
+                    break
+                if not self._is_sentence_end(buf[-1]):
+                    buf[-1] = self._smart_join(buf[-1], nxt)
+                else:
+                    break
+                i += 1
+            sentences.append(self._final_clean("".join(buf)))
+        return sentences
+
+    def _is_bullet(self, text: str) -> bool:
+        return bool(self.BULLET_RE.search(text))
+
+    def _consume_bullet_item(self, lines: List[str], start_idx: int) -> Tuple[str, int]:
+        i = start_idx
+        N = len(lines)
+        head = self._normalize_inline_whitespace(lines[i])
+        buf = [head]
+        i += 1
+        while i < N:
+            cur = self._normalize_inline_whitespace(lines[i])
+            if not cur.strip():
+                break
+            if self._is_bullet(cur):
+                break
+            buf.append(self._soft_wrap_join(buf.pop(), cur))
+            i += 1
+        return self._final_clean("".join(buf)), i
+
+    def _is_sentence_end(self, text: str) -> bool:
+        return bool(self.SENT_END_RE.search(text))
+
+    def _normalize_inline_whitespace(self, text: str) -> str:
+        t = text.replace("\u00AD", "")
+        t = re.sub(r"[ \t]{2,}", " ", t)
+        return t.strip("\r")
+
+    def _smart_join(self, prev: str, cur: str) -> str:
+        if prev.endswith("-"):
+            return prev[:-1] + cur.lstrip()
+        if cur[:1] in "、。，．）」』】〉》" or prev.endswith(("（", "「", "『", "【", "〈", "《")):
+            return prev + cur
+        if (prev.endswith(" ") or cur.startswith(" ")):
+            return prev + cur
+        return prev + " " + cur
+
+    def _soft_wrap_join(self, prev: str, cur: str) -> str:
+        if prev.endswith("-"):
+            return prev[:-1] + cur.lstrip()
+        if prev.endswith(("（", "「", "『", "【", "〈", "《")):
+            return prev + cur
+        if cur[:1] in "、。，．）」』】〉》":
+            return prev + cur
+        if prev.endswith(" ") or cur.startswith(" "):
+            return prev + cur
+        return prev + " " + cur
+
+    def _final_clean(self, text: str) -> str:
+        return text.rstrip()
+
+    def _validate_input_minimally(self, input: Dict[str, Any]) -> None:
+        if "source" not in input or "filter" not in input:
+            raise ValueError("Input must include 'source' and 'filter'.")
+        src = input["source"]
+        if not isinstance(src, dict) or "sentences" not in src:
+            raise ValueError("source must be an object containing 'sentences'.")
+        if not isinstance(src["sentences"], list):
+            raise ValueError("source.sentences must be a list.")
+
+
+
 if __name__ == "__main__":
-    # テスト用の入力データ
-    test_input = {
-        "source": {
-            "file_name": "test.pdf",
-            "sentences": [
-                {"text": "これは通常の文章です。"},
-                {"text": "株式会社テスト"},
-                {"text": "もう一つの文章example。"},
-                {"text": "図1: グラフの説明"},
-                {"text": "最後の文章です。"}
-            ]
-        }
+    # ダミー入力データ（TextExtractorの出力を模倣）
+    source = {
+        "file_name": "dummy.pdf",
+        "sentences": [
+            {"text": "これは1行目の文章です。"},
+            {"text": "これは2行目で"},
+            {"text": "途中で改行されています。"},
+            {"text": "・箇条書きの最初の項目です"},
+            {"text": "折返し行が続きます"},
+            {"text": "・箇条書きの2つ目"},
+            {"text": "最後の通常文です。"}
+        ]
     }
 
-    # TextFilterのインスタンス作成とテスト実行
-    text_filter = TextFilter()
-    result = text_filter.invoke(test_input)
+    # TextFilterを初期化
+    filter_instance = TextFilter()
 
-    print("TextFilter Test Result:")
-    print(f"File name: {result['file_name']}")
-    print(f"Filtered sentences count: {len(result['sentences'])}")
-    for sentence in result["sentences"]:
-        print(f"  Text: {sentence['text']}")
-    print(f"Output ID: {result['id']}")
+    # フィルタを実行
+    result = filter_instance.invoke({
+        "source": source,
+        "filter": {"name": "sentence_extraction", "params": {}}
+    })
+
+    # 出力確認
+    print("=== TextFilter 出力結果 ===")
+    for idx, s in enumerate(result["sentences"], 1):
+        print(f"{idx:02d}: {s['text']}")
