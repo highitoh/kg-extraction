@@ -7,6 +7,7 @@ import uuid
 from langchain.schema.runnable import Runnable
 from langchain_core.messages import HumanMessage
 from langchain_openai import ChatOpenAI
+from openai import APIConnectionError
 
 from logger import Logger
 
@@ -23,6 +24,8 @@ class ClassExtractor(Runnable):
         max_concurrency: int = 8,
         progress: bool = True,
         log_dir: str = "log/class_extractor",
+        max_retries: int = 5,
+        retry_delay: float = 1.0,
     ):
         self.llm = llm or ChatOpenAI(
             model=model,
@@ -33,6 +36,8 @@ class ClassExtractor(Runnable):
         self.llm_json = self.llm.bind(response_format={"type": "json_object"})
         self.max_concurrency = max_concurrency
         self.progress = progress
+        self.max_retries = max_retries
+        self.retry_delay = retry_delay
 
         self.prompt = self._load_prompt()
 
@@ -94,7 +99,7 @@ class ClassExtractor(Runnable):
             ]
         )
 
-        ai = await self.llm_json.ainvoke([msg])
+        ai = await self._invoke_with_retry([msg])
         raw = self._to_text(ai.content)
         try:
             data = json.loads(raw)
@@ -120,6 +125,31 @@ class ClassExtractor(Runnable):
             classes[view_type] = out
 
         return classes
+
+    async def _invoke_with_retry(self, messages: List) -> Any:
+        """OpenAI API呼び出しをリトライロジック付きで実行"""
+        last_exception = None
+
+        for attempt in range(self.max_retries + 1):
+            try:
+                return await self.llm_json.ainvoke(messages)
+            except APIConnectionError as e:
+                last_exception = e
+                if attempt < self.max_retries:
+                    if self.progress:
+                        print(f"ClassExtractor: API connection error (attempt {attempt + 1}/{self.max_retries + 1}), retrying in {self.retry_delay}s...")
+                    await asyncio.sleep(self.retry_delay)
+                    self.retry_delay *= 2  # Exponential backoff
+                else:
+                    if self.progress:
+                        print(f"ClassExtractor: Failed after {self.max_retries + 1} attempts")
+                    raise last_exception
+            except Exception as e:
+                if self.progress:
+                    print(f"ClassExtractor: Unexpected error: {str(e)}")
+                raise e
+
+        raise last_exception
 
     def invoke(self, input: Dict[str, Any], config=None) -> Dict[str, Any]:
         view_info = input["view_info"]
