@@ -129,7 +129,7 @@ class ViewFilter(Runnable):
             print(f"ViewFilter: {original_count} -> {filtered_count} texts (removed {original_count - filtered_count} duplicates)")
 
         # Loggerを使ってViewChainOutputをログ出力
-        self.logger.save_log(output)
+        self.logger.save_log(output, filename_prefix="view_filter_output_")
 
         return output
 

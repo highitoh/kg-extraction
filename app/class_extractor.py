@@ -180,7 +180,7 @@ class ClassExtractor(Runnable):
             total_classes = len(classes)
             print(f"ClassExtractor: extracted {total_classes} classes")
 
-        self.logger.save_log(output)
+        self.logger.save_log(output, filename_prefix="class_extractor_output_")
 
         return output
 

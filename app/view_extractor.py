@@ -181,7 +181,7 @@ class ViewExtractor(Runnable):
         }
 
         # Loggerを使ってViewChainOutputをログ出力
-        self.logger.save_log(output)
+        self.logger.save_log(output, filename_prefix="view_extractor_output_")
 
         return output
 

@@ -134,7 +134,7 @@ class PropertyExtractor(Runnable):
             print(f"PropertyExtractor: extracted {total_properties} properties")
 
         # Loggerでpropertyチェーンの出力を保存
-        self.logger.save_log(output)
+        self.logger.save_log(output, filename_prefix="property_extractor_output_")
 
         return output
 
