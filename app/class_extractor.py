@@ -53,7 +53,7 @@ class ClassExtractor(Runnable):
         self.logger = Logger(log_dir)
 
     def _load_prompt(self) -> str:
-        prompt_path = os.path.join(os.path.dirname(__file__), "prompts", "ClassExtractor.txt")
+        prompt_path = os.path.join(os.path.dirname(__file__), "prompts", "class_extractor.txt")
         with open(prompt_path, "r", encoding="utf-8") as f:
             return f.read()
 
