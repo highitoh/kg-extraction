@@ -36,7 +36,10 @@ class ViewExtractor(Runnable):
             reasoning={"effort": "minimal"},
             output_version="responses/v1",
         )
-        self.llm_json = self.llm.bind(response_format={"type": "json_object"})
+
+        # JSONスキーマを読み込み
+        schema = self._load_schema()
+        self.llm_json = self.llm.bind(response_format={"type": "json_schema", "json_schema": {"name": "view_extractor", "schema": schema}})
         self.max_concurrency = max_concurrency
         self.progress = progress
         self.max_spans_per_label = max_spans_per_label
@@ -59,6 +62,12 @@ class ViewExtractor(Runnable):
 
         # Loggerを初期化
         self.logger = Logger(log_dir)
+
+    def _load_schema(self) -> dict:
+        """JSONスキーマファイルを読み込む"""
+        schema_path = os.path.join(os.path.dirname(__file__), "schemas", "view-extractor", "llm.schema.json")
+        with open(schema_path, "r", encoding="utf-8") as f:
+            return json.load(f)
 
     def _load_prompt(self) -> str:
         """プロンプトファイルを読み込む"""

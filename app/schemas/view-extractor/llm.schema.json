@@ -1,0 +1,57 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {
+    "value_analysis": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "価値分析に関連するテキスト"
+    },
+    "business_concept": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "ビジネスコンセプトに関連するテキスト"
+    },
+    "business_requirement": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "ビジネス要求に関連するテキスト"
+    },
+    "system_requirement": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "システム要求に関連するテキスト"
+    },
+    "system_component": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "システムコンポーネントに関連するテキスト"
+    },
+    "data_analysis": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "データ分析に関連するテキスト"
+    }
+  },
+  "required": [
+    "value_analysis",
+    "business_concept",
+    "business_requirement",
+    "system_requirement",
+    "system_component",
+    "data_analysis"
+  ],
+  "additionalProperties": false
+}
