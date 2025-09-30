@@ -44,7 +44,7 @@ class PropertyExtractor(Runnable):
 
     def _load_prompt(self) -> str:
         """プロンプトを読み込み"""
-        prompt_path = os.path.join(os.path.dirname(__file__), "prompts", "PropertyExtractor.txt")
+        prompt_path = os.path.join(os.path.dirname(__file__), "prompts", "property_extractor.txt")
         with open(prompt_path, "r", encoding="utf-8") as f:
             return f.read()
 
