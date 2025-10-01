@@ -30,10 +30,7 @@ class ExtractedClass:
 
 class ClassExtractor:
     """
-    ビュー（value_analysis 等）を横断してクラス候補を抽出する
-    - 入力/出力は添付スキーマに準拠（ClassExtractorInput → ClassExtractorOutput）
-    - 実ロジック（LLM/規則/辞書等）は _extract_labels_from_view() に後で実装
-    - class_iri の決定規則は _resolve_class_iri() に後で実装
+    ビュー記述からクラス候補を抽出するクラス
     """
 
     def __init__(
@@ -94,15 +91,15 @@ class ClassExtractor:
             if self.progress:
                 print(f"[ClassExtractor] view={view_type}, texts={len(texts)}")
 
-            # --- (未実装) ビュー内の「ラベル候補（=クラス名）」を抽出 ----------------
-            # 返却想定: List[Dict] 例: [{"label": "顧客", "file_id": "file-001"}, ...]
+            # ビュー記述から「ラベル候補（=クラス名）」を抽出
             label_items = self._extract_labels_from_view(view_type, texts, metamodel)
 
-            # --- class_iri 付与＆スキーマ整形 ---------------------------------------
+            # class_iri 付与＆スキーマ整形
             for li in label_items:
+                c = li["class"]
                 label = li["label"]
                 file_id = li["file_id"]
-                class_iri = self._resolve_class_iri(view_type, label, metamodel)  # URI を返す実装にする
+                class_iri = self._resolve_class_iri(view_type, c, metamodel)  # URI を返す実装にする
                 classes.append(ExtractedClass(
                     id=str(uuid.uuid4()),
                     class_iri=class_iri,
@@ -130,14 +127,6 @@ class ClassExtractor:
     def _get_texts_for_view(self, view_info: Dict[str, Any], view_type: str) -> List[Dict[str, Any]]:
         """
         view_info から特定 view_type の texts をフラットに取得するテンプレート。
-        期待する最小構造（例）:
-        view_info = {
-          "views": [
-            { "type": "business_concept",
-              "texts": [ {"file_id": "file-001", "text": "..."}, ... ] },
-            ...
-          ]
-        }
         """
         views = view_info.get("views", [])
         for v in views:
@@ -145,7 +134,6 @@ class ClassExtractor:
                 return v.get("texts", []) or []
         return []
 
-    # ---- Extension points (あとで実装) ------------------------------------------
     def _extract_labels_from_view(
         self,
         view_type: str,
@@ -153,9 +141,9 @@ class ClassExtractor:
         metamodel: Dict[str, Any],
     ) -> List[Dict[str, str]]:
         """
-        ビュー内の文章群から「クラス名候補（ラベル）」を抽出する処理を後で実装。
-        Returns (想定):
-          [{"label": "<名詞句など>", "file_id": "<抽出元ファイルID>"} , ...]
+        対象ビューの記述からクラス候補を抽出する処理。
+        Returns:
+          [{"class": "<クラス>", "label": "<インスタンス>", "file_id": "<抽出元ファイルID>"} , ...]
         """
         if view_type == "value_analysis":
             return self._extract_value_analysis_labels(texts)
@@ -196,11 +184,11 @@ class ClassExtractor:
 
         # ラベル候補リストに変換
         labels = []
-        value_items = result.get("value_analysis", [])
+        value_items = result.get("classes", [])
         for item in value_items:
-            # value をクラス候補のラベルとして抽出
-            if "label" in item:
+            if "class" in item and "label" in item:
                 labels.append({
+                    "class": item["class"],
                     "label": item["label"],
                     "file_id": texts[0].get("file_id", "unknown")  # 便宜的に最初のファイルIDを使用
                 })
