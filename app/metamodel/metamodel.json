@@ -21,6 +21,130 @@
             "format_guidelines": [
                 "『〜の向上』『効率化』など名詞句で簡潔に"
             ]
+        },
+        {
+            "iri": "https://github.com/highitoh/kg-extraction#vision",
+            "name": "ビジョン",
+            "description": "企業や事業、プロジェクトの目指す長期的な理想の姿を端的に表現した記述",
+            "view_type": "business_concept",
+            "min_length": 3,
+            "max_length": 30,
+            "format_guidelines": [
+                ""
+            ]
+        },
+        {
+            "iri": "https://github.com/highitoh/kg-extraction#concept",
+            "name": "コンセプト",
+            "description": "企業や事業、プロジェクトの目指す理想の実現に向けた活動方針を端的に表した記述",
+            "view_type": "business_concept",
+            "min_length": 3,
+            "max_length": 40,
+            "format_guidelines": [
+                ""
+            ]
+        },        
+        {
+            "iri": "https://github.com/highitoh/kg-extraction#project-purpose",
+            "name": "プロジェクト目的",
+            "description": "",
+            "view_type": "business_concept",
+            "min_length": 3,
+            "max_length": 16,
+            "format_guidelines": [
+                "『〜の向上』『効率化』など名詞句で簡潔に"
+            ]
+        },
+        {
+            "iri": "https://github.com/highitoh/kg-extraction#business-requirement",
+            "name": "業務要求",
+            "description": "開発するシステムやサービスに要求されるビジネス的な要求事項に関する記述",
+            "view_type": "business_requirement",
+            "min_length": 5,
+            "max_length": 50,
+            "format_guidelines": [
+                "ステークホルダの価値実現のため、システムやサービスが使用する技術に関する記述はIT要求にする",
+                "システムやサービスの具体的な技術仕様は業務要求には含めない"
+            ]
+        },
+        {
+            "iri": "https://github.com/highitoh/kg-extraction#it-requirement",
+            "name": "IT要求",
+            "description": "開発するシステムやサービスに要求される技術的な要求事項に関する記述",
+            "view_type": "business_requirement",
+            "min_length": 5,
+            "max_length": 50,
+            "format_guidelines": [
+                "ステークホルダの価値実現のため、システムやサービスが使用する技術に関して記述する",
+                "システムやサービスの具体的な技術仕様はIT要求には含めない"
+            ]
+        },
+        {
+            "iri": "https://github.com/highitoh/kg-extraction#system-requirement",
+            "name": "システム要件",
+            "description": "開発するシステムやサービスの技術仕様に関する記述",
+            "view_type": "system_requirement",
+            "min_length": 5,
+            "max_length": 50,
+            "format_guidelines": [
+                "使用技術の「仕様」を具体的に記述する",
+                "技術の利用方針や運用に関する記述は含めない"
+            ]
+        },        
+        {
+            "iri": "https://github.com/highitoh/kg-extraction#business-goal",
+            "name": "ビジネス目的",
+            "description": "データ分析によって得られた知見を活用する経営上の目的",
+            "view_type": "data_analysis",
+            "min_length": 5,
+            "max_length": 40,
+            "format_guidelines": [
+                "経営などビジネスに与えるインパクトを表現する"
+            ]
+        },        
+        {
+            "iri": "https://github.com/highitoh/kg-extraction#analysis-goal",
+            "name": "データ分析目的",
+            "description": "データを分析をする目的",
+            "view_type": "data_analysis",
+            "min_length": 5,
+            "max_length": 40,
+            "format_guidelines": [
+                "端的に目的を表現する"
+            ]
+        },
+        {
+            "iri": "https://github.com/highitoh/kg-extraction#analysis-result",
+            "name": "データ分析結果",
+            "description": "データを分析した結果を整理した記述",
+            "view_type": "data_analysis",
+            "min_length": 5,
+            "max_length": 60,
+            "format_guidelines": [
+                "データの分析内容やアルゴリズム、分析結果を整理・要約する"
+            ]
+        },
+        {
+            "iri": "https://github.com/highitoh/kg-extraction#dataset",
+            "name": "データセット",
+            "description": "データ分析に使用したデータセットに関する記述",
+            "view_type": "data_analysis",
+            "min_length": 5,
+            "max_length": 40,
+            "format_guidelines": [
+                "データセットの概要や特徴を端的に記述"
+            ]
+        },
+        {
+            "iri": "https://github.com/highitoh/kg-extraction#evaluation",
+            "name": "評価結果",
+            "description": "データ分析結果をビジネス目的と照らして得られた結論に関する記述",
+            "view_type": "data_analysis",
+            "min_length": 5,
+            "max_length": 40,
+            "format_guidelines": [
+                "ビジネスへの適合可能性を記述"
+            ]
         }
     ],
     "properties": []

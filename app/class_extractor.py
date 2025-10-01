@@ -158,15 +158,12 @@ class ClassExtractor:
         Returns:
           [{"class": "<クラス>", "label": "<インスタンス>", "source": "<出所>", "file_id": "<抽出元ファイルID>"} , ...]
         """
-        if view_type == "value_analysis":
-            return self._extract_value_analysis_labels(texts, metamodel)
+        # 全てのビュータイプで共通の抽出処理を使用
+        return self._extract_labels(view_type, texts, metamodel)
 
-        # その他のビューは空リストを返す（未実装）
-        return []
-
-    def _extract_value_analysis_labels(self, texts: List[Dict[str, Any]], metamodel: Dict[str, Any] = None) -> List[Dict[str, str]]:
+    def _extract_labels(self, view_type: str, texts: List[Dict[str, Any]], metamodel: Dict[str, Any] = None) -> List[Dict[str, str]]:
         """
-        value_analysis ビューから stakeholder と value をLLMで抽出する
+        指定されたビュータイプからクラスインスタンスをLLMで抽出する
         """
         from langchain.schema import HumanMessage
 
@@ -180,8 +177,8 @@ class ClassExtractor:
         chunks_text = "\n".join(chunk_lines)
 
         # metamodelからクラス定義とポリシーの文字列を生成
-        class_definitions = self._get_class_definitions(metamodel, "value_analysis")
-        class_policies = self._get_class_policies(metamodel, "value_analysis")
+        class_definitions = self._get_class_definitions(metamodel, view_type)
+        class_policies = self._get_class_policies(metamodel, view_type)
 
         # プロンプトテンプレートに値を埋め込む
         prompt = self.prompt_template.format(
