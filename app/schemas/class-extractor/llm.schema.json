@@ -1,0 +1,31 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {
+    "classes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "class": {
+            "type": "string",
+            "description": "クラスの種類"
+          },
+          "label": {
+            "type": "string",
+            "description": "抽出したインスタンスの名前"
+          },
+          "source": {
+            "type": "string",
+            "description": "抽出元の文章"
+          }
+        },
+        "required": ["class", "label", "source"],
+        "additionalProperties": false
+      },
+      "description": "抽出したクラス情報"
+    }
+  },
+  "required": ["classes"],
+  "additionalProperties": false
+}

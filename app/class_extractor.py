@@ -3,6 +3,8 @@ from __future__ import annotations
 from dataclasses import dataclass, asdict
 from typing import Dict, Any, List, Optional
 import uuid
+import os
+import json
 
 VIEW_TYPES = [
     "value_analysis",
@@ -34,8 +36,41 @@ class ClassExtractor:
     - class_iri の決定規則は _resolve_class_iri() に後で実装
     """
 
-    def __init__(self, progress: bool = True):
+    def __init__(
+        self,
+        llm: Any = None,
+        model: str = "gpt-5-mini",
+        temperature: float = 0.0,
+        progress: bool = True
+    ):
+        from langchain_openai import ChatOpenAI
+
+        self.llm = llm or ChatOpenAI(
+            model=model,
+            temperature=temperature,
+            reasoning={"effort": "minimal"},
+            output_version="responses/v1",
+        )
         self.progress = progress
+
+        # JSONスキーマを読み込み
+        schema = self._load_schema()
+        self.llm_json = self.llm.bind(response_format={"type": "json_schema", "json_schema": {"name": "class_extractor", "schema": schema}})
+
+        # プロンプトテンプレートを読み込み
+        self.prompt_template = self._load_prompt_template()
+
+    def _load_schema(self) -> dict:
+        """JSONスキーマファイルを読み込む"""
+        schema_path = os.path.join(os.path.dirname(__file__), "schemas", "class-extractor", "llm.schema.json")
+        with open(schema_path, "r", encoding="utf-8") as f:
+            return json.load(f)
+
+    def _load_prompt_template(self) -> str:
+        """プロンプトテンプレートファイルを読み込む"""
+        prompt_path = os.path.join(os.path.dirname(__file__), "prompts", "class_extractor.txt")
+        with open(prompt_path, "r", encoding="utf-8") as f:
+            return f.read()
 
     def invoke(self, input_data: Dict[str, Any], config: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         """
@@ -122,8 +157,66 @@ class ClassExtractor:
         Returns (想定):
           [{"label": "<名詞句など>", "file_id": "<抽出元ファイルID>"} , ...]
         """
-        # TODO: LLM/規則/辞書等を用いた抽出ロジックを実装
-        raise NotImplementedError("ラベル抽出ロジックは後で実装してください。")
+        if view_type == "value_analysis":
+            return self._extract_value_analysis_labels(texts)
+
+        # その他のビューは空リストを返す（未実装）
+        return []
+
+    def _extract_value_analysis_labels(self, texts: List[Dict[str, Any]]) -> List[Dict[str, str]]:
+        """
+        value_analysis ビューから stakeholder と value をLLMで抽出する
+        """
+        from langchain.schema import HumanMessage
+
+        if not texts:
+            return []
+
+        # 原文チャンクを構築
+        chunk_lines = []
+        for idx, t in enumerate(texts):
+            chunk_lines.append(f"[チャンク{idx+1}] {t.get('text', '')}")
+        chunks_text = "\n".join(chunk_lines)
+
+        # プロンプト構築
+        prompt = f"{self.prompt_template}\n\n【原文チャンク】\n{chunks_text}\n"
+
+        response = self.llm_json.invoke([HumanMessage(content=prompt)])
+
+        # response.content からテキストを抽出
+        result_text = self._to_text(response.content)
+
+        # JSON パース
+        try:
+            result = json.loads(result_text)
+        except json.JSONDecodeError:
+            if self.progress:
+                print(f"[ClassExtractor] JSON parse error: {result_text}")
+            return []
+
+        # ラベル候補リストに変換
+        labels = []
+        value_items = result.get("value_analysis", [])
+        for item in value_items:
+            # value をクラス候補のラベルとして抽出
+            if "label" in item:
+                labels.append({
+                    "label": item["label"],
+                    "file_id": texts[0].get("file_id", "unknown")  # 便宜的に最初のファイルIDを使用
+                })
+
+        return labels
+
+    @staticmethod
+    def _to_text(content: Any) -> str:
+        """LLMレスポンスからテキストを抽出"""
+        if isinstance(content, str):
+            return content
+        if isinstance(content, list):
+            for part in content:
+                if isinstance(part, dict) and part.get("type") == "text":
+                    return part.get("text", "")
+        return ""
 
     def _resolve_class_iri(
         self,
@@ -132,13 +225,21 @@ class ClassExtractor:
         metamodel: Dict[str, Any],
     ) -> str:
         """
-        抽出したラベルに対応する class_iri(URI) を決める処理を後で実装。
-        - metamodel 参照でクラスIRIを引く/生成するなど
+        抽出したラベルに対応する class_iri(URI) を決める処理。
+        - metamodel 参照でクラスIRIを引く／なければ既定命名
         必ず URI を返すこと（出力スキーマ要件）。
         """
-        # TODO: 例: metamodel からビュー種別→クラスIRI の既定マッピングを引く／なければ既定命名
-        # 例の既定命名: f"http://example.com/metamodel#{view_type.capitalize()}Class"
-        raise NotImplementedError("class_iri の決定ロジックは後で実装してください。")
+        # metamodel から class_iri のマッピングを探す
+        classes = metamodel.get("classes", [])
+        for cls in classes:
+            if cls.get("view_type") == view_type and cls.get("label") == label:
+                return cls.get("iri", "")
+
+        # マッピングが見つからない場合は既定命名
+        # ラベルをURLエンコード用に変換
+        from urllib.parse import quote
+        encoded_label = quote(label)
+        return f"http://example.com/ontology/{view_type}/{encoded_label}"
 
 
 if __name__ == "__main__":
