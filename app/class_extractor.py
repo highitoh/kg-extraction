@@ -1,10 +1,13 @@
-# class_extractor_template.py
 from __future__ import annotations
 from dataclasses import dataclass, asdict
 from typing import Dict, Any, List, Optional
-import uuid
-import os
 import json
+import os
+import uuid
+
+from langchain_openai import ChatOpenAI
+
+from logger import Logger
 
 VIEW_TYPES = [
     "value_analysis",
@@ -38,10 +41,9 @@ class ClassExtractor:
         llm: Any = None,
         model: str = "gpt-5-mini",
         temperature: float = 0.0,
-        progress: bool = True
+        progress: bool = True,
+        log_dir: str = "log/class_extractor"
     ):
-        from langchain_openai import ChatOpenAI
-
         self.llm = llm or ChatOpenAI(
             model=model,
             temperature=temperature,
@@ -49,6 +51,7 @@ class ClassExtractor:
             output_version="responses/v1",
         )
         self.progress = progress
+        self.logger = Logger(log_dir)
 
         # JSONスキーマを読み込み
         schema = self._load_schema()
@@ -112,6 +115,13 @@ class ClassExtractor:
             "id": str(uuid.uuid4()),
             "classes": [c.to_dict() for c in classes],  # スキーマ: minItems=1 を満たすのは実装後
         }
+
+        if self.progress:
+            print(f"ClassExtractor: extracted {len(classes)} classes")
+
+        # Loggerを使ってClassExtractorOutputをログ出力
+        self.logger.save_log(output, filename_prefix="class_extractor_output_")
+
         return output
 
     def _get_view_info(self, input_data: Dict[str, Any]) -> Dict[str, Any]:
