@@ -1,11 +1,13 @@
 from __future__ import annotations
 from dataclasses import dataclass, asdict
 from typing import Dict, Any, List, Optional
+import asyncio
 import json
 import os
 import uuid
 
 from langchain_openai import ChatOpenAI
+from langchain.schema import HumanMessage
 
 from logger import Logger
 
@@ -43,6 +45,7 @@ class ClassExtractor:
         model: str = "gpt-5-mini",
         temperature: float = 0.0,
         progress: bool = True,
+        max_concurrency: int = 8,
         log_dir: str = "log/class_extractor"
     ):
         self.llm = llm or ChatOpenAI(
@@ -52,6 +55,7 @@ class ClassExtractor:
             output_version="responses/v1",
         )
         self.progress = progress
+        self.max_concurrency = max_concurrency
         self.logger = Logger(log_dir)
 
         # JSONスキーマを読み込み
@@ -87,18 +91,15 @@ class ClassExtractor:
         view_info = self._get_view_info(input_data)
         metamodel = self._get_metamodel(input_data)
 
+        # ビューごとに並列実行
+        view_results = asyncio.run(self._process_views_parallel(view_info, metamodel))
+
+        # class_iri 付与＆スキーマ整形
         classes: List[ExtractedClass] = []
+        for result in view_results:
+            view_type = result["view_type"]
+            label_items = result["label_items"]
 
-        # ビューごとに抽出
-        for view_type in VIEW_TYPES:
-            texts = self._get_texts_for_view(view_info, view_type)
-            if self.progress:
-                print(f"[ClassExtractor] view={view_type}, texts={len(texts)}")
-
-            # ビュー記述から「ラベル候補（=クラス名）」を抽出
-            label_items = self._extract_labels_from_view(view_type, texts, metamodel)
-
-            # class_iri 付与＆スキーマ整形
             for li in label_items:
                 c = li["class"]
                 label = li["label"]
@@ -147,26 +148,60 @@ class ClassExtractor:
                 return v.get("texts", []) or []
         return []
 
-    def _extract_labels_from_view(
+    async def _process_views_parallel(self, view_info: Dict[str, Any], metamodel: Dict[str, Any]) -> List[Dict[str, Any]]:
+        """ビューごとにクラス抽出を並列実行"""
+        sem = asyncio.Semaphore(self.max_concurrency)
+        total = len(VIEW_TYPES)
+        counter = 0
+        lock = asyncio.Lock()
+
+        async def _wrapped(view_type: str) -> Dict[str, Any]:
+            nonlocal counter
+            async with sem:
+                texts = self._get_texts_for_view(view_info, view_type)
+
+                async with lock:
+                    if self.progress:
+                        print(f"[ClassExtractor] view={view_type}, texts={len(texts)}")
+
+                label_items = []
+                for attempt in range(5):
+                    try:
+                        label_items = await self._extract_labels_from_view_async(view_type, texts, metamodel)
+                        break
+                    except Exception as e:
+                        if attempt == 4:  # 最後の試行
+                            if self.progress:
+                                print(f"[ClassExtractor] Error in view={view_type}: {e}")
+                        await asyncio.sleep(min(2 ** attempt, 10))
+
+                async with lock:
+                    counter += 1
+                    if self.progress:
+                        print(f"[{counter}/{total}] done (view={view_type}, extracted={len(label_items)})")
+
+                return {"view_type": view_type, "label_items": label_items}
+
+        results = await asyncio.gather(*[_wrapped(vt) for vt in VIEW_TYPES])
+        return results
+
+    async def _extract_labels_from_view_async(
         self,
         view_type: str,
         texts: List[Dict[str, Any]],
         metamodel: Dict[str, Any],
     ) -> List[Dict[str, str]]:
         """
-        対象ビューの記述からクラス候補を抽出する処理。
+        対象ビューの記述からクラス候補を抽出する処理（非同期版）。
         Returns:
           [{"class": "<クラス>", "label": "<インスタンス>", "source": "<出所>", "file_id": "<抽出元ファイルID>"} , ...]
         """
-        # 全てのビュータイプで共通の抽出処理を使用
-        return self._extract_labels(view_type, texts, metamodel)
+        return await self._extract_labels_async(view_type, texts, metamodel)
 
-    def _extract_labels(self, view_type: str, texts: List[Dict[str, Any]], metamodel: Dict[str, Any] = None) -> List[Dict[str, str]]:
+    async def _extract_labels_async(self, view_type: str, texts: List[Dict[str, Any]], metamodel: Dict[str, Any] = None) -> List[Dict[str, str]]:
         """
-        指定されたビュータイプからクラスインスタンスをLLMで抽出する
+        指定されたビュータイプからクラスインスタンスをLLMで抽出する（非同期版）
         """
-        from langchain.schema import HumanMessage
-
         if not texts:
             return []
 
@@ -187,7 +222,7 @@ class ClassExtractor:
         )
         prompt = f"{prompt}\n\n【テキスト】\n{chunks_text}\n"
 
-        response = self.llm_json.invoke([HumanMessage(content=prompt)])
+        response = await self.llm_json.ainvoke([HumanMessage(content=prompt)])
 
         # response.content からテキストを抽出
         result_text = self._to_text(response.content)
@@ -313,7 +348,7 @@ class ClassExtractor:
         # metamodel から class_iri のマッピングを探す
         classes = metamodel.get("classes", [])
         for cls in classes:
-            if cls.get("view_type") == view_type and cls.get("label") == class_name:
+            if cls.get("view_type") == view_type and cls.get("name") == class_name:
                 return cls.get("iri", "")
 
         # 見つからない場合は空文字を返す
