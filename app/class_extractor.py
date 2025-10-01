@@ -25,6 +25,7 @@ class ExtractedClass:
     id: str              # 必須: クラス個体ID
     class_iri: str       # 必須: URI 形式
     label: str           # 必須: 抽出クラス（表示ラベル）
+    source: str          # 必須: 抽出元文章
     file_id: str         # 必須: 抽出元ファイルID
 
     def to_dict(self) -> Dict[str, Any]:
@@ -101,12 +102,14 @@ class ClassExtractor:
             for li in label_items:
                 c = li["class"]
                 label = li["label"]
+                source = li["source"]
                 file_id = li["file_id"]
                 class_iri = self._resolve_class_iri(view_type, c, metamodel)  # URI を返す実装にする
                 classes.append(ExtractedClass(
                     id=str(uuid.uuid4()),
                     class_iri=class_iri,
                     label=label,
+                    source=source,
                     file_id=file_id,
                 ))
 
@@ -153,7 +156,7 @@ class ClassExtractor:
         """
         対象ビューの記述からクラス候補を抽出する処理。
         Returns:
-          [{"class": "<クラス>", "label": "<インスタンス>", "file_id": "<抽出元ファイルID>"} , ...]
+          [{"class": "<クラス>", "label": "<インスタンス>", "source": "<出所>", "file_id": "<抽出元ファイルID>"} , ...]
         """
         if view_type == "value_analysis":
             return self._extract_value_analysis_labels(texts)
@@ -196,10 +199,11 @@ class ClassExtractor:
         labels = []
         value_items = result.get("classes", [])
         for item in value_items:
-            if "class" in item and "label" in item:
+            if "class" in item and "label" in item and "source" in item:
                 labels.append({
                     "class": item["class"],
                     "label": item["label"],
+                    "source": item["source"],
                     "file_id": texts[0].get("file_id", "unknown")  # 便宜的に最初のファイルIDを使用
                 })
 
@@ -219,24 +223,24 @@ class ClassExtractor:
     def _resolve_class_iri(
         self,
         view_type: str,
-        label: str,
+        class_name: str,
         metamodel: Dict[str, Any],
     ) -> str:
         """
-        抽出したラベルに対応する class_iri(URI) を決める処理。
+        抽出したクラスに対応する class_iri(URI) を決める処理。
         - metamodel 参照でクラスIRIを引く／なければ既定命名
         必ず URI を返すこと（出力スキーマ要件）。
         """
         # metamodel から class_iri のマッピングを探す
         classes = metamodel.get("classes", [])
         for cls in classes:
-            if cls.get("view_type") == view_type and cls.get("label") == label:
+            if cls.get("view_type") == view_type and cls.get("label") == class_name:
                 return cls.get("iri", "")
 
         # マッピングが見つからない場合は既定命名
         # ラベルをURLエンコード用に変換
         from urllib.parse import quote
-        encoded_label = quote(label)
+        encoded_label = quote(class_name)
         return f"http://example.com/ontology/{view_type}/{encoded_label}"
 
 

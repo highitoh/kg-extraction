@@ -30,12 +30,16 @@
             "type": "string",
             "description": "抽出クラス"
           },
+          "source": {
+            "type": "string",
+            "description": "抽出元文章"
+          },
           "file_id": {
             "type": "string",
             "description": "抽出元ファイルID"
           }
         },
-        "required": ["id", "class_iri", "label", "file_id"]
+        "required": ["id", "class_iri", "label", "source", "file_id"]
       }
     }
   },
