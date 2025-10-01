@@ -159,12 +159,12 @@ class ClassExtractor:
           [{"class": "<クラス>", "label": "<インスタンス>", "source": "<出所>", "file_id": "<抽出元ファイルID>"} , ...]
         """
         if view_type == "value_analysis":
-            return self._extract_value_analysis_labels(texts)
+            return self._extract_value_analysis_labels(texts, metamodel)
 
         # その他のビューは空リストを返す（未実装）
         return []
 
-    def _extract_value_analysis_labels(self, texts: List[Dict[str, Any]]) -> List[Dict[str, str]]:
+    def _extract_value_analysis_labels(self, texts: List[Dict[str, Any]], metamodel: Dict[str, Any] = None) -> List[Dict[str, str]]:
         """
         value_analysis ビューから stakeholder と value をLLMで抽出する
         """
@@ -179,8 +179,16 @@ class ClassExtractor:
             chunk_lines.append(f"{t.get('text', '')}")
         chunks_text = "\n".join(chunk_lines)
 
-        # プロンプト構築
-        prompt = f"{self.prompt_template}\n\n【テキスト】\n{chunks_text}\n"
+        # metamodelからクラス定義とポリシーの文字列を生成
+        class_definitions = self._get_class_definitions(metamodel, "value_analysis")
+        class_policies = self._get_class_policies(metamodel, "value_analysis")
+
+        # プロンプトテンプレートに値を埋め込む
+        prompt = self.prompt_template.format(
+            class_definitions=class_definitions,
+            class_policies=class_policies
+        )
+        prompt = f"{prompt}\n\n【テキスト】\n{chunks_text}\n"
 
         response = self.llm_json.invoke([HumanMessage(content=prompt)])
 
@@ -208,6 +216,82 @@ class ClassExtractor:
                 })
 
         return labels
+
+    def _get_class_definitions(self, metamodel: Dict[str, Any], view_type: str) -> str:
+        """
+        metamodelから指定されたview_typeのクラス定義文字列を生成
+
+        Parameters
+        ----------
+        metamodel : Dict[str, Any]
+            メタモデル定義
+        view_type : str
+            対象ビュータイプ
+
+        Returns
+        -------
+        str
+            クラス定義の文字列（例: "- ステークホルダ: 説明文\n- 価値: 説明文"）
+        """
+        if not metamodel or "classes" not in metamodel:
+            return ""
+
+        classes = metamodel.get("classes", [])
+        view_classes = [cls for cls in classes if cls.get("view_type") == view_type]
+
+        # クラス定義を構築
+        definitions = []
+        for cls in view_classes:
+            name = cls.get("name", "")
+            description = cls.get("description", "")
+            definitions.append(f"- {name}: {description}")
+
+        return "\n".join(definitions)
+
+    def _get_class_policies(self, metamodel: Dict[str, Any], view_type: str) -> str:
+        """
+        metamodelから指定されたview_typeのクラスポリシー文字列を生成
+
+        Parameters
+        ----------
+        metamodel : Dict[str, Any]
+            メタモデル定義
+        view_type : str
+            対象ビュータイプ
+
+        Returns
+        -------
+        str
+            クラスポリシーの文字列
+        """
+        if not metamodel or "classes" not in metamodel:
+            return ""
+
+        classes = metamodel.get("classes", [])
+        view_classes = [cls for cls in classes if cls.get("view_type") == view_type]
+
+        # ポリシーを構築
+        policies = []
+        for cls in view_classes:
+            name = cls.get("name", "")
+            policy_items = []
+
+            # 文字数制約
+            min_len = cls.get("min_length")
+            max_len = cls.get("max_length")
+            if min_len is not None and max_len is not None:
+                policy_items.append(f"  - 文字数: {min_len}～{max_len}字")
+
+            # フォーマットガイドライン（配列対応）
+            format_guidelines = cls.get("format_guidelines", [])
+            for guideline in format_guidelines:
+                policy_items.append(f"  - {guideline}")
+
+            if policy_items:
+                policies.append(f"- {name}")
+                policies.extend(policy_items)
+
+        return "\n".join(policies)
 
     @staticmethod
     def _to_text(content: Any) -> str:
@@ -266,7 +350,31 @@ if __name__ == "__main__":
     sample_input = {
         "view_info": view_info,
         "metamodel": {
-            # 実際はメタモデルの定義を入れる想定（スキーマ参照）
+            "classes": [
+                {
+                    "iri": "http://example.com/ontology/Stakeholder",
+                    "name": "ステークホルダ",
+                    "description": "開発するシステムやサービスにより、価値を提供または受け取る主体。組織や役割などで表す",
+                    "view_type": "value_analysis",
+                    "min_length": 2,
+                    "max_length": 10,
+                    "format_guidelines": [
+                        "個人名は避け、役割名を優先"
+                    ]
+                },
+                {
+                    "iri": "http://example.com/ontology/Value",
+                    "name": "価値",
+                    "description": "開発するシステムやサービスにより、ステークホルダが得る便益や達成したい状態を表す",
+                    "view_type": "value_analysis",
+                    "min_length": 4,
+                    "max_length": 30,
+                    "format_guidelines": [
+                        "『〜の向上』『効率化』など名詞句で簡潔に"
+                    ]
+                }
+            ],
+            "properties": []
         },
     }
 
