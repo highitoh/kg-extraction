@@ -173,14 +173,14 @@ class ClassExtractor:
         if not texts:
             return []
 
-        # 原文チャンクを構築
+        # ビュー記述のテキストを取得
         chunk_lines = []
         for idx, t in enumerate(texts):
-            chunk_lines.append(f"[チャンク{idx+1}] {t.get('text', '')}")
+            chunk_lines.append(f"{t.get('text', '')}")
         chunks_text = "\n".join(chunk_lines)
 
         # プロンプト構築
-        prompt = f"{self.prompt_template}\n\n【原文チャンク】\n{chunks_text}\n"
+        prompt = f"{self.prompt_template}\n\n【テキスト】\n{chunks_text}\n"
 
         response = self.llm_json.invoke([HumanMessage(content=prompt)])
 
@@ -245,7 +245,6 @@ class ClassExtractor:
 
 
 if __name__ == "__main__":
-    import json
     import glob
     import os
 
