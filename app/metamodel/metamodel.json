@@ -1,0 +1,27 @@
+{
+    "classes": [
+        {
+            "iri": "https://github.com/highitoh/kg-extraction#stakeholder",
+            "name": "ステークホルダ",
+            "description": "開発するシステムやサービスにより、価値を提供または受け取る主体。組織や役割などで表す",
+            "view_type": "value_analysis",
+            "min_length": 2,
+            "max_length": 10,
+            "format_guidelines": [
+                "個人名は避け、役割名を優先"
+            ]
+        },
+        {
+            "iri": "https://github.com/highitoh/kg-extraction#value",
+            "name": "価値",
+            "description": "開発するシステムやサービスにより、ステークホルダが得る便益や達成したい状態を表す",
+            "view_type": "value_analysis",
+            "min_length": 4,
+            "max_length": 30,
+            "format_guidelines": [
+                "『〜の向上』『効率化』など名詞句で簡潔に"
+            ]
+        }
+    ],
+    "properties": []
+}

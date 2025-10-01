@@ -311,9 +311,7 @@ class ClassExtractor:
         metamodel: Dict[str, Any],
     ) -> str:
         """
-        抽出したクラスに対応する class_iri(URI) を決める処理。
-        - metamodel 参照でクラスIRIを引く／なければ既定命名
-        必ず URI を返すこと（出力スキーマ要件）。
+        抽出したクラスに対応する class_iri(URI) を取得する処理
         """
         # metamodel から class_iri のマッピングを探す
         classes = metamodel.get("classes", [])
@@ -321,12 +319,8 @@ class ClassExtractor:
             if cls.get("view_type") == view_type and cls.get("label") == class_name:
                 return cls.get("iri", "")
 
-        # マッピングが見つからない場合は既定命名
-        # ラベルをURLエンコード用に変換
-        from urllib.parse import quote
-        encoded_label = quote(class_name)
-        return f"http://example.com/ontology/{view_type}/{encoded_label}"
-
+        # 見つからない場合は空文字を返す
+        return ""
 
 if __name__ == "__main__":
     import glob
@@ -343,39 +337,17 @@ if __name__ == "__main__":
     # 最新のログファイルを取得
     latest_log = max(log_files, key=os.path.getmtime)
     print(f"Loading input from: {latest_log}")
-
     with open(latest_log, "r", encoding="utf-8") as f:
         view_info = json.load(f)
 
+    # メタモデルを取得
+    metamodel_path = os.path.join(os.path.dirname(__file__), "metamodel", "metamodel.json")
+    with open(metamodel_path, "r", encoding="utf-8") as f:
+        metamodel = json.load(f)
+
     sample_input = {
         "view_info": view_info,
-        "metamodel": {
-            "classes": [
-                {
-                    "iri": "http://example.com/ontology/Stakeholder",
-                    "name": "ステークホルダ",
-                    "description": "開発するシステムやサービスにより、価値を提供または受け取る主体。組織や役割などで表す",
-                    "view_type": "value_analysis",
-                    "min_length": 2,
-                    "max_length": 10,
-                    "format_guidelines": [
-                        "個人名は避け、役割名を優先"
-                    ]
-                },
-                {
-                    "iri": "http://example.com/ontology/Value",
-                    "name": "価値",
-                    "description": "開発するシステムやサービスにより、ステークホルダが得る便益や達成したい状態を表す",
-                    "view_type": "value_analysis",
-                    "min_length": 4,
-                    "max_length": 30,
-                    "format_guidelines": [
-                        "『〜の向上』『効率化』など名詞句で簡潔に"
-                    ]
-                }
-            ],
-            "properties": []
-        },
+        "metamodel": metamodel,
     }
 
     extractor = ClassExtractor(progress=True)
