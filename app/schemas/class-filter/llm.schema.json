@@ -1,0 +1,31 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {
+    "classes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "description": "クラス候補のID"
+          },
+          "prohibited": {
+            "type": "boolean",
+            "description": "禁止ルールに該当するか（true: 除外すべき, false: 保持すべき）"
+          },
+          "reason": {
+            "type": "string",
+            "description": "判定根拠"
+          }
+        },
+        "required": ["id", "prohibited", "reason"],
+        "additionalProperties": false
+      },
+      "description": "判定結果を含むクラス候補リスト"
+    }
+  },
+  "required": ["classes"],
+  "additionalProperties": false
+}
