@@ -8,19 +8,18 @@ from langchain.schema.runnable import Runnable
 
 from logger import Logger
 
+
 class ClassFilter(Runnable):
     """
     Filter and process extracted classes using LLM
     """
 
-    def __init__(
-        self,
-        llm: Any = None,
-        model: str = "gpt-5-mini",
-        temperature: float = 0.0,
-        progress: bool = True,
-        log_dir: str = "log/class_filter"
-    ):
+    def __init__(self,
+                 llm: Any = None,
+                 model: str = "gpt-5-mini",
+                 temperature: float = 0.0,
+                 progress: bool = True,
+                 log_dir: str = "log/class_filter"):
         self.llm = llm or ChatOpenAI(
             model=model,
             temperature=temperature,
@@ -30,22 +29,30 @@ class ClassFilter(Runnable):
         self.progress = progress
         self.logger = Logger(log_dir)
 
-        # JSONスキーマを読み込み
-        schema = self._load_schema()
-        self.llm_json = self.llm.bind(response_format={"type": "json_schema", "json_schema": {"name": "class_filter", "schema": schema}})
-
         # プロンプトテンプレートを読み込み
         self.prompt_template = self._load_prompt_template()
 
-    def _load_schema(self) -> dict:
-        """JSONスキーマファイルを読み込む"""
-        schema_path = os.path.join(os.path.dirname(__file__), "schemas", "class-filter", "llm.schema.json")
-        with open(schema_path, "r", encoding="utf-8") as f:
-            return json.load(f)
+    def _build_schema(self, n: int) -> dict:
+        return {
+            "$schema": "http://json-schema.org/draft-07/schema#",
+            "title": "ClassFilterFlags",
+            "type": "object",
+            "additionalProperties": False,
+            "required": ["flags"],
+            "properties": {
+                "flags": {
+                    "type": "array",
+                    "items": {"type": "boolean"},
+                    "minItems": n,
+                    "maxItems": n
+                }
+            }
+        }
 
     def _load_prompt_template(self) -> str:
         """プロンプトテンプレートファイルを読み込む"""
-        prompt_path = os.path.join(os.path.dirname(__file__), "prompts", "class_filter.txt")
+        prompt_path = os.path.join(os.path.dirname(__file__), "prompts",
+                                   "class_filter.txt")
         with open(prompt_path, "r", encoding="utf-8") as f:
             return f.read()
 
@@ -55,31 +62,33 @@ class ClassFilter(Runnable):
         if self.progress:
             print(f"ClassFilter: processing {len(classes)} classes")
 
-        # クラスリストをJSON形式で整形
-        classes_text = json.dumps(classes, ensure_ascii=False, indent=2)
+        schema = self._build_schema(len(classes))
+        llm_json = self.llm.bind(
+            response_format={
+                "type": "json_schema",
+                "json_schema": {
+                    "name": "class_filter",
+                    "schema": schema
+                }
+            })
 
         # プロンプトを構築
-        prompt = f"{self.prompt_template}\n{classes_text}"
+        prompt = f"{self.prompt_template}\n{json.dumps(classes, ensure_ascii=False, indent=2)}"
 
         # LLMでフィルタリング実行
-        response = self.llm_json.invoke([HumanMessage(content=prompt)])
+        response = llm_json.invoke([HumanMessage(content=prompt)])
 
         # レスポンスからテキストを抽出
         result_text = self._to_text(response.content)
 
         # JSON パース
         try:
-            result = json.loads(result_text)
-            judgments = result.get("classes", [])
+            parsed = json.loads(result_text)
+            flags = parsed["flags"]
 
-            # 禁止されたクラスのIDセットを作成
-            prohibited_ids = {j["id"] for j in judgments if j.get("prohibited", False)}
-
-            # 禁止されていないクラスのみを抽出
-            filtered_classes = [cls for cls in classes if cls.get("id") not in prohibited_ids]
-
+            filtered_classes = [c for c, hit in zip(classes, flags) if not hit]
             if self.progress:
-                print(f"ClassFilter: {len(prohibited_ids)} classes excluded")
+                print(f"ClassFilter: {len(filtered_classes)} classes left")
 
         except json.JSONDecodeError:
             if self.progress:
@@ -91,7 +100,9 @@ class ClassFilter(Runnable):
         output["classes"] = filtered_classes
 
         if self.progress:
-            print(f"ClassFilter: {len(classes)} -> {len(filtered_classes)} classes")
+            print(
+                f"ClassFilter: {len(classes)} -> {len(filtered_classes)} classes"
+            )
 
         self.logger.save_log(output, filename_prefix="class_filter_output_")
 
