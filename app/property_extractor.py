@@ -140,60 +140,32 @@ class PropertyExtractor(Runnable):
 
 
 if __name__ == "__main__":
-    import json
+    import glob
 
     # Create PropertyExtractor instance
     extractor = PropertyExtractor()
 
-    # Sample input data for testing (class_info with classes)
+    # Load the latest ClassFilter output JSON
+    class_filter_files = sorted(glob.glob("log/class_filter/class_filter_output_*.json"), reverse=True)
+
+    if not class_filter_files:
+        print("Error: No ClassFilter output files found in log/class_filter/")
+        exit(1)
+
+    latest_file = class_filter_files[0]
+    print(f"Loading latest ClassFilter output: {latest_file}")
+
+    with open(latest_file, "r", encoding="utf-8") as f:
+        class_info = json.load(f)
+
+    # Prepare input data for PropertyExtractor
     sample_input = {
-        "class_info": {
-            "id": "test-class-001",
-            "classes": [
-                {
-                    "id": "cls-001",
-                    "class_iri": "ex:CustomerManagementSystem",
-                    "label": "顧客管理システム",
-                    "file_id": "file-001"
-                },
-                {
-                    "id": "cls-002",
-                    "class_iri": "ex:UserRegistration",
-                    "label": "ユーザー登録",
-                    "file_id": "file-001"
-                },
-                {
-                    "id": "cls-003",
-                    "class_iri": "ex:Authentication",
-                    "label": "認証",
-                    "file_id": "file-001"
-                },
-                {
-                    "id": "cls-004",
-                    "class_iri": "ex:OrderManagementSystem",
-                    "label": "注文管理システム",
-                    "file_id": "file-002"
-                },
-                {
-                    "id": "cls-005",
-                    "class_iri": "ex:DatabaseModule",
-                    "label": "データベース接続モジュール",
-                    "file_id": "file-002"
-                },
-                {
-                    "id": "cls-006",
-                    "class_iri": "ex:ApiGateway",
-                    "label": "APIゲートウェイ",
-                    "file_id": "file-002"
-                }
-            ]
-        },
+        "class_info": class_info,
         "metamodel": {}
     }
 
     print("=== PropertyExtractor Test ===")
-    print("Input:")
-    print(json.dumps(sample_input, ensure_ascii=False, indent=2))
+    print(f"Input: {len(class_info.get('classes', []))} classes loaded")
     print("\n" + "="*50 + "\n")
 
     try:
@@ -209,8 +181,8 @@ if __name__ == "__main__":
         # Display each property relationship
         for i, prop in enumerate(result["properties"], 1):
             # Find source and destination class labels for display
-            src_class = next((c for c in sample_input["class_info"]["classes"] if c["id"] == prop["src_id"]), None)
-            dest_class = next((c for c in sample_input["class_info"]["classes"] if c["id"] == prop["dest_id"]), None)
+            src_class = next((c for c in class_info["classes"] if c["id"] == prop["src_id"]), None)
+            dest_class = next((c for c in class_info["classes"] if c["id"] == prop["dest_id"]), None)
 
             src_label = src_class["label"] if src_class else prop["src_id"]
             dest_label = dest_class["label"] if dest_class else prop["dest_id"]
