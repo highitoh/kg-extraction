@@ -1,16 +1,25 @@
-あなたはシステム開発における関係性抽出アシスタントです。
-以下の {src_class_label} と {dest_class_label} のクラスを比較し、
-{property_label}の関係になりそうな候補の組み合わせを抽出してください。
+あなたはメタモデルに基づき、クラス間の関係性候補を抽出するアシスタントです。
+{src_class_label}と{dest_class_label}の[[ラベル]]を確認し、
+[[ルール]]に従って対象の関係に相当する関係性の一次候補を抽出してください。
+対象となる関係は{property_label}です。
 
-{src_class_label}の定義:
+[[ルール]]
+- {src_class_label}と{dest_class_label}のラベルを比較し、意味的に関連があると考えられる組合せを候補とする
+- 一次候補として抽出するため、多少不正確な組合せが含まれてもよい
+- 明らかに無関係な組合せは除外すること
+- 出力は、候補となる{src_class_label}と{dest_class_label}のペアの一覧とする
+
+[[定義]]
+{src_class_label}:
 {src_class_definition}
 
-{dest_class_label}の定義:
+{dest_class_label}:
 {dest_class_definition}
 
-{property_label}の定義:
+{property_label}:
 {property_definition}
 
+[[ラベル]]
 {src_class_label}:
 {src_list}
 
