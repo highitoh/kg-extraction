@@ -20,6 +20,6 @@
 出力形式(JSON):
 {{
   "properties": [
-    {{ "src_id": "<{src_class_label}_id>", "property_iri": "{property_label}", "dest_id": "<{dest_class_label}_id>" }}
+    {{ "src_id": "<{src_class_label}_id>", "dest_id": "<{dest_class_label}_id>" }}
   ]
 }}

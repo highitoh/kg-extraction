@@ -107,12 +107,11 @@ class PropertyExtractor(Runnable):
                 if not isinstance(prop, dict):
                     continue
                 src_id = prop.get("src_id", "")
-                property_iri = prop.get("property_iri", "")
                 dest_id = prop.get("dest_id", "")
-                if src_id and property_iri and dest_id:
+                if src_id and dest_id:
                     properties.append({
                         "src_id": src_id.strip(),
-                        "property_iri": property_iri.strip(),
+                        "property_iri": property_label,
                         "dest_id": dest_id.strip()
                     })
 
