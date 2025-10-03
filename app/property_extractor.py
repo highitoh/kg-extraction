@@ -59,24 +59,36 @@ class PropertyExtractor(Runnable):
         return ""
 
     async def _extract_properties_from_classes(self, classes: List[Dict[str, Any]]) -> List[Dict[str, str]]:
-        """クラス情報からプロパティを抽出"""
-        # クラス情報をテキスト形式に整理
-        class_texts = []
-        for cls in classes:
-            cls_id = cls.get("id", "")
-            cls_label = cls.get("label", "")
-            cls_iri = cls.get("class_iri", "")
-            file_id = cls.get("file_id", "")
-            class_texts.append(f"- ID: {cls_id}, Label: {cls_label}, IRI: {cls_iri}, File: {file_id}")
+        """クラス情報からプロパティ候補を抽出（フェーズ1: labelのみで判定）"""
 
-        class_text_block = "\n".join(class_texts)
+        # StakeholderとValueの候補だけ抽出
+        stakeholders = [c for c in classes if "stakeholder" in c.get("class_iri", "").lower()]
+        values = [c for c in classes if "value" in c.get("class_iri", "").lower()]
 
-        msg = HumanMessage(
-            content=[
-                {"type": "text", "text": self.prompt},
-                {"type": "text", "text": f"# クラス情報\n{class_text_block}"},
-            ]
-        )
+        # LLMに渡す入力を整形
+        stakeholder_texts = [f"- ID: {c['id']}, Label: {c['label']}" for c in stakeholders]
+        value_texts = [f"- ID: {c['id']}, Label: {c['label']}" for c in values]
+
+        prompt_text = f"""
+    あなたはシステム開発における関係性抽出アシスタントです。
+    以下の Stakeholder と Value のラベルのみを比較し、
+    「hasValue」関係になりそうな候補の組み合わせを抽出してください。
+
+    Stakeholders:
+    {os.linesep.join(stakeholder_texts)}
+
+    Values:
+    {os.linesep.join(value_texts)}
+
+    出力形式(JSON):
+    {{
+    "properties": [
+        {{ "src_id": "<stakeholder_id>", "property_iri": "hasValue", "dest_id": "<value_id>" }}
+    ]
+    }}
+        """
+
+        msg = HumanMessage(content=[{"type": "text", "text": prompt_text}])
 
         ai = await self.llm_json.ainvoke([msg])
         raw = self._to_text(ai.content)
@@ -92,11 +104,9 @@ class PropertyExtractor(Runnable):
             for prop in extracted_properties:
                 if not isinstance(prop, dict):
                     continue
-
                 src_id = prop.get("src_id", "")
                 property_iri = prop.get("property_iri", "")
                 dest_id = prop.get("dest_id", "")
-
                 if src_id and property_iri and dest_id:
                     properties.append({
                         "src_id": src_id.strip(),
