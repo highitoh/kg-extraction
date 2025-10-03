@@ -243,5 +243,13 @@
             ]
         }
     ],
-    "properties": []
+    "properties": [
+        {
+            "iri": "https://github.com/highitoh/kg-extraction#hasValue",
+            "name": "hasValue",
+            "description": "ステークホルダが得る価値を関連付ける",
+            "src_class": "https://github.com/highitoh/kg-extraction#stakeholder",
+            "dest_class": "https://github.com/highitoh/kg-extraction#value"
+        }
+    ]
 }

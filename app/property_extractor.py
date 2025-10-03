@@ -39,6 +39,9 @@ class PropertyExtractor(Runnable):
         self.max_concurrency = max_concurrency
         self.progress = progress
 
+        # メタモデルを読み込み
+        self.metamodel = self._load_metamodel()
+
         # プロンプトを読み込み
         self.prompt = self._load_prompt()
 
@@ -49,6 +52,12 @@ class PropertyExtractor(Runnable):
         """JSONスキーマファイルを読み込む"""
         schema_path = os.path.join(os.path.dirname(__file__), "schemas", "property-extractor", "llm.schema.json")
         with open(schema_path, "r", encoding="utf-8") as f:
+            return json.load(f)
+
+    def _load_metamodel(self) -> dict:
+        """メタモデルファイルを読み込む"""
+        metamodel_path = os.path.join(os.path.dirname(__file__), "metamodel", "metamodel.json")
+        with open(metamodel_path, "r", encoding="utf-8") as f:
             return json.load(f)
 
     def _load_prompt(self) -> str:
@@ -68,20 +77,36 @@ class PropertyExtractor(Runnable):
         return ""
 
     async def _extract_properties_from_classes(self, classes: List[Dict[str, Any]]) -> List[Dict[str, str]]:
-        """クラス情報からプロパティ候補を抽出（フェーズ1: labelのみで判定）"""
+        """クラス情報からプロパティ候補を抽出"""
 
-        # 決め打ち: stakeholder -> value の hasValue 関係を抽出
-        src_class_label = "Stakeholder"
-        dest_class_label = "Value"
-        property_label = "hasValue"
+        # メタモデルからhasValueのプロパティ定義を検索
+        properties_def = self.metamodel.get("properties", [])
+        property_def = next((p for p in properties_def if p.get("name") == "hasValue"), None)
 
-        src_class_definition = "開発するシステムやサービスにより、価値を提供または受け取る主体。組織や役割などで表す"
-        dest_class_definition = "開発するシステムやサービスにより、ステークホルダが得る便益や達成したい状態を表す"
-        property_definition = "ステークホルダが得る価値を関連付ける"
+        if not property_def:
+            return []
 
-        # StakeholderとValueの候補だけ抽出
-        src_classes = [c for c in classes if "stakeholder" in c.get("class_iri", "").lower()]
-        dest_classes = [c for c in classes if "value" in c.get("class_iri", "").lower()]
+        property_label = property_def.get("name", "")
+        property_definition = property_def.get("description", "")
+        src_class_iri = property_def.get("src_class", "")
+        dest_class_iri = property_def.get("dest_class", "")
+
+        # メタモデルからクラス定義を取得
+        classes_def = self.metamodel.get("classes", [])
+        src_class_def = next((c for c in classes_def if c.get("iri") == src_class_iri), None)
+        dest_class_def = next((c for c in classes_def if c.get("iri") == dest_class_iri), None)
+
+        if not src_class_def or not dest_class_def:
+            return []
+
+        src_class_label = src_class_def.get("name", "")
+        dest_class_label = dest_class_def.get("name", "")
+        src_class_definition = src_class_def.get("description", "")
+        dest_class_definition = dest_class_def.get("description", "")
+
+        # 対象クラスのインスタンスを抽出
+        src_classes = [c for c in classes if c.get("class_iri") == src_class_iri]
+        dest_classes = [c for c in classes if c.get("class_iri") == dest_class_iri]
 
         # LLMに渡す入力を整形
         src_texts = [f"- ID: {c['id']}, Label: {c['label']}" for c in src_classes]
