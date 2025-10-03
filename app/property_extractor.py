@@ -25,6 +25,7 @@ class PropertyExtractor(Runnable):
         max_concurrency: int = 8,
         progress: bool = True,
         log_dir: str = "log/property_extractor",
+        batch_size: int = 20,
     ):
         self.llm = llm or ChatOpenAI(
             model=model,
@@ -38,6 +39,7 @@ class PropertyExtractor(Runnable):
         self.llm_json = self.llm.bind(response_format={"type": "json_schema", "json_schema": {"name": "property_extractor", "schema": schema}})
         self.max_concurrency = max_concurrency
         self.progress = progress
+        self.batch_size = batch_size
 
         # メタモデルを読み込み
         self.metamodel = self._load_metamodel()
@@ -76,43 +78,23 @@ class PropertyExtractor(Runnable):
                 return part.get("text", "")
         return ""
 
-    async def _extract_properties_for_one_type(
+    async def _extract_properties_for_batch(
         self,
-        property_def: Dict[str, Any],
-        classes: List[Dict[str, Any]]
+        property_label: str,
+        property_iri: str,
+        property_definition: str,
+        src_class_label: str,
+        dest_class_label: str,
+        src_class_definition: str,
+        dest_class_definition: str,
+        src_batch: List[Dict[str, Any]],
+        dest_batch: List[Dict[str, Any]]
     ) -> List[Dict[str, str]]:
-        """特定のプロパティタイプに対してクラス間の関係を抽出"""
-
-        property_label = property_def.get("name", "")
-        property_iri = property_def.get("iri", "")
-        property_definition = property_def.get("description", "")
-        src_class_iri = property_def.get("src_class", "")
-        dest_class_iri = property_def.get("dest_class", "")
-
-        # メタモデルからクラス定義を取得
-        classes_def = self.metamodel.get("classes", [])
-        src_class_def = next((c for c in classes_def if c.get("iri") == src_class_iri), None)
-        dest_class_def = next((c for c in classes_def if c.get("iri") == dest_class_iri), None)
-
-        if not src_class_def or not dest_class_def:
-            return []
-
-        src_class_label = src_class_def.get("name", "")
-        dest_class_label = dest_class_def.get("name", "")
-        src_class_definition = src_class_def.get("description", "")
-        dest_class_definition = dest_class_def.get("description", "")
-
-        # 対象クラスのインスタンスを抽出
-        src_classes = [c for c in classes if c.get("class_iri") == src_class_iri]
-        dest_classes = [c for c in classes if c.get("class_iri") == dest_class_iri]
-
-        # 該当するクラスインスタンスがない場合はスキップ
-        if not src_classes or not dest_classes:
-            return []
+        """バッチ単位でプロパティ抽出を実行"""
 
         # LLMに渡す入力を整形
-        src_texts = [f"- ID: {c['id']}, Label: {c['label']}" for c in src_classes]
-        dest_texts = [f"- ID: {c['id']}, Label: {c['label']}" for c in dest_classes]
+        src_texts = [f"- ID: {c['id']}, Label: {c['label']}" for c in src_batch]
+        dest_texts = [f"- ID: {c['id']}, Label: {c['label']}" for c in dest_batch]
 
         # プロンプトテンプレートにデータを埋め込み
         prompt_text = self.prompt.format(
@@ -152,6 +134,78 @@ class PropertyExtractor(Runnable):
                     })
 
         return properties
+
+    async def _extract_properties_for_one_type(
+        self,
+        property_def: Dict[str, Any],
+        classes: List[Dict[str, Any]]
+    ) -> List[Dict[str, str]]:
+        """特定のプロパティタイプに対してクラス間の関係を抽出"""
+
+        property_label = property_def.get("name", "")
+        property_iri = property_def.get("iri", "")
+        property_definition = property_def.get("description", "")
+        src_class_iri = property_def.get("src_class", "")
+        dest_class_iri = property_def.get("dest_class", "")
+
+        # メタモデルからクラス定義を取得
+        classes_def = self.metamodel.get("classes", [])
+        src_class_def = next((c for c in classes_def if c.get("iri") == src_class_iri), None)
+        dest_class_def = next((c for c in classes_def if c.get("iri") == dest_class_iri), None)
+
+        if not src_class_def or not dest_class_def:
+            return []
+
+        src_class_label = src_class_def.get("name", "")
+        dest_class_label = dest_class_def.get("name", "")
+        src_class_definition = src_class_def.get("description", "")
+        dest_class_definition = dest_class_def.get("description", "")
+
+        # 対象クラスのインスタンスを抽出
+        src_classes = [c for c in classes if c.get("class_iri") == src_class_iri]
+        dest_classes = [c for c in classes if c.get("class_iri") == dest_class_iri]
+
+        # 該当するクラスインスタンスがない場合はスキップ
+        if not src_classes or not dest_classes:
+            return []
+
+        # クラスをバッチサイズで分割
+        src_batches = [
+            src_classes[i:i + self.batch_size]
+            for i in range(0, len(src_classes), self.batch_size)
+        ]
+        dest_batches = [
+            dest_classes[i:i + self.batch_size]
+            for i in range(0, len(dest_classes), self.batch_size)
+        ]
+
+        # 全バッチの組み合わせを生成
+        tasks = []
+        for src_batch in src_batches:
+            for dest_batch in dest_batches:
+                tasks.append(
+                    self._extract_properties_for_batch(
+                        property_label=property_label,
+                        property_iri=property_iri,
+                        property_definition=property_definition,
+                        src_class_label=src_class_label,
+                        dest_class_label=dest_class_label,
+                        src_class_definition=src_class_definition,
+                        dest_class_definition=dest_class_definition,
+                        src_batch=src_batch,
+                        dest_batch=dest_batch
+                    )
+                )
+
+        # 並列実行
+        results = await asyncio.gather(*tasks)
+
+        # 全結果を統合
+        all_properties = []
+        for result in results:
+            all_properties.extend(result)
+
+        return all_properties
 
     async def _extract_properties_from_classes(self, classes: List[Dict[str, Any]]) -> List[Dict[str, str]]:
         """クラス情報からプロパティ候補を抽出"""
