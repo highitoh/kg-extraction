@@ -69,24 +69,11 @@ class PropertyExtractor(Runnable):
         stakeholder_texts = [f"- ID: {c['id']}, Label: {c['label']}" for c in stakeholders]
         value_texts = [f"- ID: {c['id']}, Label: {c['label']}" for c in values]
 
-        prompt_text = f"""
-    あなたはシステム開発における関係性抽出アシスタントです。
-    以下の Stakeholder と Value のラベルのみを比較し、
-    「hasValue」関係になりそうな候補の組み合わせを抽出してください。
-
-    Stakeholders:
-    {os.linesep.join(stakeholder_texts)}
-
-    Values:
-    {os.linesep.join(value_texts)}
-
-    出力形式(JSON):
-    {{
-    "properties": [
-        {{ "src_id": "<stakeholder_id>", "property_iri": "hasValue", "dest_id": "<value_id>" }}
-    ]
-    }}
-        """
+        # プロンプトテンプレートにデータを埋め込み
+        prompt_text = self.prompt.format(
+            stakeholder_list=os.linesep.join(stakeholder_texts),
+            value_list=os.linesep.join(value_texts)
+        )
 
         msg = HumanMessage(content=[{"type": "text", "text": prompt_text}])
 

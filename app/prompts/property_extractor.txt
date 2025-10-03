@@ -1,23 +1,16 @@
-あなたはプロパティ（関係）抽出アシスタントです。クラス情報から、クラス間の関係性を抽出してください。
+あなたはシステム開発における関係性抽出アシスタントです。
+以下の Stakeholder と Value のラベルのみを比較し、
+「hasValue」関係になりそうな候補の組み合わせを抽出してください。
 
-制約：
-- クラス間の関係は具体的な根拠に基づいて判断してください
-- 推測や創作は行わないでください
-- 関係が明確でない場合は抽出しないでください
-- 各プロパティには以下の情報が必要です：
-  - src_id: 関係の出発点となるクラス個体ID
-  - property_iri: 関係のIRI（例：ex:relatesTo, ex:contains）
-  - dest_id: 関係の到達点となるクラス個体ID
+Stakeholders:
+{stakeholder_list}
 
-出力はJSON形式で以下の構造にしてください：
-{
+Values:
+{value_list}
+
+出力形式(JSON):
+{{
   "properties": [
-    {
-      "src_id": "<出発クラスID>",
-      "property_iri": "<プロパティIRI>",
-      "dest_id": "<到達クラスID>"
-    }
+    {{ "src_id": "<stakeholder_id>", "property_iri": "hasValue", "dest_id": "<value_id>" }}
   ]
-}
-
-JSON以外は出力しないでください。
+}}
