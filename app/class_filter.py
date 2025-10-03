@@ -94,6 +94,62 @@ class ClassFilter(Runnable):
         if self.progress:
             print(f"ClassFilter: processing {len(classes)} classes")
 
+        # class_iriでグループ化
+        class_groups = self._group_classes_by_class_iri(classes)
+
+        if self.progress:
+            print(f"ClassFilter: {len(class_groups)} class types found")
+
+        # クラスごとにフィルタリング実行
+        all_filtered_classes = []
+        for class_iri, class_instances in class_groups.items():
+            class_name = self._get_class_name_from_iri(class_iri)
+            if self.progress:
+                print(f"ClassFilter: processing class={class_name}, {len(class_instances)} instances")
+
+            filtered = self._filter_classes(class_instances)
+            all_filtered_classes.extend(filtered)
+
+            if self.progress:
+                print(f"ClassFilter: class={class_name}, {len(class_instances)} -> {len(filtered)} instances")
+
+        # 出力を構築
+        output = input.copy()
+        output["classes"] = all_filtered_classes
+
+        if self.progress:
+            print(
+                f"ClassFilter: Total {len(classes)} -> {len(all_filtered_classes)} classes"
+            )
+
+        self.logger.save_log(output, filename_prefix="class_filter_output_")
+
+        return output
+
+    def _group_classes_by_class_iri(self, classes: list) -> Dict[str, list]:
+        """class_iriでグループ化"""
+        class_groups = {}
+
+        for c in classes:
+            class_iri = c.get("class_iri", "")
+            if class_iri not in class_groups:
+                class_groups[class_iri] = []
+            class_groups[class_iri].append(c)
+
+        return class_groups
+
+    def _get_class_name_from_iri(self, class_iri: str) -> str:
+        """class_iriからクラス名を取得"""
+        for cls in self.metamodel.get("classes", []):
+            if cls.get("iri", "") == class_iri:
+                return cls.get("name", "unknown")
+        return class_iri.split("#")[-1] if "#" in class_iri else class_iri
+
+    def _filter_classes(self, classes: list) -> list:
+        """指定されたクラスリストをLLMでフィルタリング"""
+        if not classes:
+            return []
+
         schema = self._build_schema(len(classes))
         llm_json = self.llm.bind(
             response_format={
@@ -117,28 +173,13 @@ class ClassFilter(Runnable):
         try:
             parsed = json.loads(result_text)
             flags = parsed["flags"]
-
             filtered_classes = [c for c, hit in zip(classes, flags) if not hit]
-            if self.progress:
-                print(f"ClassFilter: {len(filtered_classes)} classes left")
-
         except json.JSONDecodeError:
             if self.progress:
                 print(f"[ClassFilter] JSON parse error: {result_text}")
             filtered_classes = classes
 
-        # 出力を構築
-        output = input.copy()
-        output["classes"] = filtered_classes
-
-        if self.progress:
-            print(
-                f"ClassFilter: {len(classes)} -> {len(filtered_classes)} classes"
-            )
-
-        self.logger.save_log(output, filename_prefix="class_filter_output_")
-
-        return output
+        return filtered_classes
 
     @staticmethod
     def _to_text(content: Any) -> str:
