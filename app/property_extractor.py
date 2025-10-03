@@ -76,17 +76,15 @@ class PropertyExtractor(Runnable):
                 return part.get("text", "")
         return ""
 
-    async def _extract_properties_from_classes(self, classes: List[Dict[str, Any]]) -> List[Dict[str, str]]:
-        """クラス情報からプロパティ候補を抽出"""
-
-        # メタモデルからhasValueのプロパティ定義を検索
-        properties_def = self.metamodel.get("properties", [])
-        property_def = next((p for p in properties_def if p.get("name") == "hasValue"), None)
-
-        if not property_def:
-            return []
+    async def _extract_properties_for_one_type(
+        self,
+        property_def: Dict[str, Any],
+        classes: List[Dict[str, Any]]
+    ) -> List[Dict[str, str]]:
+        """特定のプロパティタイプに対してクラス間の関係を抽出"""
 
         property_label = property_def.get("name", "")
+        property_iri = property_def.get("iri", "")
         property_definition = property_def.get("description", "")
         src_class_iri = property_def.get("src_class", "")
         dest_class_iri = property_def.get("dest_class", "")
@@ -107,6 +105,10 @@ class PropertyExtractor(Runnable):
         # 対象クラスのインスタンスを抽出
         src_classes = [c for c in classes if c.get("class_iri") == src_class_iri]
         dest_classes = [c for c in classes if c.get("class_iri") == dest_class_iri]
+
+        # 該当するクラスインスタンスがない場合はスキップ
+        if not src_classes or not dest_classes:
+            return []
 
         # LLMに渡す入力を整形
         src_texts = [f"- ID: {c['id']}, Label: {c['label']}" for c in src_classes]
@@ -145,11 +147,35 @@ class PropertyExtractor(Runnable):
                 if src_id and dest_id:
                     properties.append({
                         "src_id": src_id.strip(),
-                        "property_iri": property_label,
+                        "property_iri": property_iri,
                         "dest_id": dest_id.strip()
                     })
 
         return properties
+
+    async def _extract_properties_from_classes(self, classes: List[Dict[str, Any]]) -> List[Dict[str, str]]:
+        """クラス情報からプロパティ候補を抽出"""
+
+        # メタモデルから全プロパティ定義を取得
+        properties_def = self.metamodel.get("properties", [])
+
+        if not properties_def:
+            return []
+
+        # 各プロパティタイプに対して並列処理
+        tasks = [
+            self._extract_properties_for_one_type(property_def, classes)
+            for property_def in properties_def
+        ]
+
+        results = await asyncio.gather(*tasks)
+
+        # 全結果を統合
+        all_properties = []
+        for result in results:
+            all_properties.extend(result)
+
+        return all_properties
 
     def invoke(self, input: Dict[str, Any], config=None) -> Dict[str, Any]:
         """PropertyChainInputからプロパティを抽出してPropertyChainOutputを出力"""
