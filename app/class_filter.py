@@ -1,4 +1,5 @@
 from typing import Dict, Any
+import asyncio
 import json
 import os
 
@@ -19,6 +20,7 @@ class ClassFilter(Runnable):
                  model: str = "gpt-5-mini",
                  temperature: float = 0.0,
                  progress: bool = True,
+                 max_concurrency: int = 8,
                  log_dir: str = "log/class_filter"):
         self.llm = llm or ChatOpenAI(
             model=model,
@@ -27,6 +29,7 @@ class ClassFilter(Runnable):
             output_version="responses/v1",
         )
         self.progress = progress
+        self.max_concurrency = max_concurrency
         self.logger = Logger(log_dir)
 
         # メタモデルを読み込み
@@ -100,18 +103,8 @@ class ClassFilter(Runnable):
         if self.progress:
             print(f"ClassFilter: {len(class_groups)} class types found")
 
-        # クラスごとにフィルタリング実行
-        all_filtered_classes = []
-        for class_iri, class_instances in class_groups.items():
-            class_name = self._get_class_name_from_iri(class_iri)
-            if self.progress:
-                print(f"ClassFilter: processing class={class_name}, {len(class_instances)} instances")
-
-            filtered = self._filter_classes(class_instances)
-            all_filtered_classes.extend(filtered)
-
-            if self.progress:
-                print(f"ClassFilter: class={class_name}, {len(class_instances)} -> {len(filtered)} instances")
+        # クラスごとにフィルタリングを並列実行
+        all_filtered_classes = asyncio.run(self._process_classes_parallel(class_groups))
 
         # 出力を構築
         output = input.copy()
@@ -125,6 +118,40 @@ class ClassFilter(Runnable):
         self.logger.save_log(output, filename_prefix="class_filter_output_")
 
         return output
+
+    async def _process_classes_parallel(self, class_groups: Dict[str, list]) -> list:
+        """クラスグループを並列処理"""
+        sem = asyncio.Semaphore(self.max_concurrency)
+        total = len(class_groups)
+        counter = 0
+        lock = asyncio.Lock()
+
+        async def _wrapped(class_iri: str, class_instances: list) -> list:
+            nonlocal counter
+            async with sem:
+                class_name = self._get_class_name_from_iri(class_iri)
+
+                async with lock:
+                    if self.progress:
+                        print(f"ClassFilter: processing class={class_name}, {len(class_instances)} instances")
+
+                filtered = await self._filter_classes_async(class_instances)
+
+                async with lock:
+                    counter += 1
+                    if self.progress:
+                        print(f"[{counter}/{total}] ClassFilter: class={class_name}, {len(class_instances)} -> {len(filtered)} instances")
+
+                return filtered
+
+        results = await asyncio.gather(*[_wrapped(iri, instances) for iri, instances in class_groups.items()])
+
+        # 結果をフラット化
+        all_filtered = []
+        for result in results:
+            all_filtered.extend(result)
+
+        return all_filtered
 
     def _group_classes_by_class_iri(self, classes: list) -> Dict[str, list]:
         """class_iriでグループ化"""
@@ -145,8 +172,8 @@ class ClassFilter(Runnable):
                 return cls.get("name", "unknown")
         return class_iri.split("#")[-1] if "#" in class_iri else class_iri
 
-    def _filter_classes(self, classes: list) -> list:
-        """指定されたクラスリストをLLMでフィルタリング"""
+    async def _filter_classes_async(self, classes: list) -> list:
+        """指定されたクラスリストをLLMでフィルタリング（非同期版）"""
         if not classes:
             return []
 
@@ -164,7 +191,7 @@ class ClassFilter(Runnable):
         prompt = f"{self.prompt_template}\n{json.dumps(classes, ensure_ascii=False, indent=2)}"
 
         # LLMでフィルタリング実行
-        response = llm_json.invoke([HumanMessage(content=prompt)])
+        response = await llm_json.ainvoke([HumanMessage(content=prompt)])
 
         # レスポンスからテキストを抽出
         result_text = self._to_text(response.content)
