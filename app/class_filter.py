@@ -29,6 +29,8 @@ class ClassFilter(Runnable):
         self.progress = progress
         self.logger = Logger(log_dir)
 
+        # メタモデルを読み込み
+        self.metamodel = self._load_metamodel()
         # プロンプトテンプレートを読み込み
         self.prompt_template = self._load_prompt_template()
 
@@ -49,12 +51,42 @@ class ClassFilter(Runnable):
             }
         }
 
+    def _load_metamodel(self) -> dict:
+        """メタモデルファイルを読み込む"""
+        metamodel_path = os.path.join(os.path.dirname(__file__), "metamodel",
+                                      "metamodel.json")
+        with open(metamodel_path, "r", encoding="utf-8") as f:
+            return json.load(f)
+
+    def _build_prohibit_rules_section(self) -> str:
+        """メタモデルから禁止ルールセクションを動的に生成"""
+        rules_lines = []
+
+        for cls in self.metamodel.get("classes", []):
+            if "prohibit_rules" in cls and cls.get("prohibit_rules"):
+                class_name = cls.get("name", "")
+                class_iri = cls.get("iri", "").split("#")[-1]
+                rules_lines.append(f"- {class_name}（{class_iri}）")
+                for rule in cls["prohibit_rules"]:
+                    rules_lines.append(f"  - {rule}")
+                rules_lines.append("")
+
+        return "\n".join(rules_lines).rstrip()
+
     def _load_prompt_template(self) -> str:
-        """プロンプトテンプレートファイルを読み込む"""
+        """プロンプトテンプレートファイルを読み込み、禁止ルールを動的生成"""
         prompt_path = os.path.join(os.path.dirname(__file__), "prompts",
                                    "class_filter.txt")
         with open(prompt_path, "r", encoding="utf-8") as f:
-            return f.read()
+            template = f.read()
+
+        # 禁止ルールセクションを動的に生成
+        prohibit_rules = self._build_prohibit_rules_section()
+
+        # テンプレート内のプレースホルダーを置換
+        replaced = template.replace("{PROHIBIT_RULES}", prohibit_rules)
+
+        return replaced
 
     def invoke(self, input: Dict[str, Any], config=None) -> Dict[str, Any]:
         classes = input.get("classes", [])
