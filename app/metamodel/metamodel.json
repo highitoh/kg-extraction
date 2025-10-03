@@ -250,6 +250,83 @@
             "description": "ステークホルダが得る価値を関連付ける",
             "src_class": "https://github.com/highitoh/kg-extraction#stakeholder",
             "dest_class": "https://github.com/highitoh/kg-extraction#value"
+        },
+        {
+            "iri": "https://github.com/highitoh/kg-extraction#targetsValue",
+            "name": "targetsValue",
+            "description": "プロジェクト目的が狙う価値を関連付ける",
+            "src_class": "https://github.com/highitoh/kg-extraction#project-purpose",
+            "dest_class": "https://github.com/highitoh/kg-extraction#value"
+        },
+        {
+            "iri": "https://github.com/highitoh/kg-extraction#hasBusinessRequirement",
+            "name": "hasBusinessRequirement",
+            "description": "プロジェクト目的に紐づく業務要求を関連付ける",
+            "src_class": "https://github.com/highitoh/kg-extraction#project-purpose",
+            "dest_class": "https://github.com/highitoh/kg-extraction#business-requirement"
+        },
+        {
+            "iri": "https://github.com/highitoh/kg-extraction#hasConcept",
+            "name": "hasConcept",
+            "description": "ビジョンに紐づくコンセプトを関連付ける",
+            "src_class": "https://github.com/highitoh/kg-extraction#vision",
+            "dest_class": "https://github.com/highitoh/kg-extraction#concept"
+        },
+        {
+            "iri": "https://github.com/highitoh/kg-extraction#realizesProjectPurpose",
+            "name": "realizesProjectPurpose",
+            "description": "コンセプトが実現するプロジェクト目的を関連付ける",
+            "src_class": "https://github.com/highitoh/kg-extraction#concept",
+            "dest_class": "https://github.com/highitoh/kg-extraction#project-purpose"
+        },
+        {
+            "iri": "https://github.com/highitoh/kg-extraction#hasITRequirement",
+            "name": "hasITRequirement",
+            "description": "業務要求に紐づくIT要求を関連付ける",
+            "src_class": "https://github.com/highitoh/kg-extraction#business-requirement",
+            "dest_class": "https://github.com/highitoh/kg-extraction#it-requirement"
+        },
+        {
+            "iri": "https://github.com/highitoh/kg-extraction#hasSystemRequirement",
+            "name": "hasSystemRequirement",
+            "description": "IT要求に紐づくシステム要件を関連付ける",
+            "src_class": "https://github.com/highitoh/kg-extraction#it-requirement",
+            "dest_class": "https://github.com/highitoh/kg-extraction#system-requirement"
+        },
+        {
+            "iri": "https://github.com/highitoh/kg-extraction#allocatedToComponent",
+            "name": "allocatedToComponent",
+            "description": "システム要件を割り当てるコンポーネントを関連付ける",
+            "src_class": "https://github.com/highitoh/kg-extraction#system-requirement",
+            "dest_class": "https://github.com/highitoh/kg-extraction#system-component"
+        },
+        {
+            "iri": "https://github.com/highitoh/kg-extraction#hasDataMiningObjective",
+            "name": "hasDataMiningObjective",
+            "description": "ビジネス目的に紐づくデータ分析目的を関連付ける",
+            "src_class": "https://github.com/highitoh/kg-extraction#business-goal",
+            "dest_class": "https://github.com/highitoh/kg-extraction#analysis-goal"
+        },
+        {
+            "iri": "https://github.com/highitoh/kg-extraction#hasDataMiningResult",
+            "name": "hasDataMiningResult",
+            "description": "データ分析目的に紐づく分析結果を関連付ける",
+            "src_class": "https://github.com/highitoh/kg-extraction#analysis-goal",
+            "dest_class": "https://github.com/highitoh/kg-extraction#analysis-result"
+        },
+        {
+            "iri": "https://github.com/highitoh/kg-extraction#usesDataset",
+            "name": "usesDataset",
+            "description": "分析結果で利用したデータセットを関連付ける",
+            "src_class": "https://github.com/highitoh/kg-extraction#analysis-result",
+            "dest_class": "https://github.com/highitoh/kg-extraction#dataset"
+        },
+        {
+            "iri": "https://github.com/highitoh/kg-extraction#hasEvaluationResult",
+            "name": "hasEvaluationResult",
+            "description": "分析結果に対する評価結果を関連付ける",
+            "src_class": "https://github.com/highitoh/kg-extraction#analysis-result",
+            "dest_class": "https://github.com/highitoh/kg-extraction#evaluation"
         }
     ]
 }
