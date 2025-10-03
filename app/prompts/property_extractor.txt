@@ -1,16 +1,25 @@
 あなたはシステム開発における関係性抽出アシスタントです。
-以下の Stakeholder と Value のラベルのみを比較し、
-「hasValue」関係になりそうな候補の組み合わせを抽出してください。
+以下の {src_class_label} と {dest_class_label} のクラスを比較し、
+{property_label}の関係になりそうな候補の組み合わせを抽出してください。
 
-Stakeholders:
-{stakeholder_list}
+{src_class_label}の定義:
+{src_class_definition}
 
-Values:
-{value_list}
+{dest_class_label}の定義:
+{dest_class_definition}
+
+{property_label}の定義:
+{property_definition}
+
+{src_class_label}:
+{src_list}
+
+{dest_class_label}:
+{dest_list}
 
 出力形式(JSON):
 {{
   "properties": [
-    {{ "src_id": "<stakeholder_id>", "property_iri": "hasValue", "dest_id": "<value_id>" }}
+    {{ "src_id": "<{src_class_label}_id>", "property_iri": "{property_label}", "dest_id": "<{dest_class_label}_id>" }}
   ]
 }}

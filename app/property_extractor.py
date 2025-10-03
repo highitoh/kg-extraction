@@ -61,18 +61,33 @@ class PropertyExtractor(Runnable):
     async def _extract_properties_from_classes(self, classes: List[Dict[str, Any]]) -> List[Dict[str, str]]:
         """クラス情報からプロパティ候補を抽出（フェーズ1: labelのみで判定）"""
 
+        # 決め打ち: stakeholder -> value の hasValue 関係を抽出
+        src_class_label = "Stakeholder"
+        dest_class_label = "Value"
+        property_label = "hasValue"
+
+        src_class_definition = "開発するシステムやサービスにより、価値を提供または受け取る主体。組織や役割などで表す"
+        dest_class_definition = "開発するシステムやサービスにより、ステークホルダが得る便益や達成したい状態を表す"
+        property_definition = "ステークホルダが得る価値を関連付ける"
+
         # StakeholderとValueの候補だけ抽出
-        stakeholders = [c for c in classes if "stakeholder" in c.get("class_iri", "").lower()]
-        values = [c for c in classes if "value" in c.get("class_iri", "").lower()]
+        src_classes = [c for c in classes if "stakeholder" in c.get("class_iri", "").lower()]
+        dest_classes = [c for c in classes if "value" in c.get("class_iri", "").lower()]
 
         # LLMに渡す入力を整形
-        stakeholder_texts = [f"- ID: {c['id']}, Label: {c['label']}" for c in stakeholders]
-        value_texts = [f"- ID: {c['id']}, Label: {c['label']}" for c in values]
+        src_texts = [f"- ID: {c['id']}, Label: {c['label']}" for c in src_classes]
+        dest_texts = [f"- ID: {c['id']}, Label: {c['label']}" for c in dest_classes]
 
         # プロンプトテンプレートにデータを埋め込み
         prompt_text = self.prompt.format(
-            stakeholder_list=os.linesep.join(stakeholder_texts),
-            value_list=os.linesep.join(value_texts)
+            src_class_label=src_class_label,
+            dest_class_label=dest_class_label,
+            property_label=property_label,
+            src_class_definition=src_class_definition,
+            dest_class_definition=dest_class_definition,
+            property_definition=property_definition,
+            src_list=os.linesep.join(src_texts),
+            dest_list=os.linesep.join(dest_texts)
         )
 
         msg = HumanMessage(content=[{"type": "text", "text": prompt_text}])
