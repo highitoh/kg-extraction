@@ -1,0 +1,27 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {
+    "properties": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "src_id": {
+            "type": "string",
+            "description": "The ID of the source class"
+          },
+          "dest_id": {
+            "type": "string",
+            "description": "The ID of the destination class"
+          }
+        },
+        "required": ["src_id", "dest_id"],
+        "additionalProperties": false
+      },
+      "description": "Array of property relationships between classes"
+    }
+  },
+  "required": ["properties"],
+  "additionalProperties": false
+}
