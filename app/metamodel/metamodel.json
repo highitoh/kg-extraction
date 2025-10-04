@@ -311,7 +311,14 @@
             "name": "hasDataMiningObjective",
             "description": "ビジネス目的に紐づくデータ分析目的を関連付ける",
             "src_class": "https://github.com/highitoh/kg-extraction#business-goal",
-            "dest_class": "https://github.com/highitoh/kg-extraction#analysis-goal"
+            "dest_class": "https://github.com/highitoh/kg-extraction#analysis-goal",
+            "prohibit_rules": [
+                "原文に目的句（例：「〜のために◯◯を分析する」「〜を実現するため◯◯分析を行う」等）が無い（因果・目的が明示されていない）",
+                "analysis-goal が単なる機能/作業の列挙で、business-goal への目的連結がない（例：「ログ管理・分析を行う」だけで「〜のために」が無い）",
+                "business-goal が抽象的スローガン（例：「効率化の推進」等）のみで、analysis-goal との因果句が欠落している",
+                "記述が一般論の関連付けに留まり、具体的な対象・手段・結果が示されない（例：「〜に役立つ分析」等の曖昧表現のみ）",
+                "dest（analysis-goal）が分析結果や評価、対策の実施を指している（例：「影響度の評価」「修正の決定」など結果/施策は別プロパティで扱う）"
+            ]
         },
         {
             "iri": "https://github.com/highitoh/kg-extraction#hasDataMiningResult",
