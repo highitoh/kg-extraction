@@ -31,7 +31,8 @@ class PropertyFilter(Runnable):
             reasoning={"effort": "minimal"},
             output_version="responses/v1",
         )
-        self.llm_json = self.llm.bind(response_format={"type": "json_object"})
+        self.llm_schema = self._load_llm_schema()
+        self.llm_json = self.llm.bind(response_format={"type": "json_schema", "json_schema": {"name": "property_filter", "schema": self.llm_schema}})
         self.max_concurrency = max_concurrency
         self.progress = progress
         self.batch_size = batch_size
@@ -42,6 +43,12 @@ class PropertyFilter(Runnable):
         self.logger = Logger(log_dir)
 
     # ===== Utilities =====
+    def _load_llm_schema(self) -> Dict[str, Any]:
+        """LLM出力スキーマを読み込み"""
+        schema_path = os.path.join(os.path.dirname(__file__), "schemas", "property-filter", "llm.schema.json")
+        with open(schema_path, "r", encoding="utf-8") as f:
+            return json.load(f)
+
     def _load_prompt(self) -> str:
         """プロンプトファイルを読み込み"""
         prompt_path = os.path.join(os.path.dirname(__file__), "prompts", "property_filter.txt")
