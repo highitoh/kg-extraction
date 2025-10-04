@@ -23,6 +23,7 @@ class PropertyFilter(Runnable):
         progress: bool = True,
         log_dir: str = "log/property_filter",
         batch_size: int = 24,
+        confidence_threshold: float = 0.5,
     ):
         self.llm = llm or ChatOpenAI(
             model=model,
@@ -34,6 +35,7 @@ class PropertyFilter(Runnable):
         self.max_concurrency = max_concurrency
         self.progress = progress
         self.batch_size = batch_size
+        self.confidence_threshold = confidence_threshold
 
         self.prompt = self._load_prompt()
         self.metamodel = self._load_metamodel()
@@ -143,6 +145,7 @@ class PropertyFilter(Runnable):
                     "dest_id": r.get("dest_id", ""),
                     "prohibited": bool(r.get("prohibited", False)),
                     "justification": (r.get("justification") or "")[:500],
+                    "confidence": float(r.get("confidence", 0.5)),
                 }
             )
         return results
@@ -190,9 +193,9 @@ class PropertyFilter(Runnable):
 
         await asyncio.gather(*[sem_task(prop_iri, grp) for prop_iri, grp in groups.items()])
 
-        # フィルタリング（prohibited==False のみ採用）
+        # フィルタリング（prohibited==False かつ confidence >= threshold のみ採用）
         filtered: List[Dict[str, Any]] = []
-        ok_map = {(r["src_id"], r["property_iri"], r["dest_id"]): r for r in results_all if not r["prohibited"]}
+        ok_map = {(r["src_id"], r["property_iri"], r["dest_id"]): r for r in results_all if not r["prohibited"] and r["confidence"] >= self.confidence_threshold}
 
         for c in candidates:
             key = (c.get("src_id", ""), c.get("property_iri", ""), c.get("dest_id", ""))
@@ -205,6 +208,7 @@ class PropertyFilter(Runnable):
                         "property_iri": r["property_iri"],
                         "dest_id": r["dest_id"],
                         "justification": r["justification"],
+                        "confidence": r["confidence"],
                     }
                 )
 
