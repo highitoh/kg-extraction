@@ -14,20 +14,6 @@ from logger import Logger
 
 
 class PropertyFilter(Runnable):
-    """
-    プロパティフィルタリング（フェーズ2: sourceを含めた精密判定）
-    入力:
-      - {"property_candidates": PropertyChainOutput, "class_info": ClassFilterOutput}
-        もしくは互換として {"properties": [...], "id": "...", "class_info": {...}} でも可
-    出力:
-      - PropertyChainOutput（フィルタリング済み）
-        {
-          "id": <uuid>,
-          "properties": [
-            {"id": <uuid>, "src_id": "...", "property_iri": "...", "dest_id": "...", "confidence": 0.0-1.0, "justification": "..."}
-          ]
-        }
-    """
 
     def __init__(
         self,
@@ -57,22 +43,10 @@ class PropertyFilter(Runnable):
 
     # ===== Utilities =====
     def _load_prompt(self) -> str:
-        """プロンプトを読み込み（なければフォールバック）"""
+        """プロンプトファイルを読み込み"""
         prompt_path = os.path.join(os.path.dirname(__file__), "prompts", "property_filter.txt")
-        if os.path.exists(prompt_path):
-            with open(prompt_path, "r", encoding="utf-8") as f:
-                return f.read()
-        # フォールバック（最小限）
-        return (
-            "あなたはメタモデルに基づく関係抽出の審査官です。"
-            "与えられた候補（Stakeholder/Valueなど）について、"
-            "抽出元テキスト（source）を踏まえて、該当のオブジェクトプロパティが成立するか審査し、"
-            "JSONで返してください。出力は次の形式にしてください：\n"
-            '{\n  "relations": [\n'
-            '    {"src_id":"...", "property_iri":"...", "dest_id":"...", "hasRelation": true|false, "confidence": 0.0-1.0, "justification":"..."}\n'
-            "  ]\n}\n"
-            "justificationは簡潔に。関係が明示されていない場合はfalseにしてください。"
-        )
+        with open(prompt_path, "r", encoding="utf-8") as f:
+            return f.read()
 
     @staticmethod
     def _to_text(c: Union[str, List[Any]]) -> str:
