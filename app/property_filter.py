@@ -68,9 +68,15 @@ class PropertyFilter(Runnable):
                 idx[cid] = c
         return idx
 
-    def _build_batches(self, props: List[Dict[str, Any]], batch_size: int) -> List[List[Dict[str, Any]]]:
-        """候補プロパティをバッチ分割"""
-        return [props[i : i + batch_size] for i in range(0, len(props), batch_size)]
+    def _group_by_property_iri(self, props: List[Dict[str, Any]]) -> Dict[str, List[Dict[str, Any]]]:
+        """候補プロパティをproperty_iriごとにグルーピング"""
+        groups: Dict[str, List[Dict[str, Any]]] = {}
+        for p in props:
+            prop_iri = p.get("property_iri", "")
+            if prop_iri not in groups:
+                groups[prop_iri] = []
+            groups[prop_iri].append(p)
+        return groups
 
     def _format_batch_message(self, batch: List[Dict[str, Any]], class_index: Dict[str, Dict[str, Any]]) -> str:
         """LLMへ渡すバッチ用のテキストを作成（labelとsourceを含める）"""
@@ -128,41 +134,43 @@ class PropertyFilter(Runnable):
         property_candidates: Dict[str, Any],
         class_info: Dict[str, Any],
     ) -> List[Dict[str, Any]]:
-        """候補プロパティをsourceを用いたLLM審査でフィルタリング"""
+        """候補プロパティをproperty_iriごとに分割してLLM審査でフィルタリング"""
         candidates = property_candidates.get("properties", [])
         if not candidates:
             return []
 
         class_index = self._index_classes_by_id(class_info)
-        batches = self._build_batches(candidates, self.batch_size)
+
+        # property_iriごとにグルーピング
+        groups = self._group_by_property_iri(candidates)
 
         results_all: List[Dict[str, Any]] = []
         completed_count = 0
-        total_batches = len(batches)
+        total_groups = len(groups)
 
-        async def worker(batch: List[Dict[str, Any]]):
+        async def worker(property_iri: str, group: List[Dict[str, Any]]):
             nonlocal completed_count
             try:
-                res = await self._judge_batch(batch, class_index)
+                res = await self._judge_batch(group, class_index)
                 results_all.extend(res)
             except Exception as e:
-                # バッチ失敗時はスキップ（ログのみ）
-                print(f"[PropertyFilter] batch error: {e}")
+                # グループ失敗時はスキップ（ログのみ）
+                print(f"[PropertyFilter] error for {property_iri}: {e}")
             finally:
                 completed_count += 1
                 if self.progress:
-                    print(f"[PropertyFilter] Progress: {completed_count}/{total_batches} batches completed")
+                    print(f"[PropertyFilter] Progress: {completed_count}/{total_groups} properties completed ({property_iri}: {len(group)} candidates)")
 
         sem = asyncio.Semaphore(self.max_concurrency)
 
-        async def sem_task(b):
+        async def sem_task(prop_iri: str, grp: List[Dict[str, Any]]):
             async with sem:
-                await worker(b)
+                await worker(prop_iri, grp)
 
-        if self.progress and total_batches > 0:
-            print(f"[PropertyFilter] Starting LLM batch inference: {total_batches} batches (concurrency={self.max_concurrency})")
+        if self.progress and total_groups > 0:
+            print(f"[PropertyFilter] Starting LLM inference: {total_groups} properties (concurrency={self.max_concurrency})")
 
-        await asyncio.gather(*[sem_task(b) for b in batches])
+        await asyncio.gather(*[sem_task(prop_iri, grp) for prop_iri, grp in groups.items()])
 
         # フィルタリング（hasRelation==True かつ confidence>=threshold）
         filtered: List[Dict[str, Any]] = []
