@@ -3,5 +3,5 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "PropertyExtractorOutput",
   "description": "プロパティ抽出の出力情報",
-  "$ref": "https://github.com/highitoh/kg-extraction/schemas/peroperty-chain/output.schema.json"
+  "$ref": "https://github.com/highitoh/kg-extraction/schemas/property-chain/output.schema.json"
 }

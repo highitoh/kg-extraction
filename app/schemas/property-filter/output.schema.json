@@ -1,0 +1,7 @@
+{
+  "$id": "https://github.com/highitoh/kg-extraction/schemas/property-filter/output.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "PropertyFilterOutput",
+  "description": "プロパティフィルタの出力情報",
+  "$ref": "https://github.com/highitoh/kg-extraction/schemas/property-chain/output.schema.json"
+}

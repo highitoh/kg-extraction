@@ -1,0 +1,19 @@
+{
+  "$id": "https://github.com/highitoh/kg-extraction/schemas/property-filter/input.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "PropertyFilterInput",
+  "type": "object",
+  "description": "プロパティフィルタの入力情報",
+  "properties": {
+    "property_candidates": {
+      "$ref": "https://github.com/highitoh/kg-extraction/schemas/property-chain/output.schema.json",
+      "description": "PropertyExtractorの出力（候補プロパティ情報）"
+    },
+    "class_info": {
+      "$ref": "https://github.com/highitoh/kg-extraction/schemas/class-chain/output.schema.json",
+      "description": "ClassFilterの出力（クラス情報）"
+    }
+  },
+  "required": ["property_candidates", "class_info"],
+  "additionalProperties": false
+}
