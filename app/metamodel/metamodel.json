@@ -251,8 +251,10 @@
             "src_class": "https://github.com/highitoh/kg-extraction#stakeholder",
             "dest_class": "https://github.com/highitoh/kg-extraction#value",
             "prohibit_rules": [
-                "関係が文中で明示されていない",
-                "Stakeholderが提供者であるだけで、Valueを享受しない場合"
+                "関係が文中で明示されていない（Stakeholder が Value を受け取る／享受する旨の明示がない）",
+                "Stakeholder が Value の提供者・運営者・管理者・窓口・事務局の立場であり、Value を享受しない",
+                "src ラベルや source に以下の語が優勢に現れる（提供側ロールの示唆）: 「提供」「対応」「運営」「管理」「実施」「窓口」「事務局」「担当」「管理者」「提供者」",
+                "dest が便益ではなく手段・手続き・義務・構成要素を指している（例: 設定・申請・報告・破棄の実施 等）"
             ]
         },
         {
