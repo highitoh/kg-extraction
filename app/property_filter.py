@@ -137,20 +137,30 @@ class PropertyFilter(Runnable):
         batches = self._build_batches(candidates, self.batch_size)
 
         results_all: List[Dict[str, Any]] = []
+        completed_count = 0
+        total_batches = len(batches)
 
         async def worker(batch: List[Dict[str, Any]]):
+            nonlocal completed_count
             try:
                 res = await self._judge_batch(batch, class_index)
                 results_all.extend(res)
             except Exception as e:
                 # バッチ失敗時はスキップ（ログのみ）
                 print(f"[PropertyFilter] batch error: {e}")
+            finally:
+                completed_count += 1
+                if self.progress:
+                    print(f"[PropertyFilter] Progress: {completed_count}/{total_batches} batches completed")
 
         sem = asyncio.Semaphore(self.max_concurrency)
 
         async def sem_task(b):
             async with sem:
                 await worker(b)
+
+        if self.progress and total_batches > 0:
+            print(f"[PropertyFilter] Starting LLM batch inference: {total_batches} batches (concurrency={self.max_concurrency})")
 
         await asyncio.gather(*[sem_task(b) for b in batches])
 
