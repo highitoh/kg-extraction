@@ -249,7 +249,11 @@
             "name": "hasValue",
             "description": "ステークホルダが得る価値を関連付ける",
             "src_class": "https://github.com/highitoh/kg-extraction#stakeholder",
-            "dest_class": "https://github.com/highitoh/kg-extraction#value"
+            "dest_class": "https://github.com/highitoh/kg-extraction#value",
+            "prohibit_rules": [
+                "関係が文中で明示されていない",
+                "Stakeholderが提供者であるだけで、Valueを享受しない場合"
+            ]
         },
         {
             "iri": "https://github.com/highitoh/kg-extraction#targetsValue",

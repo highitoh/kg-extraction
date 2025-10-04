@@ -1,4 +1,3 @@
-# property_filter.py
 from typing import Dict, Any, List, Union
 import asyncio
 import glob
@@ -23,7 +22,6 @@ class PropertyFilter(Runnable):
         max_concurrency: int = 8,
         progress: bool = True,
         log_dir: str = "log/property_filter",
-        confidence_threshold: float = 0.5,
         batch_size: int = 24,
     ):
         self.llm = llm or ChatOpenAI(
@@ -35,10 +33,10 @@ class PropertyFilter(Runnable):
         self.llm_json = self.llm.bind(response_format={"type": "json_object"})
         self.max_concurrency = max_concurrency
         self.progress = progress
-        self.confidence_threshold = confidence_threshold
         self.batch_size = batch_size
 
         self.prompt = self._load_prompt()
+        self.metamodel = self._load_metamodel()
         self.logger = Logger(log_dir)
 
     # ===== Utilities =====
@@ -47,6 +45,12 @@ class PropertyFilter(Runnable):
         prompt_path = os.path.join(os.path.dirname(__file__), "prompts", "property_filter.txt")
         with open(prompt_path, "r", encoding="utf-8") as f:
             return f.read()
+
+    def _load_metamodel(self) -> Dict[str, Any]:
+        """メタモデルを読み込み"""
+        metamodel_path = os.path.join(os.path.dirname(__file__), "metamodel", "metamodel.json")
+        with open(metamodel_path, "r", encoding="utf-8") as f:
+            return json.load(f)
 
     @staticmethod
     def _to_text(c: Union[str, List[Any]]) -> str:
@@ -97,12 +101,27 @@ class PropertyFilter(Runnable):
             lines.append(f"    - dest_source: {dest.get('source','')}")
         return "\n".join(lines)
 
+    def _get_prohibit_rules(self, property_iri: str) -> str:
+        """メタモデルから該当プロパティの禁止ルールを取得"""
+        for prop in self.metamodel.get("properties", []):
+            if prop.get("iri") == property_iri:
+                rules = prop.get("prohibit_rules", [])
+                if rules:
+                    return "\n".join(f"- {rule}" for rule in rules)
+        return ""
+
     async def _judge_batch(self, batch: List[Dict[str, Any]], class_index: Dict[str, Dict[str, Any]]) -> List[Dict[str, Any]]:
         """LLMで1バッチ分の候補を審査して結果(JSON)を返す"""
         batch_text = self._format_batch_message(batch, class_index)
+
+        # バッチ内の最初のproperty_iriから禁止ルールを取得
+        property_iri = batch[0].get("property_iri", "") if batch else ""
+        prohibit_rules = self._get_prohibit_rules(property_iri)
+        prompt_filled = self.prompt.replace("{PROHIBIT_RULES}", prohibit_rules)
+
         msg = HumanMessage(
             content=[
-                {"type": "text", "text": self.prompt},
+                {"type": "text", "text": prompt_filled},
                 {"type": "text", "text": batch_text},
             ]
         )
@@ -122,8 +141,7 @@ class PropertyFilter(Runnable):
                     "src_id": r.get("src_id", ""),
                     "property_iri": r.get("property_iri", ""),
                     "dest_id": r.get("dest_id", ""),
-                    "hasRelation": bool(r.get("hasRelation", False)),
-                    "confidence": float(r.get("confidence", 0.0)) if isinstance(r.get("confidence", 0.0), (int, float)) else 0.0,
+                    "prohibited": bool(r.get("prohibited", False)),
                     "justification": (r.get("justification") or "")[:500],
                 }
             )
@@ -172,9 +190,9 @@ class PropertyFilter(Runnable):
 
         await asyncio.gather(*[sem_task(prop_iri, grp) for prop_iri, grp in groups.items()])
 
-        # フィルタリング（hasRelation==True かつ confidence>=threshold）
+        # フィルタリング（prohibited==False のみ採用）
         filtered: List[Dict[str, Any]] = []
-        ok_map = {(r["src_id"], r["property_iri"], r["dest_id"]): r for r in results_all if r["hasRelation"] and r["confidence"] >= self.confidence_threshold}
+        ok_map = {(r["src_id"], r["property_iri"], r["dest_id"]): r for r in results_all if not r["prohibited"]}
 
         for c in candidates:
             key = (c.get("src_id", ""), c.get("property_iri", ""), c.get("dest_id", ""))
@@ -186,14 +204,12 @@ class PropertyFilter(Runnable):
                         "src_id": r["src_id"],
                         "property_iri": r["property_iri"],
                         "dest_id": r["dest_id"],
-                        "confidence": r["confidence"],
                         "justification": r["justification"],
                     }
                 )
 
         return filtered
 
-    # ===== Runnable API =====
     def invoke(self, input: Dict[str, Any], config=None) -> Dict[str, Any]:
         """
         入力:
@@ -229,7 +245,7 @@ class PropertyFilter(Runnable):
         if self.progress:
             print(
                 f"PropertyFilter: {len(property_candidates.get('properties', []))} candidates -> "
-                f"{len(filtered)} accepted (threshold={self.confidence_threshold})"
+                f"{len(filtered)} accepted"
             )
 
         self.logger.save_log(output, filename_prefix="property_filter_output_")
@@ -287,7 +303,7 @@ if __name__ == "__main__":
             d = idx.get(p["dest_id"], {})
             s_label = s.get("label", p["src_id"])
             d_label = d.get("label", p["dest_id"])
-            print(f"  {i:02d}. {s_label} --[{p['property_iri']}]--> {d_label}  (conf={p.get('confidence',0):.2f})")
+            print(f"  {i:02d}. {s_label} --[{p['property_iri']}]--> {d_label}")
 
     except Exception as e:
         print(f"Error: {e}")
