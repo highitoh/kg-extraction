@@ -8,7 +8,7 @@ justificationは簡潔に。
 【出力形式（JSONのみ）】
 {
   "relations": [
-    {"src_id":"...", "property_iri":"...", "dest_id":"...", "prohibited": true|false, "justification":"..."}
+    {"src_id":"...", "dest_id":"...", "prohibited": true|false, "justification":"..."}
   ]
 }
 

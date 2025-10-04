@@ -139,7 +139,7 @@ class PropertyFilter(Runnable):
             results.append(
                 {
                     "src_id": r.get("src_id", ""),
-                    "property_iri": r.get("property_iri", ""),
+                    "property_iri": property_iri,  # バッチのproperty_iriを保持
                     "dest_id": r.get("dest_id", ""),
                     "prohibited": bool(r.get("prohibited", False)),
                     "justification": (r.get("justification") or "")[:500],
