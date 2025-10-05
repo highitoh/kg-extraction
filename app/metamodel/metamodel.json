@@ -325,7 +325,14 @@
             "name": "hasDataMiningResult",
             "description": "データ分析目的に紐づく分析結果を関連付ける",
             "src_class": "https://github.com/highitoh/kg-extraction#analysis-goal",
-            "dest_class": "https://github.com/highitoh/kg-extraction#analysis-result"
+            "dest_class": "https://github.com/highitoh/kg-extraction#analysis-result",
+            "prohibit_rules": [
+                "原文が「〜を分析する／分析を実施する／分析対象とする」など分析行為の記述のみで、具体的な結果・知見（明らかになった／特定した／算出した 等）が述べられていない",
+                "dest が意思決定・評価・施策（例: 決定・承認・文書化・改善案・選択肢提示）であり、分析そのものの結果ではない",
+                "数値や指標が示されていても、当該 analysis-goal の結果として導かれたことが原文で明示されていない（別ゴール起因の可能性）",
+                "記述が一般論・説明的表現にとどまり、具体的アウトプット（指標/結論/分類/相関/影響度/範囲/要因推定 等）が示されない",
+                "dest が作業手順・運用・要求の列挙であり、分析アウトプットを表していない"
+            ]
         },
         {
             "iri": "https://github.com/highitoh/kg-extraction#usesDataset",
