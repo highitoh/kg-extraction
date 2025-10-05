@@ -8,6 +8,7 @@ import uuid
 
 from langchain_openai import ChatOpenAI
 from langchain.schema import HumanMessage
+from langchain.schema.runnable import Runnable
 
 from logger import Logger
 
@@ -34,7 +35,7 @@ class ExtractedClass:
         return asdict(self)
 
 
-class ClassExtractor:
+class ClassExtractor(Runnable):
     """
     ビュー記述からクラス候補を抽出するクラス
     """

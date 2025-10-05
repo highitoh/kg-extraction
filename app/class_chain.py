@@ -1,7 +1,7 @@
 from langchain.schema.runnable import RunnableSequence, Runnable
 
 from class_extractor import ClassExtractor
-#from class_filter import ClassFilter
+from class_filter import ClassFilter
 
 def create_class_chain() -> Runnable:
     """
@@ -9,8 +9,8 @@ def create_class_chain() -> Runnable:
       ClassExtractor -> ClassFilter
     """
     extractor = ClassExtractor()
-    #class_filter = ClassFilter()
-    return extractor
+    class_filter = ClassFilter()
+    return RunnableSequence(extractor, class_filter)
 
 if __name__ == "__main__":
     import json
