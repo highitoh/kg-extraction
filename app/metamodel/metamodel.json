@@ -346,7 +346,14 @@
             "name": "hasEvaluationResult",
             "description": "分析結果に対する評価結果を関連付ける",
             "src_class": "https://github.com/highitoh/kg-extraction#analysis-result",
-            "dest_class": "https://github.com/highitoh/kg-extraction#evaluation"
+            "dest_class": "https://github.com/highitoh/kg-extraction#evaluation",
+            "prohibit_rules": [
+                "src（analysis-result）が分析行為の記述のみであり、具体的な結果（明らかになった／特定した／算出した 等）が示されていない",
+                "src が意思決定・評価・計画（例: 決定・承認・文書化・選択肢提示 等）を表しており、analysis-result として不適切（これらは evaluation として扱う）",
+                "dest（evaluation）との因果関係が文中で明示されていない（例: 『〜に基づき』『〜を踏まえ』『〜の結果として』等が無い）",
+                "justification が一般論に留まり、src が実際に dest の評価に寄与したことが読み取れない",
+                "src が数値や指標でも、当該評価結果に基づいて意思決定・方針設定を行ったことが原文で確認できない（帰属不明）"
+            ]            
         }
     ]
 }
