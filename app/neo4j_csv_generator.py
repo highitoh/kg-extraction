@@ -55,6 +55,11 @@ class Neo4jCSVGenerator:
             return iri.rsplit(":", 1)[-1]
         return iri
 
+    @staticmethod
+    def _to_snake_case(name: str) -> str:
+        """チェインケース（ハイフン区切り）をスネークケースに変換"""
+        return name.replace("-", "_")
+
     def _process_classes(self, class_info: Dict[str, Any]):
         """クラス情報からノードを生成"""
         for class_item in class_info.get("classes", []):
@@ -63,8 +68,8 @@ class Neo4jCSVGenerator:
             label = class_item["label"]
             file_id = class_item["file_id"]
 
-            # ノードのラベル（クラスのローカル名）
-            class_label = self._local_name(class_iri)
+            # ノードのラベル（クラスのローカル名をスネークケースに変換）
+            class_label = self._to_snake_case(self._local_name(class_iri))
 
             self.nodes[node_id] = {
                 "id:ID": node_id,
@@ -82,8 +87,8 @@ class Neo4jCSVGenerator:
             dest_id = prop_item["dest_id"]
             property_iri = prop_item["property_iri"]
 
-            # リレーションのタイプ（プロパティのローカル名）
-            rel_type = self._local_name(property_iri)
+            # リレーションのタイプ（プロパティのローカル名をスネークケースに変換）
+            rel_type = self._to_snake_case(self._local_name(property_iri))
 
             self.relationships.add((
                 src_id,         # :START_ID
