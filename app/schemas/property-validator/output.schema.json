@@ -1,0 +1,7 @@
+{
+  "$id": "https://github.com/highitoh/kg-extraction/schemas/property-validator/output.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "PropertyValidatorOutput",
+  "description": "PropertyValidatorの出力情報（検証済みプロパティ）",
+  "$ref": "https://github.com/highitoh/kg-extraction/schemas/property-chain/output.schema.json"
+}

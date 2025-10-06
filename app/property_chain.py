@@ -2,15 +2,17 @@ from langchain.schema.runnable import Runnable, RunnableSequence
 
 from property_extractor import PropertyExtractor
 from property_filter import PropertyFilter
+from property_validator import PropertyValidator
 
 def create_property_chain() -> Runnable:
     """
     プロパティ抽出チェーン:
-      PropertyExtractor -> PropertyFilter
+      PropertyExtractor -> PropertyFilter -> PropertyValidator
     """
     extractor = PropertyExtractor()
     property_filter = PropertyFilter()
-    return RunnableSequence(extractor, property_filter)
+    validator = PropertyValidator()
+    return RunnableSequence(extractor, property_filter, validator)
 
 
 if __name__ == "__main__":

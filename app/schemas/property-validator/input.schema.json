@@ -1,0 +1,23 @@
+{
+  "$id": "https://github.com/highitoh/kg-extraction/schemas/property-validator/input.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "PropertyValidatorInput",
+  "type": "object",
+  "description": "PropertyValidatorの入力情報",
+  "properties": {
+    "property_candidates": {
+      "$ref": "https://github.com/highitoh/kg-extraction/schemas/property-filter/output.schema.json",
+      "description": "PropertyFilterの出力（フィルタリング済みプロパティ情報）"
+    },
+    "class_info": {
+      "$ref": "https://github.com/highitoh/kg-extraction/schemas/class-chain/output.schema.json",
+      "description": "ClassFilterの出力（クラス情報）"
+    },
+    "metamodel": {
+      "$ref": "https://github.com/highitoh/kg-extraction/schemas/common/metamodel.schema.json",
+      "description": "メタモデル定義"
+    }
+  },
+  "required": ["property_candidates", "class_info", "metamodel"],
+  "additionalProperties": false
+}
