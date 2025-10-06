@@ -7,6 +7,7 @@ import uuid
 from langchain.schema.runnable import Runnable
 from langchain_core.messages import HumanMessage
 from langchain_openai import ChatOpenAI
+from openai import APIConnectionError, RateLimitError, APIError
 
 from logger import Logger
 
@@ -23,6 +24,7 @@ class PropertyExtractor(Runnable):
         model: str = "gpt-5-nano",
         temperature: float = 0.0,
         max_concurrency: int = 8,
+        max_retries: int = 5,
         progress: bool = True,
         log_dir: str = "log/property_extractor",
         batch_size: int = 20,
@@ -38,6 +40,7 @@ class PropertyExtractor(Runnable):
         schema = self._load_schema()
         self.llm_json = self.llm.bind(response_format={"type": "json_schema", "json_schema": {"name": "property_extractor", "schema": schema}})
         self.max_concurrency = max_concurrency
+        self.max_retries = max_retries
         self.progress = progress
         self.batch_size = batch_size
 
@@ -110,7 +113,7 @@ class PropertyExtractor(Runnable):
 
         msg = HumanMessage(content=[{"type": "text", "text": prompt_text}])
 
-        ai = await self.llm_json.ainvoke([msg])
+        ai = await self._invoke_with_retry(msg)
         raw = self._to_text(ai.content)
         try:
             data = json.loads(raw)
@@ -134,6 +137,30 @@ class PropertyExtractor(Runnable):
                     })
 
         return properties
+
+    async def _invoke_with_retry(self, msg: HumanMessage):
+        """リトライ機能付きのLLM呼び出し"""
+        delay = 1.0
+        max_delay = 60.0
+        last_exception = None
+
+        for attempt in range(self.max_retries + 1):
+            try:
+                return await self.llm_json.ainvoke([msg])
+            except (APIConnectionError, RateLimitError, APIError) as e:
+                last_exception = e
+
+                if attempt == self.max_retries:
+                    raise
+
+                wait_time = min(delay, max_delay)
+                if self.progress:
+                    print(f"[PropertyExtractor Retry {attempt + 1}/{self.max_retries}] API error: {type(e).__name__}. Retrying in {wait_time:.1f}s...")
+                await asyncio.sleep(wait_time)
+                delay *= 2
+
+        if last_exception:
+            raise last_exception
 
     async def _extract_properties_for_one_type(
         self,

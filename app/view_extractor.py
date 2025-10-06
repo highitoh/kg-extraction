@@ -7,6 +7,7 @@ import uuid
 from langchain.schema.runnable import Runnable
 from langchain_core.messages import HumanMessage
 from langchain_openai import ChatOpenAI
+from openai import APIConnectionError, RateLimitError, APIError
 
 from chunk_creator import ChunkCreator
 from logger import Logger
@@ -24,6 +25,7 @@ class ViewExtractor(Runnable):
         model: str = "gpt-5-mini",
         temperature: float = 0.0,
         max_concurrency: int = 8,
+        max_retries: int = 5,
         progress: bool = True,
         max_spans_per_label: int = 3,
         log_dir: str = "log/view_extractor",
@@ -41,6 +43,7 @@ class ViewExtractor(Runnable):
         schema = self._load_schema()
         self.llm_json = self.llm.bind(response_format={"type": "json_schema", "json_schema": {"name": "view_extractor", "schema": schema}})
         self.max_concurrency = max_concurrency
+        self.max_retries = max_retries
         self.progress = progress
         self.max_spans_per_label = max_spans_per_label
 
@@ -97,7 +100,7 @@ class ViewExtractor(Runnable):
                 {"type": "text", "text": f"# 対象テキスト\n{chunk}"},
             ]
         )
-        ai = await self.llm_json.ainvoke([msg])
+        ai = await self._invoke_with_retry(msg)
         raw = self._to_text(ai.content)
         try:
             data = json.loads(raw)
@@ -124,6 +127,30 @@ class ViewExtractor(Runnable):
                     break
             spans[k] = out
         return spans
+
+    async def _invoke_with_retry(self, msg: HumanMessage):
+        """リトライ機能付きのLLM呼び出し"""
+        delay = 1.0
+        max_delay = 60.0
+        last_exception = None
+
+        for attempt in range(self.max_retries + 1):
+            try:
+                return await self.llm_json.ainvoke([msg])
+            except (APIConnectionError, RateLimitError, APIError) as e:
+                last_exception = e
+
+                if attempt == self.max_retries:
+                    raise
+
+                wait_time = min(delay, max_delay)
+                if self.progress:
+                    print(f"[ViewExtractor Retry {attempt + 1}/{self.max_retries}] API error: {type(e).__name__}. Retrying in {wait_time:.1f}s...")
+                await asyncio.sleep(wait_time)
+                delay *= 2
+
+        if last_exception:
+            raise last_exception
 
     async def _process_chunks_parallel(self, chunks: List[str]) -> List[Dict[str, Any]]:
         """チャンクを並列処理でビュー抽出"""

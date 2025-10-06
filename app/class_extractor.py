@@ -9,6 +9,7 @@ import uuid
 from langchain_openai import ChatOpenAI
 from langchain.schema import HumanMessage
 from langchain.schema.runnable import Runnable
+from openai import APIConnectionError, RateLimitError, APIError
 
 from logger import Logger
 
@@ -47,6 +48,7 @@ class ClassExtractor(Runnable):
         temperature: float = 0.0,
         progress: bool = True,
         max_concurrency: int = 8,
+        max_retries: int = 5,
         log_dir: str = "log/class_extractor"
     ):
         self.llm = llm or ChatOpenAI(
@@ -57,6 +59,7 @@ class ClassExtractor(Runnable):
         )
         self.progress = progress
         self.max_concurrency = max_concurrency
+        self.max_retries = max_retries
         self.logger = Logger(log_dir)
 
         # JSONスキーマを読み込み
@@ -223,7 +226,7 @@ class ClassExtractor(Runnable):
         )
         prompt = f"{prompt}\n\n【テキスト】\n{chunks_text}\n"
 
-        response = await self.llm_json.ainvoke([HumanMessage(content=prompt)])
+        response = await self._invoke_with_retry(HumanMessage(content=prompt))
 
         # response.content からテキストを抽出
         result_text = self._to_text(response.content)
@@ -249,6 +252,30 @@ class ClassExtractor(Runnable):
                 })
 
         return labels
+
+    async def _invoke_with_retry(self, msg: HumanMessage):
+        """リトライ機能付きのLLM呼び出し"""
+        delay = 1.0
+        max_delay = 60.0
+        last_exception = None
+
+        for attempt in range(self.max_retries + 1):
+            try:
+                return await self.llm_json.ainvoke([msg])
+            except (APIConnectionError, RateLimitError, APIError) as e:
+                last_exception = e
+
+                if attempt == self.max_retries:
+                    raise
+
+                wait_time = min(delay, max_delay)
+                if self.progress:
+                    print(f"[ClassExtractor Retry {attempt + 1}/{self.max_retries}] API error: {type(e).__name__}. Retrying in {wait_time:.1f}s...")
+                await asyncio.sleep(wait_time)
+                delay *= 2
+
+        if last_exception:
+            raise last_exception
 
     def _get_class_definitions(self, metamodel: Dict[str, Any], view_type: str) -> str:
         """

@@ -2,12 +2,53 @@ from typing import Dict, Any
 import asyncio
 import json
 import os
+from functools import wraps
 
 from langchain_openai import ChatOpenAI
 from langchain.schema import HumanMessage
 from langchain.schema.runnable import Runnable
+from openai import APIConnectionError, RateLimitError, APIError
 
 from logger import Logger
+
+
+def async_retry_with_backoff(max_retries: int = 5, initial_delay: float = 1.0, max_delay: float = 60.0):
+    """
+    非同期関数用のリトライデコレータ（指数バックオフ付き）
+
+    Args:
+        max_retries: 最大リトライ回数
+        initial_delay: 初回リトライ前の待機時間（秒）
+        max_delay: 最大待機時間（秒）
+    """
+    def decorator(func):
+        @wraps(func)
+        async def wrapper(*args, **kwargs):
+            delay = initial_delay
+            last_exception = None
+
+            for attempt in range(max_retries + 1):
+                try:
+                    return await func(*args, **kwargs)
+                except (APIConnectionError, RateLimitError, APIError) as e:
+                    last_exception = e
+
+                    if attempt == max_retries:
+                        raise
+
+                    # リトライ前に待機
+                    wait_time = min(delay, max_delay)
+                    print(f"[Retry {attempt + 1}/{max_retries}] API error: {type(e).__name__}. Retrying in {wait_time:.1f}s...")
+                    await asyncio.sleep(wait_time)
+
+                    # 指数バックオフ
+                    delay *= 2
+
+            if last_exception:
+                raise last_exception
+
+        return wrapper
+    return decorator
 
 
 class ClassFilter(Runnable):
@@ -21,6 +62,7 @@ class ClassFilter(Runnable):
                  temperature: float = 0.0,
                  progress: bool = True,
                  max_concurrency: int = 8,
+                 max_retries: int = 5,
                  log_dir: str = "log/class_filter"):
         self.llm = llm or ChatOpenAI(
             model=model,
@@ -30,6 +72,7 @@ class ClassFilter(Runnable):
         )
         self.progress = progress
         self.max_concurrency = max_concurrency
+        self.max_retries = max_retries
         self.logger = Logger(log_dir)
 
         # メタモデルを読み込み
@@ -190,8 +233,8 @@ class ClassFilter(Runnable):
         # プロンプトを構築
         prompt = f"{self.prompt_template}\n{json.dumps(classes, ensure_ascii=False, indent=2)}"
 
-        # LLMでフィルタリング実行
-        response = await llm_json.ainvoke([HumanMessage(content=prompt)])
+        # LLMでフィルタリング実行（リトライ付き）
+        response = await self._invoke_with_retry(llm_json, prompt)
 
         # レスポンスからテキストを抽出
         result_text = self._to_text(response.content)
@@ -207,6 +250,30 @@ class ClassFilter(Runnable):
             filtered_classes = classes
 
         return filtered_classes
+
+    async def _invoke_with_retry(self, llm_json, prompt: str):
+        """リトライ機能付きのLLM呼び出し"""
+        delay = 1.0
+        max_delay = 60.0
+        last_exception = None
+
+        for attempt in range(self.max_retries + 1):
+            try:
+                return await llm_json.ainvoke([HumanMessage(content=prompt)])
+            except (APIConnectionError, RateLimitError, APIError) as e:
+                last_exception = e
+
+                if attempt == self.max_retries:
+                    raise
+
+                wait_time = min(delay, max_delay)
+                if self.progress:
+                    print(f"[ClassFilter Retry {attempt + 1}/{self.max_retries}] API error: {type(e).__name__}. Retrying in {wait_time:.1f}s...")
+                await asyncio.sleep(wait_time)
+                delay *= 2
+
+        if last_exception:
+            raise last_exception
 
     @staticmethod
     def _to_text(content: Any) -> str:
