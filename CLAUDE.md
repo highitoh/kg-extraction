@@ -26,7 +26,7 @@ PDFファイルから知識を抽出してTurtleファイルとNeo4j用CSVファ
 
 ## Schema Structure
 `/workspace/app/schemas/`は、各チェインやLLMの入出力のJSONスキーマを定義している
-- **Chains**: pdf-text-chain, view-chain, class-chain, property-chain
+- **Chains**: doc-text-chain, view-chain, class-chain, property-chain
 - **Extractors**: text-extractor, view-extractor, class-extractor, property-extractor
 - **Filters**: text-filter, view-filter
 - **Generators**: turtle-generator, neo4j-csv-generator
@@ -46,7 +46,7 @@ cd app && pip install -r requirements.txt
 cd app && python main.py [PDF_PATH]
 
 # 特定のチェインの実行 (統合前)
-cd app && python pdf_text_chain.py
+cd app && python doc_text_chain.py
 cd app && python view_chain.py
 cd app && python class_chain.py
 cd app && python property_chain.py

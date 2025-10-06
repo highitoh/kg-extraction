@@ -8,7 +8,7 @@ import json
 from typing import Dict, Any
 from langchain.schema.runnable import Runnable, RunnableSequence
 
-from pdf_text_chain import PDFTextChain
+from doc_text_chain import DocTextChain
 from view_chain import create_view_chain
 from class_chain import create_class_chain
 from property_chain import create_property_chain
@@ -32,7 +32,7 @@ class DataTransformer(Runnable):
 
     def invoke(self, input: Dict[str, Any], config=None) -> Dict[str, Any]:
         if self.transform_type == "pdf_to_view":
-            # PDFTextChainOutput -> ViewChainInput
+            # DocTextChainOutput -> ViewChainInput
             return {
                 "target": {
                     "id": input["id"],
@@ -127,7 +127,7 @@ def create_knowledge_extraction_chain(output_dir: str = "/workspace/app/output")
     知識抽出チェインを作成
 
     実行順序:
-    1. PDFTextChain - PDFからテキスト抽出
+    1. DocTextChain - ドキュメントからテキスト抽出
     2. ViewChain - ビュー記述抽出
     3. ClassChain - クラス抽出
     4. PropertyChain - プロパティ（関係）抽出
@@ -135,7 +135,7 @@ def create_knowledge_extraction_chain(output_dir: str = "/workspace/app/output")
     """
 
     # 各チェインの作成
-    pdf_chain = PDFTextChain()
+    doc_chain = DocTextChain()
     view_chain = create_view_chain()
     class_chain = create_class_chain()
     property_output_chain = PropertyAndOutputChain(output_dir)
@@ -147,8 +147,8 @@ def create_knowledge_extraction_chain(output_dir: str = "/workspace/app/output")
 
     # チェインを連結
     return RunnableSequence(
-        pdf_chain,                          # PDFTextChainInput -> PDFTextChainOutput
-        pdf_to_view_transformer,            # PDFTextChainOutput -> ViewChainInput
+        doc_chain,                          # DocTextChainInput -> DocTextChainOutput
+        pdf_to_view_transformer,            # DocTextChainOutput -> ViewChainInput
         view_chain,                         # ViewChainInput -> ViewChainOutput
         view_to_class_transformer,          # ViewChainOutput -> ClassChainInput
         class_chain,                        # ClassChainInput -> ClassChainOutput

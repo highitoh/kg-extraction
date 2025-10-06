@@ -124,10 +124,10 @@ class TextTransformer(Runnable):
         入力データを整形して出力データを生成
 
         Args:
-            input_data: PDFTextChainOutputフォーマットの入力データ
+            input_data: DocTextChainOutputフォーマットの入力データ
 
         Returns:
-            整形されたPDFTextChainOutputフォーマットの出力データ
+            整形されたDocTextChainOutputフォーマットの出力データ
         """
         sentences = input_data.get("sentences", [])
 

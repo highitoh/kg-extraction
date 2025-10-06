@@ -2,5 +2,5 @@
   "$id": "https://github.com/highitoh/kg-extraction/schemas/text-filter/output.schema.json",
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "TextFilterOutput",
-  "$ref": "../pdf-text-chain/output.schema.json"
+  "$ref": "../doc-text-chain/output.schema.json"
 }

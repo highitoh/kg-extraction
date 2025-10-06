@@ -7,8 +7,8 @@ from text_extractor import TextExtractor
 from text_filter import TextFilter
 from text_transformer import TextTransformer
 
-class PDFTextChain(Runnable):
-    """PDFテキスト抽出チェイン"""
+class DocTextChain(Runnable):
+    """ドキュメントテキスト抽出チェイン"""
 
     def __init__(self):
         self.extractor = TextExtractor()
@@ -26,7 +26,7 @@ class PDFTextChain(Runnable):
 
 
 if __name__ == "__main__":
-    chain = PDFTextChain()
+    chain = DocTextChain()
     result = chain.invoke({
         "files": [{"path": "../doc/sample.pdf"}]
     })

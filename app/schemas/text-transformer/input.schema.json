@@ -3,5 +3,5 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "TextTransformerInput",
   "description": "テキスト整形の入力情報",
-  "$ref": "https://github.com/highitoh/kg-extraction/schemas/pdf-text-chain/output.schema.json"
+  "$ref": "https://github.com/highitoh/kg-extraction/schemas/doc-text-chain/output.schema.json"
 }
