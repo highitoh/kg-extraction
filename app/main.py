@@ -16,11 +16,19 @@ from turtle_generator import TurtleGenerator
 from neo4j_csv_generator import Neo4jCSVGenerator
 
 
+def _load_metamodel() -> Dict[str, Any]:
+    """メタモデルファイルを読み込む"""
+    metamodel_path = os.path.join(os.path.dirname(__file__), "metamodel", "metamodel.json")
+    with open(metamodel_path, "r", encoding="utf-8") as f:
+        return json.load(f)
+
+
 class DataTransformer(Runnable):
     """チェイン間のデータ変換を行うRunnable"""
 
     def __init__(self, transform_type: str):
         self.transform_type = transform_type
+        self.metamodel = _load_metamodel()
 
     def invoke(self, input: Dict[str, Any], config=None) -> Dict[str, Any]:
         if self.transform_type == "pdf_to_view":
@@ -32,21 +40,21 @@ class DataTransformer(Runnable):
                     "file_name": input["file_name"],
                     "sentences": input["sentences"]
                 },
-                "metamodel": {}  # メタモデルは空で初期化
+                "metamodel": self.metamodel
             }
 
         elif self.transform_type == "view_to_class":
             # ViewChainOutput -> ClassChainInput
             return {
                 "view_info": input,
-                "metamodel": {}
+                "metamodel": self.metamodel
             }
 
         elif self.transform_type == "class_to_property":
             # ClassChainOutput -> PropertyChainInput
             return {
                 "class_info": input,
-                "metamodel": {}
+                "metamodel": self.metamodel
             }
 
         elif self.transform_type == "prepare_output":
