@@ -12,22 +12,19 @@ class PresentationTextChain(Runnable):
 
     def __init__(self):
         self.extractor = PresentationTextExtractor()
-        self.transformer = TextTransformer()
-        self.filter = TextFilter()
+        #self.filter = TextFilter()
 
     def invoke(self, input: Dict[str, Any], config: RunnableConfig = None) -> Dict[str, Any]:
         # Step 1: テキスト抽出
         extracted = self.extractor.invoke(input, config)
-        # Step 2: テキスト連結
-        # transformed = self.transformer.invoke(extracted)
-        # Step 3: フィルタリング
-        filtered = self.filter.invoke({"source": extracted, "filter": {"name": "dummy"}}, config)
-        return filtered
+        # Step 2: フィルタリング
+        #filtered = self.filter.invoke({"source": extracted, "filter": {"name": "dummy"}}, config)
+        return extracted
 
 
 if __name__ == "__main__":
     chain = PresentationTextChain()
     result = chain.invoke({
-        "files": [{"path": "../doc/sample.pdf"}]
+        "files": [{"path": "../doc/presentation_sample.pdf"}]
     })
     print(result)
