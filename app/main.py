@@ -8,8 +8,11 @@ import json
 import re
 from typing import Dict, Any
 from langchain.schema.runnable import Runnable, RunnableSequence
+from langchain_core.runnables import RunnableBranch
 
+from file_type_classifier import FileTypeClassifier
 from doc_text_chain import DocTextChain
+from presentation_text_chain import PresentationTextChain
 from view_chain import create_view_chain
 from class_chain import create_class_chain
 from property_chain import create_property_chain
@@ -156,28 +159,53 @@ def create_knowledge_extraction_chain(output_dir: str = "/workspace/app/output")
     知識抽出チェインを作成
 
     実行順序:
-    1. DocTextChain - ドキュメントからテキスト抽出
-    2. ViewChain - ビュー記述抽出
-    3. ClassChain - クラス抽出
-    4. PropertyChain - プロパティ（関係）抽出
-    5. OutputGenerator - TurtleとNeo4j CSV生成
+    0. FileTypeClassifier - ファイル種別判定
+    1. RunnableBranch - ファイル種別に応じてテキスト抽出チェインを分岐
+       - Presentation: PresentationTextChain
+       - Document: DocTextChain (デフォルト)
+    2. RunnableBranch - ファイル種別に応じてデータ変換を分岐
+    3. ViewChain - ビュー記述抽出
+    4. ClassChain - クラス抽出
+    5. PropertyChain - プロパティ（関係）抽出
+    6. OutputGenerator - TurtleとNeo4j CSV生成
     """
+
+    # ファイル種別判定
+    file_type_classifier = FileTypeClassifier()
 
     # 各チェインの作成
     doc_chain = DocTextChain()
+    presentation_chain = PresentationTextChain()
     view_chain = create_view_chain()
     class_chain = create_class_chain()
     property_output_chain = PropertyAndOutputChain(output_dir)
 
     # データ変換用のRunnableを作成
     doc_to_view_transformer = DataTransformer("doc_to_view")
+    presentation_to_view_transformer = DataTransformer("presentation_to_view")
     view_to_class_transformer = DataTransformer("view_to_class")
     class_to_property_transformer = DataTransformer("class_to_property")
 
+    # 条件判定用のラムダ関数
+    is_presentation = lambda x: x.get("file_type") == "presentation"
+
+    # テキスト抽出の分岐
+    text_extraction_branch = RunnableBranch(
+        (is_presentation, presentation_chain),
+        doc_chain  # デフォルト
+    )
+
+    # データ変換の分岐
+    transformer_branch = RunnableBranch(
+        (is_presentation, presentation_to_view_transformer),
+        doc_to_view_transformer  # デフォルト
+    )
+
     # チェインを連結
     return RunnableSequence(
-        doc_chain,                          # DocTextChainInput -> DocTextChainOutput
-        doc_to_view_transformer,            # DocTextChainOutput -> ViewChainInput
+        file_type_classifier,               # Input -> Input + file_type
+        text_extraction_branch,             # Input + file_type -> TextChainOutput
+        transformer_branch,                 # TextChainOutput -> ViewChainInput
         view_chain,                         # ViewChainInput -> ViewChainOutput
         view_to_class_transformer,          # ViewChainOutput -> ClassChainInput
         class_chain,                        # ClassChainInput -> ClassChainOutput
