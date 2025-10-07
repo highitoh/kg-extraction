@@ -105,6 +105,9 @@ class FileTypeClassifier(Runnable):
             # file_typeを決定
             file_type = "presentation" if is_presentation else "document"
 
+            # 判定結果を表示
+            print(f"File: {file_path}, Type: {file_type}")
+
             # ログを保存
             log_data = {
                 "file_path": file_path,
