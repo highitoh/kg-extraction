@@ -9,7 +9,6 @@ from langchain_core.messages import HumanMessage
 from langchain_openai import ChatOpenAI
 from openai import APIConnectionError, RateLimitError, APIError
 
-from chunk_creator import ChunkCreator
 from logger import Logger
 
 class ViewExtractor(Runnable):
@@ -29,8 +28,6 @@ class ViewExtractor(Runnable):
         progress: bool = True,
         max_spans_per_label: int = 3,
         log_dir: str = "log/view_extractor",
-        chunk_max_chars: int = 1600,
-        chunk_overlap_chars: int = 200,
     ):
         self.llm = llm or ChatOpenAI(
             model=model,
@@ -46,9 +43,6 @@ class ViewExtractor(Runnable):
         self.max_retries = max_retries
         self.progress = progress
         self.max_spans_per_label = max_spans_per_label
-
-        # ChunkCreatorを初期化
-        self.chunk_creator = ChunkCreator(max_chars=chunk_max_chars, overlap_chars=chunk_overlap_chars)
 
         # プロンプトファイルを読み込み
         self.prompt = self._load_prompt()
@@ -77,10 +71,6 @@ class ViewExtractor(Runnable):
         prompt_path = os.path.join(os.path.dirname(__file__), "prompts", "view_extractor.txt")
         with open(prompt_path, "r", encoding="utf-8") as f:
             return f.read()
-
-    def _combine_sentences(self, sentences: List[Dict[str, Any]]) -> str:
-        """ViewChainInputのsentencesを統合してテキストにする"""
-        return " ".join([sentence["text"] for sentence in sentences])
 
     @staticmethod
     def _to_text(c: Union[str, List[Any]]) -> str:
@@ -181,14 +171,11 @@ class ViewExtractor(Runnable):
 
     def invoke(self, input: Dict[str, Any], config=None) -> Dict[str, Any]:
         target = input["target"]
-        sentences: List[Dict[str, Any]] = target["sentences"]
+        chunks_data: List[Dict[str, Any]] = target["chunks"]
         file_id = target.get("file_id", str(uuid.uuid4()))
 
-        # ViewChainInputのテキストを統合
-        combined_text = self._combine_sentences(sentences)
-
-        # チャンクに分割
-        chunks = self.chunk_creator.create(combined_text)
+        # チャンクテキストのリストを取得
+        chunks = [chunk["text"] for chunk in chunks_data]
 
         # 並列実行でビュー抽出
         chunk_results = asyncio.run(self._process_chunks_parallel(chunks))
@@ -228,18 +215,12 @@ if __name__ == "__main__":
         "target": {
             "id": "test_001",
             "file_id": "sample_file",
-            "sentences": [
+            "chunks": [
                 {
-                    "text": "システムは顧客情報を管理する必要がある。"
+                    "text": "システムは顧客情報を管理する必要がある。顧客データベースには氏名、住所、電話番号を格納する。"
                 },
                 {
-                    "text": "顧客データベースには氏名、住所、電話番号を格納する。"
-                },
-                {
-                    "text": "プロジェクトの目的は売上向上である。"
-                },
-                {
-                    "text": "APIサーバーはRESTfulな設計で構築する。"
+                    "text": "プロジェクトの目的は売上向上である。APIサーバーはRESTfulな設計で構築する。"
                 }
             ]
         },

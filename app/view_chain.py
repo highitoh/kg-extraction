@@ -24,9 +24,8 @@ if __name__ == "__main__":
             "id": "pdf-text-id-001",
             "file_id": "file-abc",
             "file_name": "sample.pdf",
-            "sentences": [
-                {"text": "本書はシステムのビジョンを述べる。"},
-                {"text": "利用者は注文をアプリから行える。"},
+            "chunks": [
+                {"text": "本書はシステムのビジョンを述べる。利用者は注文をアプリから行える。"},
             ],
         },
         "metamodel": {

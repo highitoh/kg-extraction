@@ -12,21 +12,21 @@
       "properties": {
         "id": { "type": "string", "description": "抽出ID" },
         "file_id": { "type": "string", "description": "ファイルID" },
-        "sentences": {
+        "chunks": {
           "type": "array",
-          "description": "抽出文章情報",
+          "description": "チャンク分割済みテキスト情報",
           "minItems": 1,
           "items": {
             "type": "object",
             "additionalProperties": false,
             "properties": {
-              "text": { "type": "string", "description": "抽出文章" }
+              "text": { "type": "string", "description": "チャンクテキスト" }
             },
             "required": ["text"]
           }
         }
       },
-      "required": ["id", "file_name", "sentences"]
+      "required": ["id", "file_name", "chunks"]
     },
     "metamodel": {
       "$ref": "https://github.com/highitoh/kg-extraction/schemas/common/metamodel.schema.json"

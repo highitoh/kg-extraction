@@ -14,6 +14,7 @@ from class_chain import create_class_chain
 from property_chain import create_property_chain
 from turtle_generator import TurtleGenerator
 from neo4j_csv_generator import Neo4jCSVGenerator
+from chunk_creator import ChunkCreator
 
 
 def _load_metamodel() -> Dict[str, Any]:
@@ -29,16 +30,24 @@ class DataTransformer(Runnable):
     def __init__(self, transform_type: str):
         self.transform_type = transform_type
         self.metamodel = _load_metamodel()
+        # チャンク生成器を初期化（pdf_to_view変換で使用）
+        if transform_type == "pdf_to_view":
+            self.chunk_creator = ChunkCreator()
 
     def invoke(self, input: Dict[str, Any], config=None) -> Dict[str, Any]:
         if self.transform_type == "pdf_to_view":
             # DocTextChainOutput -> ViewChainInput
+            # sentencesを結合してテキストに変換し、チャンクに分割
+            sentences = input["sentences"]
+            combined_text = " ".join([s["text"] for s in sentences])
+            chunk_texts = self.chunk_creator.create(combined_text)
+
             return {
                 "target": {
                     "id": input["id"],
                     "file_id": input.get("file_id", input["id"]),
                     "file_name": input["file_name"],
-                    "sentences": input["sentences"]
+                    "chunks": [{"text": chunk} for chunk in chunk_texts]
                 },
                 "metamodel": self.metamodel
             }
