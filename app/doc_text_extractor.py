@@ -7,11 +7,11 @@ from langchain_core.runnables.config import RunnableConfig
 import pdfplumber
 from logger import Logger
 
-class TextExtractor(Runnable):
-    """ファイルからテキストを抽出するタスク"""
+class DocTextExtractor(Runnable):
+    """ドキュメントファイルからテキストを抽出するタスク"""
 
     def __init__(self):
-        self.logger = Logger("./log/text_extractor")
+        self.logger = Logger("./log/doc_text_extractor")
 
     def _extract_text(self, pdf_path: str) -> str:
         """
@@ -36,8 +36,8 @@ class TextExtractor(Runnable):
         return text.strip()
 
     def invoke(self, input: Dict[str, Any], config: RunnableConfig = None) -> Dict[str, Any]:
-        # input: TextExtractorInput
-        # output: TextExtractorOutput
+        # input: DocTextExtractorInput
+        # output: DocTextExtractorOutput
 
         file_path = input["files"][0]["path"]
 
@@ -59,12 +59,12 @@ class TextExtractor(Runnable):
         }
 
         # 出力JSONをログに保存
-        self.logger.save_log(output, "text_extractor_output_")
+        self.logger.save_log(output, "doc_text_extractor_output_")
 
         return output
 
 
 if __name__ == "__main__":
-    extractor = TextExtractor()
+    extractor = DocTextExtractor()
     result = extractor.invoke({"files": [{"path": "../doc/sample.pdf"}]})
     print(f"処理結果: {result}")

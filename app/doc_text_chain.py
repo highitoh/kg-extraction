@@ -3,7 +3,7 @@ from typing import Any, Dict
 from langchain.schema.runnable import Runnable
 from langchain_core.runnables.config import RunnableConfig
 
-from text_extractor import TextExtractor
+from doc_text_extractor import DocTextExtractor
 from text_filter import TextFilter
 from text_transformer import TextTransformer
 
@@ -11,7 +11,7 @@ class DocTextChain(Runnable):
     """ドキュメントテキスト抽出チェイン"""
 
     def __init__(self):
-        self.extractor = TextExtractor()
+        self.extractor = DocTextExtractor()
         self.transformer = TextTransformer()
         self.filter = TextFilter()
 
