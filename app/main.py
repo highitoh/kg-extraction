@@ -169,14 +169,13 @@ def create_knowledge_extraction_chain(output_dir: str = "/workspace/app/output",
 
     実行順序:
     0. FileTypeClassifier - ファイル種別判定
-    1. RunnableBranch - ファイル種別に応じてテキスト抽出チェインを分岐
-       - Presentation: PresentationTextChain
-       - Document: DocTextChain (デフォルト)
-    2. RunnableBranch - ファイル種別に応じてデータ変換を分岐
-    3. ViewChain - ビュー記述抽出
-    4. ClassChain - クラス抽出
-    5. PropertyChain - プロパティ（関係）抽出
-    6. OutputGenerator - TurtleとNeo4j CSV生成
+    1. text_retrieve_chain - ファイル種別に応じてテキスト抽出＋データ変換
+       - Presentation: presentation_retrieve_chain (PresentationTextChain + presentation_to_view_transformer)
+       - Document: doc_retrieve_chain (DocTextChain + doc_to_view_transformer) [デフォルト]
+    2. ViewChain - ビュー記述抽出
+    3. ClassChain - クラス抽出
+    4. PropertyChain - プロパティ（関係）抽出
+    5. OutputGenerator - TurtleとNeo4j CSV生成
     """
 
     # ファイル種別判定
@@ -198,23 +197,27 @@ def create_knowledge_extraction_chain(output_dir: str = "/workspace/app/output",
     # 条件判定用のラムダ関数
     is_presentation = lambda x: x.get("file_type") == "presentation"
 
-    # テキスト抽出の分岐
-    text_extraction_branch = RunnableBranch(
-        (is_presentation, presentation_chain),
-        doc_chain  # デフォルト
+    # テキスト抽出＋データ変換の統合チェイン
+    doc_retrieve_chain = RunnableSequence(
+        doc_chain,
+        doc_to_view_transformer
     )
 
-    # データ変換の分岐
-    transformer_branch = RunnableBranch(
-        (is_presentation, presentation_to_view_transformer),
-        doc_to_view_transformer  # デフォルト
+    presentation_retrieve_chain = RunnableSequence(
+        presentation_chain,
+        presentation_to_view_transformer
+    )
+
+    # ファイル種別による分岐
+    text_retrieve_chain = RunnableBranch(
+        (is_presentation, presentation_retrieve_chain),
+        doc_retrieve_chain  # デフォルト
     )
 
     # チェインを連結
     return RunnableSequence(
         file_type_classifier,               # Input -> Input + file_type
-        text_extraction_branch,             # Input + file_type -> TextChainOutput
-        transformer_branch,                 # TextChainOutput -> ViewChainInput
+        text_retrieve_chain,                # Input + file_type -> ViewChainInput
         view_chain,                         # ViewChainInput -> ViewChainOutput
         view_to_class_transformer,          # ViewChainOutput -> ClassChainInput
         class_chain,                        # ClassChainInput -> ClassChainOutput
