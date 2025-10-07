@@ -2,26 +2,5 @@
   "$id": "https://github.com/highitoh/kg-extraction/schemas/text-extractor/input.schema.json",
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "TextExtractorInput",
-  "type": "object",
-  "description": "ファイルからのテキスト抽出の入力情報",
-  "properties": {
-    "files": {
-      "type": "array",
-      "description": "抽出対象ファイルの情報",
-      "minItems": 1,
-      "items": {
-        "type": "object",
-        "additionalProperties": false,
-        "properties": {
-          "path": {
-            "type": "string",
-            "description": "抽出対象ファイルのパス"
-          }
-        },
-        "required": ["path"]
-      }
-    }
-  },
-  "required": ["files"],
-  "additionalProperties": false
+  "$ref": "../text-chain/input.schema.json"
 }
