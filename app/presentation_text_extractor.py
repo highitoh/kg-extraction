@@ -57,7 +57,7 @@ class PresentationTextExtractor(Runnable):
             for line_text in slide_text.split('\n'):
                 if line_text.strip():  # 空行は除外
                     sentences.append({
-                        "text": f"スライド{slide_num}: {line_text.strip()}"
+                        "text": f"[[スライド{slide_num}]] {line_text.strip()}"
                     })
 
         output = {
