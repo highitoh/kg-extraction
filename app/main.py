@@ -5,6 +5,7 @@ PDFファイルから知識を抽出してTurtleとNeo4j用CSVファイルを生
 
 import os
 import json
+import re
 from typing import Dict, Any
 from langchain.schema.runnable import Runnable, RunnableSequence
 
@@ -33,6 +34,7 @@ class DataTransformer(Runnable):
         # チャンク生成器を初期化（doc_to_view変換で使用）
         if transform_type == "doc_to_view":
             self.chunk_creator = ChunkCreator()
+        # presentation_to_view変換ではスライド単位でグループ化するためChunkCreatorは不要
 
     def invoke(self, input: Dict[str, Any], config=None) -> Dict[str, Any]:
         if self.transform_type == "doc_to_view":
@@ -48,6 +50,39 @@ class DataTransformer(Runnable):
                     "file_id": input.get("file_id", input["id"]),
                     "file_name": input["file_name"],
                     "chunks": [{"text": chunk} for chunk in chunk_texts]
+                },
+                "metamodel": self.metamodel
+            }
+
+        elif self.transform_type == "presentation_to_view":
+            # PresentationTextChainOutput -> ViewChainInput
+            # スライド番号でグループ化してスライドごとにチャンクを作成
+            sentences = input["sentences"]
+            slide_chunks = {}
+
+            for sentence in sentences:
+                text = sentence["text"]
+                # "[[スライド{番号}]]"を抽出
+                match = re.search(r'\[\[スライド(\d+)\]\]', text)
+                if match:
+                    slide_num = match.group(1)
+                    slide_text = text.replace(match.group(0), '').strip()
+                    if slide_num not in slide_chunks:
+                        slide_chunks[slide_num] = []
+                    slide_chunks[slide_num].append(slide_text)
+
+            # スライドごとに結合してchunksを作成
+            chunks = [
+                {"text": " ".join(texts)}
+                for slide_num, texts in sorted(slide_chunks.items(), key=lambda x: int(x[0]))
+            ]
+
+            return {
+                "target": {
+                    "id": input["id"],
+                    "file_id": input.get("file_id", input["id"]),
+                    "file_name": input["file_name"],
+                    "chunks": chunks
                 },
                 "metamodel": self.metamodel
             }
