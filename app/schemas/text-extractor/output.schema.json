@@ -2,5 +2,5 @@
   "$id": "https://github.com/highitoh/kg-extraction/schemas/text-extractor/output.schema.json",
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "TextExtractorOutput",
-  "$ref": "../doc-text-chain/output.schema.json"
+  "$ref": "../text-chain/output.schema.json"
 }
