@@ -30,12 +30,12 @@ class DataTransformer(Runnable):
     def __init__(self, transform_type: str):
         self.transform_type = transform_type
         self.metamodel = _load_metamodel()
-        # チャンク生成器を初期化（pdf_to_view変換で使用）
-        if transform_type == "pdf_to_view":
+        # チャンク生成器を初期化（doc_to_view変換で使用）
+        if transform_type == "doc_to_view":
             self.chunk_creator = ChunkCreator()
 
     def invoke(self, input: Dict[str, Any], config=None) -> Dict[str, Any]:
-        if self.transform_type == "pdf_to_view":
+        if self.transform_type == "doc_to_view":
             # DocTextChainOutput -> ViewChainInput
             # sentencesを結合してテキストに変換し、チャンクに分割
             sentences = input["sentences"]
@@ -150,14 +150,14 @@ def create_knowledge_extraction_chain(output_dir: str = "/workspace/app/output")
     property_output_chain = PropertyAndOutputChain(output_dir)
 
     # データ変換用のRunnableを作成
-    pdf_to_view_transformer = DataTransformer("pdf_to_view")
+    doc_to_view_transformer = DataTransformer("doc_to_view")
     view_to_class_transformer = DataTransformer("view_to_class")
     class_to_property_transformer = DataTransformer("class_to_property")
 
     # チェインを連結
     return RunnableSequence(
         doc_chain,                          # DocTextChainInput -> DocTextChainOutput
-        pdf_to_view_transformer,            # DocTextChainOutput -> ViewChainInput
+        doc_to_view_transformer,            # DocTextChainOutput -> ViewChainInput
         view_chain,                         # ViewChainInput -> ViewChainOutput
         view_to_class_transformer,          # ViewChainOutput -> ClassChainInput
         class_chain,                        # ClassChainInput -> ClassChainOutput
