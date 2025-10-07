@@ -1,0 +1,6 @@
+添付のPDFがプレゼンテーション資料かどうか判定してください。
+出力は以下のJSON形式にしてください。
+{
+  "is_presentation": bool,
+  "justification": str
+}

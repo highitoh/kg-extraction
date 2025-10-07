@@ -2,5 +2,5 @@ langchain
 langchain-openai
 numpy
 pdfplumber
-PyPDF2
+pypdf
 rdflib

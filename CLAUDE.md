@@ -83,7 +83,7 @@ python main.py ../doc/sample.pdf --model gpt-5-nano
 ## Key Dependencies
 - langchain: LLMチェイン構築
 - langchain-openai: OpenAI API連携
-- pdfplumber, PyPDF2: PDF処理
+- pdfplumber, pypdf: PDF処理
 - rdflib: RDF/Turtle生成
 - neo4j: グラフデータベース
 
