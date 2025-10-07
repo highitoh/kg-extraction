@@ -25,7 +25,7 @@ PDFファイルから知識を抽出してTurtleファイルとNeo4j用CSVファ
 ```
 
 ## Schema Structure
-`/workspace/app/schemas/`は、各チェインやLLMの入出力のJSONスキーマを定義している
+`/workspace/app/schemas/`は、各チェインやLLMの入出力のJSONスキーマを定義している。再利用性を高めるため、上位と同じ入出力の場合はスキーマを参照して定義する。
 - **Chains**: doc-text-chain, view-chain, class-chain, property-chain
 - **Extractors**: text-extractor, view-extractor, class-extractor, property-extractor
 - **Filters**: text-filter, view-filter
