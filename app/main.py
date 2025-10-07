@@ -136,8 +136,13 @@ class OutputGenerator(Runnable):
 class PropertyAndOutputChain(Runnable):
     """PropertyChainとOutputGeneratorを連結するカスタムチェイン"""
 
-    def __init__(self, output_dir: str = "/workspace/app/output"):
-        self.property_chain = create_property_chain()
+    def __init__(self, output_dir: str = "/workspace/app/output", model: str = None):
+        """
+        Args:
+            output_dir: 出力ディレクトリ
+            model: LLMモデル名（Noneの場合はPropertyChainのデフォルトを使用）
+        """
+        self.property_chain = create_property_chain(model=model)
         self.output_generator = OutputGenerator(output_dir)
 
     def invoke(self, input: Dict[str, Any], config=None) -> Dict[str, Any]:
@@ -154,9 +159,13 @@ class PropertyAndOutputChain(Runnable):
         return self.output_generator.invoke(combined_input, config)
 
 
-def create_knowledge_extraction_chain(output_dir: str = "/workspace/app/output") -> RunnableSequence:
+def create_knowledge_extraction_chain(output_dir: str = "/workspace/app/output", model: str = None) -> RunnableSequence:
     """
     知識抽出チェインを作成
+
+    Args:
+        output_dir: 出力ディレクトリ
+        model: LLMモデル名（Noneの場合は各チェインのデフォルトを使用）
 
     実行順序:
     0. FileTypeClassifier - ファイル種別判定
@@ -174,11 +183,11 @@ def create_knowledge_extraction_chain(output_dir: str = "/workspace/app/output")
     file_type_classifier = FileTypeClassifier()
 
     # 各チェインの作成
-    doc_chain = DocTextChain()
-    presentation_chain = PresentationTextChain()
-    view_chain = create_view_chain()
-    class_chain = create_class_chain()
-    property_output_chain = PropertyAndOutputChain(output_dir)
+    doc_chain = DocTextChain(model=model)
+    presentation_chain = PresentationTextChain(model=model)
+    view_chain = create_view_chain(model=model)
+    class_chain = create_class_chain(model=model)
+    property_output_chain = PropertyAndOutputChain(output_dir, model=model)
 
     # データ変換用のRunnableを作成
     doc_to_view_transformer = DataTransformer("doc_to_view")
@@ -214,19 +223,20 @@ def create_knowledge_extraction_chain(output_dir: str = "/workspace/app/output")
     )
 
 
-def run_knowledge_extraction(pdf_path: str, output_dir: str = "/workspace/app/output") -> Dict[str, Any]:
+def run_knowledge_extraction(pdf_path: str, output_dir: str = "/workspace/app/output", model: str = None) -> Dict[str, Any]:
     """
     PDFファイルから知識抽出を実行
 
     Args:
         pdf_path: 抽出対象のPDFファイルパス
         output_dir: 出力ディレクトリ
+        model: LLMモデル名（Noneの場合は各チェインのデフォルトを使用）
 
     Returns:
         抽出結果辞書
     """
     # チェインを作成
-    chain = create_knowledge_extraction_chain(output_dir)
+    chain = create_knowledge_extraction_chain(output_dir, model=model)
 
     # 入力データを準備
     input_data = {
@@ -242,20 +252,28 @@ def run_knowledge_extraction(pdf_path: str, output_dir: str = "/workspace/app/ou
 if __name__ == "__main__":
     # サンプル実行
     import sys
+    import argparse
 
-    if len(sys.argv) > 1:
-        pdf_path = sys.argv[1]
-    else:
-        pdf_path = "../doc/sample.pdf"
+    parser = argparse.ArgumentParser(description="PDFファイルから知識を抽出してTurtleとNeo4j用CSVファイルを生成")
+    parser.add_argument("pdf_path", nargs="?", default="../doc/sample.pdf", help="抽出対象のPDFファイルパス")
+    parser.add_argument("--model", type=str, default=None, help="使用するLLMモデル名（デフォルト: 各チェインのデフォルトモデル）")
+    parser.add_argument("--output-dir", type=str, default="/workspace/app/output", help="出力ディレクトリ（デフォルト: /workspace/app/output）")
+
+    args = parser.parse_args()
+    pdf_path = args.pdf_path
 
     if not os.path.exists(pdf_path):
         print(f"Error: PDF file not found: {pdf_path}")
         sys.exit(1)
 
     print(f"Starting knowledge extraction from: {pdf_path}")
+    if args.model:
+        print(f"Using LLM model: {args.model}")
+    else:
+        print(f"Using default models for each chain")
 
     try:
-        result = run_knowledge_extraction(pdf_path)
+        result = run_knowledge_extraction(pdf_path, output_dir=args.output_dir, model=args.model)
 
         print("\n=== Knowledge Extraction Complete ===")
         print(f"Generated files:")

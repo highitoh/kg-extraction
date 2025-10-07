@@ -5,13 +5,19 @@ from langchain.schema.runnable import Runnable
 from view_extractor import ViewExtractor
 from view_filter import ViewFilter
 
-def create_view_chain() -> Runnable:
+def create_view_chain(model: str = None) -> Runnable:
     """
     ビュー記述抽出チェイン:
       ViewExtractor -> ViewFilter -> ViewChainLogger
     いずれもテンプレート（抽出/フィルタの中身は未実装）
+
+    Args:
+        model: LLMモデル名（Noneの場合はViewExtractorのデフォルトを使用）
     """
-    extractor = ViewExtractor()
+    if model is not None:
+        extractor = ViewExtractor(model=model)
+    else:
+        extractor = ViewExtractor()
     view_filter = ViewFilter()
     return extractor | view_filter
 

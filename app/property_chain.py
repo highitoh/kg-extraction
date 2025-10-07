@@ -4,13 +4,20 @@ from property_extractor import PropertyExtractor
 from property_filter import PropertyFilter
 from property_validator import PropertyValidator
 
-def create_property_chain() -> Runnable:
+def create_property_chain(model: str = None) -> Runnable:
     """
     プロパティ抽出チェーン:
       PropertyExtractor -> PropertyFilter -> PropertyValidator
+
+    Args:
+        model: LLMモデル名（Noneの場合は各コンポーネントのデフォルトを使用）
     """
-    extractor = PropertyExtractor()
-    property_filter = PropertyFilter()
+    if model is not None:
+        extractor = PropertyExtractor(model=model)
+        property_filter = PropertyFilter(model=model)
+    else:
+        extractor = PropertyExtractor()
+        property_filter = PropertyFilter()
     validator = PropertyValidator()
     return RunnableSequence(extractor, property_filter, validator)
 

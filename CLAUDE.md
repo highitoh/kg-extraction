@@ -65,12 +65,10 @@ docker exec -it app_container bash
 ```
 
 ### Testing and Quality
-```bash
-# Pythonコードの実行
-cd app && python -m pytest  # テストがある場合
+全体処理を動作確認するときは、コストを抑えるため**gpt-5-nano**を使用する
 
-# 型チェック
-cd app && python -m mypy .   # mypyがインストールされている場合
+```bash
+python main.py ../doc/sample.pdf --model gpt-5-nano
 ```
 
 ## Environment Variables

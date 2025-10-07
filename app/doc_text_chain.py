@@ -10,10 +10,15 @@ from text_transformer import TextTransformer
 class DocTextChain(Runnable):
     """ドキュメントテキスト抽出チェイン"""
 
-    def __init__(self):
+    def __init__(self, model: str = None):
+        """
+        Args:
+            model: LLMモデル名（現在未使用、将来の拡張用）
+        """
         self.extractor = DocTextExtractor()
         self.transformer = TextTransformer()
         self.filter = DocTextFilter()
+        self.model = model
 
     def invoke(self, input: Dict[str, Any], config: RunnableConfig = None) -> Dict[str, Any]:
         # Step 1: テキスト抽出

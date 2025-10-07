@@ -3,13 +3,20 @@ from langchain.schema.runnable import RunnableSequence, Runnable
 from class_extractor import ClassExtractor
 from class_filter import ClassFilter
 
-def create_class_chain() -> Runnable:
+def create_class_chain(model: str = None) -> Runnable:
     """
     Create class extraction chain:
       ClassExtractor -> ClassFilter
+
+    Args:
+        model: LLMモデル名（Noneの場合は各コンポーネントのデフォルトを使用）
     """
-    extractor = ClassExtractor()
-    class_filter = ClassFilter()
+    if model is not None:
+        extractor = ClassExtractor(model=model)
+        class_filter = ClassFilter(model=model)
+    else:
+        extractor = ClassExtractor()
+        class_filter = ClassFilter()
     return RunnableSequence(extractor, class_filter)
 
 if __name__ == "__main__":

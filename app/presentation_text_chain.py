@@ -10,9 +10,14 @@ from text_transformer import TextTransformer
 class PresentationTextChain(Runnable):
     """プレゼンテーションテキスト抽出チェイン"""
 
-    def __init__(self):
+    def __init__(self, model: str = None):
+        """
+        Args:
+            model: LLMモデル名（現在未使用、将来の拡張用）
+        """
         self.extractor = PresentationTextExtractor()
         #self.filter = TextFilter()
+        self.model = model
 
     def invoke(self, input: Dict[str, Any], config: RunnableConfig = None) -> Dict[str, Any]:
         # Step 1: テキスト抽出
