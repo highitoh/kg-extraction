@@ -1,0 +1,6 @@
+{
+  "$id": "https://github.com/highitoh/kg-extraction/schemas/doc-text-filter/input.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "DocTextFilterInput",
+  "$ref": "../text-filter/input.schema.json"
+}
