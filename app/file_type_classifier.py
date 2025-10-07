@@ -29,7 +29,6 @@ class FileTypeClassifier(Runnable):
 
         # プロンプトとスキーマを読み込み
         self.prompt = self._load_prompt()
-        self.schema = self._load_schema()
 
         # Loggerを初期化
         self.logger = Logger(log_dir)
@@ -39,12 +38,6 @@ class FileTypeClassifier(Runnable):
         prompt_path = os.path.join(os.path.dirname(__file__), "prompts", "file_type_classifier.txt")
         with open(prompt_path, "r", encoding="utf-8") as f:
             return f.read()
-
-    def _load_schema(self) -> dict:
-        """JSONスキーマファイルを読み込む"""
-        schema_path = os.path.join(os.path.dirname(__file__), "schemas", "file-type-classifier", "llm.schema.json")
-        with open(schema_path, "r", encoding="utf-8") as f:
-            return json.load(f)
 
     def _extract_first_two_pages(self, input_pdf, output_pdf):
         reader = PdfReader(input_pdf)
