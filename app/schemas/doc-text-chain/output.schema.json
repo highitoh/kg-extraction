@@ -2,34 +2,5 @@
   "$id": "https://github.com/highitoh/kg-extraction/schemas/doc-text-chain/output.schema.json",
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "DocTextChainOutput",
-  "type": "object",
-  "description": "ドキュメントファイル文章抽出の出力情報",
-  "properties": {
-    "id": {
-      "type": "string",
-      "description": "抽出ID"
-    },
-    "file_name": {
-      "type": "string",
-      "description": "ドキュメントファイル名"
-    },
-    "sentences": {
-      "type": "array",
-      "description": "ドキュメントファイルの抽出文章情報",
-      "minItems": 1,
-      "items": {
-        "type": "object",
-        "additionalProperties": false,
-        "properties": {
-          "text": {
-            "type": "string",
-            "description": "抽出文章"
-          }
-        },
-        "required": ["text"]
-      }
-    }
-  },
-  "required": ["id", "file_name", "sentences"],
-  "additionalProperties": false
+  "$ref": "../text-chain/output.schema.json"
 }

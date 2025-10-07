@@ -1,0 +1,6 @@
+{
+  "$id": "https://github.com/highitoh/kg-extraction/schemas/presentation-text-chain/input.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "PresentationTextChainInput",
+  "$ref": "../text-chain/input.schema.json"
+}
