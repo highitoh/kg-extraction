@@ -104,20 +104,23 @@ class ClassFilter(Runnable):
         with open(metamodel_path, "r", encoding="utf-8") as f:
             return json.load(f)
 
-    def _build_prohibit_rules_section(self) -> str:
-        """メタモデルから禁止ルールセクションを動的に生成"""
+    def _build_prohibit_rules_section(self, target_class_iri: str) -> str:
+        """指定されたクラスの禁止ルールセクションを動的に生成
+
+        Args:
+            target_class_iri: 対象のクラスIRI
+        """
         rules_lines = []
 
         for cls in self.metamodel.get("classes", []):
-            if "prohibit_rules" in cls and cls.get("prohibit_rules"):
-                class_name = cls.get("name", "")
-                class_iri = cls.get("iri", "").split("#")[-1]
-                rules_lines.append(f"- {class_name}（{class_iri}）")
-                for rule in cls["prohibit_rules"]:
-                    rules_lines.append(f"  - {rule}")
-                rules_lines.append("")
+            if cls.get("iri", "") == target_class_iri:
+                if "prohibit_rules" in cls and cls.get("prohibit_rules"):
+                    for rule in cls["prohibit_rules"]:
+                        rules_lines.append(f"- {rule}")
+                break
 
-        return "\n".join(rules_lines).rstrip()
+        result = "\n".join(rules_lines)
+        return result if result else "(禁止ルールなし)"
 
     def _load_prompt_template(self) -> str:
         """プロンプトテンプレートファイルを読み込み、禁止ルールを動的生成"""
@@ -126,13 +129,7 @@ class ClassFilter(Runnable):
         with open(prompt_path, "r", encoding="utf-8") as f:
             template = f.read()
 
-        # 禁止ルールセクションを動的に生成
-        prohibit_rules = self._build_prohibit_rules_section()
-
-        # テンプレート内のプレースホルダーを置換
-        replaced = template.replace("{PROHIBIT_RULES}", prohibit_rules)
-
-        return replaced
+        return template
 
     def invoke(self, input: Dict[str, Any], config=None) -> Dict[str, Any]:
         classes = input.get("classes", [])
@@ -178,7 +175,7 @@ class ClassFilter(Runnable):
                     if self.progress:
                         print(f"ClassFilter: processing class={class_name}, {len(class_instances)} instances")
 
-                filtered = await self._filter_classes_async(class_instances)
+                filtered = await self._filter_classes_async(class_instances, class_iri)
 
                 async with lock:
                     counter += 1
@@ -215,8 +212,13 @@ class ClassFilter(Runnable):
                 return cls.get("name", "unknown")
         return class_iri.split("#")[-1] if "#" in class_iri else class_iri
 
-    async def _filter_classes_async(self, classes: list) -> list:
-        """指定されたクラスリストをLLMでフィルタリング（非同期版）"""
+    async def _filter_classes_async(self, classes: list, class_iri: str) -> list:
+        """指定されたクラスリストをLLMでフィルタリング（非同期版）
+
+        Args:
+            classes: フィルタリング対象のクラスインスタンスリスト
+            class_iri: 対象クラスのIRI（このクラスのprohibit_rulesのみを使用）
+        """
         if not classes:
             return []
 
@@ -230,8 +232,16 @@ class ClassFilter(Runnable):
                 }
             })
 
-        # プロンプトを構築
-        prompt = f"{self.prompt_template}\n{json.dumps(classes, ensure_ascii=False, indent=2)}"
+        # labelのみを抽出してプロンプトに渡す
+        labels = [c.get("label", "") for c in classes]
+        labels_json = json.dumps(labels, ensure_ascii=False, indent=2)
+
+        # 対象クラスのprohibit_rulesのみを取得
+        prohibit_rules = self._build_prohibit_rules_section(class_iri)
+
+        # プロンプトを構築（対象クラス専用の禁止ルールを埋め込む）
+        prompt_with_rules = self.prompt_template.replace("{PROHIBIT_RULES}", prohibit_rules)
+        prompt = f"{prompt_with_rules}\n{labels_json}"
 
         # LLMでフィルタリング実行（リトライ付き）
         response = await self._invoke_with_retry(llm_json, prompt)
