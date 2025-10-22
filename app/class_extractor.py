@@ -343,8 +343,8 @@ class ClassExtractor(Runnable):
                 policy_items.append(f"  - 文字数: {min_len}～{max_len}字")
 
             # フォーマットガイドライン（配列対応）
-            format_guidelines = cls.get("format_guidelines", [])
-            for guideline in format_guidelines:
+            extract_rules = cls.get("extract_rules", [])
+            for guideline in extract_rules:
                 policy_items.append(f"  - {guideline}")
 
             if policy_items:

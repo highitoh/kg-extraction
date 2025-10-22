@@ -7,7 +7,7 @@
             "view_type": "value_analysis",
             "min_length": 2,
             "max_length": 10,
-            "format_guidelines": [
+            "extract_rules": [
                 "個人名は避け、組織名・役割名（例：保健所、受託者、利用者、陽性者、接触確認者）を優先する",
                 "同一概念は正規化し、単一の正準ラベルを用いる（例：「ユーザー」「一般ユーザー」「アプリ利用者」→「利用者」）。属性（言語・年齢など）による分割は行わない",
                 "組織名は正式名称で表記する（例：厚生労働省、有識者検討会合）",
@@ -30,7 +30,7 @@
             "view_type": "value_analysis",
             "min_length": 4,
             "max_length": 30,
-            "format_guidelines": [
+            "extract_rules": [
                 "便益・結果・達成状態を名詞句で簡潔に表す（例：プライバシー保護／行動変容の促進／迅速な情報伝達）",
                 "原文に『〜できるようになる』『〜につながる』『〜を防ぐ』『〜を支援』等の便益を示す述語がある箇所を優先して抽出する",
                 "誰の便益かを後段で関係付けできるよう、抽出時に想定ステークホルダ（利用者／厚生労働省／社会全体 等）を付随メタとして保持する",
@@ -51,7 +51,7 @@
             "view_type": "business_concept",
             "min_length": 3,
             "max_length": 30,
-            "format_guidelines": [
+            "extract_rules": [
                 "'社会全体/国民/公共/基盤/信頼/透明性/持続/普及/相互運用性'など、広域スコープの将来状態を表す語を含む記述を優先する",
                 "理念は名詞句で簡潔に（例：『透明性と信頼に基づくデジタル基盤の確立』）",
                 "具体的手段（API/クラウド/CDN 等）が伴う文は、手段を切り離し到達したい状態のみを抽出する"
@@ -72,7 +72,7 @@
             "view_type": "business_concept",
             "min_length": 3,
             "max_length": 40,
-            "format_guidelines": [
+            "extract_rules": [
                 "方針・原則・思想を名詞句で表す",
                 "理念（ビジョン）を実現するための行動指針かを確認し、機能詳細や数値KPIに踏み込まない抽象度で命名する",
                 "プライバシー・同意・透明性・中立性・相互運用性・データ主権などの横断原則を優先（例根拠：匿名識別子・端末内照合・透明性確保・オープン標準・国内リージョン運用）"
@@ -92,7 +92,7 @@
             "view_type": "business_concept",
             "min_length": 3,
             "max_length": 16,
-            "format_guidelines": [
+            "extract_rules": [
                 "『〜の向上』『〜の確立』『〜の実現』『〜の提供』など名詞句で簡潔に",
                 "ステークホルダではなくプロジェクトチーム自身が得られる価値を記述する",
                 "手段（例：透明性の確保、基準への準拠、オープン技術の採用）が原文に現れる場合は、その手段で達成したい最終状態に言い換えて目的として記述する",
@@ -116,7 +116,7 @@
             "view_type": "business_requirement",
             "min_length": 5,
             "max_length": 50,
-            "format_guidelines": [
+            "extract_rules": [
                 "ステークホルダの価値実現のため、システムやサービスが使用する技術に関する記述はIT要求にする",
                 "システムやサービスの具体的な技術仕様は業務要求には含めない"
             ],
@@ -135,7 +135,7 @@
             "view_type": "business_requirement",
             "min_length": 5,
             "max_length": 50,
-            "format_guidelines": [
+            "extract_rules": [
                 "業務要求を満たすために採用すべき技術領域・技術方針を名詞句で記述する（例：データベースの利用、データの暗号化、監視の自動化）",
                 "システムやサービスの構造設計・機能設計といった具体的な方式や技術仕様の詳細には踏み込まない（詳細はsystem_requirementへ）"
             ],
@@ -155,7 +155,7 @@
             "view_type": "system_requirement",
             "min_length": 5,
             "max_length": 50,
-            "format_guidelines": [
+            "extract_rules": [
                 "具体的な技術仕様を名詞句で記述（例: ハードウェア/ソフトウェア/ネットワーク構成、暗号化方式、ログ方式、API仕様、設計方針の具体値）",
                 "非機能の数値基準を含めてよい（例: 応答時間、同時接続数、稼働率、RTO/RPO）"
             ],
@@ -174,7 +174,7 @@
             "view_type": "system_component",
             "min_length": 5,
             "max_length": 40,
-            "format_guidelines": [
+            "extract_rules": [
                 "基本設計レベルの構成要素のみを抽出（例：ハードウェア構成、OS/ランタイム、クラウドサービス、外部SaaS、ライブラリ群、パッケージソフト）",
                 "ラベルは名詞句（単数形・簡潔）で表す",
                 "製品名やバージョンを含む場合はそのまま抽出する（例：PostgreSQL、Red Hat Enterprise Linux）"
@@ -194,7 +194,7 @@
             "view_type": "data_analysis",
             "min_length": 5,
             "max_length": 40,
-            "format_guidelines": [
+            "extract_rules": [
                 "経営などビジネスに与えるインパクトを表現する"
             ],
             "prohibit_rules": [
@@ -211,7 +211,7 @@
             "view_type": "data_analysis",
             "min_length": 5,
             "max_length": 40,
-            "format_guidelines": [
+            "extract_rules": [
                 "端的に目的を表現する"
             ],
             "prohibit_rules": [
@@ -227,7 +227,7 @@
             "view_type": "data_analysis",
             "min_length": 5,
             "max_length": 60,
-            "format_guidelines": [
+            "extract_rules": [
                 "データの分析内容やアルゴリズム、分析結果を整理・要約する"
             ],
             "prohibit_rules": [
@@ -244,7 +244,7 @@
             "view_type": "data_analysis",
             "min_length": 5,
             "max_length": 40,
-            "format_guidelines": [
+            "extract_rules": [
                 "データセットの概要や特徴を端的に記述"
             ],
             "prohibit_rules": [
@@ -261,7 +261,7 @@
             "view_type": "data_analysis",
             "min_length": 5,
             "max_length": 40,
-            "format_guidelines": [
+            "extract_rules": [
                 "ビジネスへの適合可能性を記述"
             ],
             "prohibit_rules": [
