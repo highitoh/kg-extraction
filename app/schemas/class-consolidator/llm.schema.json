@@ -1,0 +1,37 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "ClassConsolidatorLLMOutput",
+  "type": "object",
+  "description": "LLMが類似クラスのグループと正準ラベルを返すスキーマ",
+  "properties": {
+    "groups": {
+      "type": "array",
+      "description": "類似クラスのグループリスト",
+      "items": {
+        "type": "object",
+        "properties": {
+          "indices": {
+            "type": "array",
+            "items": {
+              "type": "integer"
+            },
+            "minItems": 1,
+            "description": "同一概念を表すラベルのインデックスリスト（0始まり）"
+          },
+          "canonical_label": {
+            "type": "string",
+            "description": "グループの正準ラベル（入力ラベルのいずれかと完全一致すること）"
+          },
+          "reason": {
+            "type": "string",
+            "description": "選択理由（ログ・デバッグ用）"
+          }
+        },
+        "required": ["indices", "canonical_label", "reason"],
+        "additionalProperties": false
+      }
+    }
+  },
+  "required": ["groups"],
+  "additionalProperties": false
+}

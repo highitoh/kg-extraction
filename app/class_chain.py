@@ -2,11 +2,12 @@ from langchain.schema.runnable import RunnableSequence, Runnable
 
 from class_extractor import ClassExtractor
 from class_filter import ClassFilter
+from class_consolidator import ClassConsolidator
 
 def create_class_chain(model: str = None) -> Runnable:
     """
     Create class extraction chain:
-      ClassExtractor -> ClassFilter
+      ClassExtractor -> ClassFilter -> ClassConsolidator
 
     Args:
         model: LLMモデル名（Noneの場合は各コンポーネントのデフォルトを使用）
@@ -14,10 +15,12 @@ def create_class_chain(model: str = None) -> Runnable:
     if model is not None:
         extractor = ClassExtractor(model=model)
         class_filter = ClassFilter(model=model)
+        consolidator = ClassConsolidator(model=model)
     else:
         extractor = ClassExtractor()
         class_filter = ClassFilter()
-    return RunnableSequence(extractor, class_filter)
+        consolidator = ClassConsolidator()
+    return RunnableSequence(extractor, class_filter, consolidator)
 
 if __name__ == "__main__":
     import json

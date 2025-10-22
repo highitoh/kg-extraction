@@ -30,16 +30,24 @@
             "type": "string",
             "description": "抽出クラス"
           },
-          "source": {
-            "type": "string",
-            "description": "抽出元文章"
+          "sources": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "minItems": 1,
+            "description": "抽出元文章（複数）"
           },
-          "file_id": {
-            "type": "string",
-            "description": "抽出元ファイルID"
+          "file_ids": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "minItems": 1,
+            "description": "抽出元ファイルID（複数）"
           }
         },
-        "required": ["id", "class_iri", "label", "source", "file_id"]
+        "required": ["id", "class_iri", "label", "sources", "file_ids"]
       }
     }
   },

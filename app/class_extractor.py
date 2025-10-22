@@ -29,8 +29,8 @@ class ExtractedClass:
     id: str              # 必須: クラス個体ID
     class_iri: str       # 必須: URI 形式
     label: str           # 必須: 抽出クラス（表示ラベル）
-    source: str          # 必須: 抽出元文章
-    file_id: str         # 必須: 抽出元ファイルID
+    sources: List[str]   # 必須: 抽出元文章（配列）
+    file_ids: List[str]  # 必須: 抽出元ファイルID（配列）
 
     def to_dict(self) -> Dict[str, Any]:
         return asdict(self)
@@ -114,8 +114,8 @@ class ClassExtractor(Runnable):
                     id=str(uuid.uuid4()),
                     class_iri=class_iri,
                     label=label,
-                    source=source,
-                    file_id=file_id,
+                    sources=[source],  # 配列形式に変更
+                    file_ids=[file_id],  # 配列形式に変更
                 ))
 
         # ---- 出力（ClassChainOutput 準拠） -----------------------------------------

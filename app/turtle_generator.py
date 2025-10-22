@@ -117,7 +117,13 @@ class TurtleGenerator:
             class_id = class_item["id"]
             class_iri = class_item["class_iri"]
             label = class_item["label"]
-            file_id = class_item.get("file_id", "")
+
+            # file_idsフィールドを取得（配列または文字列）
+            file_ids = class_item.get("file_ids", [])
+            if isinstance(file_ids, str):
+                file_ids = [file_ids]
+            # カンマ区切りで連結（複数の出典を保持）
+            file_id = ",".join(file_ids) if file_ids else ""
 
             # インスタンスIRIを生成
             instance_iri = self._iri(f"instance/{_slug(label)}-{_uuid8()}")
