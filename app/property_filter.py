@@ -273,28 +273,8 @@ class PropertyFilter(Runnable):
         class_info = input.get("class_info") or {}
 
         if not class_info.get("classes"):
-            # class_infoが無いとsourceが参照できないため、素通し
-            if self.progress:
-                print("PropertyFilter: class_info missing -> pass-through")
-
-            # ログ保存用（入力プロパティをそのまま保存）
-            output_id = str(uuid.uuid4())
-            log_output = {
-                "id": output_id,
-                "properties": property_candidates.get("properties", []),
-            }
-            self.logger.save_log(log_output, filename_prefix="property_filter_output_")
-
-            # 出力用（ラベルを削除してスキーマ準拠に）
-            properties = [
-                {k: v for k, v in p.items() if k not in ["src_label", "dest_label"]}
-                for p in property_candidates.get("properties", [])
-            ]
-            output = {
-                "id": output_id,
-                "properties": properties,
-            }
-            return output
+            # class_infoが無いとsourceが参照できないため、エラー
+            raise ValueError("PropertyFilter requires class_info with classes for filtering. Cannot proceed without class information.")
 
         # LLMでフィルタリング
         filtered = asyncio.run(self._filter_properties(property_candidates, class_info))
