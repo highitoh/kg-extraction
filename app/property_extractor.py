@@ -268,12 +268,30 @@ class PropertyExtractor(Runnable):
 
         # 出力形式に合わせて整理
         properties = []
+        properties_with_labels = []
         for prop in extracted_properties:
-            properties.append({
-                "id": str(uuid.uuid4()),
+            prop_id = str(uuid.uuid4())
+
+            # スキーマ準拠のプロパティ情報
+            property_item = {
+                "id": prop_id,
                 "src_id": prop["src_id"],
                 "property_iri": prop["property_iri"],
                 "dest_id": prop["dest_id"],
+            }
+            properties.append(property_item)
+
+            # ログ出力用にラベル情報を追加
+            src_class = next((c for c in classes if c["id"] == prop["src_id"]), None)
+            dest_class = next((c for c in classes if c["id"] == prop["dest_id"]), None)
+
+            src_label = src_class["label"] if src_class else prop["src_id"]
+            dest_label = dest_class["label"] if dest_class else prop["dest_id"]
+
+            properties_with_labels.append({
+                **property_item,
+                "src_label": src_label,
+                "dest_label": dest_label,
             })
 
         output: Dict[str, Any] = {
@@ -285,8 +303,12 @@ class PropertyExtractor(Runnable):
             total_properties = len(properties)
             print(f"PropertyExtractor: extracted {total_properties} properties")
 
-        # Loggerでpropertyチェーンの出力を保存
-        self.logger.save_log(output, filename_prefix="property_extractor_output_")
+        # Loggerでpropertyチェーンの出力を保存（ラベル情報付き）
+        log_output = {
+            "id": output["id"],
+            "properties": properties_with_labels,
+        }
+        self.logger.save_log(log_output, filename_prefix="property_extractor_output_")
 
         return output
 
