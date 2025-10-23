@@ -237,12 +237,21 @@ class PropertyFilter(Runnable):
             key = (c.get("src_id", ""), c.get("property_iri", ""), c.get("dest_id", ""))
             if key in ok_map:
                 r = ok_map[key]
+
+                # src_id と dest_id から対応するクラスのラベルを取得
+                src_class = class_index.get(r["src_id"], {})
+                dest_class = class_index.get(r["dest_id"], {})
+                src_label = src_class.get("label", r["src_id"])
+                dest_label = dest_class.get("label", r["dest_id"])
+
                 filtered.append(
                     {
                         "id": str(uuid.uuid4()),
                         "src_id": r["src_id"],
+                        "src_label": src_label,
                         "property_iri": r["property_iri"],
                         "dest_id": r["dest_id"],
+                        "dest_label": dest_label,
                         "justification": r["justification"],
                         "confidence": r["confidence"],
                     }
@@ -267,18 +276,33 @@ class PropertyFilter(Runnable):
             # class_infoが無いとsourceが参照できないため、素通し
             if self.progress:
                 print("PropertyFilter: class_info missing -> pass-through")
-            output = {
-                "id": str(uuid.uuid4()),
+
+            # ログ保存用（入力プロパティをそのまま保存）
+            output_id = str(uuid.uuid4())
+            log_output = {
+                "id": output_id,
                 "properties": property_candidates.get("properties", []),
             }
-            self.logger.save_log(output, filename_prefix="property_filter_output_")
+            self.logger.save_log(log_output, filename_prefix="property_filter_output_")
+
+            # 出力用（ラベルを削除してスキーマ準拠に）
+            properties = [
+                {k: v for k, v in p.items() if k not in ["src_label", "dest_label"]}
+                for p in property_candidates.get("properties", [])
+            ]
+            output = {
+                "id": output_id,
+                "properties": properties,
+            }
             return output
 
         # LLMでフィルタリング
         filtered = asyncio.run(self._filter_properties(property_candidates, class_info))
 
-        output: Dict[str, Any] = {
-            "id": str(uuid.uuid4()),
+        # ログ保存用（ラベル付き）
+        output_id = str(uuid.uuid4())
+        log_output: Dict[str, Any] = {
+            "id": output_id,
             "properties": filtered,
         }
 
@@ -288,7 +312,17 @@ class PropertyFilter(Runnable):
                 f"{len(filtered)} accepted"
             )
 
-        self.logger.save_log(output, filename_prefix="property_filter_output_")
+        self.logger.save_log(log_output, filename_prefix="property_filter_output_")
+
+        # 出力用（ラベルを削除してスキーマ準拠に）
+        properties = [
+            {k: v for k, v in p.items() if k not in ["src_label", "dest_label"]}
+            for p in filtered
+        ]
+        output: Dict[str, Any] = {
+            "id": output_id,
+            "properties": properties,
+        }
         return output
 
 
