@@ -309,24 +309,24 @@ class PropertyFilter(Runnable):
 if __name__ == "__main__":
     # テスト実行:
     # - 最新の PropertyExtractor 出力 (log/property_extractor/property_extractor_output_*.json)
-    # - 最新の ClassFilter 出力 (log/class_filter/class_filter_output_*.json)
+    # - 最新の ClassConsolidator 出力 (log/class_consolidator/class_consolidator_output_*.json)
     # を読み込み、フィルタリング結果を表示
     pf = PropertyFilter()
 
     prop_files = sorted(glob.glob("log/property_extractor/property_extractor_output_*.json"), reverse=True)
-    cls_files = sorted(glob.glob("log/class_filter/class_filter_output_*.json"), reverse=True)
+    cls_files = sorted(glob.glob("log/class_consolidator/class_consolidator_output_*.json"), reverse=True)
 
     if not prop_files:
         print("Error: No property_extractor_output files found in log/property_extractor/")
         exit(1)
     if not cls_files:
-        print("Error: No class_filter_output files found in log/class_filter/")
+        print("Error: No class_consolidator_output files found in log/class_consolidator/")
         exit(1)
 
     prop_path = prop_files[0]
     cls_path = cls_files[0]
     print(f"Loading latest PropertyExtractor output: {prop_path}")
-    print(f"Loading latest ClassFilter output:    {cls_path}")
+    print(f"Loading latest ClassConsolidator output:    {cls_path}")
 
     with open(prop_path, "r", encoding="utf-8") as f:
         property_candidates = json.load(f)
