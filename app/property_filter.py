@@ -202,6 +202,7 @@ class PropertyFilter(Runnable):
         groups = self._group_by_property_iri(candidates)
 
         results_all: List[Dict[str, Any]] = []
+        failed_groups: List[str] = []  # エラーで失敗したproperty_iriを記録
         completed_count = 0
         total_groups = len(groups)
 
@@ -211,7 +212,8 @@ class PropertyFilter(Runnable):
                 res = await self._judge_batch(group, class_index)
                 results_all.extend(res)
             except Exception as e:
-                # グループ失敗時はスキップ（ログのみ）
+                # グループ失敗時は記録
+                failed_groups.append(property_iri)
                 print(f"[PropertyFilter] error for {property_iri}: {e}")
             finally:
                 completed_count += 1
@@ -229,33 +231,67 @@ class PropertyFilter(Runnable):
 
         await asyncio.gather(*[sem_task(prop_iri, grp) for prop_iri, grp in groups.items()])
 
-        # フィルタリング（prohibited==False かつ confidence >= threshold のみ採用）
-        filtered: List[Dict[str, Any]] = []
-        ok_map = {(r["src_id"], r["property_iri"], r["dest_id"]): r for r in results_all if not r["prohibited"] and r["confidence"] >= self.confidence_threshold}
+        # 審査結果をマッピング
+        result_map = {(r["src_id"], r["property_iri"], r["dest_id"]): r for r in results_all}
 
+        # 全候補を構築
+        all_properties_with_judgment: List[Dict[str, Any]] = []
         for c in candidates:
             key = (c.get("src_id", ""), c.get("property_iri", ""), c.get("dest_id", ""))
-            if key in ok_map:
-                r = ok_map[key]
 
-                # src_id と dest_id から対応するクラスのラベルを取得
-                src_class = class_index.get(r["src_id"], {})
-                dest_class = class_index.get(r["dest_id"], {})
-                src_label = src_class.get("label", r["src_id"])
-                dest_label = dest_class.get("label", r["dest_id"])
+            # クラスラベルを取得
+            src_class = class_index.get(c.get("src_id", ""), {})
+            dest_class = class_index.get(c.get("dest_id", ""), {})
+            src_label = src_class.get("label", c.get("src_id", ""))
+            dest_label = dest_class.get("label", c.get("dest_id", ""))
 
-                filtered.append(
-                    {
-                        "id": str(uuid.uuid4()),
-                        "src_id": r["src_id"],
-                        "src_label": src_label,
-                        "property_iri": r["property_iri"],
-                        "dest_id": r["dest_id"],
-                        "dest_label": dest_label,
-                        "justification": r["justification"],
-                        "confidence": r["confidence"],
-                    }
-                )
+            if key in result_map:
+                r = result_map[key]
+                all_properties_with_judgment.append({
+                    "id": str(uuid.uuid4()),
+                    "src_id": r["src_id"],
+                    "src_label": src_label,
+                    "property_iri": r["property_iri"],
+                    "dest_id": r["dest_id"],
+                    "dest_label": dest_label,
+                    "prohibited": r["prohibited"],
+                    "confidence": r["confidence"],
+                    "justification": r["justification"],
+                })
+            else:
+                # LLM審査エラーまたは未審査
+                all_properties_with_judgment.append({
+                    "id": str(uuid.uuid4()),
+                    "src_id": c.get("src_id", ""),
+                    "src_label": src_label,
+                    "property_iri": c.get("property_iri", ""),
+                    "dest_id": c.get("dest_id", ""),
+                    "dest_label": dest_label,
+                    "prohibited": None,
+                    "confidence": None,
+                    "justification": "LLM審査エラー",
+                })
+
+        # フィルタリング（prohibited==False かつ confidence >= threshold のみ採用）
+        filtered: List[Dict[str, Any]] = []
+        for p in all_properties_with_judgment:
+            if p["prohibited"] is False and p["confidence"] is not None and p["confidence"] >= self.confidence_threshold:
+                filtered.append({
+                    "id": p["id"],
+                    "src_id": p["src_id"],
+                    "src_label": p["src_label"],
+                    "property_iri": p["property_iri"],
+                    "dest_id": p["dest_id"],
+                    "dest_label": p["dest_label"],
+                    "justification": p["justification"],
+                    "confidence": p["confidence"],
+                })
+
+        # ログ保存（全候補、ラベル・prohibited・confidence・justification付き）
+        log_output: Dict[str, Any] = {
+            "properties": all_properties_with_judgment,
+        }
+        self.logger.save_log(log_output, filename_prefix="property_filter_output_")
 
         return filtered
 
@@ -279,22 +315,14 @@ class PropertyFilter(Runnable):
         # LLMでフィルタリング
         filtered = asyncio.run(self._filter_properties(property_candidates, class_info))
 
-        # ログ保存用（ラベル付き）
-        output_id = str(uuid.uuid4())
-        log_output: Dict[str, Any] = {
-            "id": output_id,
-            "properties": filtered,
-        }
-
         if self.progress:
             print(
                 f"PropertyFilter: {len(property_candidates.get('properties', []))} candidates -> "
                 f"{len(filtered)} accepted"
             )
 
-        self.logger.save_log(log_output, filename_prefix="property_filter_output_")
-
         # 出力用（ラベルを削除してスキーマ準拠に）
+        output_id = str(uuid.uuid4())
         properties = [
             {k: v for k, v in p.items() if k not in ["src_label", "dest_label"]}
             for p in filtered
