@@ -320,13 +320,13 @@ if __name__ == "__main__":
     extractor = PropertyExtractor()
 
     # Load the latest ClassFilter output JSON
-    class_filter_files = sorted(glob.glob("log/class_filter/class_filter_output_*.json"), reverse=True)
+    class_files = sorted(glob.glob("log/class_consolidator/class_consolidator_output_*.json"), reverse=True)
 
-    if not class_filter_files:
-        print("Error: No ClassFilter output files found in log/class_filter/")
+    if not class_files:
+        print("Error: No ClassFilter output files found in log/class_consolidator/")
         exit(1)
 
-    latest_file = class_filter_files[0]
+    latest_file = class_files[0]
     print(f"Loading latest ClassFilter output: {latest_file}")
 
     with open(latest_file, "r", encoding="utf-8") as f:
