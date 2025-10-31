@@ -1,0 +1,31 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {
+    "corrections": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "revised_label": {
+            "type": "string",
+            "description": "修正後のラベル（修正しない場合は空文字列）"
+          },
+          "should_reject": {
+            "type": "boolean",
+            "description": "除外すべきかどうか（true=REJECT, false=REVIEW継続）"
+          },
+          "revision_reason": {
+            "type": "string",
+            "description": "修正理由または除外理由"
+          }
+        },
+        "required": ["revised_label", "should_reject", "revision_reason"],
+        "additionalProperties": false
+      },
+      "description": "Array of correction objects with revised label and rejection flag"
+    }
+  },
+  "required": ["corrections"],
+  "additionalProperties": false
+}

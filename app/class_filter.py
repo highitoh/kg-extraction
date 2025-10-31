@@ -81,21 +81,21 @@ class ClassFilter(Runnable):
         self.prompt_template = self._load_prompt_template()
 
     def _build_schema(self, n: int) -> dict:
-        return {
-            "$schema": "http://json-schema.org/draft-07/schema#",
-            "title": "ClassFilterFlags",
-            "type": "object",
-            "additionalProperties": False,
-            "required": ["flags"],
-            "properties": {
-                "flags": {
-                    "type": "array",
-                    "items": {"type": "boolean"},
-                    "minItems": n,
-                    "maxItems": n
-                }
-            }
-        }
+        """LLMスキーマファイルを読み込み、要素数を設定
+
+        Args:
+            n: 判定対象のクラス数
+        """
+        schema_path = os.path.join(os.path.dirname(__file__), "schemas",
+                                   "class-filter", "llm.schema.json")
+        with open(schema_path, "r", encoding="utf-8") as f:
+            schema = json.load(f)
+
+        # judgmentsの配列要素数を設定
+        schema["properties"]["judgments"]["minItems"] = n
+        schema["properties"]["judgments"]["maxItems"] = n
+
+        return schema
 
     def _load_metamodel(self) -> dict:
         """メタモデルファイルを読み込む"""
@@ -180,7 +180,13 @@ class ClassFilter(Runnable):
                 async with lock:
                     counter += 1
                     if self.progress:
-                        print(f"[{counter}/{total}] ClassFilter: class={class_name}, {len(class_instances)} -> {len(filtered)} instances")
+                        # 判定結果の内訳を集計
+                        accept_count = sum(1 for c in filtered if c.get("judgment") == "ACCEPT")
+                        review_count = sum(1 for c in filtered if c.get("judgment") == "REVIEW")
+                        reject_count = len(class_instances) - len(filtered)
+                        print(f"[{counter}/{total}] ClassFilter: class={class_name}, "
+                              f"{len(class_instances)} -> {len(filtered)} instances "
+                              f"(ACCEPT: {accept_count}, REVIEW: {review_count}, REJECT: {reject_count})")
 
                 return filtered
 
@@ -252,12 +258,27 @@ class ClassFilter(Runnable):
         # JSON パース
         try:
             parsed = json.loads(result_text)
-            flags = parsed["flags"]
-            filtered_classes = [c for c, hit in zip(classes, flags) if not hit]
-        except json.JSONDecodeError:
+            judgments = parsed["judgments"]
+
+            # 各クラスに判定結果を追加
+            filtered_classes = []
+            for c, judgment_obj in zip(classes, judgments):
+                judgment = judgment_obj.get("judgment", "REJECT")
+                justification = judgment_obj.get("justification", "")
+
+                # REJECT以外のクラスを通過させる（ACCEPT + REVIEW）
+                if judgment != "REJECT":
+                    # クラスに判定結果を追加
+                    c_with_judgment = c.copy()
+                    c_with_judgment["judgment"] = judgment
+                    c_with_judgment["justification"] = justification
+                    filtered_classes.append(c_with_judgment)
+
+        except (json.JSONDecodeError, KeyError) as e:
             if self.progress:
-                print(f"[ClassFilter] JSON parse error: {result_text}")
-            filtered_classes = classes
+                print(f"[ClassFilter] JSON parse error: {e}, response: {result_text}")
+            # エラー時は全てREJECT扱いで通過させない
+            filtered_classes = []
 
         return filtered_classes
 

@@ -1,0 +1,57 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {
+    "id": {
+      "type": "string",
+      "description": "Document ID"
+    },
+    "classes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Unique identifier for the class instance"
+          },
+          "class_iri": {
+            "type": "string",
+            "description": "IRI of the class type"
+          },
+          "label": {
+            "type": "string",
+            "description": "Label of the class instance"
+          },
+          "sources": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Source texts where this class was extracted from"
+          },
+          "file_ids": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "File IDs where this class appears"
+          },
+          "judgment": {
+            "type": "string",
+            "enum": ["ACCEPT", "REVIEW", "REJECT"],
+            "description": "The judgment category (ACCEPT/REVIEW/REJECT)"
+          },
+          "justification": {
+            "type": "string",
+            "description": "Brief reasoning for the judgment"
+          }
+        },
+        "required": ["id", "class_iri", "label", "sources", "file_ids", "judgment", "justification"],
+        "additionalProperties": false
+      }
+    }
+  },
+  "required": ["classes"],
+  "additionalProperties": false
+}
