@@ -16,7 +16,7 @@ class ClassChainWithReview(Runnable):
     - ClassFilterでREVIEW判定されたクラスをClassLabelCorrectorで修正
     - 修正後、再度ClassFilterで評価
     - すべてACCEPT/REJECTになるか、最大反復回数に達するまで繰り返す
-    - 最大回数到達後もREVIEWが残る場合はREJECTに変換
+    - 最大回数到達後もREVIEWが残る場合はACCEPTに変換
     """
 
     def __init__(self,
@@ -94,21 +94,21 @@ class ClassChainWithReview(Runnable):
                 print(f"\n--- ClassFilter (iteration {iteration + 1}) ---")
             result = self.class_filter.invoke(result)
 
-        # 4. 最大回数到達後もREVIEWが残っている場合はREJECTに変換
+        # 4. 最大回数到達後もREVIEWが残っている場合はACCEPTに変換
         final_classes = []
-        rejected_review_count = 0
+        accepted_review_count = 0
         for c in result.get("classes", []):
             if c.get("judgment") == "REVIEW":
                 c_copy = c.copy()
-                c_copy["judgment"] = "REJECT"
-                c_copy["justification"] = f"Maximum review iterations ({self.max_review_iterations}) reached. {c.get('justification', '')}"
+                c_copy["judgment"] = "ACCEPT"
+                c_copy["justification"] = f"Maximum review iterations ({self.max_review_iterations}) reached. Auto-accepted. {c.get('justification', '')}"
                 final_classes.append(c_copy)
-                rejected_review_count += 1
+                accepted_review_count += 1
             else:
                 final_classes.append(c)
 
-        if rejected_review_count > 0 and self.progress:
-            print(f"\n=== Converting {rejected_review_count} remaining REVIEW classes to REJECT ===")
+        if accepted_review_count > 0 and self.progress:
+            print(f"\n=== Converting {accepted_review_count} remaining REVIEW classes to ACCEPT ===")
 
         result["classes"] = final_classes
 
