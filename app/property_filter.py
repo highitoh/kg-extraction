@@ -30,7 +30,7 @@ class PropertyFilter(Runnable):
         self.llm = llm or ChatOpenAI(
             model=model,
             temperature=temperature,
-            reasoning={"effort": "minimal"},
+            reasoning={"effort": "low"},
             output_version="responses/v1",
         )
         self.llm_schema = self._load_llm_schema()
@@ -155,7 +155,7 @@ class PropertyFilter(Runnable):
                     "src_id": r.get("src_id", ""),
                     "property_iri": property_iri,  # バッチのproperty_iriを保持
                     "dest_id": r.get("dest_id", ""),
-                    "prohibited": bool(r.get("prohibited", False)),
+                    "judgment": r.get("judgment", "REJECT"),
                     "justification": (r.get("justification") or "")[:500],
                     "confidence": float(r.get("confidence", 0.5)),
                 }
@@ -254,7 +254,7 @@ class PropertyFilter(Runnable):
                     "property_iri": r["property_iri"],
                     "dest_id": r["dest_id"],
                     "dest_label": dest_label,
-                    "prohibited": r["prohibited"],
+                    "judgment": r["judgment"],
                     "confidence": r["confidence"],
                     "justification": r["justification"],
                 })
@@ -267,15 +267,18 @@ class PropertyFilter(Runnable):
                     "property_iri": c.get("property_iri", ""),
                     "dest_id": c.get("dest_id", ""),
                     "dest_label": dest_label,
-                    "prohibited": None,
+                    "judgment": "REJECT",
                     "confidence": None,
                     "justification": "LLM審査エラー",
                 })
 
-        # フィルタリング（prohibited==False かつ confidence >= threshold のみ採用）
+        # フィルタリング（ACCEPT/REVIEWのみ採用、REJECTは除外）
+        # confidence_thresholdは引き続き最終フィルタリングに使用
         filtered: List[Dict[str, Any]] = []
         for p in all_properties_with_judgment:
-            if p["prohibited"] is False and p["confidence"] is not None and p["confidence"] >= self.confidence_threshold:
+            judgment = p["judgment"]
+            # REJECT以外（ACCEPT, REVIEW）を通過させる
+            if judgment in ("ACCEPT", "REVIEW") and p["confidence"] is not None and p["confidence"] >= self.confidence_threshold:
                 filtered.append({
                     "id": p["id"],
                     "src_id": p["src_id"],
@@ -283,11 +286,20 @@ class PropertyFilter(Runnable):
                     "property_iri": p["property_iri"],
                     "dest_id": p["dest_id"],
                     "dest_label": p["dest_label"],
+                    "judgment": p["judgment"],
                     "justification": p["justification"],
                     "confidence": p["confidence"],
                 })
 
-        # ログ保存（全候補、ラベル・prohibited・confidence・justification付き）
+        # 判定結果の統計
+        if self.progress:
+            accept_count = sum(1 for p in all_properties_with_judgment if p.get("judgment") == "ACCEPT")
+            review_count = sum(1 for p in all_properties_with_judgment if p.get("judgment") == "REVIEW")
+            reject_count = sum(1 for p in all_properties_with_judgment if p.get("judgment") == "REJECT")
+            print(f"[PropertyFilter] Judgment breakdown: ACCEPT={accept_count}, REVIEW={review_count}, REJECT={reject_count}")
+            print(f"[PropertyFilter] After confidence filter (>={self.confidence_threshold}): {len(filtered)} properties")
+
+        # ログ保存（全候補、ラベル・judgment・confidence・justification付き）
         log_output: Dict[str, Any] = {
             "properties": all_properties_with_judgment,
         }
@@ -321,10 +333,17 @@ class PropertyFilter(Runnable):
                 f"{len(filtered)} accepted"
             )
 
-        # 出力用（ラベルを削除してスキーマ準拠に）
+        # 出力用（内部フィールドを削除してスキーマ準拠に）
+        # judgment, justification, confidence は内部フィールドとして保持するがログには残る
+        # 最終出力にはid, src_id, property_iri, dest_idのみ含める
         output_id = str(uuid.uuid4())
         properties = [
-            {k: v for k, v in p.items() if k not in ["src_label", "dest_label"]}
+            {
+                "id": p["id"],
+                "src_id": p["src_id"],
+                "property_iri": p["property_iri"],
+                "dest_id": p["dest_id"],
+            }
             for p in filtered
         ]
         output: Dict[str, Any] = {

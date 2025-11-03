@@ -32,7 +32,7 @@ class PropertyExtractor(Runnable):
         self.llm = llm or ChatOpenAI(
             model=model,
             temperature=temperature,
-            reasoning={"effort": "minimal"},
+            reasoning={"effort": "low"},
             output_version="responses/v1",
         )
 

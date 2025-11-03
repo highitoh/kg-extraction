@@ -15,9 +15,10 @@
             "type": "string",
             "description": "The ID of the destination class"
           },
-          "prohibited": {
-            "type": "boolean",
-            "description": "Whether this relation is prohibited by the rules"
+          "judgment": {
+            "type": "string",
+            "enum": ["ACCEPT", "REVIEW", "REJECT"],
+            "description": "The judgment category for the property relation"
           },
           "justification": {
             "type": "string",
@@ -30,10 +31,10 @@
             "description": "Confidence score of the judgment (0.0 to 1.0)"
           }
         },
-        "required": ["src_id", "dest_id", "prohibited", "justification", "confidence"],
+        "required": ["src_id", "dest_id", "judgment", "justification", "confidence"],
         "additionalProperties": false
       },
-      "description": "Array of property relation judgments with prohibition status"
+      "description": "Array of property relation judgments with 3-tier judgment"
     }
   },
   "required": ["relations"],
