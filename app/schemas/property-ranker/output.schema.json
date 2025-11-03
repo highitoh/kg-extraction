@@ -1,0 +1,7 @@
+{
+  "$id": "https://github.com/highitoh/kg-extraction/schemas/property-ranker/output.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "PropertyRankerOutput",
+  "description": "プロパティランカーの出力情報（強度フィールド付き）",
+  "$ref": "https://github.com/highitoh/kg-extraction/schemas/property-chain/output.schema.json"
+}

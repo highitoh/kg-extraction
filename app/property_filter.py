@@ -254,6 +254,7 @@ class PropertyFilter(Runnable):
                     "property_iri": r["property_iri"],
                     "dest_id": r["dest_id"],
                     "dest_label": dest_label,
+                    "strength": c.get("strength", 0),  # PropertyRankerからのstrengthを保持
                     "judgment": r["judgment"],
                     "confidence": r["confidence"],
                     "justification": r["justification"],
@@ -267,6 +268,7 @@ class PropertyFilter(Runnable):
                     "property_iri": c.get("property_iri", ""),
                     "dest_id": c.get("dest_id", ""),
                     "dest_label": dest_label,
+                    "strength": c.get("strength", 0),  # PropertyRankerからのstrengthを保持
                     "judgment": "REJECT",
                     "confidence": None,
                     "justification": "LLM審査エラー",
@@ -286,6 +288,7 @@ class PropertyFilter(Runnable):
                     "property_iri": p["property_iri"],
                     "dest_id": p["dest_id"],
                     "dest_label": p["dest_label"],
+                    "strength": p.get("strength", 0),  # PropertyRankerからのstrengthを保持
                     "judgment": p["judgment"],
                     "justification": p["justification"],
                     "confidence": p["confidence"],
@@ -335,7 +338,7 @@ class PropertyFilter(Runnable):
 
         # 出力用（内部フィールドを削除してスキーマ準拠に）
         # judgment, justification, confidence は内部フィールドとして保持するがログには残る
-        # 最終出力にはid, src_id, property_iri, dest_idのみ含める
+        # 最終出力にはid, src_id, property_iri, dest_id, strengthを含める
         output_id = str(uuid.uuid4())
         properties = [
             {
@@ -343,6 +346,7 @@ class PropertyFilter(Runnable):
                 "src_id": p["src_id"],
                 "property_iri": p["property_iri"],
                 "dest_id": p["dest_id"],
+                "strength": p.get("strength", 0),  # PropertyRankerからのstrengthを保持
             }
             for p in filtered
         ]

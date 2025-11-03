@@ -2,14 +2,15 @@ from typing import Dict, Any
 from langchain.schema.runnable import Runnable, RunnableSequence
 
 from property_extractor import PropertyExtractor
+from property_ranker import PropertyRanker
 from property_filter import PropertyFilter
 from property_validator import PropertyValidator
 
 
-class ExtractorToFilterAdapter(Runnable):
+class ExtractorToRankerAdapter(Runnable):
     """
     PropertyExtractorの出力とオリジナルの入力を組み合わせて
-    PropertyFilterの入力形式に変換するアダプター
+    PropertyRankerの入力形式に変換するアダプター
     """
 
     def __init__(self, original_input: Dict[str, Any]):
@@ -18,6 +19,29 @@ class ExtractorToFilterAdapter(Runnable):
     def invoke(self, input: Dict[str, Any], config=None) -> Dict[str, Any]:
         """
         入力: PropertyExtractorの出力 {id, properties}
+        出力: PropertyRankerの入力 {property_candidates: {...}, class_info: {...}}
+        """
+        return {
+            "property_candidates": {
+                "id": input.get("id"),
+                "properties": input.get("properties", [])
+            },
+            "class_info": self.original_input.get("class_info", {})
+        }
+
+
+class RankerToFilterAdapter(Runnable):
+    """
+    PropertyRankerの出力とオリジナルの入力を組み合わせて
+    PropertyFilterの入力形式に変換するアダプター
+    """
+
+    def __init__(self, original_input: Dict[str, Any]):
+        self.original_input = original_input
+
+    def invoke(self, input: Dict[str, Any], config=None) -> Dict[str, Any]:
+        """
+        入力: PropertyRankerの出力 {id, properties}
         出力: PropertyFilterの入力 {property_candidates: {...}, class_info: {...}}
         """
         return {
@@ -31,7 +55,7 @@ class ExtractorToFilterAdapter(Runnable):
 
 class PropertyChainWithAdapter(Runnable):
     """
-    PropertyExtractor -> Adapter -> PropertyFilter -> PropertyValidator
+    PropertyExtractor -> Adapter -> Ranker -> Adapter -> PropertyFilter -> PropertyValidator
     をRunnableSequenceで連結するラッパー
     """
 
@@ -42,17 +66,21 @@ class PropertyChainWithAdapter(Runnable):
         # コンポーネントを作成
         if self.model is not None:
             extractor = PropertyExtractor(model=self.model)
+            ranker = PropertyRanker(model=self.model)
             property_filter = PropertyFilter(model=self.model)
         else:
             extractor = PropertyExtractor()
+            ranker = PropertyRanker()
             property_filter = PropertyFilter()
         validator = PropertyValidator()
 
         # アダプターを作成（元の入力を保持）
-        adapter = ExtractorToFilterAdapter(input)
+        adapter1 = ExtractorToRankerAdapter(input)
+        adapter2 = RankerToFilterAdapter(input)
 
         # RunnableSequenceで連結
-        chain = RunnableSequence(extractor, adapter, property_filter, validator)
+        # extractor -> adapter1 -> ranker -> adapter2 -> property_filter -> validator
+        chain = RunnableSequence(extractor, adapter1, ranker, adapter2, property_filter, validator)
 
         return chain.invoke(input, config)
 
@@ -60,7 +88,7 @@ class PropertyChainWithAdapter(Runnable):
 def create_property_chain(model: str = None) -> Runnable:
     """
     プロパティ抽出チェーン:
-      PropertyExtractor -> PropertyFilter -> PropertyValidator
+      PropertyExtractor -> PropertyRanker -> PropertyFilter -> PropertyValidator
 
     Args:
         model: LLMモデル名（Noneの場合は各コンポーネントのデフォルトを使用）

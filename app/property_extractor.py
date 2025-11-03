@@ -278,6 +278,7 @@ class PropertyExtractor(Runnable):
                 "src_id": prop["src_id"],
                 "property_iri": prop["property_iri"],
                 "dest_id": prop["dest_id"],
+                "strength": 0,  # デフォルト値、PropertyRankerで更新される
             }
             properties.append(property_item)
 

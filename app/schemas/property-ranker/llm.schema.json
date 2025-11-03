@@ -1,0 +1,46 @@
+{
+  "$id": "https://github.com/highitoh/kg-extraction/schemas/property-ranker/llm.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "PropertyRankerLLMOutput",
+  "type": "object",
+  "description": "PropertyRankerのLLM出力スキーマ",
+  "properties": {
+    "relations": {
+      "type": "array",
+      "description": "関係性の強度評価リスト",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "src_id": {
+            "type": "string",
+            "description": "関係の出発点となるクラス個体ID"
+          },
+          "dest_id": {
+            "type": "string",
+            "description": "関係の到達点となるクラス個体ID"
+          },
+          "strength": {
+            "type": "integer",
+            "description": "関係の強度: 0=関連なし(None), 1=環境的依存(Weak), 2=機能的依存(Medium), 3=必須依存(Strong)",
+            "minimum": 0,
+            "maximum": 3
+          },
+          "justification": {
+            "type": "string",
+            "description": "強度評価の根拠"
+          },
+          "confidence": {
+            "type": "number",
+            "description": "評価の信頼度 (0.0-1.0)",
+            "minimum": 0.0,
+            "maximum": 1.0
+          }
+        },
+        "required": ["src_id", "dest_id", "strength", "justification", "confidence"]
+      }
+    }
+  },
+  "required": ["relations"],
+  "additionalProperties": false
+}
