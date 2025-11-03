@@ -23,15 +23,9 @@
           "justification": {
             "type": "string",
             "description": "Brief justification for the decision"
-          },
-          "confidence": {
-            "type": "number",
-            "minimum": 0,
-            "maximum": 1,
-            "description": "Confidence score of the judgment (0.0 to 1.0)"
           }
         },
-        "required": ["src_id", "dest_id", "judgment", "justification", "confidence"],
+        "required": ["src_id", "dest_id", "judgment", "justification"],
         "additionalProperties": false
       },
       "description": "Array of property relation judgments with 3-tier judgment"

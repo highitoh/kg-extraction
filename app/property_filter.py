@@ -25,7 +25,6 @@ class PropertyFilter(Runnable):
         progress: bool = True,
         log_dir: str = "log/property_filter",
         batch_size: int = 24,
-        confidence_threshold: float = 0.5,
     ):
         self.llm = llm or ChatOpenAI(
             model=model,
@@ -39,7 +38,6 @@ class PropertyFilter(Runnable):
         self.max_retries = max_retries
         self.progress = progress
         self.batch_size = batch_size
-        self.confidence_threshold = confidence_threshold
 
         self.prompt = self._load_prompt()
         self.metamodel = self._load_metamodel()
@@ -157,7 +155,6 @@ class PropertyFilter(Runnable):
                     "dest_id": r.get("dest_id", ""),
                     "judgment": r.get("judgment", "REJECT"),
                     "justification": (r.get("justification") or "")[:500],
-                    "confidence": float(r.get("confidence", 0.5)),
                 }
             )
         return results
@@ -256,7 +253,6 @@ class PropertyFilter(Runnable):
                     "dest_label": dest_label,
                     "strength": c.get("strength", 0),  # PropertyRankerからのstrengthを保持
                     "judgment": r["judgment"],
-                    "confidence": r["confidence"],
                     "justification": r["justification"],
                 })
             else:
@@ -270,17 +266,15 @@ class PropertyFilter(Runnable):
                     "dest_label": dest_label,
                     "strength": c.get("strength", 0),  # PropertyRankerからのstrengthを保持
                     "judgment": "REJECT",
-                    "confidence": None,
                     "justification": "LLM審査エラー",
                 })
 
         # フィルタリング（ACCEPT/REVIEWのみ採用、REJECTは除外）
-        # confidence_thresholdは引き続き最終フィルタリングに使用
         filtered: List[Dict[str, Any]] = []
         for p in all_properties_with_judgment:
             judgment = p["judgment"]
             # REJECT以外（ACCEPT, REVIEW）を通過させる
-            if judgment in ("ACCEPT", "REVIEW") and p["confidence"] is not None and p["confidence"] >= self.confidence_threshold:
+            if judgment in ("ACCEPT", "REVIEW"):
                 filtered.append({
                     "id": p["id"],
                     "src_id": p["src_id"],
@@ -291,7 +285,6 @@ class PropertyFilter(Runnable):
                     "strength": p.get("strength", 0),  # PropertyRankerからのstrengthを保持
                     "judgment": p["judgment"],
                     "justification": p["justification"],
-                    "confidence": p["confidence"],
                 })
 
         # 判定結果の統計
@@ -300,9 +293,9 @@ class PropertyFilter(Runnable):
             review_count = sum(1 for p in all_properties_with_judgment if p.get("judgment") == "REVIEW")
             reject_count = sum(1 for p in all_properties_with_judgment if p.get("judgment") == "REJECT")
             print(f"[PropertyFilter] Judgment breakdown: ACCEPT={accept_count}, REVIEW={review_count}, REJECT={reject_count}")
-            print(f"[PropertyFilter] After confidence filter (>={self.confidence_threshold}): {len(filtered)} properties")
+            print(f"[PropertyFilter] After filtering: {len(filtered)} properties")
 
-        # ログ保存（全候補、ラベル・judgment・confidence・justification付き）
+        # ログ保存（全候補、ラベル・judgment・justification付き）
         log_output: Dict[str, Any] = {
             "properties": all_properties_with_judgment,
         }

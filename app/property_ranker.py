@@ -187,8 +187,7 @@ class PropertyRanker(Runnable):
                 "src_id": r.get("src_id", ""),
                 "dest_id": r.get("dest_id", ""),
                 "strength": r.get("strength", 0),
-                "justification": r.get("justification", ""),
-                "confidence": r.get("confidence", 0.0)
+                "justification": r.get("justification", "")
             })
 
         return results
@@ -299,8 +298,7 @@ class PropertyRanker(Runnable):
                 **ranked_prop,
                 "src_label": src_class.get("label", ""),
                 "dest_label": dest_class.get("label", ""),
-                "justification": ranking_result.get("justification", ""),
-                "confidence": ranking_result.get("confidence", 0.0)
+                "justification": ranking_result.get("justification", "")
             })
 
         output = {

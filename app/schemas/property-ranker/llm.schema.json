@@ -29,15 +29,9 @@
           "justification": {
             "type": "string",
             "description": "強度評価の根拠"
-          },
-          "confidence": {
-            "type": "number",
-            "description": "評価の信頼度 (0.0-1.0)",
-            "minimum": 0.0,
-            "maximum": 1.0
           }
         },
-        "required": ["src_id", "dest_id", "strength", "justification", "confidence"]
+        "required": ["src_id", "dest_id", "strength", "justification"]
       }
     }
   },

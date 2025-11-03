@@ -6,7 +6,7 @@
 - REVIEW: 禁止ルールへの該当が曖昧で、追加のLLM分析が必要
 - REJECT: 禁止ルールに明確に該当し、除外すべき
 
-各判定には、簡潔な理由(justification)と信頼度(confidence: 0.0〜1.0)を付けてください。
+各判定には、簡潔な理由(justification)を付けてください。
 出力は、入力と同じ順序・同じ要素数のrelationオブジェクト配列です。
 
 【禁止ルール】
@@ -19,22 +19,19 @@
       "src_id": "...",
       "dest_id": "...",
       "judgment": "ACCEPT",
-      "justification": "理由",
-      "confidence": 0.95
+      "justification": "理由"
     },
     {
       "src_id": "...",
       "dest_id": "...",
       "judgment": "REVIEW",
-      "justification": "理由",
-      "confidence": 0.6
+      "justification": "理由"
     },
     {
       "src_id": "...",
       "dest_id": "...",
       "judgment": "REJECT",
-      "justification": "理由",
-      "confidence": 0.9
+      "justification": "理由"
     }
   ]
 }
