@@ -280,13 +280,14 @@ class PropertyRanker(Runnable):
 
             strength = ranking_result.get("strength", 0)
 
-            # strengthを更新したプロパティを作成
+            # strengthとranker_justificationを更新したプロパティを作成
             ranked_prop = {
                 "id": prop.get("id", str(uuid.uuid4())),
                 "src_id": prop.get("src_id", ""),
                 "property_iri": prop.get("property_iri", ""),
                 "dest_id": prop.get("dest_id", ""),
-                "strength": strength
+                "strength": strength,
+                "ranker_justification": ranking_result.get("justification", "")
             }
             ranked_properties.append(ranked_prop)
 

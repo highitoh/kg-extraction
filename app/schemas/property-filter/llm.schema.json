@@ -20,12 +20,18 @@
             "enum": ["ACCEPT", "REVIEW", "REJECT"],
             "description": "The judgment category for the property relation"
           },
+          "evaluated_strength": {
+            "type": "integer",
+            "description": "Re-evaluated strength: 0=None, 1=Weak, 2=Medium, 3=Strong",
+            "minimum": 0,
+            "maximum": 3
+          },
           "justification": {
             "type": "string",
-            "description": "Brief justification for the decision"
+            "description": "Combined justification for prohibit_rule evaluation and strength assessment"
           }
         },
-        "required": ["src_id", "dest_id", "judgment", "justification"],
+        "required": ["src_id", "dest_id", "judgment", "evaluated_strength", "justification"],
         "additionalProperties": false
       },
       "description": "Array of property relation judgments with 3-tier judgment"

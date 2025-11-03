@@ -93,9 +93,9 @@ class PropertyFilter(Runnable):
         return groups
 
     def _format_batch_message(self, batch: List[Dict[str, Any]], class_index: Dict[str, Dict[str, Any]]) -> str:
-        """LLMへ渡すバッチ用のテキストを作成（labelとsourceを含める）"""
+        """LLMへ渡すバッチ用のテキストを作成（strength, ranker_justificationを含める）"""
         lines = []
-        lines.append("# 審査対象候補（src/destのlabel, class_iri, sourceを含む）")
+        lines.append("# 審査対象候補（src/destのlabel, class_iri, source, strength, ranker評価根拠を含む）")
         for i, p in enumerate(batch, 1):
             src = class_index.get(p.get("src_id", ""), {})
             dest = class_index.get(p.get("dest_id", ""), {})
@@ -109,6 +109,10 @@ class PropertyFilter(Runnable):
             lines.append(f"    - dest_label: {dest.get('label','')}")
             lines.append(f"    - dest_class_iri: {dest.get('class_iri','')}")
             lines.append(f"    - dest_source: {dest.get('source','')}")
+            lines.append(f"  strength: {p.get('strength', 0)} (PropertyRankerによる評価)")
+            ranker_justification = p.get('ranker_justification', '')
+            if ranker_justification:
+                lines.append(f"  ranker_justification: {ranker_justification}")
         return "\n".join(lines)
 
     def _get_prohibit_rules(self, property_iri: str) -> str:
@@ -148,12 +152,22 @@ class PropertyFilter(Runnable):
         for r in data.get("relations", []):
             if not isinstance(r, dict):
                 continue
+
+            # evaluated_strengthを取得
+            evaluated_strength = r.get("evaluated_strength", 0)
+            judgment = r.get("judgment", "REJECT")
+
+            # REJECTの場合はevaluated_strengthを0にする
+            if judgment == "REJECT":
+                evaluated_strength = 0
+
             results.append(
                 {
                     "src_id": r.get("src_id", ""),
                     "property_iri": property_iri,  # バッチのproperty_iriを保持
                     "dest_id": r.get("dest_id", ""),
-                    "judgment": r.get("judgment", "REJECT"),
+                    "judgment": judgment,
+                    "evaluated_strength": evaluated_strength,
                     "justification": (r.get("justification") or "")[:500],
                 }
             )
@@ -244,6 +258,17 @@ class PropertyFilter(Runnable):
 
             if key in result_map:
                 r = result_map[key]
+                original_strength = c.get("strength", 0)
+                evaluated_strength = r.get("evaluated_strength", 0)
+                judgment = r["judgment"]
+
+                # 強度評価が異なる場合、judgmentをREVIEWに設定
+                if judgment != "REJECT" and original_strength != evaluated_strength:
+                    judgment = "REVIEW"
+
+                # 最終的なstrength値（REJECTの場合は0、それ以外はevaluated_strength）
+                final_strength = 0 if judgment == "REJECT" else evaluated_strength
+
                 all_properties_with_judgment.append({
                     "id": str(uuid.uuid4()),
                     "src_id": r["src_id"],
@@ -251,12 +276,15 @@ class PropertyFilter(Runnable):
                     "property_iri": r["property_iri"],
                     "dest_id": r["dest_id"],
                     "dest_label": dest_label,
-                    "strength": c.get("strength", 0),  # PropertyRankerからのstrengthを保持
-                    "judgment": r["judgment"],
+                    "original_strength": original_strength,  # ログ用: 元の強度
+                    "evaluated_strength": evaluated_strength,  # ログ用: 再評価された強度
+                    "strength": final_strength,  # 最終的な強度
+                    "judgment": judgment,
                     "justification": r["justification"],
                 })
             else:
                 # LLM審査エラーまたは未審査
+                original_strength = c.get("strength", 0)
                 all_properties_with_judgment.append({
                     "id": str(uuid.uuid4()),
                     "src_id": c.get("src_id", ""),
@@ -264,7 +292,9 @@ class PropertyFilter(Runnable):
                     "property_iri": c.get("property_iri", ""),
                     "dest_id": c.get("dest_id", ""),
                     "dest_label": dest_label,
-                    "strength": c.get("strength", 0),  # PropertyRankerからのstrengthを保持
+                    "original_strength": original_strength,
+                    "evaluated_strength": 0,
+                    "strength": 0,  # REJECTなので0
                     "judgment": "REJECT",
                     "justification": "LLM審査エラー",
                 })
@@ -282,7 +312,7 @@ class PropertyFilter(Runnable):
                     "property_iri": p["property_iri"],
                     "dest_id": p["dest_id"],
                     "dest_label": p["dest_label"],
-                    "strength": p.get("strength", 0),  # PropertyRankerからのstrengthを保持
+                    "strength": p.get("strength", 0),  # 再評価されたstrength（REJECT時は0）
                     "judgment": p["judgment"],
                     "justification": p["justification"],
                 })
@@ -292,7 +322,15 @@ class PropertyFilter(Runnable):
             accept_count = sum(1 for p in all_properties_with_judgment if p.get("judgment") == "ACCEPT")
             review_count = sum(1 for p in all_properties_with_judgment if p.get("judgment") == "REVIEW")
             reject_count = sum(1 for p in all_properties_with_judgment if p.get("judgment") == "REJECT")
+
+            # 強度変更の統計
+            strength_changed_count = sum(
+                1 for p in all_properties_with_judgment
+                if p.get("original_strength") != p.get("evaluated_strength")
+            )
+
             print(f"[PropertyFilter] Judgment breakdown: ACCEPT={accept_count}, REVIEW={review_count}, REJECT={reject_count}")
+            print(f"[PropertyFilter] Strength evaluation: {strength_changed_count} candidates had strength changed")
             print(f"[PropertyFilter] After filtering: {len(filtered)} properties")
 
         # ログ保存（全候補、ラベル・judgment・justification付き）
@@ -330,7 +368,7 @@ class PropertyFilter(Runnable):
             )
 
         # 出力用（内部フィールドを削除してスキーマ準拠に）
-        # judgment, justification, confidence は内部フィールドとして保持するがログには残る
+        # judgment, justification, original_strength, evaluated_strength は内部フィールドとして保持するがログには残る
         # 最終出力にはid, src_id, property_iri, dest_id, strengthを含める
         output_id = str(uuid.uuid4())
         properties = [
@@ -339,7 +377,7 @@ class PropertyFilter(Runnable):
                 "src_id": p["src_id"],
                 "property_iri": p["property_iri"],
                 "dest_id": p["dest_id"],
-                "strength": p.get("strength", 0),  # PropertyRankerからのstrengthを保持
+                "strength": p.get("strength", 0),  # 再評価されたstrength
             }
             for p in filtered
         ]
