@@ -1,0 +1,29 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {
+    "corrections": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "revised_strength": {
+            "type": "integer",
+            "description": "修正後の強度: 0=除外(REJECT), 1=Weak, 2=Medium, 3=Strong",
+            "minimum": 0,
+            "maximum": 3
+          },
+          "revision_reason": {
+            "type": "string",
+            "description": "修正理由または除外理由"
+          }
+        },
+        "required": ["revised_strength", "revision_reason"],
+        "additionalProperties": false
+      },
+      "description": "修正オブジェクトの配列（修正後の強度と理由）"
+    }
+  },
+  "required": ["corrections"],
+  "additionalProperties": false
+}

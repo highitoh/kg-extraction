@@ -1,0 +1,7 @@
+{
+  "$id": "https://github.com/highitoh/kg-extraction/schemas/property-editor/input.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "PropertyEditorInput",
+  "description": "プロパティエディタの入力情報（PropertyFilterの出力と同一）",
+  "$ref": "https://github.com/highitoh/kg-extraction/schemas/property-filter/output.schema.json"
+}
