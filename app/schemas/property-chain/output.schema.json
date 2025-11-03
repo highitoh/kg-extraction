@@ -25,6 +25,10 @@
             "type": "string",
             "description": "関係の出発点となるクラス個体ID"
           },
+          "src_label": {
+            "type": "string",
+            "description": "出発点クラスのラベル"
+          },
           "property_iri": {
             "type": "string",
             "format": "uri",
@@ -34,14 +38,27 @@
             "type": "string",
             "description": "関係の到達点となるクラス個体ID"
           },
+          "dest_label": {
+            "type": "string",
+            "description": "到達点クラスのラベル"
+          },
           "strength": {
             "type": "integer",
             "description": "関係の強度: 0=関連なし(None), 1=環境的依存(Weak), 2=機能的依存(Medium), 3=必須依存(Strong)",
             "minimum": 0,
             "maximum": 3
+          },
+          "judgment": {
+            "type": "string",
+            "enum": ["ACCEPT", "REVIEW", "REJECT"],
+            "description": "判定カテゴリ (ACCEPT/REVIEW/REJECT)"
+          },
+          "justification": {
+            "type": "string",
+            "description": "判定の根拠"
           }
         },
-        "required": ["id", "src_id", "property_iri", "dest_id", "strength"]
+        "required": ["id", "src_id", "src_label", "property_iri", "dest_id", "dest_label", "strength", "judgment", "justification"]
       }
     }
   },

@@ -367,17 +367,19 @@ class PropertyFilter(Runnable):
                 f"{len(filtered)} accepted"
             )
 
-        # 出力用（内部フィールドを削除してスキーマ準拠に）
-        # judgment, justification, original_strength, evaluated_strength は内部フィールドとして保持するがログには残る
-        # 最終出力にはid, src_id, property_iri, dest_id, strengthを含める
+        # 出力用（PropertyEditorとのループのためjudgment/justificationを含める）
         output_id = str(uuid.uuid4())
         properties = [
             {
                 "id": p["id"],
                 "src_id": p["src_id"],
+                "src_label": p["src_label"],
                 "property_iri": p["property_iri"],
                 "dest_id": p["dest_id"],
+                "dest_label": p["dest_label"],
                 "strength": p.get("strength", 0),  # 再評価されたstrength
+                "judgment": p["judgment"],
+                "justification": p["justification"],
             }
             for p in filtered
         ]

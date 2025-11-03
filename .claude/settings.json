@@ -1,0 +1,93 @@
+{
+  "$schema": "https://storage.googleapis.com/claude-code-public-assets/schemas/settings.v1.schema.json",
+  "workingDirectory": "/workspace",
+  "model": "claude-sonnet-4-5-20250929",
+  "allowedDirectories": [
+    "/workspace"
+  ],
+  "ignoredDirectories": [
+    ".git",
+    "__pycache__",
+    ".pytest_cache",
+    ".venv",
+    "venv",
+    "node_modules",
+    "neo4j/data",
+    "neo4j/logs",
+    ".ruff_cache",
+    ".mypy_cache",
+    ".coverage"
+  ],
+  "ignoredFiles": [
+    "*.pyc",
+    "*.pyo",
+    "*.pyd",
+    ".DS_Store",
+    "*.log",
+    "*.csv",
+    "*.ttl",
+    "extraction_result.json"
+  ],
+  "fileReadLimit": 100000,
+  "timeout": 120000,
+  "alwaysAllowTasks": false,
+  "alwaysAllowWrites": false,
+  "projectInfo": {
+    "name": "Knowledge Graph Extractor",
+    "description": "LangChain-based application for extracting knowledge from PDF files and generating Turtle files and Neo4j CSV files",
+    "languages": ["Python"],
+    "frameworks": ["LangChain", "Neo4j"],
+    "keyPaths": {
+      "main": "app/main.py",
+      "schemas": "app/schemas/",
+      "prompts": "app/prompts/",
+      "chains": "app/*_chain.py",
+      "requirements": "app/requirements.txt"
+    }
+  },
+  "hooks": {
+    "beforeWrite": null,
+    "afterWrite": null,
+    "beforeBash": null,
+    "afterBash": null
+  },
+  "shortcuts": {
+    "test": "cd app && python main.py ../doc/sample.pdf --model gpt-5-nano",
+    "install": "cd app && pip install -r requirements.txt",
+    "docker-up": "docker-compose up -d",
+    "docker-down": "docker-compose down",
+    "docker-logs": "docker-compose logs -f",
+    "neo4j-browser": "echo 'Open http://localhost:7474 in browser (neo4j/neo4jpassword)'"
+  },
+  "permissions": {
+    "allow": [
+      "Bash(git:*)",
+
+      "Bash(ls:*)",
+      "Bash(cat:*)",
+      "Bash(pwd:*)",
+      "Bash(cd:*)",
+      "Bash(find:*)",
+      "Bash(grep:*)",
+      "Bash(rg:*)",
+      
+      "Bash(npm:*)",
+      "Bash(node:*)",
+      "Bash(python:*)",
+      "Bash(make:*)",
+      
+      "Bash(jq:*)",
+      "Bash(curl:*)",
+      "Bash(echo:*)",
+      
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:vercel.com)",
+      "WebFetch(domain:docs.anthropic.com)",
+      "WebFetch(domain:stackoverflow.com)",
+      "WebFetch(domain:developer.mozilla.org)",
+      "WebFetch(domain:npmjs.com)",
+      "WebFetch(domain:nextjs.org)"
+    ],
+    "deny": []
+  }
+}
