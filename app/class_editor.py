@@ -55,7 +55,7 @@ class ClassEditor(Runnable):
             n: 判定対象のクラス数
         """
         schema_path = os.path.join(os.path.dirname(__file__), "schemas",
-                                   "class-label-corrector", "llm.schema.json")
+                                   "class-editor", "llm.schema.json")
         with open(schema_path, "r", encoding="utf-8") as f:
             schema = json.load(f)
 
@@ -103,13 +103,13 @@ class ClassEditor(Runnable):
 
         Parameters
         ----------
-        input: ClassLabelCorrectorInput (= ClassFilterOutput)
+        input: ClassLabelCorrectorInput (= ClassReviewerOutput)
           - id: 抽出ID
           - classes: クラス個体リスト（judgment/justificationを含む）
 
         Returns
         -------
-        output: ClassLabelCorrectorOutput (= ClassFilterOutput)
+        output: ClassLabelCorrectorOutput (= ClassReviewerOutput)
         """
         classes = input.get("classes", [])
 
@@ -275,7 +275,7 @@ class ClassEditor(Runnable):
                     c_corrected["judgment"] = "REJECT"
                     c_corrected["justification"] = revision_reason
                 else:
-                    # ラベル修正した場合はREVIEWのまま（ClassFilterで再評価される）
+                    # ラベル修正した場合はREVIEWのまま（ClassReviewerで再評価される）
                     if revised_label and revised_label != c.get("label", ""):
                         c_corrected["label"] = revised_label
                     # judgment = "REVIEW" のまま
@@ -335,12 +335,12 @@ class ClassEditor(Runnable):
 if __name__ == "__main__":
     import glob
 
-    # ログディレクトリから最新のclass_filterログファイルを取得
-    log_dir = "/workspace/app/log/class_filter"
-    log_files = glob.glob(os.path.join(log_dir, "class_filter_output_*.json"))
+    # ログディレクトリから最新のclass_reviewerログファイルを取得
+    log_dir = "/workspace/app/log/class_reviewer"
+    log_files = glob.glob(os.path.join(log_dir, "class_reviewer_output_*.json"))
 
     if not log_files:
-        print("Error: No class_filter log files found")
+        print("Error: No class_reviewer log files found")
         exit(1)
 
     # 最新のログファイルを取得

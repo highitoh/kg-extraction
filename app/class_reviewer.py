@@ -51,7 +51,7 @@ def async_retry_with_backoff(max_retries: int = 5, initial_delay: float = 1.0, m
     return decorator
 
 
-class ClassFilter(Runnable):
+class ClassReviewer(Runnable):
     """
     Filter and process extracted classes using LLM
     """
@@ -63,7 +63,7 @@ class ClassFilter(Runnable):
                  progress: bool = True,
                  max_concurrency: int = 8,
                  max_retries: int = 5,
-                 log_dir: str = "log/class_filter"):
+                 log_dir: str = "log/class_reviewer"):
         self.llm = llm or ChatOpenAI(
             model=model,
             temperature=temperature,
@@ -87,7 +87,7 @@ class ClassFilter(Runnable):
             n: 判定対象のクラス数
         """
         schema_path = os.path.join(os.path.dirname(__file__), "schemas",
-                                   "class-filter", "llm.schema.json")
+                                   "class-reviewer", "llm.schema.json")
         with open(schema_path, "r", encoding="utf-8") as f:
             schema = json.load(f)
 
@@ -125,7 +125,7 @@ class ClassFilter(Runnable):
     def _load_prompt_template(self) -> str:
         """プロンプトテンプレートファイルを読み込み、禁止ルールを動的生成"""
         prompt_path = os.path.join(os.path.dirname(__file__), "prompts",
-                                   "class_filter.txt")
+                                   "class_reviewer.txt")
         with open(prompt_path, "r", encoding="utf-8") as f:
             template = f.read()
 
@@ -135,13 +135,13 @@ class ClassFilter(Runnable):
         classes = input.get("classes", [])
 
         if self.progress:
-            print(f"ClassFilter: processing {len(classes)} classes")
+            print(f"ClassReviewer: processing {len(classes)} classes")
 
         # class_iriでグループ化
         class_groups = self._group_classes_by_class_iri(classes)
 
         if self.progress:
-            print(f"ClassFilter: {len(class_groups)} class types found")
+            print(f"ClassReviewer: {len(class_groups)} class types found")
 
         # クラスごとにフィルタリングを並列実行
         all_filtered_classes = asyncio.run(self._process_classes_parallel(class_groups))
@@ -152,10 +152,10 @@ class ClassFilter(Runnable):
 
         if self.progress:
             print(
-                f"ClassFilter: Total {len(classes)} -> {len(all_filtered_classes)} classes"
+                f"ClassReviewer: Total {len(classes)} -> {len(all_filtered_classes)} classes"
             )
 
-        self.logger.save_log(output, filename_prefix="class_filter_output_")
+        self.logger.save_log(output, filename_prefix="class_reviewer_output_")
 
         return output
 
@@ -173,7 +173,7 @@ class ClassFilter(Runnable):
 
                 async with lock:
                     if self.progress:
-                        print(f"ClassFilter: processing class={class_name}, {len(class_instances)} instances")
+                        print(f"ClassReviewer: processing class={class_name}, {len(class_instances)} instances")
 
                 filtered = await self._filter_classes_async(class_instances, class_iri)
 
@@ -184,7 +184,7 @@ class ClassFilter(Runnable):
                         accept_count = sum(1 for c in filtered if c.get("judgment") == "ACCEPT")
                         review_count = sum(1 for c in filtered if c.get("judgment") == "REVIEW")
                         reject_count = len(class_instances) - len(filtered)
-                        print(f"[{counter}/{total}] ClassFilter: class={class_name}, "
+                        print(f"[{counter}/{total}] ClassReviewer: class={class_name}, "
                               f"{len(class_instances)} -> {len(filtered)} instances "
                               f"(ACCEPT: {accept_count}, REVIEW: {review_count}, REJECT: {reject_count})")
 
@@ -233,7 +233,7 @@ class ClassFilter(Runnable):
             response_format={
                 "type": "json_schema",
                 "json_schema": {
-                    "name": "class_filter",
+                    "name": "class_reviewer",
                     "schema": schema
                 }
             })
@@ -276,7 +276,7 @@ class ClassFilter(Runnable):
 
         except (json.JSONDecodeError, KeyError) as e:
             if self.progress:
-                print(f"[ClassFilter] JSON parse error: {e}, response: {result_text}")
+                print(f"[ClassReviewer] JSON parse error: {e}, response: {result_text}")
             # エラー時は全てREJECT扱いで通過させない
             filtered_classes = []
 
@@ -299,7 +299,7 @@ class ClassFilter(Runnable):
 
                 wait_time = min(delay, max_delay)
                 if self.progress:
-                    print(f"[ClassFilter Retry {attempt + 1}/{self.max_retries}] API error: {type(e).__name__}. Retrying in {wait_time:.1f}s...")
+                    print(f"[ClassReviewer Retry {attempt + 1}/{self.max_retries}] API error: {type(e).__name__}. Retrying in {wait_time:.1f}s...")
                 await asyncio.sleep(wait_time)
                 delay *= 2
 
@@ -342,7 +342,7 @@ if __name__ == "__main__":
     print(f"\nInput data contains {len(test_input.get('classes', []))} classes")
 
     # Create and run the filter
-    class_filter = ClassFilter(progress=True, log_dir="log/class_filter")
-    result = class_filter.invoke(test_input)
+    class_reviewer = ClassReviewer(progress=True, log_dir="log/class_reviewer")
+    result = class_reviewer.invoke(test_input)
 
     print(f"\nOutput data contains {len(result.get('classes', []))} classes")

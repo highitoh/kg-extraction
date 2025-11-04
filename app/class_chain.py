@@ -2,7 +2,7 @@ from typing import Dict, Any
 from langchain.schema.runnable import RunnableSequence, Runnable
 
 from class_extractor import ClassExtractor
-from class_filter import ClassFilter
+from class_reviewer import ClassReviewer
 from class_editor import ClassEditor
 from class_consolidator import ClassConsolidator
 
@@ -10,18 +10,18 @@ from class_consolidator import ClassConsolidator
 class ClassChainWithReview(Runnable):
     """
     Class extraction chain with iterative review loop:
-      ClassExtractor -> ClassFilter -> (ClassLabelCorrector -> ClassFilter)* -> ClassConsolidator
+      ClassExtractor -> ClassReviewer -> (ClassLabelCorrector -> ClassReviewer)* -> ClassConsolidator
 
     ループロジック:
-    - ClassFilterでREVIEW判定されたクラスをClassLabelCorrectorで修正
-    - 修正後、再度ClassFilterで評価
+    - ClassReviewerでREVIEW判定されたクラスをClassLabelCorrectorで修正
+    - 修正後、再度ClassReviewerで評価
     - すべてACCEPT/REJECTになるか、最大反復回数に達するまで繰り返す
     - 最大回数到達後もREVIEWが残る場合はACCEPTに変換
     """
 
     def __init__(self,
                  extractor: ClassExtractor,
-                 class_filter: ClassFilter,
+                 class_reviewer: ClassReviewer,
                  corrector: ClassEditor,
                  consolidator: ClassConsolidator,
                  max_review_iterations: int = 3,
@@ -29,14 +29,14 @@ class ClassChainWithReview(Runnable):
         """
         Args:
             extractor: ClassExtractorインスタンス
-            class_filter: ClassFilterインスタンス
+            class_reviewer: ClassReviewerインスタンス
             corrector: ClassLabelCorrectorインスタンス
             consolidator: ClassConsolidatorインスタンス
             max_review_iterations: REVIEW判定の最大反復回数（デフォルト: 3）
             progress: 進捗表示フラグ
         """
         self.extractor = extractor
-        self.class_filter = class_filter
+        self.class_reviewer = class_reviewer
         self.corrector = corrector
         self.consolidator = consolidator
         self.max_review_iterations = max_review_iterations
@@ -63,12 +63,12 @@ class ClassChainWithReview(Runnable):
             print("\n=== ClassExtractor ===")
         result = self.extractor.invoke(input)
 
-        # 2. ClassFilter実行（初回）
+        # 2. ClassReviewer実行（初回）
         if self.progress:
-            print("\n=== ClassFilter (Initial) ===")
-        result = self.class_filter.invoke(result)
+            print("\n=== ClassReviewer (Initial) ===")
+        result = self.class_reviewer.invoke(result)
 
-        # 3. ループ: ClassLabelCorrector -> ClassFilter
+        # 3. ループ: ClassLabelCorrector -> ClassReviewer
         for iteration in range(self.max_review_iterations):
             # REVIEWが残っているか確認
             review_count = sum(1 for c in result.get("classes", []) if c.get("judgment") == "REVIEW")
@@ -89,10 +89,10 @@ class ClassChainWithReview(Runnable):
                 print(f"\n--- ClassLabelCorrector (iteration {iteration + 1}) ---")
             result = self.corrector.invoke(result)
 
-            # ClassFilter再実行
+            # ClassReviewer再実行
             if self.progress:
-                print(f"\n--- ClassFilter (iteration {iteration + 1}) ---")
-            result = self.class_filter.invoke(result)
+                print(f"\n--- ClassReviewer (iteration {iteration + 1}) ---")
+            result = self.class_reviewer.invoke(result)
 
         # 4. 最大回数到達後もREVIEWが残っている場合はACCEPTに変換
         final_classes = []
@@ -113,7 +113,7 @@ class ClassChainWithReview(Runnable):
         result["classes"] = final_classes
 
         # 5. ClassConsolidator実行
-        # ClassFilterでREJECTは除外されるため、ACCEPTのみが渡される
+        # ClassReviewerでREJECTは除外されるため、ACCEPTのみが渡される
         if self.progress:
             print("\n=== ClassConsolidator ===")
         result = self.consolidator.invoke(result)
@@ -124,7 +124,7 @@ class ClassChainWithReview(Runnable):
 def create_class_chain(model: str = None, max_review_iterations: int = 3, progress: bool = True) -> Runnable:
     """
     Create class extraction chain with review loop:
-      ClassExtractor -> ClassFilter -> (ClassLabelCorrector -> ClassFilter)* -> ClassConsolidator
+      ClassExtractor -> ClassReviewer -> (ClassLabelCorrector -> ClassReviewer)* -> ClassConsolidator
 
     Args:
         model: LLMモデル名（Noneの場合は各コンポーネントのデフォルトを使用）
@@ -133,18 +133,18 @@ def create_class_chain(model: str = None, max_review_iterations: int = 3, progre
     """
     if model is not None:
         extractor = ClassExtractor(model=model)
-        class_filter = ClassFilter(model=model)
+        class_reviewer = ClassReviewer(model=model)
         corrector = ClassEditor(model=model)
         consolidator = ClassConsolidator(model=model)
     else:
         extractor = ClassExtractor()
-        class_filter = ClassFilter()
+        class_reviewer = ClassReviewer()
         corrector = ClassEditor()
         consolidator = ClassConsolidator()
 
     return ClassChainWithReview(
         extractor=extractor,
-        class_filter=class_filter,
+        class_reviewer=class_reviewer,
         corrector=corrector,
         consolidator=consolidator,
         max_review_iterations=max_review_iterations,

@@ -172,24 +172,24 @@ if __name__ == "__main__":
 
     # テスト実行:
     # - 最新の PropertyFilter 出力 (log/property_filter/property_filter_output_*.json)
-    # - 最新の ClassFilter 出力 (log/class_filter/class_filter_output_*.json)
+    # - 最新の ClassReviewer 出力 (log/class_reviewer/class_reviewer_output_*.json)
     # を読み込み、検証結果を表示
     pv = PropertyValidator()
 
     prop_files = sorted(glob.glob("log/property_filter/property_filter_output_*.json"), reverse=True)
-    cls_files = sorted(glob.glob("log/class_filter/class_filter_output_*.json"), reverse=True)
+    cls_files = sorted(glob.glob("log/class_reviewer/class_reviewer_output_*.json"), reverse=True)
 
     if not prop_files:
         print("Error: No property_filter_output files found in log/property_filter/")
         exit(1)
     if not cls_files:
-        print("Error: No class_filter_output files found in log/class_filter/")
+        print("Error: No class_reviewer_output files found in log/class_reviewer/")
         exit(1)
 
     prop_path = prop_files[0]
     cls_path = cls_files[0]
     print(f"Loading latest PropertyFilter output: {prop_path}")
-    print(f"Loading latest ClassFilter output:    {cls_path}")
+    print(f"Loading latest ClassReviewer output:    {cls_path}")
 
     with open(prop_path, "r", encoding="utf-8") as f:
         property_candidates = json.load(f)

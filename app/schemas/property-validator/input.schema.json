@@ -11,7 +11,7 @@
     },
     "class_info": {
       "$ref": "https://github.com/highitoh/kg-extraction/schemas/class-chain/output.schema.json",
-      "description": "ClassFilterの出力（クラス情報）"
+      "description": "ClassReviewerの出力（クラス情報）"
     },
     "metamodel": {
       "$ref": "https://github.com/highitoh/kg-extraction/schemas/common/metamodel.schema.json",
