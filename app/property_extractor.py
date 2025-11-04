@@ -243,13 +243,27 @@ class PropertyExtractor(Runnable):
         if not properties_def:
             return []
 
-        # 各プロパティタイプに対して並列処理
-        tasks = [
-            self._extract_properties_for_one_type(property_def, classes)
-            for property_def in properties_def
-        ]
+        total = len(properties_def)
+        counter = 0
+        lock = asyncio.Lock()
 
-        results = await asyncio.gather(*tasks)
+        if self.progress:
+            print(f"[PropertyExtractor] Starting parallel processing: {total} property types (concurrency={self.max_concurrency})")
+
+        # 各プロパティタイプに対して並列処理
+        async def _wrapped(property_def: Dict[str, Any]) -> List[Dict[str, str]]:
+            nonlocal counter
+            property_name = property_def.get("name", "")
+            result = await self._extract_properties_for_one_type(property_def, classes)
+
+            async with lock:
+                counter += 1
+                if self.progress:
+                    print(f"[{counter}/{total}] PropertyExtractor: {property_name} processed (extracted {len(result)} items)")
+
+            return result
+
+        results = await asyncio.gather(*[_wrapped(pd) for pd in properties_def])
 
         # 全結果を統合
         all_properties = []
@@ -302,7 +316,7 @@ class PropertyExtractor(Runnable):
 
         if self.progress:
             total_properties = len(properties)
-            print(f"PropertyExtractor: extracted {total_properties} properties")
+            print(f"[PropertyExtractor] Completed: extracted {total_properties} properties")
 
         # Loggerでpropertyチェーンの出力を保存（ラベル情報付き）
         log_output = {

@@ -125,7 +125,7 @@ class ClassExtractor(Runnable):
         }
 
         if self.progress:
-            print(f"ClassExtractor: extracted {len(classes)} classes")
+            print(f"[ClassExtractor] Completed: extracted {len(classes)} classes")
 
         # Loggerを使ってClassExtractorOutputをログ出力
         self.logger.save_log(output, filename_prefix="class_extractor_output_")
@@ -159,6 +159,9 @@ class ClassExtractor(Runnable):
         counter = 0
         lock = asyncio.Lock()
 
+        if self.progress:
+            print(f"[ClassExtractor] Starting parallel processing: {total} views (concurrency={self.max_concurrency})")
+
         async def _wrapped(view_type: str) -> Dict[str, Any]:
             nonlocal counter
             async with sem:
@@ -166,7 +169,7 @@ class ClassExtractor(Runnable):
 
                 async with lock:
                     if self.progress:
-                        print(f"[ClassExtractor] view={view_type}, texts={len(texts)}")
+                        print(f"[ClassExtractor] Processing view {counter + 1}/{total}: {view_type} ({len(texts)} texts)")
 
                 label_items = []
                 for attempt in range(5):
@@ -182,7 +185,7 @@ class ClassExtractor(Runnable):
                 async with lock:
                     counter += 1
                     if self.progress:
-                        print(f"[{counter}/{total}] done (view={view_type}, extracted={len(label_items)})")
+                        print(f"[{counter}/{total}] ClassExtractor: {view_type} processed (extracted {len(label_items)} items)")
 
                 return {"view_type": view_type, "label_items": label_items}
 

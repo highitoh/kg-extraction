@@ -149,6 +149,9 @@ class ViewExtractor(Runnable):
         counter = 0
         lock = asyncio.Lock()
 
+        if self.progress:
+            print(f"[ViewExtractor] Starting parallel processing: {total} chunks (concurrency={self.max_concurrency})")
+
         async def _wrapped(i: int, c: str) -> Dict[str, Any]:
             nonlocal counter
             async with sem:
@@ -163,7 +166,7 @@ class ViewExtractor(Runnable):
                     counter += 1
                     total_spans = sum(len(v) for v in spans.values())
                     if self.progress:
-                        print(f"[{counter}/{total}] done (chunk {i}, total_spans={total_spans})")
+                        print(f"[{counter}/{total}] ViewExtractor: chunk {i} processed (total_spans={total_spans})")
                 return {"index": i, "spans": spans, "chunk": c}
 
         results = await asyncio.gather(*[_wrapped(i, c) for i, c in enumerate(chunks)])

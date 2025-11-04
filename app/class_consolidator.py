@@ -78,13 +78,13 @@ class ClassConsolidator(Runnable):
         classes = input.get("classes", [])
 
         if self.progress:
-            print(f"ClassConsolidator: processing {len(classes)} classes")
+            print(f"[ClassConsolidator] Processing {len(classes)} classes")
 
         # class_iriでグループ化
         class_groups = self._group_classes_by_class_iri(classes)
 
         if self.progress:
-            print(f"ClassConsolidator: {len(class_groups)} class types found")
+            print(f"[ClassConsolidator] {len(class_groups)} class types found")
 
         # クラスごとに集約を並列実行
         all_consolidated_classes = asyncio.run(self._process_classes_parallel(class_groups))
@@ -94,7 +94,7 @@ class ClassConsolidator(Runnable):
         output["classes"] = all_consolidated_classes
 
         if self.progress:
-            print(f"ClassConsolidator: Total {len(classes)} -> {len(all_consolidated_classes)} classes")
+            print(f"[ClassConsolidator] Completed: {len(classes)} -> {len(all_consolidated_classes)} classes")
 
         self.logger.save_log(output, filename_prefix="class_consolidator_output_")
 
@@ -126,6 +126,9 @@ class ClassConsolidator(Runnable):
         counter = 0
         lock = asyncio.Lock()
 
+        if self.progress:
+            print(f"[ClassConsolidator] Starting parallel processing: {total} class types (concurrency={self.max_concurrency})")
+
         async def _wrapped(class_iri: str, class_instances: list) -> list:
             nonlocal counter
             async with sem:
@@ -133,14 +136,14 @@ class ClassConsolidator(Runnable):
 
                 async with lock:
                     if self.progress:
-                        print(f"ClassConsolidator: processing class={class_name}, {len(class_instances)} instances")
+                        print(f"[ClassConsolidator] Processing class {counter + 1}/{total}: {class_name} ({len(class_instances)} instances)")
 
                 consolidated = await self._consolidate_classes_async(class_instances, class_iri)
 
                 async with lock:
                     counter += 1
                     if self.progress:
-                        print(f"[{counter}/{total}] ClassConsolidator: class={class_name}, {len(class_instances)} -> {len(consolidated)} instances")
+                        print(f"[{counter}/{total}] ClassConsolidator: {class_name} processed ({len(class_instances)} -> {len(consolidated)} instances)")
 
                 return consolidated
 

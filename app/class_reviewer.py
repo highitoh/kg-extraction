@@ -135,13 +135,13 @@ class ClassReviewer(Runnable):
         classes = input.get("classes", [])
 
         if self.progress:
-            print(f"ClassReviewer: processing {len(classes)} classes")
+            print(f"[ClassReviewer] Processing {len(classes)} classes")
 
         # class_iriでグループ化
         class_groups = self._group_classes_by_class_iri(classes)
 
         if self.progress:
-            print(f"ClassReviewer: {len(class_groups)} class types found")
+            print(f"[ClassReviewer] {len(class_groups)} class types found")
 
         # クラスごとにフィルタリングを並列実行
         all_filtered_classes = asyncio.run(self._process_classes_parallel(class_groups))
@@ -152,7 +152,7 @@ class ClassReviewer(Runnable):
 
         if self.progress:
             print(
-                f"ClassReviewer: Total {len(classes)} -> {len(all_filtered_classes)} classes"
+                f"[ClassReviewer] Completed: {len(classes)} -> {len(all_filtered_classes)} classes"
             )
 
         self.logger.save_log(output, filename_prefix="class_reviewer_output_")
@@ -166,6 +166,9 @@ class ClassReviewer(Runnable):
         counter = 0
         lock = asyncio.Lock()
 
+        if self.progress:
+            print(f"[ClassReviewer] Starting parallel processing: {total} class types (concurrency={self.max_concurrency})")
+
         async def _wrapped(class_iri: str, class_instances: list) -> list:
             nonlocal counter
             async with sem:
@@ -173,7 +176,7 @@ class ClassReviewer(Runnable):
 
                 async with lock:
                     if self.progress:
-                        print(f"ClassReviewer: processing class={class_name}, {len(class_instances)} instances")
+                        print(f"[ClassReviewer] Processing class {counter + 1}/{total}: {class_name} ({len(class_instances)} instances)")
 
                 filtered = await self._filter_classes_async(class_instances, class_iri)
 
@@ -184,9 +187,9 @@ class ClassReviewer(Runnable):
                         accept_count = sum(1 for c in filtered if c.get("judgment") == "ACCEPT")
                         review_count = sum(1 for c in filtered if c.get("judgment") == "REVIEW")
                         reject_count = len(class_instances) - len(filtered)
-                        print(f"[{counter}/{total}] ClassReviewer: class={class_name}, "
-                              f"{len(class_instances)} -> {len(filtered)} instances "
-                              f"(ACCEPT: {accept_count}, REVIEW: {review_count}, REJECT: {reject_count})")
+                        print(f"[{counter}/{total}] ClassReviewer: {class_name} processed "
+                              f"({len(class_instances)} -> {len(filtered)} instances) "
+                              f"[ACCEPT: {accept_count}, REVIEW: {review_count}, REJECT: {reject_count}]")
 
                 return filtered
 

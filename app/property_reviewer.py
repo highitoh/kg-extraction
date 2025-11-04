@@ -229,7 +229,7 @@ class PropertyReviewer(Runnable):
             finally:
                 completed_count += 1
                 if self.progress:
-                    print(f"[PropertyReviewer] Progress: {completed_count}/{total_groups} properties completed ({property_iri}: {len(group)} candidates)")
+                    print(f"[{completed_count}/{total_groups}] PropertyReviewer: {property_iri} processed ({len(group)} candidates)")
 
         sem = asyncio.Semaphore(self.max_concurrency)
 
@@ -238,7 +238,7 @@ class PropertyReviewer(Runnable):
                 await worker(prop_iri, grp)
 
         if self.progress and total_groups > 0:
-            print(f"[PropertyReviewer] Starting LLM inference: {total_groups} properties (concurrency={self.max_concurrency})")
+            print(f"[PropertyReviewer] Starting parallel processing: {total_groups} property types (concurrency={self.max_concurrency})")
 
         await asyncio.gather(*[sem_task(prop_iri, grp) for prop_iri, grp in groups.items()])
 
@@ -329,9 +329,8 @@ class PropertyReviewer(Runnable):
                 if p.get("original_strength") != p.get("evaluated_strength")
             )
 
-            print(f"[PropertyReviewer] Judgment breakdown: ACCEPT={accept_count}, REVIEW={review_count}, REJECT={reject_count}")
+            print(f"[PropertyReviewer] Completed: {len(filtered)} properties [ACCEPT: {accept_count}, REVIEW: {review_count}, REJECT: {reject_count}]")
             print(f"[PropertyReviewer] Strength evaluation: {strength_changed_count} candidates had strength changed")
-            print(f"[PropertyReviewer] After filtering: {len(filtered)} properties")
 
         # ログ保存（全候補、ラベル・judgment・justification付き）
         log_output: Dict[str, Any] = {

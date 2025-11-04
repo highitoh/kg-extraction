@@ -226,16 +226,31 @@ class PropertyRanker(Runnable):
         # property_iriごとにグループ化
         groups = self._group_by_property_iri(properties)
 
+        total = len(groups)
+        counter = 0
+        lock = asyncio.Lock()
+
+        if self.progress:
+            print(f"[PropertyRanker] Starting parallel processing: {total} property types (concurrency={self.max_concurrency})")
+
         # 各グループをバッチに分割してタスクを作成
-        tasks = []
-        for property_iri, props in groups.items():
-            # バッチサイズで分割
+        async def _wrapped_group(property_iri: str, props: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+            nonlocal counter
+            batch_results = []
             for i in range(0, len(props), self.batch_size):
                 batch = props[i:i + self.batch_size]
-                tasks.append(self._rank_batch(batch, class_index, property_iri))
+                result = await self._rank_batch(batch, class_index, property_iri)
+                batch_results.extend(result)
+
+            async with lock:
+                counter += 1
+                if self.progress:
+                    print(f"[{counter}/{total}] PropertyRanker: {property_iri} processed ({len(props)} properties)")
+
+            return batch_results
 
         # 並列実行
-        all_results = await asyncio.gather(*tasks)
+        all_results = await asyncio.gather(*[_wrapped_group(prop_iri, props) for prop_iri, props in groups.items()])
 
         # 結果をsrc_id+dest_idのキーで辞書化
         strength_map = {}
@@ -308,12 +323,12 @@ class PropertyRanker(Runnable):
         }
 
         if self.progress:
-            print(f"PropertyRanker: ranked {len(ranked_properties)} properties")
             # 強度の分布を表示
             strength_counts = {0: 0, 1: 0, 2: 0, 3: 0}
             for prop in ranked_properties:
                 strength_counts[prop["strength"]] += 1
-            print(f"  Strength distribution: 0={strength_counts[0]}, 1={strength_counts[1]}, 2={strength_counts[2]}, 3={strength_counts[3]}")
+            print(f"[PropertyRanker] Completed: ranked {len(ranked_properties)} properties")
+            print(f"[PropertyRanker] Strength distribution: 0={strength_counts[0]}, 1={strength_counts[1]}, 2={strength_counts[2]}, 3={strength_counts[3]}")
 
         # ログ出力（ラベル情報と評価情報付き）
         log_output = {

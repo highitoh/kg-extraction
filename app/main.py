@@ -61,11 +61,12 @@ if __name__ == "__main__":
         print(f"Error: PDF file not found: {pdf_path}")
         sys.exit(1)
 
-    print(f"Starting knowledge extraction from: {pdf_path}")
+    print("\n=== Knowledge Extraction ===")
+    print(f"PDF file: {pdf_path}")
     if args.model:
-        print(f"Using LLM model: {args.model}")
+        print(f"LLM model: {args.model}")
     else:
-        print(f"Using default models for each node")
+        print(f"LLM model: Using default models for each node")
 
     try:
         result = run_knowledge_extraction(pdf_path, output_dir=args.output_dir, model=args.model)
@@ -76,19 +77,17 @@ if __name__ == "__main__":
             for error in result["errors"]:
                 print(f"  - {error}")
 
-        # 最終ステージの確認
-        print(f"\nFinal stage: {result.get('current_stage', 'unknown')}")
-
         # 結果表示
         if "summary" in result:
-            print("\n=== Knowledge Extraction Complete ===")
-            print(f"Generated files:")
+            print("\n=== Extraction Complete ===")
+            print(f"Final stage: {result.get('current_stage', 'unknown')}")
+            print(f"\nGenerated files:")
             for file_path in result["summary"]["files_generated"]:
                 print(f"  - {file_path}")
 
             print(f"\nSummary:")
-            print(f"  Classes extracted: {result['summary']['classes_count']}")
-            print(f"  Properties extracted: {result['summary']['properties_count']}")
+            print(f"  - Classes extracted: {result['summary']['classes_count']}")
+            print(f"  - Properties extracted: {result['summary']['properties_count']}")
 
             # 結果をJSONファイルに保存
             output_json = os.path.join(args.output_dir, "extraction_result.json")
@@ -98,12 +97,12 @@ if __name__ == "__main__":
                 result_copy.pop("turtle_content", None)
                 json.dump(result_copy, f, ensure_ascii=False, indent=2)
 
-            print(f"  Result saved to: {output_json}")
+            print(f"  - Result saved to: {output_json}")
         else:
-            print("\n=== Knowledge Extraction Failed ===")
+            print("\n=== Extraction Failed ===")
             print(f"Extraction did not complete successfully.")
             if result.get("errors"):
-                print("Errors encountered:")
+                print("\nErrors encountered:")
                 for error in result["errors"]:
                     print(f"  - {error}")
             sys.exit(1)

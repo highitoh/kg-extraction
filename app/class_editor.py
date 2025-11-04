@@ -119,20 +119,20 @@ class ClassEditor(Runnable):
         reject_classes = [c for c in classes if c.get("judgment") == "REJECT"]
 
         if self.progress:
-            print(f"ClassLabelCorrector: Total {len(classes)} classes "
-                  f"(ACCEPT: {len(accept_classes)}, REVIEW: {len(review_classes)}, REJECT: {len(reject_classes)})")
+            print(f"[ClassEditor] Total {len(classes)} classes "
+                  f"[ACCEPT: {len(accept_classes)}, REVIEW: {len(review_classes)}, REJECT: {len(reject_classes)}]")
 
         if not review_classes:
             # REVIEWクラスがない場合はそのまま返す
             if self.progress:
-                print("ClassLabelCorrector: No REVIEW classes to process")
+                print("[ClassEditor] No REVIEW classes to process")
             return input
 
         # class_iriでグループ化
         review_groups = self._group_classes_by_class_iri(review_classes)
 
         if self.progress:
-            print(f"ClassLabelCorrector: {len(review_groups)} class types found for review")
+            print(f"[ClassEditor] {len(review_groups)} class types found for review")
 
         # REVIEWクラスごとに修正を並列実行
         corrected_classes = asyncio.run(self._process_classes_parallel(review_groups))
@@ -147,8 +147,8 @@ class ClassEditor(Runnable):
             # 修正結果の内訳を集計
             corrected_review_count = sum(1 for c in corrected_classes if c.get("judgment") == "REVIEW")
             corrected_reject_count = sum(1 for c in corrected_classes if c.get("judgment") == "REJECT")
-            print(f"ClassLabelCorrector: Processed {len(review_classes)} REVIEW classes -> "
-                  f"REVIEW: {corrected_review_count}, REJECT: {corrected_reject_count}")
+            print(f"[ClassEditor] Completed: Processed {len(review_classes)} REVIEW classes "
+                  f"[REVIEW: {corrected_review_count}, REJECT: {corrected_reject_count}]")
 
         self.logger.save_log(output, filename_prefix="class_editor_output_")
 
@@ -161,6 +161,9 @@ class ClassEditor(Runnable):
         counter = 0
         lock = asyncio.Lock()
 
+        if self.progress:
+            print(f"[ClassEditor] Starting parallel processing: {total} class types (concurrency={self.max_concurrency})")
+
         async def _wrapped(class_iri: str, class_instances: list) -> list:
             nonlocal counter
             async with sem:
@@ -168,7 +171,7 @@ class ClassEditor(Runnable):
 
                 async with lock:
                     if self.progress:
-                        print(f"ClassLabelCorrector: processing class={class_name}, {len(class_instances)} instances")
+                        print(f"[ClassEditor] Processing class {counter + 1}/{total}: {class_name} ({len(class_instances)} instances)")
 
                 corrected = await self._correct_classes_async(class_instances, class_iri)
 
@@ -178,9 +181,9 @@ class ClassEditor(Runnable):
                         # 修正結果の内訳を集計
                         review_count = sum(1 for c in corrected if c.get("judgment") == "REVIEW")
                         reject_count = sum(1 for c in corrected if c.get("judgment") == "REJECT")
-                        print(f"[{counter}/{total}] ClassLabelCorrector: class={class_name}, "
-                              f"{len(class_instances)} instances -> "
-                              f"REVIEW: {review_count}, REJECT: {reject_count}")
+                        print(f"[{counter}/{total}] ClassEditor: {class_name} processed "
+                              f"({len(class_instances)} instances) "
+                              f"[REVIEW: {review_count}, REJECT: {reject_count}]")
 
                 return corrected
 

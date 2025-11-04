@@ -125,20 +125,20 @@ class PropertyEditor(Runnable):
         reject_properties = [p for p in properties if p.get("judgment") == "REJECT"]
 
         if self.progress:
-            print(f"PropertyEditor: Total {len(properties)} properties "
-                  f"(ACCEPT: {len(accept_properties)}, REVIEW: {len(review_properties)}, REJECT: {len(reject_properties)})")
+            print(f"[PropertyEditor] Total {len(properties)} properties "
+                  f"[ACCEPT: {len(accept_properties)}, REVIEW: {len(review_properties)}, REJECT: {len(reject_properties)}]")
 
         if not review_properties:
             # REVIEWプロパティがない場合はそのまま返す
             if self.progress:
-                print("PropertyEditor: No REVIEW properties to process")
+                print("[PropertyEditor] No REVIEW properties to process")
             return input
 
         # property_iriでグループ化
         review_groups = self._group_properties_by_property_iri(review_properties)
 
         if self.progress:
-            print(f"PropertyEditor: {len(review_groups)} property types found for review")
+            print(f"[PropertyEditor] {len(review_groups)} property types found for review")
 
         # REVIEWプロパティごとに修正を並列実行
         corrected_properties = asyncio.run(self._process_properties_parallel(review_groups))
@@ -153,8 +153,8 @@ class PropertyEditor(Runnable):
             # 修正結果の内訳を集計
             corrected_review_count = sum(1 for p in corrected_properties if p.get("judgment") == "REVIEW")
             corrected_reject_count = sum(1 for p in corrected_properties if p.get("judgment") == "REJECT")
-            print(f"PropertyEditor: Processed {len(review_properties)} REVIEW properties -> "
-                  f"REVIEW: {corrected_review_count}, REJECT: {corrected_reject_count}")
+            print(f"[PropertyEditor] Completed: Processed {len(review_properties)} REVIEW properties "
+                  f"[REVIEW: {corrected_review_count}, REJECT: {corrected_reject_count}]")
 
         self.logger.save_log(output, filename_prefix="property_editor_output_")
 
@@ -167,6 +167,9 @@ class PropertyEditor(Runnable):
         counter = 0
         lock = asyncio.Lock()
 
+        if self.progress:
+            print(f"[PropertyEditor] Starting parallel processing: {total} property types (concurrency={self.max_concurrency})")
+
         async def _wrapped(property_iri: str, property_instances: list) -> list:
             nonlocal counter
             async with sem:
@@ -174,7 +177,7 @@ class PropertyEditor(Runnable):
 
                 async with lock:
                     if self.progress:
-                        print(f"PropertyEditor: processing property={property_name}, {len(property_instances)} instances")
+                        print(f"[PropertyEditor] Processing property {counter + 1}/{total}: {property_name} ({len(property_instances)} instances)")
 
                 corrected = await self._correct_properties_async(property_instances, property_iri)
 
@@ -184,9 +187,9 @@ class PropertyEditor(Runnable):
                         # 修正結果の内訳を集計
                         review_count = sum(1 for p in corrected if p.get("judgment") == "REVIEW")
                         reject_count = sum(1 for p in corrected if p.get("judgment") == "REJECT")
-                        print(f"[{counter}/{total}] PropertyEditor: property={property_name}, "
-                              f"{len(property_instances)} instances -> "
-                              f"REVIEW: {review_count}, REJECT: {reject_count}")
+                        print(f"[{counter}/{total}] PropertyEditor: {property_name} processed "
+                              f"({len(property_instances)} instances) "
+                              f"[REVIEW: {review_count}, REJECT: {reject_count}]")
 
                 return corrected
 
