@@ -13,7 +13,7 @@ from openai import APIConnectionError, RateLimitError, APIError
 from logger import Logger
 
 
-class PropertyFilter(Runnable):
+class PropertyReviewer(Runnable):
 
     def __init__(
         self,
@@ -23,7 +23,7 @@ class PropertyFilter(Runnable):
         max_concurrency: int = 8,
         max_retries: int = 5,
         progress: bool = True,
-        log_dir: str = "log/property_filter",
+        log_dir: str = "log/property_reviewer",
         batch_size: int = 24,
     ):
         self.llm = llm or ChatOpenAI(
@@ -33,7 +33,7 @@ class PropertyFilter(Runnable):
             output_version="responses/v1",
         )
         self.llm_schema = self._load_llm_schema()
-        self.llm_json = self.llm.bind(response_format={"type": "json_schema", "json_schema": {"name": "property_filter", "schema": self.llm_schema}})
+        self.llm_json = self.llm.bind(response_format={"type": "json_schema", "json_schema": {"name": "property_reviewer", "schema": self.llm_schema}})
         self.max_concurrency = max_concurrency
         self.max_retries = max_retries
         self.progress = progress
@@ -46,13 +46,13 @@ class PropertyFilter(Runnable):
     # ===== Utilities =====
     def _load_llm_schema(self) -> Dict[str, Any]:
         """LLM出力スキーマを読み込み"""
-        schema_path = os.path.join(os.path.dirname(__file__), "schemas", "property-filter", "llm.schema.json")
+        schema_path = os.path.join(os.path.dirname(__file__), "schemas", "property-reviewer", "llm.schema.json")
         with open(schema_path, "r", encoding="utf-8") as f:
             return json.load(f)
 
     def _load_prompt(self) -> str:
         """プロンプトファイルを読み込み"""
-        prompt_path = os.path.join(os.path.dirname(__file__), "prompts", "property_filter.txt")
+        prompt_path = os.path.join(os.path.dirname(__file__), "prompts", "property_reviewer.txt")
         with open(prompt_path, "r", encoding="utf-8") as f:
             return f.read()
 
@@ -190,7 +190,7 @@ class PropertyFilter(Runnable):
 
                 wait_time = min(delay, max_delay)
                 if self.progress:
-                    print(f"[PropertyFilter Retry {attempt + 1}/{self.max_retries}] API error: {type(e).__name__}. Retrying in {wait_time:.1f}s...")
+                    print(f"[PropertyReviewer Retry {attempt + 1}/{self.max_retries}] API error: {type(e).__name__}. Retrying in {wait_time:.1f}s...")
                 await asyncio.sleep(wait_time)
                 delay *= 2
 
@@ -225,11 +225,11 @@ class PropertyFilter(Runnable):
             except Exception as e:
                 # グループ失敗時は記録
                 failed_groups.append(property_iri)
-                print(f"[PropertyFilter] error for {property_iri}: {e}")
+                print(f"[PropertyReviewer] error for {property_iri}: {e}")
             finally:
                 completed_count += 1
                 if self.progress:
-                    print(f"[PropertyFilter] Progress: {completed_count}/{total_groups} properties completed ({property_iri}: {len(group)} candidates)")
+                    print(f"[PropertyReviewer] Progress: {completed_count}/{total_groups} properties completed ({property_iri}: {len(group)} candidates)")
 
         sem = asyncio.Semaphore(self.max_concurrency)
 
@@ -238,7 +238,7 @@ class PropertyFilter(Runnable):
                 await worker(prop_iri, grp)
 
         if self.progress and total_groups > 0:
-            print(f"[PropertyFilter] Starting LLM inference: {total_groups} properties (concurrency={self.max_concurrency})")
+            print(f"[PropertyReviewer] Starting LLM inference: {total_groups} properties (concurrency={self.max_concurrency})")
 
         await asyncio.gather(*[sem_task(prop_iri, grp) for prop_iri, grp in groups.items()])
 
@@ -329,15 +329,15 @@ class PropertyFilter(Runnable):
                 if p.get("original_strength") != p.get("evaluated_strength")
             )
 
-            print(f"[PropertyFilter] Judgment breakdown: ACCEPT={accept_count}, REVIEW={review_count}, REJECT={reject_count}")
-            print(f"[PropertyFilter] Strength evaluation: {strength_changed_count} candidates had strength changed")
-            print(f"[PropertyFilter] After filtering: {len(filtered)} properties")
+            print(f"[PropertyReviewer] Judgment breakdown: ACCEPT={accept_count}, REVIEW={review_count}, REJECT={reject_count}")
+            print(f"[PropertyReviewer] Strength evaluation: {strength_changed_count} candidates had strength changed")
+            print(f"[PropertyReviewer] After filtering: {len(filtered)} properties")
 
         # ログ保存（全候補、ラベル・judgment・justification付き）
         log_output: Dict[str, Any] = {
             "properties": all_properties_with_judgment,
         }
-        self.logger.save_log(log_output, filename_prefix="property_filter_output_")
+        self.logger.save_log(log_output, filename_prefix="property_reviewer_output_")
 
         return filtered
 
@@ -356,14 +356,14 @@ class PropertyFilter(Runnable):
 
         if not class_info.get("classes"):
             # class_infoが無いとsourceが参照できないため、エラー
-            raise ValueError("PropertyFilter requires class_info with classes for filtering. Cannot proceed without class information.")
+            raise ValueError("PropertyReviewer requires class_info with classes for filtering. Cannot proceed without class information.")
 
         # LLMでフィルタリング
         filtered = asyncio.run(self._filter_properties(property_candidates, class_info))
 
         if self.progress:
             print(
-                f"PropertyFilter: {len(property_candidates.get('properties', []))} candidates -> "
+                f"PropertyReviewer: {len(property_candidates.get('properties', []))} candidates -> "
                 f"{len(filtered)} accepted"
             )
 
@@ -395,7 +395,7 @@ if __name__ == "__main__":
     # - 最新の PropertyExtractor 出力 (log/property_extractor/property_extractor_output_*.json)
     # - 最新の ClassConsolidator 出力 (log/class_consolidator/class_consolidator_output_*.json)
     # を読み込み、フィルタリング結果を表示
-    pf = PropertyFilter()
+    pf = PropertyReviewer()
 
     prop_files = sorted(glob.glob("log/property_extractor/property_extractor_output_*.json"), reverse=True)
     cls_files = sorted(glob.glob("log/class_consolidator/class_consolidator_output_*.json"), reverse=True)
@@ -422,7 +422,7 @@ if __name__ == "__main__":
         "class_info": class_info,
     }
 
-    print("\n=== PropertyFilter Test ===")
+    print("\n=== PropertyReviewer Test ===")
     print(f"- Candidates: {len(property_candidates.get('properties', []))}")
     print(f"- Classes:    {len(class_info.get('classes', []))}")
     print("\n" + "=" * 60 + "\n")

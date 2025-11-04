@@ -6,8 +6,8 @@
   "description": "PropertyValidatorの入力情報",
   "properties": {
     "property_candidates": {
-      "$ref": "https://github.com/highitoh/kg-extraction/schemas/property-filter/output.schema.json",
-      "description": "PropertyFilterの出力（フィルタリング済みプロパティ情報）"
+      "$ref": "https://github.com/highitoh/kg-extraction/schemas/property-reviewer/output.schema.json",
+      "description": "PropertyReviewerの出力（フィルタリング済みプロパティ情報）"
     },
     "class_info": {
       "$ref": "https://github.com/highitoh/kg-extraction/schemas/class-chain/output.schema.json",

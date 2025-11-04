@@ -109,13 +109,13 @@ class PropertyEditor(Runnable):
 
         Parameters
         ----------
-        input: PropertyEditorInput (= PropertyFilterOutput)
+        input: PropertyEditorInput (= PropertyReviewerOutput)
           - id: 抽出ID
           - properties: プロパティリスト（judgment/justificationを含む）
 
         Returns
         -------
-        output: PropertyEditorOutput (= PropertyFilterOutput)
+        output: PropertyEditorOutput (= PropertyReviewerOutput)
         """
         properties = input.get("properties", [])
 
@@ -289,7 +289,7 @@ class PropertyEditor(Runnable):
                     p_corrected["strength"] = 0
                     p_corrected["justification"] = revision_reason
                 else:
-                    # 強度修正した場合はREVIEWのまま（PropertyFilterで再評価される）
+                    # 強度修正した場合はREVIEWのまま（PropertyReviewerで再評価される）
                     p_corrected["strength"] = revised_strength
                     # judgment = "REVIEW" のまま
                     p_corrected["justification"] = revision_reason
@@ -349,12 +349,12 @@ class PropertyEditor(Runnable):
 if __name__ == "__main__":
     import glob
 
-    # ログディレクトリから最新のproperty_filterログファイルを取得
-    log_dir = "/workspace/app/log/property_filter"
-    log_files = glob.glob(os.path.join(log_dir, "property_filter_output_*.json"))
+    # ログディレクトリから最新のproperty_reviewerログファイルを取得
+    log_dir = "/workspace/app/log/property_reviewer"
+    log_files = glob.glob(os.path.join(log_dir, "property_reviewer_output_*.json"))
 
     if not log_files:
-        print("Error: No property_filter log files found")
+        print("Error: No property_reviewer log files found")
         exit(1)
 
     # 最新のログファイルを取得
