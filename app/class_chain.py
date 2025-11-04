@@ -3,7 +3,7 @@ from langchain.schema.runnable import RunnableSequence, Runnable
 
 from class_extractor import ClassExtractor
 from class_filter import ClassFilter
-from class_label_corrector import ClassLabelCorrector
+from class_editor import ClassEditor
 from class_consolidator import ClassConsolidator
 
 
@@ -22,7 +22,7 @@ class ClassChainWithReview(Runnable):
     def __init__(self,
                  extractor: ClassExtractor,
                  class_filter: ClassFilter,
-                 corrector: ClassLabelCorrector,
+                 corrector: ClassEditor,
                  consolidator: ClassConsolidator,
                  max_review_iterations: int = 3,
                  progress: bool = True):
@@ -134,12 +134,12 @@ def create_class_chain(model: str = None, max_review_iterations: int = 3, progre
     if model is not None:
         extractor = ClassExtractor(model=model)
         class_filter = ClassFilter(model=model)
-        corrector = ClassLabelCorrector(model=model)
+        corrector = ClassEditor(model=model)
         consolidator = ClassConsolidator(model=model)
     else:
         extractor = ClassExtractor()
         class_filter = ClassFilter()
-        corrector = ClassLabelCorrector()
+        corrector = ClassEditor()
         consolidator = ClassConsolidator()
 
     return ClassChainWithReview(

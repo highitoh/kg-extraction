@@ -11,7 +11,7 @@ from openai import APIConnectionError, RateLimitError, APIError
 from logger import Logger
 
 
-class ClassLabelCorrector(Runnable):
+class ClassEditor(Runnable):
     """
     REVIEW判定されたクラスのラベルを修正または除外するクラス
 
@@ -31,7 +31,7 @@ class ClassLabelCorrector(Runnable):
                  progress: bool = True,
                  max_concurrency: int = 8,
                  max_retries: int = 5,
-                 log_dir: str = "log/class_label_corrector"):
+                 log_dir: str = "log/class_editor"):
         self.llm = llm or ChatOpenAI(
             model=model,
             temperature=temperature,
@@ -93,7 +93,7 @@ class ClassLabelCorrector(Runnable):
     def _load_prompt_template(self) -> str:
         """プロンプトテンプレートファイルを読み込み"""
         prompt_path = os.path.join(os.path.dirname(__file__), "prompts",
-                                   "class_label_corrector.txt")
+                                   "class_editor.txt")
         with open(prompt_path, "r", encoding="utf-8") as f:
             return f.read()
 
@@ -150,7 +150,7 @@ class ClassLabelCorrector(Runnable):
             print(f"ClassLabelCorrector: Processed {len(review_classes)} REVIEW classes -> "
                   f"REVIEW: {corrected_review_count}, REJECT: {corrected_reject_count}")
 
-        self.logger.save_log(output, filename_prefix="class_label_corrector_output_")
+        self.logger.save_log(output, filename_prefix="class_editor_output_")
 
         return output
 
@@ -227,7 +227,7 @@ class ClassLabelCorrector(Runnable):
             response_format={
                 "type": "json_schema",
                 "json_schema": {
-                    "name": "class_label_corrector",
+                    "name": "class_editor",
                     "schema": schema
                 }
             })
@@ -352,7 +352,7 @@ if __name__ == "__main__":
     print(f"\nInput data contains {len(test_input.get('classes', []))} classes")
 
     # Create and run the corrector
-    corrector = ClassLabelCorrector(progress=True, log_dir="log/class_label_corrector")
+    corrector = ClassEditor(progress=True, log_dir="log/class_editor")
     result = corrector.invoke(test_input)
 
     print(f"\nOutput data contains {len(result.get('classes', []))} classes")
