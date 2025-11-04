@@ -1,5 +1,8 @@
 {
-  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://github.com/highitoh/kg-extraction/schemas/class-extractor/llm.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ClassExtractorLLMOutput",
+  "description": "ClassExtractorのLLM出力スキーマ",
   "type": "object",
   "properties": {
     "classes": {

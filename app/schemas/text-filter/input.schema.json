@@ -8,7 +8,7 @@
     "source": {
       "description": "フィルタ対象テキスト情報",
       "oneOf": [
-        { "$ref": "https://github.com/highitoh/kg-extraction/schemas/text-extraction/output.schema.json" },
+        { "$ref": "https://github.com/highitoh/kg-extraction/schemas/text-extractor/output.schema.json" },
         { "$ref": "https://github.com/highitoh/kg-extraction/schemas/text-filter/output.schema.json" }
       ]
     },

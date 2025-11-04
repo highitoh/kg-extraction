@@ -26,7 +26,7 @@
           }
         }
       },
-      "required": ["id", "file_name", "chunks"]
+      "required": ["id", "file_id", "chunks"]
     },
     "metamodel": {
       "$ref": "https://github.com/highitoh/kg-extraction/schemas/common/metamodel.schema.json"
