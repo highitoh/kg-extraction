@@ -174,10 +174,6 @@ class ClassReviewer(Runnable):
             async with sem:
                 class_name = self._get_class_name_from_iri(class_iri)
 
-                async with lock:
-                    if self.progress:
-                        print(f"[ClassReviewer] Processing class {counter + 1}/{total}: {class_name} ({len(class_instances)} instances)")
-
                 filtered = await self._filter_classes_async(class_instances, class_iri)
 
                 async with lock:

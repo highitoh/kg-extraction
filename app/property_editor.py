@@ -175,10 +175,6 @@ class PropertyEditor(Runnable):
             async with sem:
                 property_name = self._get_property_name_from_iri(property_iri)
 
-                async with lock:
-                    if self.progress:
-                        print(f"[PropertyEditor] Processing property {counter + 1}/{total}: {property_name} ({len(property_instances)} instances)")
-
                 corrected = await self._correct_properties_async(property_instances, property_iri)
 
                 async with lock:

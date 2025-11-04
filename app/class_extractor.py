@@ -167,10 +167,6 @@ class ClassExtractor(Runnable):
             async with sem:
                 texts = self._get_texts_for_view(view_info, view_type)
 
-                async with lock:
-                    if self.progress:
-                        print(f"[ClassExtractor] Processing view {counter + 1}/{total}: {view_type} ({len(texts)} texts)")
-
                 label_items = []
                 for attempt in range(5):
                     try:
