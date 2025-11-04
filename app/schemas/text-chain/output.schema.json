@@ -1,0 +1,35 @@
+{
+  "$id": "https://github.com/highitoh/kg-extraction/schemas/text-chain/output.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "TextChainOutput",
+  "type": "object",
+  "description": "TextChainの出力情報",
+  "properties": {
+    "id": {
+      "type": "string",
+      "description": "抽出ID（UUID）"
+    },
+    "file_name": {
+      "type": "string",
+      "description": "処理したファイル名"
+    },
+    "sentences": {
+      "type": "array",
+      "description": "抽出・フィルタリングされた文章情報",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "text": {
+            "type": "string",
+            "description": "抽出テキスト"
+          }
+        },
+        "required": ["text"]
+      }
+    }
+  },
+  "required": ["id", "file_name", "sentences"],
+  "additionalProperties": false
+}
