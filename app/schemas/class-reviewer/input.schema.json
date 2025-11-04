@@ -1,4 +1,7 @@
 {
-  "$schema": "http://json-schema.org/draft-07/schema#",
-  "$ref": "../class-extractor/output.schema.json"
+  "$id": "https://github.com/highitoh/kg-extraction/schemas/class-reviewer/input.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ClassReviewerInput",
+  "description": "クラスレビュアーの入力情報（ClassExtractorの出力と同一）",
+  "$ref": "https://github.com/highitoh/kg-extraction/schemas/class-extractor/output.schema.json"
 }
