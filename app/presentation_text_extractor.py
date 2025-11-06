@@ -2,7 +2,7 @@ from typing import Any, Dict
 import os
 import uuid
 
-from langchain.schema.runnable import Runnable
+from langchain_core.runnables import Runnable
 from langchain_core.runnables.config import RunnableConfig
 import pdfplumber
 from logger import Logger

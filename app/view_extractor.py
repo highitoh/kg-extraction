@@ -4,7 +4,7 @@ import json
 import os
 import uuid
 
-from langchain.schema.runnable import Runnable
+from langchain_core.runnables import Runnable
 from langchain_core.messages import HumanMessage
 from langchain_openai import ChatOpenAI
 from openai import APIConnectionError, RateLimitError, APIError

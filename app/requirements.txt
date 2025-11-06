@@ -1,7 +1,9 @@
 langchain
+langchain-core
 langchain-openai
 langgraph
 numpy
 pdfplumber
 pypdf
+python-dotenv
 rdflib

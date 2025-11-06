@@ -1,6 +1,6 @@
 from typing import Any, Dict
 
-from langchain.schema.runnable import Runnable
+from langchain_core.runnables import Runnable
 from langchain_core.runnables.config import RunnableConfig
 
 from presentation_text_extractor import PresentationTextExtractor

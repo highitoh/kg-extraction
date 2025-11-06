@@ -8,6 +8,10 @@ import json
 import sys
 import argparse
 from typing import Dict, Any
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
 
 from graph import create_knowledge_extraction_graph
 from state import KnowledgeExtractionState

@@ -1,5 +1,5 @@
 from typing import Dict, Any
-from langchain.schema.runnable import Runnable
+from langchain_core.runnables import Runnable
 
 from view_extractor import ViewExtractor
 from view_filter import ViewFilter

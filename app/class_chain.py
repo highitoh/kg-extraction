@@ -1,5 +1,5 @@
 from typing import Dict, Any
-from langchain.schema.runnable import RunnableSequence, Runnable
+from langchain_core.runnables import RunnableSequence, Runnable
 
 from class_extractor import ClassExtractor
 from class_reviewer import ClassReviewer

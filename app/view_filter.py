@@ -1,6 +1,6 @@
 from typing import Dict, Any, List, Tuple
 
-from langchain.schema.runnable import Runnable
+from langchain_core.runnables import Runnable
 
 from logger import Logger
 

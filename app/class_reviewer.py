@@ -5,8 +5,8 @@ import os
 from functools import wraps
 
 from langchain_openai import ChatOpenAI
-from langchain.schema import HumanMessage
-from langchain.schema.runnable import Runnable
+from langchain_core.messages import HumanMessage
+from langchain_core.runnables import Runnable
 from openai import APIConnectionError, RateLimitError, APIError
 
 from logger import Logger

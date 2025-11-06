@@ -1,5 +1,5 @@
 from typing import Dict, Any
-from langchain.schema.runnable import Runnable, RunnableSequence
+from langchain_core.runnables import Runnable, RunnableSequence
 
 from property_extractor import PropertyExtractor
 from property_ranker import PropertyRanker

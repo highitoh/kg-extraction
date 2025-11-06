@@ -16,7 +16,7 @@ from typing import Any, Dict, List, Iterable
 import re
 import uuid
 
-from langchain.schema.runnable import Runnable
+from langchain_core.runnables import Runnable
 from langchain_core.runnables.config import RunnableConfig
 from logger import Logger
 

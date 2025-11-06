@@ -3,7 +3,7 @@ import json
 import os
 import uuid
 
-from langchain.schema.runnable import Runnable
+from langchain_core.runnables import Runnable
 
 from logger import Logger
 

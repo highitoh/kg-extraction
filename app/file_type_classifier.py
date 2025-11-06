@@ -4,7 +4,7 @@ import json
 import tempfile
 from pypdf import PdfReader, PdfWriter
 
-from langchain.schema.runnable import Runnable
+from langchain_core.runnables import Runnable
 from openai import OpenAI
 from pydantic import BaseModel
 
