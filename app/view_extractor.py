@@ -10,6 +10,7 @@ from langchain_openai import ChatOpenAI
 from openai import APIConnectionError, RateLimitError, APIError
 
 from logger import Logger
+from llm_factory import LLMFactory
 
 class ViewExtractor(Runnable):
     """
@@ -29,11 +30,10 @@ class ViewExtractor(Runnable):
         max_spans_per_label: int = 3,
         log_dir: str = "log/view_extractor",
     ):
-        self.llm = llm or ChatOpenAI(
+        self.llm = llm or LLMFactory.create_llm(
             model=model,
             temperature=temperature,
-            reasoning={"effort": "minimal"},
-            output_version="responses/v1",
+            reasoning_effort="minimal",
         )
 
         # JSONスキーマを読み込み

@@ -10,6 +10,7 @@ from langchain.schema.runnable import Runnable
 from openai import APIConnectionError, RateLimitError, APIError
 
 from logger import Logger
+from llm_factory import LLMFactory
 
 
 def async_retry_with_backoff(max_retries: int = 5, initial_delay: float = 1.0, max_delay: float = 60.0):
@@ -64,11 +65,10 @@ class ClassReviewer(Runnable):
                  max_concurrency: int = 8,
                  max_retries: int = 5,
                  log_dir: str = "log/class_reviewer"):
-        self.llm = llm or ChatOpenAI(
+        self.llm = llm or LLMFactory.create_llm(
             model=model,
             temperature=temperature,
-            reasoning={"effort": "low"},
-            output_version="responses/v1",
+            reasoning_effort="low",
         )
         self.progress = progress
         self.max_concurrency = max_concurrency

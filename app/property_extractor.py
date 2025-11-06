@@ -10,6 +10,7 @@ from langchain_openai import ChatOpenAI
 from openai import APIConnectionError, RateLimitError, APIError
 
 from logger import Logger
+from llm_factory import LLMFactory
 
 class PropertyExtractor(Runnable):
     """
@@ -29,11 +30,10 @@ class PropertyExtractor(Runnable):
         log_dir: str = "log/property_extractor",
         batch_size: int = 20,
     ):
-        self.llm = llm or ChatOpenAI(
+        self.llm = llm or LLMFactory.create_llm(
             model=model,
             temperature=temperature,
-            reasoning={"effort": "low"},
-            output_version="responses/v1",
+            reasoning_effort="low",
         )
 
         # JSONスキーマを読み込み

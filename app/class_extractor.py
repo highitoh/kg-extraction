@@ -12,6 +12,7 @@ from langchain.schema.runnable import Runnable
 from openai import APIConnectionError, RateLimitError, APIError
 
 from logger import Logger
+from llm_factory import LLMFactory
 
 VIEW_TYPES = [
     "value_analysis",
@@ -51,11 +52,10 @@ class ClassExtractor(Runnable):
         max_retries: int = 5,
         log_dir: str = "log/class_extractor"
     ):
-        self.llm = llm or ChatOpenAI(
+        self.llm = llm or LLMFactory.create_llm(
             model=model,
             temperature=temperature,
-            reasoning={"effort": "low"},
-            output_version="responses/v1",
+            reasoning_effort="low",
         )
         self.progress = progress
         self.max_concurrency = max_concurrency

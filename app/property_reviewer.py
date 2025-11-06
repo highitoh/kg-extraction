@@ -11,6 +11,7 @@ from langchain_openai import ChatOpenAI
 from openai import APIConnectionError, RateLimitError, APIError
 
 from logger import Logger
+from llm_factory import LLMFactory
 
 
 class PropertyReviewer(Runnable):
@@ -26,11 +27,10 @@ class PropertyReviewer(Runnable):
         log_dir: str = "log/property_reviewer",
         batch_size: int = 24,
     ):
-        self.llm = llm or ChatOpenAI(
+        self.llm = llm or LLMFactory.create_llm(
             model=model,
             temperature=temperature,
-            reasoning={"effort": "low"},
-            output_version="responses/v1",
+            reasoning_effort="low",
         )
         self.llm_schema = self._load_llm_schema()
         self.llm_json = self.llm.bind(response_format={"type": "json_schema", "json_schema": {"name": "property_reviewer", "schema": self.llm_schema}})
