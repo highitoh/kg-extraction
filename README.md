@@ -126,6 +126,19 @@ Input/output for each chain is defined by JSON schemas in [app/schemas/](app/sch
 
 Prompts used by LLMs are managed as text files in [app/prompts/](app/prompts/) for easy adjustment and maintenance.
 
+### MCP Server Configuration
+
+This project uses MCP servers.
+
+1. MCP server configuration is defined in `.mcp.json`
+2. Create `.claude/settings.local.json` to enable the MCP server:
+
+```json
+{
+  "enableAllProjectMcpServers": true
+}
+```
+
 ## Development
 
 ### Run Individual Chains

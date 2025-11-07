@@ -207,6 +207,8 @@ marimo/_lsp/
 __marimo__/
 
 # Project
+.claude/settings.local.json
+.serena
 /app/output
 /app/log
 /doc

@@ -19,5 +19,5 @@
 		"ghcr.io/anthropics/devcontainer-features/claude-code:1.0": {}
 	},
 	"runArgs": ["--env-file", ".env"],
-	"postCreateCommand": "npm install -g git-cz"
+	"postCreateCommand": "npm install -g git-cz && curl -LsSf https://astral.sh/uv/install.sh | sh && echo 'export PATH=$HOME/.local/bin:$PATH' >> ~/.bashrc"
 }
