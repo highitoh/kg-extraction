@@ -13,6 +13,7 @@ class PropertyValidator(Runnable):
     プロパティの妥当性を検証するValidator
 
     検証内容:
+    0. strength が 0 でないか (0 = no relationship は除外)
     1. src_id, dest_id が class_info.classes に存在するか
     2. property_iri が metamodel.properties に定義されているか
     3. src/dest の class_iri が property 定義の src_class/dest_class と一致するか
@@ -46,6 +47,11 @@ class PropertyValidator(Runnable):
         Returns:
             (is_valid, reason): 検証結果と理由
         """
+        # 0. strength の確認 (0 = no relationship は除外)
+        strength = prop.get("strength", 0)
+        if strength == 0:
+            return False, "strength is 0 (no relationship)"
+
         src_id = prop.get("src_id", "")
         dest_id = prop.get("dest_id", "")
         property_iri = prop.get("property_iri", "")
