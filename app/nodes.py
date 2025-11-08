@@ -253,12 +253,14 @@ def generate_outputs_node(state: KnowledgeExtractionState) -> KnowledgeExtractio
     """
     try:
         output_dir = state.get("output_dir", "/workspace/app/output")
+        project = state.get("project", "default")
 
-        # 出力ディレクトリを作成
-        os.makedirs(output_dir, exist_ok=True)
+        # プロジェクト別の出力ディレクトリを作成
+        project_output_dir = os.path.join(output_dir, project)
+        os.makedirs(project_output_dir, exist_ok=True)
 
         # TurtleGenerator
-        turtle_generator = TurtleGenerator(output_dir=output_dir)
+        turtle_generator = TurtleGenerator(output_dir=project_output_dir)
         turtle_input = {
             "class_info": {
                 "id": state["id"],
@@ -272,7 +274,7 @@ def generate_outputs_node(state: KnowledgeExtractionState) -> KnowledgeExtractio
         turtle_path, turtle_result = turtle_generator.generate_and_save(turtle_input)
 
         # Neo4jCSVGenerator
-        csv_generator = Neo4jCSVGenerator(output_dir=output_dir)
+        csv_generator = Neo4jCSVGenerator(output_dir=project_output_dir)
         csv_result = csv_generator.generate(turtle_input)
 
         # 結果をStateに格納

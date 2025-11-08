@@ -65,18 +65,29 @@ cd app
 python main.py ../doc/sample.pdf
 ```
 
+### With Project Organization
+
+Organize output files by project:
+
+```bash
+python main.py ../doc/sample.pdf --project my-project
+```
+
 ### With Custom Model
 
 For development, use `gpt-5-nano` to reduce costs:
 
 ```bash
-python main.py ../doc/sample.pdf --model gpt-5-nano
+python main.py ../doc/sample.pdf --project test --model gpt-5-nano
 ```
 
-### Specify Output Directory
+### All Options
 
 ```bash
-python main.py ../doc/sample.pdf --output-dir ./custom_output
+python main.py ../doc/sample.pdf \
+  --project healthcare \
+  --model gpt-5-nano \
+  --output-dir ./custom_output
 ```
 
 ## Project Structure
@@ -102,15 +113,29 @@ python main.py ../doc/sample.pdf --output-dir ./custom_output
 
 ## Output Files
 
-After processing, the following files are generated:
+After processing, files are organized by project in the output directory:
 
 ```
 app/output/
-├── knowledge_graph.ttl           # Knowledge graph in RDF/Turtle format
-├── nodes.csv                     # Neo4j node CSV
-├── relationships.csv             # Neo4j relationship CSV
-└── extraction_result.json        # Processing result summary
+├── default/                            # Default project
+│   ├── knowledge_graph_YYYYMMDD_HHMMSS.ttl  # Knowledge graph in RDF/Turtle format
+│   ├── nodes.csv                       # Neo4j node CSV
+│   ├── relationships.csv               # Neo4j relationship CSV
+│   └── extraction_result.json          # Processing result summary
+├── project1/                           # Custom project
+│   ├── knowledge_graph_YYYYMMDD_HHMMSS.ttl
+│   ├── nodes.csv
+│   ├── relationships.csv
+│   └── extraction_result.json
+└── project2/
+    └── ...
 ```
+
+### File Types
+
+- **Turtle files** (`knowledge_graph_*.ttl`): Knowledge graph in RDF/Turtle format with timestamp
+- **Neo4j CSV files** (`nodes.csv`, `relationships.csv`): CSV files for Neo4j bulk import
+- **Result JSON** (`extraction_result.json`): Processing result summary and metadata
 
 ## Configuration
 
@@ -174,11 +199,44 @@ docker-compose up -d neo4j
 - **rdflib**: RDF/Turtle generation
 - **Neo4j**: Graph database (optional)
 
+## Command Line Arguments
+
+```bash
+python main.py [PDF_PATH] [OPTIONS]
+```
+
+### Arguments
+
+- `PDF_PATH` - Path to the PDF file to extract knowledge from (default: `../doc/sample.pdf`)
+
+### Options
+
+- `--project PROJECT` - Project name for organizing output files (default: `default`)
+- `--model MODEL` - LLM model name (e.g., `gpt-5-mini`, `gpt-5-nano`)
+- `--output-dir DIR` - Output directory path (default: `/workspace/app/output`)
+
+### Examples
+
+```bash
+# Use default settings
+python main.py
+
+# Specify project name
+python main.py ../doc/sample.pdf --project test
+
+# Development testing with cost-effective model
+python main.py ../doc/sample.pdf --project test --model gpt-5-nano
+
+# All options
+python main.py ../doc/sample.pdf --project test --model gpt-5-nano --output-dir /custom/output
+```
+
 ## Tips
 
 - Use `--model gpt-5-nano` during development to reduce costs
+- Use `--project` to organize outputs for different analysis projects
 - Place PDF files in `/workspace/doc/`
-- Output files are generated in `/workspace/app/output/`
+- Output files are generated in `/workspace/app/output/{project}/`
 - Log files are generated in `/workspace/app/log/`
 - Neo4j data is persisted in `./neo4j/data`
 

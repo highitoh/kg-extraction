@@ -19,7 +19,7 @@ from state import KnowledgeExtractionState
 
 
 
-def run_knowledge_extraction(pdf_path: str, output_dir: str = "/workspace/app/output", model: str = None) -> Dict[str, Any]:
+def run_knowledge_extraction(pdf_path: str, output_dir: str = "/workspace/app/output", model: str = None, project: str = "default") -> Dict[str, Any]:
     """
     PDFファイルから知識抽出を実行
 
@@ -27,6 +27,7 @@ def run_knowledge_extraction(pdf_path: str, output_dir: str = "/workspace/app/ou
         pdf_path: 抽出対象のPDFファイルパス
         output_dir: 出力ディレクトリ
         model: LLMモデル名（Noneの場合は各ノードのデフォルトを使用）
+        project: プロジェクト名（出力ファイルをプロジェクト別に分類）
 
     Returns:
         抽出結果辞書
@@ -38,6 +39,7 @@ def run_knowledge_extraction(pdf_path: str, output_dir: str = "/workspace/app/ou
     initial_state: KnowledgeExtractionState = {
         "files": [{"path": pdf_path}],
         "output_dir": output_dir,
+        "project": project,
         "errors": []
     }
 
@@ -57,6 +59,7 @@ if __name__ == "__main__":
     parser.add_argument("pdf_path", nargs="?", default="../doc/sample.pdf", help="抽出対象のPDFファイルパス")
     parser.add_argument("--model", type=str, default=None, help="使用するLLMモデル名（デフォルト: 各ノードのデフォルトモデル）")
     parser.add_argument("--output-dir", type=str, default="/workspace/app/output", help="出力ディレクトリ（デフォルト: /workspace/app/output）")
+    parser.add_argument("--project", type=str, default="default", help="プロジェクト名（デフォルト: default）")
 
     args = parser.parse_args()
     pdf_path = args.pdf_path
@@ -67,13 +70,14 @@ if __name__ == "__main__":
 
     print("\n=== Knowledge Extraction ===")
     print(f"PDF file: {pdf_path}")
+    print(f"Project: {args.project}")
     if args.model:
         print(f"LLM model: {args.model}")
     else:
         print(f"LLM model: Using default models for each node")
 
     try:
-        result = run_knowledge_extraction(pdf_path, output_dir=args.output_dir, model=args.model)
+        result = run_knowledge_extraction(pdf_path, output_dir=args.output_dir, model=args.model, project=args.project)
 
         # エラーチェック
         if result.get("errors"):
@@ -94,7 +98,8 @@ if __name__ == "__main__":
             print(f"  - Properties extracted: {result['summary']['properties_count']}")
 
             # 結果をJSONファイルに保存
-            output_json = os.path.join(args.output_dir, "extraction_result.json")
+            project_output_dir = os.path.join(args.output_dir, args.project)
+            output_json = os.path.join(project_output_dir, "extraction_result.json")
             with open(output_json, "w", encoding="utf-8") as f:
                 # turtle_contentは長すぎるので保存時は除外
                 result_copy = result.copy()

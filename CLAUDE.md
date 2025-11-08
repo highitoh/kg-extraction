@@ -45,6 +45,12 @@ cd app && pip install -r requirements.txt
 # メインアプリケーションの実行
 cd app && python main.py [PDF_PATH]
 
+# プロジェクト別に出力ファイルを管理
+cd app && python main.py [PDF_PATH] --project [PROJECT_NAME]
+
+# すべてのオプション
+cd app && python main.py [PDF_PATH] --project [PROJECT_NAME] --model [MODEL_NAME] --output-dir [OUTPUT_DIR]
+
 # 特定のチェインの実行 (統合前)
 cd app && python doc_text_chain.py
 cd app && python view_chain.py
@@ -68,7 +74,11 @@ docker exec -it app_container bash
 全体処理を動作確認するときは、コストを抑えるため**gpt-5-nano**を使用する
 
 ```bash
+# デフォルトプロジェクト
 python main.py ../doc/sample.pdf --model gpt-5-nano
+
+# 特定のプロジェクト
+python main.py ../doc/sample.pdf --project test-project --model gpt-5-nano
 ```
 
 ## Environment Variables
@@ -76,8 +86,28 @@ python main.py ../doc/sample.pdf --model gpt-5-nano
 - `NEO4J_initial_dbms_default__database=partner`
 
 ## Output Files
-- **Turtle files**: RDF/Turtle形式の知識グラフ
-- **Neo4j CSV files**: Neo4jインポート用CSVファイル
+出力ファイルは`--project`パラメータで指定したプロジェクト別に管理される。
+
+### ディレクトリ構造
+```
+/workspace/app/output/
+├── default/                           # デフォルトプロジェクト
+│   ├── knowledge_graph_YYYYMMDD_HHMMSS.ttl
+│   ├── nodes.csv
+│   ├── relationships.csv
+│   └── extraction_result.json
+├── project1/                          # カスタムプロジェクト
+│   ├── knowledge_graph_YYYYMMDD_HHMMSS.ttl
+│   ├── nodes.csv
+│   ├── relationships.csv
+│   └── extraction_result.json
+└── project2/
+    └── ...
+```
+
+### ファイル種別
+- **Turtle files**: `knowledge_graph_*.ttl` - RDF/Turtle形式の知識グラフ
+- **Neo4j CSV files**: `nodes.csv`, `relationships.csv` - Neo4jインポート用CSVファイル
 - **Result JSON**: `extraction_result.json` - 処理結果サマリー
 
 ## Key Dependencies
@@ -89,8 +119,21 @@ python main.py ../doc/sample.pdf --model gpt-5-nano
 
 ## Notes
 - PDFファイルは `/workspace/doc/` に配置
-- 出力ファイルは `/workspace/app/output/` に生成
+- 出力ファイルは `/workspace/app/output/{project}/` に生成
 - ログファイルは `/workspace/app/log/` に生成
 - Neo4jデータは永続化される (`./neo4j/data`)
 - スキーマ定義により各チェイン・タスクの入出力仕様が明確化
 - プロンプトテキストは外部ファイル管理により調整・保守が容易
+
+## Command Line Arguments
+```bash
+python main.py [PDF_PATH] [OPTIONS]
+
+Arguments:
+  PDF_PATH              抽出対象のPDFファイルパス (デフォルト: ../doc/sample.pdf)
+
+Options:
+  --project PROJECT     プロジェクト名 (デフォルト: default)
+  --model MODEL         LLMモデル名 (例: gpt-5-mini, gpt-5-nano)
+  --output-dir DIR      出力ディレクトリ (デフォルト: /workspace/app/output)
+```

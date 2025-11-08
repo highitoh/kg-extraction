@@ -28,6 +28,7 @@ class KnowledgeExtractionState(TypedDict, total=False):
 
     # ========== 出力先設定 ==========
     output_dir: str  # 出力ディレクトリ
+    project: str  # プロジェクト名（出力ファイルをプロジェクト別に分類）
 
     # ========== 中間結果: テキスト抽出段階 ==========
     id: str  # 抽出ID（ファイルIDとして使用）
