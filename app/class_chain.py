@@ -10,9 +10,10 @@ from class_consolidator import ClassConsolidator
 class ClassChainWithReview(Runnable):
     """
     Class extraction chain with iterative review loop:
-      ClassExtractor -> ClassReviewer -> (ClassLabelCorrector -> ClassReviewer)* -> ClassConsolidator
+      ClassExtractor -> ClassConsolidator -> ClassReviewer -> (ClassLabelCorrector -> ClassReviewer)*
 
     ループロジック:
+    - ClassConsolidatorで類似ラベルを先に統合
     - ClassReviewerでREVIEW判定されたクラスをClassLabelCorrectorで修正
     - 修正後、再度ClassReviewerで評価
     - すべてACCEPT/REJECTになるか、最大反復回数に達するまで繰り返す
@@ -67,12 +68,25 @@ class ClassChainWithReview(Runnable):
             print("\n=== ClassExtractor ===")
         result = self.extractor.invoke(input)
 
-        # 2. ClassReviewer実行（初回）
+        # 2. 既存クラスを統合対象に追加
+        # ClassConsolidatorに渡す前に、新規抽出クラスと既存クラスをマージ
+        if existing_classes:
+            if self.progress:
+                print(f"\n=== Merging {len(existing_classes)} existing classes with {len(result.get('classes', []))} new classes ===")
+            result["classes"] = result.get("classes", []) + existing_classes
+
+        # 3. ClassConsolidator実行
+        # 抽出されたクラスのラベル統合を先に実行
+        if self.progress:
+            print("\n=== ClassConsolidator ===")
+        result = self.consolidator.invoke(result)
+
+        # 4. ClassReviewer実行（初回）
         if self.progress:
             print("\n=== ClassReviewer (Initial) ===")
         result = self.class_reviewer.invoke(result)
 
-        # 3. ループ: ClassLabelCorrector -> ClassReviewer
+        # 5. ループ: ClassLabelCorrector -> ClassReviewer
         for iteration in range(self.max_review_iterations):
             # REVIEWが残っているか確認
             review_count = sum(1 for c in result.get("classes", []) if c.get("judgment") == "REVIEW")
@@ -98,7 +112,7 @@ class ClassChainWithReview(Runnable):
                 print(f"\n--- ClassReviewer (iteration {iteration + 1}) ---")
             result = self.class_reviewer.invoke(result)
 
-        # 4. 最大回数到達後もREVIEWが残っている場合はACCEPTに変換
+        # 6. 最大回数到達後もREVIEWが残っている場合はACCEPTに変換
         final_classes = []
         accepted_review_count = 0
         for c in result.get("classes", []):
@@ -116,27 +130,13 @@ class ClassChainWithReview(Runnable):
 
         result["classes"] = final_classes
 
-        # 4.5. 既存クラスを統合対象に追加
-        # ClassConsolidatorに渡す前に、新規抽出クラスと既存クラスをマージ
-        if existing_classes:
-            if self.progress:
-                print(f"\n=== Merging {len(existing_classes)} existing classes with {len(final_classes)} new classes ===")
-            result["classes"] = final_classes + existing_classes
-
-        # 5. ClassConsolidator実行
-        # ClassReviewerでREJECTは除外されるため、ACCEPTのみが渡される
-        # ClassConsolidatorのLLMが新規クラスと既存クラスの重複を判定して統合する
-        if self.progress:
-            print("\n=== ClassConsolidator ===")
-        result = self.consolidator.invoke(result)
-
         return result
 
 
 def create_class_chain(model: str = None, max_review_iterations: int = 3, progress: bool = True) -> Runnable:
     """
     Create class extraction chain with review loop:
-      ClassExtractor -> ClassReviewer -> (ClassLabelCorrector -> ClassReviewer)* -> ClassConsolidator
+      ClassExtractor -> ClassConsolidator -> ClassReviewer -> (ClassLabelCorrector -> ClassReviewer)*
 
     Args:
         model: LLMモデル名（Noneの場合は各コンポーネントのデフォルトを使用）
