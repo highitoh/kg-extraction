@@ -70,15 +70,22 @@ docker exec -it app_container bash
 # http://localhost:7474 (neo4j/neo4jpassword)
 ```
 
-### Testing and Quality
+## Testing and Quality
 全体処理を動作確認するときは、コストを抑えるため**gpt-5-nano**を使用する
 
+### Single file extraction
 ```bash
 # デフォルトプロジェクト
 python main.py ../doc/sample.pdf --model gpt-5-nano
 
 # 特定のプロジェクト
 python main.py ../doc/sample.pdf --project test-project --model gpt-5-nano
+```
+
+### Multiple files extraction
+```bash
+python main.py ../doc/sample.pdf --project test-project --model gpt-5-nano
+python main.py ../doc/sample2.pdf --project test-project --model gpt-5-nano
 ```
 
 ## Environment Variables
