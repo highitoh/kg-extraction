@@ -25,7 +25,7 @@ class ClassChainWithReview(Runnable):
                  class_reviewer: ClassReviewer,
                  corrector: ClassEditor,
                  consolidator: ClassConsolidator,
-                 max_review_iterations: int = 3,
+                 max_review_iterations: int = 2,
                  progress: bool = True):
         """
         Args:
@@ -33,7 +33,7 @@ class ClassChainWithReview(Runnable):
             class_reviewer: ClassReviewerインスタンス
             corrector: ClassLabelCorrectorインスタンス
             consolidator: ClassConsolidatorインスタンス
-            max_review_iterations: REVIEW判定の最大反復回数（デフォルト: 3）
+            max_review_iterations: REVIEW判定の最大反復回数（デフォルト: 2）
             progress: 進捗表示フラグ
         """
         self.extractor = extractor
@@ -133,14 +133,14 @@ class ClassChainWithReview(Runnable):
         return result
 
 
-def create_class_chain(model: str = None, max_review_iterations: int = 3, progress: bool = True) -> Runnable:
+def create_class_chain(model: str = None, max_review_iterations: int = 2, progress: bool = True) -> Runnable:
     """
     Create class extraction chain with review loop:
       ClassExtractor -> ClassConsolidator -> ClassReviewer -> (ClassLabelCorrector -> ClassReviewer)*
 
     Args:
         model: LLMモデル名（Noneの場合は各コンポーネントのデフォルトを使用）
-        max_review_iterations: REVIEW判定の最大反復回数（デフォルト: 3）
+        max_review_iterations: REVIEW判定の最大反復回数（デフォルト: 2）
         progress: 進捗表示フラグ（デフォルト: True）
     """
     if model is not None:

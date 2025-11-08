@@ -119,7 +119,7 @@ class PropertyChainWithReview(Runnable):
                  validator: PropertyValidator,
                  original_input: Dict[str, Any],
                  existing_properties: list = None,
-                 max_review_iterations: int = 3,
+                 max_review_iterations: int = 2,
                  progress: bool = True):
         """
         Args:
@@ -131,7 +131,7 @@ class PropertyChainWithReview(Runnable):
             validator: PropertyValidatorインスタンス
             original_input: 元の入力（アダプター用）
             existing_properties: 既存プロパティリスト（オプション）
-            max_review_iterations: REVIEW判定の最大反復回数（デフォルト: 3）
+            max_review_iterations: REVIEW判定の最大反復回数（デフォルト: 2）
             progress: 進捗表示フラグ
         """
         self.extractor = extractor
@@ -277,7 +277,7 @@ class PropertyChainWithAdapter(Runnable):
         return chain.invoke(input, config)
 
 
-def create_property_chain(model: str = None, max_review_iterations: int = 3, enable_review: bool = True, existing_properties: list = None) -> Runnable:
+def create_property_chain(model: str = None, max_review_iterations: int = 2, enable_review: bool = True, existing_properties: list = None) -> Runnable:
     """
     プロパティ抽出チェーン:
       - enable_review=True: PropertyExtractor -> PropertyConsolidator -> PropertyRanker -> PropertyReviewer -> (PropertyEditor -> PropertyReviewer)* -> PropertyValidator
@@ -285,7 +285,7 @@ def create_property_chain(model: str = None, max_review_iterations: int = 3, ena
 
     Args:
         model: LLMモデル名（Noneの場合は各コンポーネントのデフォルトを使用）
-        max_review_iterations: REVIEW判定の最大反復回数（デフォルト: 3）
+        max_review_iterations: REVIEW判定の最大反復回数（デフォルト: 2）
         enable_review: Reviewループを有効にするか（デフォルト: True）
         existing_properties: 既存プロパティリスト（統合用、デフォルト: None）
     """
@@ -294,7 +294,7 @@ def create_property_chain(model: str = None, max_review_iterations: int = 3, ena
 
     # PropertyChainWithReviewを使用する場合、invoke時に入力が必要なのでラッパーを返す
     class PropertyChainWithReviewWrapper(Runnable):
-        def __init__(self, model: str = None, max_review_iterations: int = 3, existing_properties: list = None):
+        def __init__(self, model: str = None, max_review_iterations: int = 2, existing_properties: list = None):
             self.model = model
             self.max_review_iterations = max_review_iterations
             self.existing_properties = existing_properties or []
