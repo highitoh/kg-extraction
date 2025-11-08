@@ -95,12 +95,14 @@ python main.py ../doc/sample.pdf --project test-project --model gpt-5-nano
 │   ├── knowledge_graph_YYYYMMDD_HHMMSS.ttl
 │   ├── nodes.csv
 │   ├── relationships.csv
-│   └── extraction_result.json
+│   ├── knowledge.json                 # 累積知識（ACCEPT済みクラス+有効プロパティ）
+│   └── extraction_result_YYYYMMDD_HHMMSS.json
 ├── project1/                          # カスタムプロジェクト
 │   ├── knowledge_graph_YYYYMMDD_HHMMSS.ttl
 │   ├── nodes.csv
 │   ├── relationships.csv
-│   └── extraction_result.json
+│   ├── knowledge.json
+│   └── extraction_result_YYYYMMDD_HHMMSS.json
 └── project2/
     └── ...
 ```
@@ -108,7 +110,11 @@ python main.py ../doc/sample.pdf --project test-project --model gpt-5-nano
 ### ファイル種別
 - **Turtle files**: `knowledge_graph_*.ttl` - RDF/Turtle形式の知識グラフ
 - **Neo4j CSV files**: `nodes.csv`, `relationships.csv` - Neo4jインポート用CSVファイル
-- **Result JSON**: `extraction_result.json` - 処理結果サマリー
+- **Knowledge JSON**: `knowledge.json` - 累積知識（軽量版、次回実行時のインプットとして使用）
+  - ACCEPT判定されたクラスのみ
+  - 強度>0のプロパティのみ
+  - 複数回実行で自動的に累積される
+- **Result JSON**: `extraction_result_YYYYMMDD_HHMMSS.json` - 各実行の完全な処理結果（タイムスタンプ付き、履歴・監査用）
 
 ## Key Dependencies
 - langchain: LLMチェイン構築

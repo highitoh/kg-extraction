@@ -121,12 +121,14 @@ app/output/
 │   ├── knowledge_graph_YYYYMMDD_HHMMSS.ttl  # Knowledge graph in RDF/Turtle format
 │   ├── nodes.csv                       # Neo4j node CSV
 │   ├── relationships.csv               # Neo4j relationship CSV
-│   └── extraction_result.json          # Processing result summary
+│   ├── knowledge.json                  # Accumulated knowledge (lightweight)
+│   └── extraction_result_YYYYMMDD_HHMMSS.json  # Full extraction result (timestamped)
 ├── project1/                           # Custom project
 │   ├── knowledge_graph_YYYYMMDD_HHMMSS.ttl
 │   ├── nodes.csv
 │   ├── relationships.csv
-│   └── extraction_result.json
+│   ├── knowledge.json
+│   └── extraction_result_YYYYMMDD_HHMMSS.json
 └── project2/
     └── ...
 ```
@@ -135,7 +137,11 @@ app/output/
 
 - **Turtle files** (`knowledge_graph_*.ttl`): Knowledge graph in RDF/Turtle format with timestamp
 - **Neo4j CSV files** (`nodes.csv`, `relationships.csv`): CSV files for Neo4j bulk import
-- **Result JSON** (`extraction_result.json`): Processing result summary and metadata
+- **Knowledge JSON** (`knowledge.json`): Accumulated knowledge for incremental extraction
+  - Contains only ACCEPT'ed classes and valid properties (strength > 0)
+  - Automatically merged across multiple runs
+  - Lightweight format for efficient loading
+- **Result JSON** (`extraction_result_YYYYMMDD_HHMMSS.json`): Full processing result with timestamp for audit trail
 
 ## Configuration
 

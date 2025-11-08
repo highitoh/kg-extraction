@@ -186,7 +186,7 @@ def extract_classes_node(state: KnowledgeExtractionState) -> KnowledgeExtraction
     クラスを抽出するノード（抽出・フィルタ・統合を含む）
     views, metamodel -> classes
 
-    既存のextraction_result.jsonがあれば、ACCEPT済みクラスを読み込んで
+    既存のknowledge.jsonがあれば、ACCEPT済みクラスを読み込んで
     新規抽出クラスと統合する
     """
     try:
@@ -194,7 +194,7 @@ def extract_classes_node(state: KnowledgeExtractionState) -> KnowledgeExtraction
         existing_classes = []
         output_dir = state.get("output_dir", "/workspace/app/output")
         project = state.get("project", "default")
-        extraction_result_path = os.path.join(output_dir, project, "extraction_result.json")
+        extraction_result_path = os.path.join(output_dir, project, "knowledge.json")
 
         if os.path.exists(extraction_result_path):
             try:
@@ -246,7 +246,7 @@ def extract_properties_node(state: KnowledgeExtractionState) -> KnowledgeExtract
     プロパティ（関係）を抽出するノード（抽出・フィルタ・バリデーションを含む）
     classes, metamodel -> properties
 
-    既存のextraction_result.jsonがあれば、強度>0のプロパティを読み込んで
+    既存のknowledge.jsonがあれば、強度>0のプロパティを読み込んで
     新規抽出プロパティと統合する
     """
     try:
@@ -254,7 +254,7 @@ def extract_properties_node(state: KnowledgeExtractionState) -> KnowledgeExtract
         existing_properties = []
         output_dir = state.get("output_dir", "/workspace/app/output")
         project = state.get("project", "default")
-        extraction_result_path = os.path.join(output_dir, project, "extraction_result.json")
+        extraction_result_path = os.path.join(output_dir, project, "knowledge.json")
 
         if os.path.exists(extraction_result_path):
             try:
