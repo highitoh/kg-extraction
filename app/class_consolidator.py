@@ -281,25 +281,42 @@ class ClassConsolidator(Runnable):
         merged["label"] = canonical_label
 
         # sourcesとfile_idsを統合
-        all_sources = []
-        all_file_ids = []
+        all_source_file_pairs = []
 
         for cls in group_classes:
             # sourcesフィールドを取得（配列または文字列）
             sources = cls.get("sources", [])
             if isinstance(sources, str):
                 sources = [sources]
-            all_sources.extend(sources)
 
             # file_idsフィールドを取得（配列または文字列）
             file_ids = cls.get("file_ids", [])
             if isinstance(file_ids, str):
                 file_ids = [file_ids]
-            all_file_ids.extend(file_ids)
+
+            # sourcesとfile_idsの長さが一致することを確認
+            # 長さが異なる場合は、短い方に合わせる（後方互換性のため）
+            min_length = min(len(sources), len(file_ids))
+            if len(sources) != len(file_ids):
+                print(f"Warning: sources length ({len(sources)}) != file_ids length ({len(file_ids)}) in class {cls.get('id', 'unknown')}")
+                sources = sources[:min_length]
+                file_ids = file_ids[:min_length]
+
+            # (source, file_id)のペアとして収集
+            for source, file_id in zip(sources, file_ids):
+                all_source_file_pairs.append((source, file_id))
 
         # 重複を除去しつつ順序を保持
-        merged["sources"] = list(dict.fromkeys(all_sources))
-        merged["file_ids"] = list(dict.fromkeys(all_file_ids))
+        unique_pairs = list(dict.fromkeys(all_source_file_pairs))
+
+        # ペアを分解してsourcesとfile_idsに戻す
+        if unique_pairs:
+            merged["sources"], merged["file_ids"] = zip(*unique_pairs)
+            merged["sources"] = list(merged["sources"])
+            merged["file_ids"] = list(merged["file_ids"])
+        else:
+            merged["sources"] = []
+            merged["file_ids"] = []
 
         return merged
 

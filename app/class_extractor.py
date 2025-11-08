@@ -110,12 +110,17 @@ class ClassExtractor(Runnable):
                 source = li["source"]
                 file_id = li["file_id"]
                 class_iri = self._resolve_class_iri(view_type, c, metamodel)  # URI を返す実装にする
+
+                # sourcesとfile_idsの1:1対応を保証
+                sources = [source]
+                file_ids = [file_id]
+
                 classes.append(ExtractedClass(
                     id=str(uuid.uuid4()),
                     class_iri=class_iri,
                     label=label,
-                    sources=[source],  # 配列形式に変更
-                    file_ids=[file_id],  # 配列形式に変更
+                    sources=sources,
+                    file_ids=file_ids,
                 ))
 
         # ---- 出力（ClassChainOutput 準拠） -----------------------------------------

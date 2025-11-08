@@ -36,7 +36,7 @@
               "type": "string"
             },
             "minItems": 1,
-            "description": "抽出元文章（複数）"
+            "description": "抽出元文章（複数）。file_idsと1:1対応し、sources[i]はfile_ids[i]に対応する。配列長はfile_idsと同じである必要がある。"
           },
           "file_ids": {
             "type": "array",
@@ -44,7 +44,7 @@
               "type": "string"
             },
             "minItems": 1,
-            "description": "抽出元ファイルID（複数）"
+            "description": "抽出元ファイルID（複数）。sourcesと1:1対応し、file_ids[i]はsources[i]に対応する。配列長はsourcesと同じである必要がある。"
           }
         },
         "required": ["id", "class_iri", "label", "sources", "file_ids"]
