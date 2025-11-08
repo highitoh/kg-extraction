@@ -7,6 +7,7 @@ import os
 import json
 import sys
 import argparse
+from datetime import datetime
 from typing import Dict, Any
 from dotenv import load_dotenv
 
@@ -99,7 +100,8 @@ if __name__ == "__main__":
 
             # 結果をJSONファイルに保存
             project_output_dir = os.path.join(args.output_dir, args.project)
-            output_json = os.path.join(project_output_dir, "extraction_result.json")
+            timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
+            output_json = os.path.join(project_output_dir, f"extraction_result_{timestamp}.json")
             with open(output_json, "w", encoding="utf-8") as f:
                 # turtle_contentは長すぎるので保存時は除外
                 result_copy = result.copy()

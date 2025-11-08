@@ -185,18 +185,45 @@ def extract_classes_node(state: KnowledgeExtractionState) -> KnowledgeExtraction
     """
     クラスを抽出するノード（抽出・フィルタ・統合を含む）
     views, metamodel -> classes
+
+    既存のextraction_result.jsonがあれば、ACCEPT済みクラスを読み込んで
+    新規抽出クラスと統合する
     """
     try:
+        # 既存クラスの読み込み
+        existing_classes = []
+        output_dir = state.get("output_dir", "/workspace/app/output")
+        project = state.get("project", "default")
+        extraction_result_path = os.path.join(output_dir, project, "extraction_result.json")
+
+        if os.path.exists(extraction_result_path):
+            try:
+                with open(extraction_result_path, "r", encoding="utf-8") as f:
+                    previous_result = json.load(f)
+                    # ACCEPT判定のクラスのみを読み込み
+                    all_existing_classes = previous_result.get("classes", [])
+                    existing_classes = [
+                        c for c in all_existing_classes
+                        if c.get("judgment") == "ACCEPT"
+                    ]
+                    if existing_classes:
+                        print(f"[ExtractClassesNode] Loaded {len(existing_classes)} existing ACCEPT'ed classes from previous extraction")
+            except (json.JSONDecodeError, KeyError) as e:
+                print(f"[ExtractClassesNode] Warning: Could not load existing classes from {extraction_result_path}: {e}")
+                existing_classes = []
+
         class_chain = create_class_chain(model=state.get("model"))
 
         # ClassChainの入力形式に合わせる
         # ViewChainの出力をそのまま view_info として使用
+        # 既存クラスも渡す
         input_data = {
             "view_info": {
                 "id": state["id"],
                 "views": state["views"]
             },
-            "metamodel": state["metamodel"]
+            "metamodel": state["metamodel"],
+            "existing_classes": existing_classes  # 既存クラスを追加
         }
 
         result = class_chain.invoke(input_data)

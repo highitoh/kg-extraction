@@ -210,8 +210,7 @@ class TurtleGenerator:
         result = self.generate(input_data)
 
         if filename is None:
-            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            filename = f"knowledge_graph_{timestamp}.ttl"
+            filename = "knowledge_graph.ttl"
 
         if not filename.endswith('.ttl'):
             filename += '.ttl'

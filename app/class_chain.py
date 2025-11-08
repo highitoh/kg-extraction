@@ -51,6 +51,7 @@ class ClassChainWithReview(Runnable):
         input: ViewChainOutput
           - view_info: ビュー抽出結果
           - metamodel: メタモデル情報
+          - existing_classes: (オプション) 既存の抽出済みクラス
 
         Returns
         -------
@@ -58,6 +59,9 @@ class ClassChainWithReview(Runnable):
           - id: 抽出ID
           - classes: 統合されたクラス個体リスト
         """
+        # 既存クラスを取得（あれば）
+        existing_classes = input.get("existing_classes", [])
+
         # 1. ClassExtractor実行
         if self.progress:
             print("\n=== ClassExtractor ===")
@@ -112,8 +116,16 @@ class ClassChainWithReview(Runnable):
 
         result["classes"] = final_classes
 
+        # 4.5. 既存クラスを統合対象に追加
+        # ClassConsolidatorに渡す前に、新規抽出クラスと既存クラスをマージ
+        if existing_classes:
+            if self.progress:
+                print(f"\n=== Merging {len(existing_classes)} existing classes with {len(final_classes)} new classes ===")
+            result["classes"] = final_classes + existing_classes
+
         # 5. ClassConsolidator実行
         # ClassReviewerでREJECTは除外されるため、ACCEPTのみが渡される
+        # ClassConsolidatorのLLMが新規クラスと既存クラスの重複を判定して統合する
         if self.progress:
             print("\n=== ClassConsolidator ===")
         result = self.consolidator.invoke(result)
