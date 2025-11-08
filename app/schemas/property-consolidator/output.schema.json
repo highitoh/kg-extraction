@@ -1,0 +1,30 @@
+{
+  "$id": "https://github.com/highitoh/kg-extraction/schemas/property-consolidator/output.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "PropertyConsolidatorOutput",
+  "type": "object",
+  "description": "PropertyConsolidatorの出力スキーマ（PropertyExtractorと同じ形式）",
+  "properties": {
+    "id": {
+      "type": "string",
+      "description": "抽出ID"
+    },
+    "properties": {
+      "type": "array",
+      "description": "統合済みプロパティリスト",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {"type": "string"},
+          "src_id": {"type": "string"},
+          "property_iri": {"type": "string"},
+          "dest_id": {"type": "string"},
+          "strength": {"type": "integer", "minimum": 0, "maximum": 3}
+        },
+        "required": ["id", "src_id", "property_iri", "dest_id", "strength"]
+      }
+    }
+  },
+  "required": ["id", "properties"],
+  "additionalProperties": false
+}

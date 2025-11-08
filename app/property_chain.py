@@ -2,6 +2,7 @@ from typing import Dict, Any
 from langchain_core.runnables import Runnable, RunnableSequence
 
 from property_extractor import PropertyExtractor
+from property_consolidator import PropertyConsolidator
 from property_ranker import PropertyRanker
 from property_reviewer import PropertyReviewer
 from property_editor import PropertyEditor
@@ -100,7 +101,7 @@ class EditorToFilterAdapter(Runnable):
 class PropertyChainWithReview(Runnable):
     """
     Property extraction chain with iterative review loop:
-      PropertyExtractor -> PropertyRanker -> PropertyReviewer -> (PropertyEditor -> PropertyReviewer)* -> PropertyValidator
+      PropertyExtractor -> PropertyConsolidator -> PropertyRanker -> PropertyReviewer -> (PropertyEditor -> PropertyReviewer)* -> PropertyValidator
 
     ループロジック:
     - PropertyReviewerでREVIEW判定されたプロパティをPropertyEditorで修正
@@ -111,30 +112,36 @@ class PropertyChainWithReview(Runnable):
 
     def __init__(self,
                  extractor: PropertyExtractor,
+                 consolidator: PropertyConsolidator,
                  ranker: PropertyRanker,
                  property_reviewer: PropertyReviewer,
                  editor: PropertyEditor,
                  validator: PropertyValidator,
                  original_input: Dict[str, Any],
+                 existing_properties: list = None,
                  max_review_iterations: int = 3,
                  progress: bool = True):
         """
         Args:
             extractor: PropertyExtractorインスタンス
+            consolidator: PropertyConsolidatorインスタンス
             ranker: PropertyRankerインスタンス
             property_reviewer: PropertyReviewerインスタンス
             editor: PropertyEditorインスタンス
             validator: PropertyValidatorインスタンス
             original_input: 元の入力（アダプター用）
+            existing_properties: 既存プロパティリスト（オプション）
             max_review_iterations: REVIEW判定の最大反復回数（デフォルト: 3）
             progress: 進捗表示フラグ
         """
         self.extractor = extractor
+        self.consolidator = consolidator
         self.ranker = ranker
         self.property_reviewer = property_reviewer
         self.editor = editor
         self.validator = validator
         self.original_input = original_input
+        self.existing_properties = existing_properties or []
         self.max_review_iterations = max_review_iterations
         self.progress = progress
 
@@ -159,21 +166,32 @@ class PropertyChainWithReview(Runnable):
             print("\n=== PropertyExtractor ===")
         result = self.extractor.invoke(input)
 
-        # 2. PropertyRanker実行
+        # 2. PropertyConsolidator実行（既存プロパティとマージ）
+        if self.progress:
+            print("\n=== PropertyConsolidator ===")
+        consolidator_input = {
+            "id": result.get("id"),
+            "properties": result.get("properties", []),
+            "existing_properties": self.existing_properties,
+            "class_info": self.original_input.get("class_info", {})
+        }
+        result = self.consolidator.invoke(consolidator_input)
+
+        # 3. PropertyRanker実行
         if self.progress:
             print("\n=== PropertyRanker ===")
         adapter1 = ExtractorToRankerAdapter(self.original_input)
         ranker_input = adapter1.invoke(result)
         result = self.ranker.invoke(ranker_input)
 
-        # 3. PropertyReviewer実行（初回）
+        # 4. PropertyReviewer実行（初回）
         if self.progress:
             print("\n=== PropertyReviewer (Initial) ===")
         adapter2 = RankerToFilterAdapter(self.original_input)
         filter_input = adapter2.invoke(result)
         result = self.property_reviewer.invoke(filter_input)
 
-        # 4. ループ: PropertyEditor -> PropertyReviewer
+        # 5. ループ: PropertyEditor -> PropertyReviewer
         for iteration in range(self.max_review_iterations):
             # REVIEWが残っているか確認
             review_count = sum(1 for p in result.get("properties", []) if p.get("judgment") == "REVIEW")
@@ -201,7 +219,7 @@ class PropertyChainWithReview(Runnable):
             filter_input = adapter_loop.invoke(result)
             result = self.property_reviewer.invoke(filter_input)
 
-        # 5. 最大回数到達後もREVIEWが残っている場合はACCEPTに変換
+        # 6. 最大回数到達後もREVIEWが残っている場合はACCEPTに変換
         final_properties = []
         accepted_review_count = 0
         for p in result.get("properties", []):
@@ -219,7 +237,7 @@ class PropertyChainWithReview(Runnable):
 
         result["properties"] = final_properties
 
-        # 6. PropertyValidator実行
+        # 7. PropertyValidator実行
         if self.progress:
             print("\n=== PropertyValidator ===")
         result = self.validator.invoke(result)
@@ -259,35 +277,39 @@ class PropertyChainWithAdapter(Runnable):
         return chain.invoke(input, config)
 
 
-def create_property_chain(model: str = None, max_review_iterations: int = 3, enable_review: bool = True) -> Runnable:
+def create_property_chain(model: str = None, max_review_iterations: int = 3, enable_review: bool = True, existing_properties: list = None) -> Runnable:
     """
     プロパティ抽出チェーン:
-      - enable_review=True: PropertyExtractor -> PropertyRanker -> PropertyReviewer -> (PropertyEditor -> PropertyReviewer)* -> PropertyValidator
-      - enable_review=False: PropertyExtractor -> PropertyRanker -> PropertyReviewer -> PropertyValidator
+      - enable_review=True: PropertyExtractor -> PropertyConsolidator -> PropertyRanker -> PropertyReviewer -> (PropertyEditor -> PropertyReviewer)* -> PropertyValidator
+      - enable_review=False: PropertyExtractor -> PropertyConsolidator -> PropertyRanker -> PropertyReviewer -> PropertyValidator
 
     Args:
         model: LLMモデル名（Noneの場合は各コンポーネントのデフォルトを使用）
         max_review_iterations: REVIEW判定の最大反復回数（デフォルト: 3）
         enable_review: Reviewループを有効にするか（デフォルト: True）
+        existing_properties: 既存プロパティリスト（統合用、デフォルト: None）
     """
     if not enable_review:
         return PropertyChainWithAdapter(model=model)
 
     # PropertyChainWithReviewを使用する場合、invoke時に入力が必要なのでラッパーを返す
     class PropertyChainWithReviewWrapper(Runnable):
-        def __init__(self, model: str = None, max_review_iterations: int = 3):
+        def __init__(self, model: str = None, max_review_iterations: int = 3, existing_properties: list = None):
             self.model = model
             self.max_review_iterations = max_review_iterations
+            self.existing_properties = existing_properties or []
 
         def invoke(self, input: Dict[str, Any], config=None) -> Dict[str, Any]:
             # コンポーネントを作成
             if self.model is not None:
                 extractor = PropertyExtractor(model=self.model)
+                consolidator = PropertyConsolidator(model=self.model)
                 ranker = PropertyRanker(model=self.model)
                 property_reviewer = PropertyReviewer(model=self.model)
                 editor = PropertyEditor(model=self.model)
             else:
                 extractor = PropertyExtractor()
+                consolidator = PropertyConsolidator()
                 ranker = PropertyRanker()
                 property_reviewer = PropertyReviewer()
                 editor = PropertyEditor()
@@ -296,18 +318,20 @@ def create_property_chain(model: str = None, max_review_iterations: int = 3, ena
             # PropertyChainWithReviewを作成
             chain = PropertyChainWithReview(
                 extractor=extractor,
+                consolidator=consolidator,
                 ranker=ranker,
                 property_reviewer=property_reviewer,
                 editor=editor,
                 validator=validator,
                 original_input=input,
+                existing_properties=self.existing_properties,
                 max_review_iterations=self.max_review_iterations,
                 progress=True
             )
 
             return chain.invoke(input, config)
 
-    return PropertyChainWithReviewWrapper(model=model, max_review_iterations=max_review_iterations)
+    return PropertyChainWithReviewWrapper(model=model, max_review_iterations=max_review_iterations, existing_properties=existing_properties)
 
 
 if __name__ == "__main__":

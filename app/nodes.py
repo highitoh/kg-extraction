@@ -245,9 +245,37 @@ def extract_properties_node(state: KnowledgeExtractionState) -> KnowledgeExtract
     """
     プロパティ（関係）を抽出するノード（抽出・フィルタ・バリデーションを含む）
     classes, metamodel -> properties
+
+    既存のextraction_result.jsonがあれば、強度>0のプロパティを読み込んで
+    新規抽出プロパティと統合する
     """
     try:
-        property_chain = create_property_chain(model=state.get("model"))
+        # 既存プロパティの読み込み
+        existing_properties = []
+        output_dir = state.get("output_dir", "/workspace/app/output")
+        project = state.get("project", "default")
+        extraction_result_path = os.path.join(output_dir, project, "extraction_result.json")
+
+        if os.path.exists(extraction_result_path):
+            try:
+                with open(extraction_result_path, "r", encoding="utf-8") as f:
+                    previous_result = json.load(f)
+                    # 強度>0のプロパティのみを読み込み
+                    all_existing_properties = previous_result.get("properties", [])
+                    existing_properties = [
+                        p for p in all_existing_properties
+                        if p.get("strength", 0) > 0
+                    ]
+                    if existing_properties:
+                        print(f"[ExtractPropertiesNode] Loaded {len(existing_properties)} existing properties (strength > 0) from previous extraction")
+            except (json.JSONDecodeError, KeyError) as e:
+                print(f"[ExtractPropertiesNode] Warning: Could not load existing properties from {extraction_result_path}: {e}")
+                existing_properties = []
+
+        property_chain = create_property_chain(
+            model=state.get("model"),
+            existing_properties=existing_properties
+        )
 
         # PropertyChainの入力形式に合わせる
         input_data = {

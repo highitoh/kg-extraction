@@ -1,0 +1,56 @@
+{
+  "$id": "https://github.com/highitoh/kg-extraction/schemas/property-consolidator/input.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "PropertyConsolidatorInput",
+  "type": "object",
+  "description": "PropertyConsolidatorの入力スキーマ",
+  "properties": {
+    "id": {
+      "type": "string",
+      "description": "抽出ID"
+    },
+    "properties": {
+      "type": "array",
+      "description": "新規抽出プロパティリスト",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {"type": "string"},
+          "src_id": {"type": "string"},
+          "property_iri": {"type": "string"},
+          "dest_id": {"type": "string"},
+          "strength": {"type": "integer", "minimum": 0, "maximum": 3}
+        },
+        "required": ["id", "src_id", "property_iri", "dest_id", "strength"]
+      }
+    },
+    "existing_properties": {
+      "type": "array",
+      "description": "既存プロパティリスト（オプション）",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {"type": "string"},
+          "src_id": {"type": "string"},
+          "property_iri": {"type": "string"},
+          "dest_id": {"type": "string"},
+          "strength": {"type": "integer", "minimum": 0, "maximum": 3}
+        },
+        "required": ["id", "src_id", "property_iri", "dest_id"]
+      }
+    },
+    "class_info": {
+      "type": "object",
+      "description": "クラス情報（ID正規化用）",
+      "properties": {
+        "id": {"type": "string"},
+        "classes": {
+          "type": "array",
+          "items": {"type": "object"}
+        }
+      }
+    }
+  },
+  "required": ["id", "properties", "class_info"],
+  "additionalProperties": true
+}

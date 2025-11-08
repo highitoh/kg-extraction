@@ -1,0 +1,34 @@
+{
+  "$id": "https://github.com/highitoh/kg-extraction/schemas/property-consolidator/llm.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "PropertyConsolidatorLLMOutput",
+  "type": "object",
+  "description": "PropertyConsolidatorのLLM出力スキーマ - 類似プロパティのグループ化結果",
+  "properties": {
+    "groups": {
+      "type": "array",
+      "description": "類似プロパティのグループリスト",
+      "items": {
+        "type": "object",
+        "properties": {
+          "indices": {
+            "type": "array",
+            "items": {
+              "type": "integer"
+            },
+            "minItems": 1,
+            "description": "同一関係を表すプロパティのインデックスリスト（0始まり）"
+          },
+          "reason": {
+            "type": "string",
+            "description": "グループ化の理由（ログ・デバッグ用）"
+          }
+        },
+        "required": ["indices", "reason"],
+        "additionalProperties": false
+      }
+    }
+  },
+  "required": ["groups"],
+  "additionalProperties": false
+}
