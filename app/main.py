@@ -48,12 +48,24 @@ def _save_accumulated_knowledge(result: Dict[str, Any], project_output_dir: str)
         except (json.JSONDecodeError, KeyError) as e:
             print(f"[Warning] Could not load existing knowledge.json: {e}")
 
-    # クラスをマージ（IDベースで重複排除）
-    existing_class_ids = {c.get("id") for c in existing_knowledge.get("classes", [])}
-    merged_classes = list(existing_knowledge.get("classes", []))
-    for cls in current_classes:
-        if cls.get("id") not in existing_class_ids:
-            merged_classes.append(cls)
+    # クラスをマージ（semantic keyベースで重複排除・置換）
+    # Build map of current classes by semantic key
+    current_class_map = {
+        (c.get("class_iri"), c.get("label")): c
+        for c in current_classes
+    }
+
+    # Build map of existing classes by semantic key
+    existing_class_map = {
+        (c.get("class_iri"), c.get("label")): c
+        for c in existing_knowledge.get("classes", [])
+    }
+
+    # Merge: current classes override existing ones with same (class_iri, label)
+    for key, cls in current_class_map.items():
+        existing_class_map[key] = cls  # Replace or add
+
+    merged_classes = list(existing_class_map.values())
 
     # プロパティをマージ（IDベースで重複排除、強度更新）
     existing_property_map = {p.get("id"): p for p in existing_knowledge.get("properties", [])}
