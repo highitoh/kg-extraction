@@ -90,7 +90,6 @@ python main.py ../doc/sample2.pdf --project test-project --model gpt-5-nano
 
 ## Environment Variables
 - `NEO4J_AUTH=neo4j/neo4jpassword` (Docker環境)
-- `NEO4J_initial_dbms_default__database=partner`
 
 ## Output Files
 出力ファイルは`--project`パラメータで指定したプロジェクト別に管理される。
