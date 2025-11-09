@@ -240,7 +240,15 @@ class PropertyChainWithReview(Runnable):
         # 7. PropertyValidator実行
         if self.progress:
             print("\n=== PropertyValidator ===")
-        result = self.validator.invoke(result)
+        validator_input = {
+            "property_candidates": {
+                "id": result.get("id"),
+                "properties": result.get("properties", [])
+            },
+            "class_info": self.original_input.get("class_info", {}),
+            "metamodel": self.original_input.get("metamodel", {})
+        }
+        result = self.validator.invoke(validator_input)
 
         return result
 
