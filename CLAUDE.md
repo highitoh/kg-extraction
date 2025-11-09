@@ -13,12 +13,22 @@ PDFファイルから知識を抽出してTurtleファイルとNeo4j用CSVファ
 ```
 /workspace/
 ├── app/                    # メインアプリケーション
-│   ├── main.py            # 知識グラフ抽出スクリプト
+│   ├── src/               # ソースコード (ステージベース構成)
+│   │   ├── core/          # アプリケーション中核 (main.py, graph.py, nodes.py, state.py)
+│   │   ├── utils/         # 共通ユーティリティ (logger.py, llm_factory.py, chunk_creator.py)
+│   │   ├── classification/  # ファイル分類ステージ
+│   │   ├── text/          # テキスト抽出ステージ (document/presentation)
+│   │   ├── view/          # ビュー抽出ステージ
+│   │   ├── class/         # クラス抽出ステージ
+│   │   ├── property/      # プロパティ抽出ステージ
+│   │   └── output/        # 出力生成ステージ (turtle_generator.py, neo4j_csv_generator.py)
 │   ├── schemas/           # 入出力スキーマ定義
 │   │   ├── *-chain/
 │   │   └── common/        # 共通スキーマ
 │   ├── prompts/           # タスク用プロンプトテキスト
-│   ├── *.py               # チェイン・タスク実行スクリプト群
+│   ├── metamodel/         # メタモデル定義
+│   ├── output/            # 生成ファイル出力先
+│   ├── log/               # ログファイル
 │   └── requirements.txt   # Python依存関係
 ├── neo4j/                 # Neo4jデータ
 └── doc/                   # ドキュメント
@@ -43,19 +53,19 @@ PDFファイルから知識を抽出してTurtleファイルとNeo4j用CSVファ
 cd app && pip install -r requirements.txt
 
 # メインアプリケーションの実行
-cd app && python main.py [PDF_PATH]
+cd app && python src/core/main.py [PDF_PATH]
 
 # プロジェクト別に出力ファイルを管理
-cd app && python main.py [PDF_PATH] --project [PROJECT_NAME]
+cd app && python src/core/main.py [PDF_PATH] --project [PROJECT_NAME]
 
 # すべてのオプション
-cd app && python main.py [PDF_PATH] --project [PROJECT_NAME] --model [MODEL_NAME] --output-dir [OUTPUT_DIR]
+cd app && python src/core/main.py [PDF_PATH] --project [PROJECT_NAME] --model [MODEL_NAME] --output-dir [OUTPUT_DIR]
 
-# 特定のチェインの実行 (統合前)
-cd app && python doc_text_chain.py
-cd app && python view_chain.py
-cd app && python class_chain.py
-cd app && python property_chain.py
+# 特定のチェインの実行 (開発・デバッグ用)
+cd app && python -c "import sys; sys.path.insert(0, '.'); from src.text.doc_text_chain import *"
+cd app && python -c "import sys; sys.path.insert(0, '.'); from src.view.view_chain import *"
+cd app && python -c "import sys; sys.path.insert(0, '.'); from src.class.class_chain import *"
+cd app && python -c "import sys; sys.path.insert(0, '.'); from src.property.property_chain import *"
 ```
 
 ### Docker Environment
@@ -76,16 +86,16 @@ docker exec -it app_container bash
 ### Single file extraction
 ```bash
 # デフォルトプロジェクト
-python main.py ../doc/sample.pdf --model gpt-5-nano
+python src/core/main.py ../doc/sample.pdf --model gpt-5-nano
 
 # 特定のプロジェクト
-python main.py ../doc/sample.pdf --project test-project --model gpt-5-nano
+python src/core/main.py ../doc/sample.pdf --project test-project --model gpt-5-nano
 ```
 
 ### Multiple files extraction
 ```bash
-python main.py ../doc/sample.pdf --project test-project --model gpt-5-nano
-python main.py ../doc/sample2.pdf --project test-project --model gpt-5-nano
+python src/core/main.py ../doc/sample.pdf --project test-project --model gpt-5-nano
+python src/core/main.py ../doc/sample2.pdf --project test-project --model gpt-5-nano
 ```
 
 ## Environment Variables
@@ -139,7 +149,7 @@ python main.py ../doc/sample2.pdf --project test-project --model gpt-5-nano
 
 ## Command Line Arguments
 ```bash
-python main.py [PDF_PATH] [OPTIONS]
+python src/core/main.py [PDF_PATH] [OPTIONS]
 
 Arguments:
   PDF_PATH              抽出対象のPDFファイルパス (デフォルト: ../doc/sample.pdf)

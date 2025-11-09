@@ -5,13 +5,13 @@ import uuid
 from langchain_core.runnables import Runnable
 from langchain_core.runnables.config import RunnableConfig
 import pdfplumber
-from logger import Logger
+from src.utils.logger import Logger
 
 class DocTextExtractor(Runnable):
     """ドキュメントファイルからテキストを抽出するタスク"""
 
     def __init__(self):
-        self.logger = Logger("./log/doc_text_extractor")
+        self.logger = Logger("/workspace/app/log/doc_text_extractor")
 
     def _extract_text(self, pdf_path: str) -> str:
         """

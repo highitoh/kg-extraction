@@ -3,9 +3,9 @@ from typing import Any, Dict
 from langchain_core.runnables import Runnable
 from langchain_core.runnables.config import RunnableConfig
 
-from doc_text_extractor import DocTextExtractor
-from doc_text_filter import DocTextFilter
-from text_transformer import TextTransformer
+from .doc_text_extractor import DocTextExtractor
+from .doc_text_filter import DocTextFilter
+from .text_transformer import TextTransformer
 
 class DocTextChain(Runnable):
     """ドキュメントテキスト抽出チェイン"""

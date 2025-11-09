@@ -18,14 +18,14 @@ import uuid
 
 from langchain_core.runnables import Runnable
 from langchain_core.runnables.config import RunnableConfig
-from logger import Logger
+from src.utils.logger import Logger
 
 
 class TextTransformer(Runnable):
     """テキスト整形クラス"""
 
     def __init__(self):
-        self.logger = Logger("./log/text_transformer")
+        self.logger = Logger("/workspace/app/log/text_transformer")
         # 文末記号と閉じ記号の定義
         self.EOS_CHARS = '。．！？!?'
         self.CLOSE_CHARS = '」』）】》"\'"'

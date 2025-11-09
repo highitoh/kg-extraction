@@ -1,12 +1,12 @@
 from typing import Dict, Any
 from langchain_core.runnables import Runnable, RunnableSequence
 
-from property_extractor import PropertyExtractor
-from property_consolidator import PropertyConsolidator
-from property_ranker import PropertyRanker
-from property_reviewer import PropertyReviewer
-from property_editor import PropertyEditor
-from property_validator import PropertyValidator
+from .property_extractor import PropertyExtractor
+from .property_consolidator import PropertyConsolidator
+from .property_ranker import PropertyRanker
+from .property_reviewer import PropertyReviewer
+from .property_editor import PropertyEditor
+from .property_validator import PropertyValidator
 
 
 class ExtractorToRankerAdapter(Runnable):

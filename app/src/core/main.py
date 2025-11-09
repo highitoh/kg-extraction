@@ -11,11 +11,16 @@ from datetime import datetime
 from typing import Dict, Any
 from dotenv import load_dotenv
 
+# Add the app directory to sys.path to enable src imports
+app_dir = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+if app_dir not in sys.path:
+    sys.path.insert(0, app_dir)
+
 # Load environment variables from .env file
 load_dotenv()
 
-from graph import create_knowledge_extraction_graph
-from state import KnowledgeExtractionState
+from src.core.graph import create_knowledge_extraction_graph
+from src.core.state import KnowledgeExtractionState
 
 
 def _save_accumulated_knowledge(result: Dict[str, Any], project_output_dir: str) -> None:

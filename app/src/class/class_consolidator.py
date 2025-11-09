@@ -8,8 +8,8 @@ from langchain_core.messages import HumanMessage
 from langchain_core.runnables import Runnable
 from openai import APIConnectionError, RateLimitError, APIError
 
-from logger import Logger
-from llm_factory import LLMFactory
+from src.utils.logger import Logger
+from src.utils.llm_factory import LLMFactory
 
 
 class ClassConsolidator(Runnable):
@@ -26,7 +26,7 @@ class ClassConsolidator(Runnable):
         progress: bool = True,
         max_concurrency: int = 8,
         max_retries: int = 5,
-        log_dir: str = "log/class_consolidator"
+        log_dir: str = "/workspace/app/log/class_consolidator"
     ):
         self.llm = llm or LLMFactory.create_llm(
             model=model,
@@ -45,19 +45,25 @@ class ClassConsolidator(Runnable):
 
     def _load_metamodel(self) -> dict:
         """メタモデルファイルを読み込む"""
-        metamodel_path = os.path.join(os.path.dirname(__file__), "metamodel", "metamodel.json")
+        # Go up 2 levels from src/class/ to /workspace/app/
+        app_dir = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+        metamodel_path = os.path.join(app_dir, "metamodel", "metamodel.json")
         with open(metamodel_path, "r", encoding="utf-8") as f:
             return json.load(f)
 
     def _load_prompt_template(self) -> str:
         """プロンプトテンプレートファイルを読み込み"""
-        prompt_path = os.path.join(os.path.dirname(__file__), "prompts", "class_consolidator.txt")
+        # Go up 2 levels from src/class/ to /workspace/app/
+        app_dir = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+        prompt_path = os.path.join(app_dir, "prompts", "class_consolidator.txt")
         with open(prompt_path, "r", encoding="utf-8") as f:
             return f.read()
 
     def _build_schema(self) -> dict:
         """LLM用のJSONスキーマを読み込む"""
-        schema_path = os.path.join(os.path.dirname(__file__), "schemas", "class-consolidator", "llm.schema.json")
+        # Go up 2 levels from src/class/ to /workspace/app/
+        app_dir = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+        schema_path = os.path.join(app_dir, "schemas", "class-consolidator", "llm.schema.json")
         with open(schema_path, "r", encoding="utf-8") as f:
             return json.load(f)
 
@@ -376,7 +382,7 @@ if __name__ == "__main__":
     print(f"\nInput data contains {len(test_input.get('classes', []))} classes")
 
     # Create and run the consolidator
-    consolidator = ClassConsolidator(progress=True, log_dir="log/class_consolidator")
+    consolidator = ClassConsolidator(progress=True, log_dir="/workspace/app/log/class_consolidator")
     result = consolidator.invoke(test_input)
 
     print(f"\nOutput data contains {len(result.get('classes', []))} classes")

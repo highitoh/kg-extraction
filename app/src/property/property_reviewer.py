@@ -10,8 +10,8 @@ from langchain_core.messages import HumanMessage
 from langchain_openai import ChatOpenAI
 from openai import APIConnectionError, RateLimitError, APIError
 
-from logger import Logger
-from llm_factory import LLMFactory
+from src.utils.logger import Logger
+from src.utils.llm_factory import LLMFactory
 
 
 class PropertyReviewer(Runnable):
@@ -24,7 +24,7 @@ class PropertyReviewer(Runnable):
         max_concurrency: int = 8,
         max_retries: int = 5,
         progress: bool = True,
-        log_dir: str = "log/property_reviewer",
+        log_dir: str = "/workspace/app/log/property_reviewer",
         batch_size: int = 24,
     ):
         self.llm = llm or LLMFactory.create_llm(
@@ -46,19 +46,31 @@ class PropertyReviewer(Runnable):
     # ===== Utilities =====
     def _load_llm_schema(self) -> Dict[str, Any]:
         """LLM出力スキーマを読み込み"""
-        schema_path = os.path.join(os.path.dirname(__file__), "schemas", "property-reviewer", "llm.schema.json")
+        # Go up 2 levels from src/XXX/ to /workspace/app/
+
+        app_dir = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+
+        schema_path = os.path.join(app_dir, "schemas", "property-reviewer", "llm.schema.json")
         with open(schema_path, "r", encoding="utf-8") as f:
             return json.load(f)
 
     def _load_prompt(self) -> str:
         """プロンプトファイルを読み込み"""
-        prompt_path = os.path.join(os.path.dirname(__file__), "prompts", "property_reviewer.txt")
+        # Go up 2 levels from src/XXX/ to /workspace/app/
+
+        app_dir = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+
+        prompt_path = os.path.join(app_dir, "prompts", "property_reviewer.txt")
         with open(prompt_path, "r", encoding="utf-8") as f:
             return f.read()
 
     def _load_metamodel(self) -> Dict[str, Any]:
         """メタモデルを読み込み"""
-        metamodel_path = os.path.join(os.path.dirname(__file__), "metamodel", "metamodel.json")
+        # Go up 2 levels from src/XXX/ to /workspace/app/
+
+        app_dir = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+
+        metamodel_path = os.path.join(app_dir, "metamodel", "metamodel.json")
         with open(metamodel_path, "r", encoding="utf-8") as f:
             return json.load(f)
 
@@ -396,8 +408,8 @@ if __name__ == "__main__":
     # を読み込み、フィルタリング結果を表示
     pf = PropertyReviewer()
 
-    prop_files = sorted(glob.glob("log/property_extractor/property_extractor_output_*.json"), reverse=True)
-    cls_files = sorted(glob.glob("log/class_consolidator/class_consolidator_output_*.json"), reverse=True)
+    prop_files = sorted(glob.glob("/workspace/app/log/property_extractor/property_extractor_output_*.json"), reverse=True)
+    cls_files = sorted(glob.glob("/workspace/app/log/class_consolidator/class_consolidator_output_*.json"), reverse=True)
 
     if not prop_files:
         print("Error: No property_extractor_output files found in log/property_extractor/")

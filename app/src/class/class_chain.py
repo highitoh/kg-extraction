@@ -1,10 +1,10 @@
 from typing import Dict, Any
 from langchain_core.runnables import RunnableSequence, Runnable
 
-from class_extractor import ClassExtractor
-from class_reviewer import ClassReviewer
-from class_editor import ClassEditor
-from class_consolidator import ClassConsolidator
+from .class_extractor import ClassExtractor
+from .class_reviewer import ClassReviewer
+from .class_editor import ClassEditor
+from .class_consolidator import ClassConsolidator
 
 
 class ClassChainWithReview(Runnable):

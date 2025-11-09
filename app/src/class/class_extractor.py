@@ -11,8 +11,8 @@ from langchain_core.messages import HumanMessage
 from langchain_core.runnables import Runnable
 from openai import APIConnectionError, RateLimitError, APIError
 
-from logger import Logger
-from llm_factory import LLMFactory
+from src.utils.logger import Logger
+from src.utils.llm_factory import LLMFactory
 
 VIEW_TYPES = [
     "value_analysis",
@@ -50,7 +50,7 @@ class ClassExtractor(Runnable):
         progress: bool = True,
         max_concurrency: int = 8,
         max_retries: int = 5,
-        log_dir: str = "log/class_extractor"
+        log_dir: str = "/workspace/app/log/class_extractor"
     ):
         self.llm = llm or LLMFactory.create_llm(
             model=model,
@@ -71,13 +71,17 @@ class ClassExtractor(Runnable):
 
     def _load_schema(self) -> dict:
         """JSONスキーマファイルを読み込む"""
-        schema_path = os.path.join(os.path.dirname(__file__), "schemas", "class-extractor", "llm.schema.json")
+        # Go up 2 levels from src/class/ to /workspace/app/
+        app_dir = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+        schema_path = os.path.join(app_dir, "schemas", "class-extractor", "llm.schema.json")
         with open(schema_path, "r", encoding="utf-8") as f:
             return json.load(f)
 
     def _load_prompt_template(self) -> str:
         """プロンプトテンプレートファイルを読み込む"""
-        prompt_path = os.path.join(os.path.dirname(__file__), "prompts", "class_extractor.txt")
+        # Go up 2 levels from src/class/ to /workspace/app/
+        app_dir = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+        prompt_path = os.path.join(app_dir, "prompts", "class_extractor.txt")
         with open(prompt_path, "r", encoding="utf-8") as f:
             return f.read()
 
@@ -405,7 +409,11 @@ if __name__ == "__main__":
         view_info = json.load(f)
 
     # メタモデルを取得
-    metamodel_path = os.path.join(os.path.dirname(__file__), "metamodel", "metamodel.json")
+    # Go up 2 levels from src/XXX/ to /workspace/app/
+
+    app_dir = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+
+    metamodel_path = os.path.join(app_dir, "metamodel", "metamodel.json")
     with open(metamodel_path, "r", encoding="utf-8") as f:
         metamodel = json.load(f)
 

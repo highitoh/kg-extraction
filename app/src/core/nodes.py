@@ -5,23 +5,28 @@ LangGraph Node Functions for Knowledge Extraction
 
 import os
 import json
+import importlib
 from typing import Dict, Any
 
-from state import KnowledgeExtractionState
-from file_type_classifier import FileTypeClassifier
-from doc_text_chain import DocTextChain
-from presentation_text_chain import PresentationTextChain
-from view_chain import create_view_chain
-from class_chain import create_class_chain
-from property_chain import create_property_chain
-from turtle_generator import TurtleGenerator
-from neo4j_csv_generator import Neo4jCSVGenerator
-from chunk_creator import ChunkCreator
+from src.core.state import KnowledgeExtractionState
+from src.classification.file_type_classifier import FileTypeClassifier
+from src.text.doc_text_chain import DocTextChain
+from src.text.presentation_text_chain import PresentationTextChain
+from src.view.view_chain import create_view_chain
+# Note: 'class' is a reserved keyword, so we use importlib for this import
+_class_chain_module = importlib.import_module('src.class.class_chain')
+create_class_chain = _class_chain_module.create_class_chain
+from src.property.property_chain import create_property_chain
+from src.output.turtle_generator import TurtleGenerator
+from src.output.neo4j_csv_generator import Neo4jCSVGenerator
+from src.utils.chunk_creator import ChunkCreator
 
 
 def _load_metamodel() -> Dict[str, Any]:
     """メタモデルファイルを読み込む"""
-    metamodel_path = os.path.join(os.path.dirname(__file__), "metamodel", "metamodel.json")
+    # Go up 2 levels from src/core/ to /workspace/app/
+    app_dir = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+    metamodel_path = os.path.join(app_dir, "metamodel", "metamodel.json")
     with open(metamodel_path, "r", encoding="utf-8") as f:
         return json.load(f)
 

@@ -5,7 +5,7 @@ import uuid
 from langchain_core.runnables import Runnable
 from langchain_core.runnables.config import RunnableConfig
 import pdfplumber
-from logger import Logger
+from src.utils.logger import Logger
 
 class PresentationTextExtractor(Runnable):
     """プレゼンテーションファイルからスライドごとにテキストを抽出するタスク
@@ -15,7 +15,7 @@ class PresentationTextExtractor(Runnable):
     """
 
     def __init__(self):
-        self.logger = Logger("./log/presentation_text_extractor")
+        self.logger = Logger("/workspace/app/log/presentation_text_extractor")
 
     def _extract_text_by_slide(self, pdf_path: str) -> list[tuple[int, str]]:
         """

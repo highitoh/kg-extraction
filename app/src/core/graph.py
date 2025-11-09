@@ -4,8 +4,8 @@ LangGraph Graph Construction for Knowledge Extraction
 """
 
 from langgraph.graph import StateGraph, END
-from state import KnowledgeExtractionState
-from nodes import (
+from src.core.state import KnowledgeExtractionState
+from src.core.nodes import (
     classify_file_type_node,
     extract_text_document_node,
     extract_text_presentation_node,

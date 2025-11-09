@@ -9,8 +9,8 @@ from langchain_core.messages import HumanMessage
 from langchain_openai import ChatOpenAI
 from openai import APIConnectionError, RateLimitError, APIError
 
-from logger import Logger
-from llm_factory import LLMFactory
+from src.utils.logger import Logger
+from src.utils.llm_factory import LLMFactory
 
 class PropertyExtractor(Runnable):
     """
@@ -27,7 +27,7 @@ class PropertyExtractor(Runnable):
         max_concurrency: int = 8,
         max_retries: int = 5,
         progress: bool = True,
-        log_dir: str = "log/property_extractor",
+        log_dir: str = "/workspace/app/log/property_extractor",
         batch_size: int = 20,
     ):
         self.llm = llm or LLMFactory.create_llm(
@@ -55,19 +55,31 @@ class PropertyExtractor(Runnable):
 
     def _load_schema(self) -> dict:
         """JSONスキーマファイルを読み込む"""
-        schema_path = os.path.join(os.path.dirname(__file__), "schemas", "property-extractor", "llm.schema.json")
+        # Go up 2 levels from src/XXX/ to /workspace/app/
+
+        app_dir = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+
+        schema_path = os.path.join(app_dir, "schemas", "property-extractor", "llm.schema.json")
         with open(schema_path, "r", encoding="utf-8") as f:
             return json.load(f)
 
     def _load_metamodel(self) -> dict:
         """メタモデルファイルを読み込む"""
-        metamodel_path = os.path.join(os.path.dirname(__file__), "metamodel", "metamodel.json")
+        # Go up 2 levels from src/XXX/ to /workspace/app/
+
+        app_dir = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+
+        metamodel_path = os.path.join(app_dir, "metamodel", "metamodel.json")
         with open(metamodel_path, "r", encoding="utf-8") as f:
             return json.load(f)
 
     def _load_prompt(self) -> str:
         """プロンプトを読み込み"""
-        prompt_path = os.path.join(os.path.dirname(__file__), "prompts", "property_extractor.txt")
+        # Go up 2 levels from src/XXX/ to /workspace/app/
+
+        app_dir = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+
+        prompt_path = os.path.join(app_dir, "prompts", "property_extractor.txt")
         with open(prompt_path, "r", encoding="utf-8") as f:
             return f.read()
 
@@ -335,7 +347,7 @@ if __name__ == "__main__":
     extractor = PropertyExtractor()
 
     # Load the latest ClassReviewer output JSON
-    class_files = sorted(glob.glob("log/class_consolidator/class_consolidator_output_*.json"), reverse=True)
+    class_files = sorted(glob.glob("/workspace/app/log/class_consolidator/class_consolidator_output_*.json"), reverse=True)
 
     if not class_files:
         print("Error: No ClassReviewer output files found in log/class_consolidator/")

@@ -62,7 +62,7 @@ Credentials: neo4j / neo4jpassword (described in docker-compose.yml)
 
 ```bash
 cd app
-python main.py ../doc/sample.pdf
+python src/core/main.py ../doc/sample.pdf
 ```
 
 ### With Project Organization
@@ -70,7 +70,7 @@ python main.py ../doc/sample.pdf
 Organize output files by project:
 
 ```bash
-python main.py ../doc/sample.pdf --project my-project
+python src/core/main.py ../doc/sample.pdf --project my-project
 ```
 
 ### With Custom Model
@@ -78,13 +78,13 @@ python main.py ../doc/sample.pdf --project my-project
 For development, use `gpt-5-nano` to reduce costs:
 
 ```bash
-python main.py ../doc/sample.pdf --project test --model gpt-5-nano
+python src/core/main.py ../doc/sample.pdf --project test --model gpt-5-nano
 ```
 
 ### All Options
 
 ```bash
-python main.py ../doc/sample.pdf \
+python src/core/main.py ../doc/sample.pdf \
   --project healthcare \
   --model gpt-5-nano \
   --output-dir ./custom_output
@@ -95,7 +95,15 @@ python main.py ../doc/sample.pdf \
 ```
 /workspace/
 ├── app/                         # Main application
-│   ├── main.py                  # Main entry point
+│   ├── src/                     # Source code (stage-based organization)
+│   │   ├── core/                # Application core (main.py, graph.py, nodes.py, state.py)
+│   │   ├── utils/               # Shared utilities (logger.py, llm_factory.py, chunk_creator.py)
+│   │   ├── classification/      # Stage 0: File type classification
+│   │   ├── text/                # Stage 1: Text extraction (document/presentation)
+│   │   ├── view/                # Stage 2: View extraction
+│   │   ├── class/               # Stage 3: Class extraction
+│   │   ├── property/            # Stage 4: Property extraction
+│   │   └── output/              # Stage 5: Output generation (Turtle/Neo4j CSV)
 │   ├── schemas/                 # JSON schema definitions
 │   ├── prompts/                 # Prompt templates
 │   ├── metamodel/               # Metamodel definitions
@@ -172,17 +180,6 @@ This project uses MCP servers.
 
 ## Development
 
-### Run Individual Chains
-
-Test individual chains before integration:
-
-```bash
-cd app
-python doc_text_chain.py
-python view_chain.py
-python class_chain.py
-python property_chain.py
-```
 
 ### Docker Environment
 
@@ -208,7 +205,7 @@ docker-compose up -d neo4j
 ## Command Line Arguments
 
 ```bash
-python main.py [PDF_PATH] [OPTIONS]
+python src/core/main.py [PDF_PATH] [OPTIONS]
 ```
 
 ### Arguments
@@ -225,16 +222,16 @@ python main.py [PDF_PATH] [OPTIONS]
 
 ```bash
 # Use default settings
-python main.py
+python src/core/main.py
 
 # Specify project name
-python main.py ../doc/sample.pdf --project test
+python src/core/main.py ../doc/sample.pdf --project test
 
 # Development testing with cost-effective model
-python main.py ../doc/sample.pdf --project test --model gpt-5-nano
+python src/core/main.py ../doc/sample.pdf --project test --model gpt-5-nano
 
 # All options
-python main.py ../doc/sample.pdf --project test --model gpt-5-nano --output-dir /custom/output
+python src/core/main.py ../doc/sample.pdf --project test --model gpt-5-nano --output-dir /custom/output
 ```
 
 ## Tips

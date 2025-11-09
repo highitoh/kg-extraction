@@ -2,7 +2,7 @@ from typing import Dict, Any, List, Tuple
 
 from langchain_core.runnables import Runnable
 
-from logger import Logger
+from src.utils.logger import Logger
 
 class ViewFilter(Runnable):
     """
@@ -13,7 +13,7 @@ class ViewFilter(Runnable):
     DuplicateSentenceRemovalRuleを適用して重複文章を削除
     """
 
-    def __init__(self, progress: bool = True, log_dir: str = "log/view_filter"):
+    def __init__(self, progress: bool = True, log_dir: str = "/workspace/app/log/view_filter"):
         self.progress = progress
         # Loggerを初期化
         self.logger = Logger(log_dir)

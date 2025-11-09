@@ -8,7 +8,7 @@ from langchain_core.runnables import Runnable
 from openai import OpenAI
 from pydantic import BaseModel
 
-from logger import Logger
+from src.utils.logger import Logger
 
 class FileTypeClassifierLLMSchema(BaseModel):
     is_presentation: bool
@@ -21,7 +21,7 @@ class FileTypeClassifier(Runnable):
         self,
         model: str = "gpt-5-nano",
         temperature: float = 0.0,
-        log_dir: str = "./log/file_type_classifier",
+        log_dir: str = "/workspace/app/log/file_type_classifier",
     ):
         self.model = model
         self.temperature = temperature
@@ -35,7 +35,9 @@ class FileTypeClassifier(Runnable):
 
     def _load_prompt(self) -> str:
         """プロンプトファイルを読み込む"""
-        prompt_path = os.path.join(os.path.dirname(__file__), "prompts", "file_type_classifier.txt")
+        # Go up 2 levels from src/classification/ to /workspace/app/
+        app_dir = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+        prompt_path = os.path.join(app_dir, "prompts", "file_type_classifier.txt")
         with open(prompt_path, "r", encoding="utf-8") as f:
             return f.read()
 

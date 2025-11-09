@@ -9,8 +9,8 @@ from langchain_core.messages import HumanMessage
 from langchain_openai import ChatOpenAI
 from openai import APIConnectionError, RateLimitError, APIError
 
-from logger import Logger
-from llm_factory import LLMFactory
+from src.utils.logger import Logger
+from src.utils.llm_factory import LLMFactory
 
 class ViewExtractor(Runnable):
     """
@@ -28,7 +28,7 @@ class ViewExtractor(Runnable):
         max_retries: int = 5,
         progress: bool = True,
         max_spans_per_label: int = 3,
-        log_dir: str = "log/view_extractor",
+        log_dir: str = "/workspace/app/log/view_extractor",
     ):
         self.llm = llm or LLMFactory.create_llm(
             model=model,
@@ -62,13 +62,21 @@ class ViewExtractor(Runnable):
 
     def _load_schema(self) -> dict:
         """JSONスキーマファイルを読み込む"""
-        schema_path = os.path.join(os.path.dirname(__file__), "schemas", "view-extractor", "llm.schema.json")
+        # Go up 2 levels from src/XXX/ to /workspace/app/
+
+        app_dir = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+
+        schema_path = os.path.join(app_dir, "schemas", "view-extractor", "llm.schema.json")
         with open(schema_path, "r", encoding="utf-8") as f:
             return json.load(f)
 
     def _load_prompt(self) -> str:
         """プロンプトファイルを読み込む"""
-        prompt_path = os.path.join(os.path.dirname(__file__), "prompts", "view_extractor.txt")
+        # Go up 2 levels from src/XXX/ to /workspace/app/
+
+        app_dir = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+
+        prompt_path = os.path.join(app_dir, "prompts", "view_extractor.txt")
         with open(prompt_path, "r", encoding="utf-8") as f:
             return f.read()
 

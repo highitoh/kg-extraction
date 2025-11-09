@@ -1,4 +1,4 @@
-# text_filter.py (修正版: 目次・ページ番号を削除)
+# doc_text_filter.py (修正版: 目次・ページ番号を削除)
 
 from __future__ import annotations
 from typing import Any, Dict, List, Tuple
@@ -9,7 +9,7 @@ from langchain_core.runnables import Runnable
 from langchain_core.runnables.config import RunnableConfig
 
 try:
-    from logger import Logger
+    from src.utils.logger import Logger
 except Exception:
     class Logger:
         def __init__(self, *_args, **_kwargs): ...
@@ -18,12 +18,12 @@ except Exception:
         def error(self, *_args, **_kwargs): ...
 
 try:
-    from chunk_creator import ChunkCreator
+    from src.utils.chunk_creator import ChunkCreator
 except Exception:
     ChunkCreator = None
 
 
-class TextFilter(Runnable):
+class DocTextFilter(Runnable):
     BULLET_PATTERNS = [
         r"^\s*[\u2022\u30fb\-\–\—\*▶・•]\s+",
         r"^\s*\(\d+\)\s+",
@@ -42,7 +42,7 @@ class TextFilter(Runnable):
     ]
 
     def __init__(self):
-        self.logger = Logger("./log/text_filter")
+        self.logger = Logger("/workspace/app/log/doc_text_filter")
 
     def invoke(self, input: Dict[str, Any], config: RunnableConfig = None) -> Dict[str, Any]:
         self._validate_input_minimally(input)
@@ -66,7 +66,7 @@ class TextFilter(Runnable):
             "sentences": [{"text": s} for s in sentences if s.strip()]
         }
         try:
-            self.logger.save_log(output, "text_filter_output_")
+            self.logger.save_log(output, "doc_text_filter_output_")
         except Exception:
             pass
         return output
@@ -196,8 +196,8 @@ if __name__ == "__main__":
         ]
     }
 
-    # TextFilterを初期化
-    filter_instance = TextFilter()
+    # DocTextFilterを初期化
+    filter_instance = DocTextFilter()
 
     # フィルタを実行
     result = filter_instance.invoke({
@@ -206,6 +206,6 @@ if __name__ == "__main__":
     })
 
     # 出力確認
-    print("=== TextFilter 出力結果 ===")
+    print("=== DocTextFilter 出力結果 ===")
     for idx, s in enumerate(result["sentences"], 1):
         print(f"{idx:02d}: {s['text']}")

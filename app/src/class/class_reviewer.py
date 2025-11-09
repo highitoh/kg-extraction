@@ -9,8 +9,8 @@ from langchain_core.messages import HumanMessage
 from langchain_core.runnables import Runnable
 from openai import APIConnectionError, RateLimitError, APIError
 
-from logger import Logger
-from llm_factory import LLMFactory
+from src.utils.logger import Logger
+from src.utils.llm_factory import LLMFactory
 
 
 def async_retry_with_backoff(max_retries: int = 5, initial_delay: float = 1.0, max_delay: float = 60.0):
@@ -64,7 +64,7 @@ class ClassReviewer(Runnable):
                  progress: bool = True,
                  max_concurrency: int = 8,
                  max_retries: int = 5,
-                 log_dir: str = "log/class_reviewer"):
+                 log_dir: str = "/workspace/app/log/class_reviewer"):
         self.llm = llm or LLMFactory.create_llm(
             model=model,
             temperature=temperature,
@@ -86,7 +86,9 @@ class ClassReviewer(Runnable):
         Args:
             n: 判定対象のクラス数
         """
-        schema_path = os.path.join(os.path.dirname(__file__), "schemas",
+        # Go up 2 levels from src/class/ to /workspace/app/
+        app_dir = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+        schema_path = os.path.join(app_dir, "schemas",
                                    "class-reviewer", "llm.schema.json")
         with open(schema_path, "r", encoding="utf-8") as f:
             schema = json.load(f)
@@ -99,7 +101,9 @@ class ClassReviewer(Runnable):
 
     def _load_metamodel(self) -> dict:
         """メタモデルファイルを読み込む"""
-        metamodel_path = os.path.join(os.path.dirname(__file__), "metamodel",
+        # Go up 2 levels from src/class/ to /workspace/app/
+        app_dir = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+        metamodel_path = os.path.join(app_dir, "metamodel",
                                       "metamodel.json")
         with open(metamodel_path, "r", encoding="utf-8") as f:
             return json.load(f)
@@ -124,7 +128,9 @@ class ClassReviewer(Runnable):
 
     def _load_prompt_template(self) -> str:
         """プロンプトテンプレートファイルを読み込み、禁止ルールを動的生成"""
-        prompt_path = os.path.join(os.path.dirname(__file__), "prompts",
+        # Go up 2 levels from src/class/ to /workspace/app/
+        app_dir = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+        prompt_path = os.path.join(app_dir, "prompts",
                                    "class_reviewer.txt")
         with open(prompt_path, "r", encoding="utf-8") as f:
             template = f.read()
@@ -323,7 +329,7 @@ if __name__ == "__main__":
     import os
 
     # Find the latest ClassExtractor log file
-    log_pattern = "log/class_extractor/class_extractor_output_*.json"
+    log_pattern = "/workspace/app/log/class_extractor/class_extractor_output_*.json"
     log_files = glob.glob(log_pattern)
 
     if not log_files:
@@ -341,7 +347,7 @@ if __name__ == "__main__":
     print(f"\nInput data contains {len(test_input.get('classes', []))} classes")
 
     # Create and run the filter
-    class_reviewer = ClassReviewer(progress=True, log_dir="log/class_reviewer")
+    class_reviewer = ClassReviewer(progress=True, log_dir="/workspace/app/log/class_reviewer")
     result = class_reviewer.invoke(test_input)
 
     print(f"\nOutput data contains {len(result.get('classes', []))} classes")
