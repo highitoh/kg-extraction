@@ -14,7 +14,8 @@ PDFファイルから知識を抽出してTurtleファイルとNeo4j用CSVファ
 /workspace/
 ├── app/                    # メインアプリケーション
 │   ├── src/               # ソースコード (ステージベース構成)
-│   │   ├── core/          # アプリケーション中核 (main.py, graph.py, nodes.py, state.py)
+│   │   ├── main.py        # エントリポイント
+│   │   ├── core/          # アプリケーション中核 (graph.py, nodes.py, state.py)
 │   │   ├── utils/         # 共通ユーティリティ (logger.py, llm_factory.py, chunk_creator.py)
 │   │   ├── classification/  # ファイル分類ステージ
 │   │   ├── text/          # テキスト抽出ステージ (document/presentation)
@@ -53,13 +54,13 @@ PDFファイルから知識を抽出してTurtleファイルとNeo4j用CSVファ
 cd app && pip install -r requirements.txt
 
 # メインアプリケーションの実行
-cd app && python src/core/main.py [PDF_PATH]
+cd app && python src/main.py [PDF_PATH]
 
 # プロジェクト別に出力ファイルを管理
-cd app && python src/core/main.py [PDF_PATH] --project [PROJECT_NAME]
+cd app && python src/main.py [PDF_PATH] --project [PROJECT_NAME]
 
 # すべてのオプション
-cd app && python src/core/main.py [PDF_PATH] --project [PROJECT_NAME] --model [MODEL_NAME] --output-dir [OUTPUT_DIR]
+cd app && python src/main.py [PDF_PATH] --project [PROJECT_NAME] --model [MODEL_NAME] --output-dir [OUTPUT_DIR]
 
 # 特定のチェインの実行 (開発・デバッグ用)
 cd app && python -c "import sys; sys.path.insert(0, '.'); from src.text.doc_text_chain import *"
@@ -86,16 +87,16 @@ docker exec -it app_container bash
 ### Single file extraction
 ```bash
 # デフォルトプロジェクト
-python src/core/main.py ../doc/sample.pdf --model gpt-5-nano
+python src/main.py ../doc/sample.pdf --model gpt-5-nano
 
 # 特定のプロジェクト
-python src/core/main.py ../doc/sample.pdf --project test-project --model gpt-5-nano
+python src/main.py ../doc/sample.pdf --project test-project --model gpt-5-nano
 ```
 
 ### Multiple files extraction
 ```bash
-python src/core/main.py ../doc/sample.pdf --project test-project --model gpt-5-nano
-python src/core/main.py ../doc/sample2.pdf --project test-project --model gpt-5-nano
+python src/main.py ../doc/sample.pdf --project test-project --model gpt-5-nano
+python src/main.py ../doc/sample2.pdf --project test-project --model gpt-5-nano
 ```
 
 ## Environment Variables
@@ -149,7 +150,7 @@ python src/core/main.py ../doc/sample2.pdf --project test-project --model gpt-5-
 
 ## Command Line Arguments
 ```bash
-python src/core/main.py [PDF_PATH] [OPTIONS]
+python src/main.py [PDF_PATH] [OPTIONS]
 
 Arguments:
   PDF_PATH              抽出対象のPDFファイルパス (デフォルト: ../doc/sample.pdf)

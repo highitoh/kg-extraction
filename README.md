@@ -62,7 +62,7 @@ Credentials: neo4j / neo4jpassword (described in docker-compose.yml)
 
 ```bash
 cd app
-python src/core/main.py ../doc/sample.pdf
+python src/main.py ../doc/sample.pdf
 ```
 
 ### With Project Organization
@@ -70,7 +70,7 @@ python src/core/main.py ../doc/sample.pdf
 Organize output files by project:
 
 ```bash
-python src/core/main.py ../doc/sample.pdf --project my-project
+python src/main.py ../doc/sample.pdf --project my-project
 ```
 
 ### With Custom Model
@@ -78,13 +78,13 @@ python src/core/main.py ../doc/sample.pdf --project my-project
 For development, use `gpt-5-nano` to reduce costs:
 
 ```bash
-python src/core/main.py ../doc/sample.pdf --project test --model gpt-5-nano
+python src/main.py ../doc/sample.pdf --project test --model gpt-5-nano
 ```
 
 ### All Options
 
 ```bash
-python src/core/main.py ../doc/sample.pdf \
+python src/main.py ../doc/sample.pdf \
   --project healthcare \
   --model gpt-5-nano \
   --output-dir ./custom_output
@@ -96,7 +96,8 @@ python src/core/main.py ../doc/sample.pdf \
 /workspace/
 ├── app/                         # Main application
 │   ├── src/                     # Source code (stage-based organization)
-│   │   ├── core/                # Application core (main.py, graph.py, nodes.py, state.py)
+│   │   ├── main.py              # Entry point
+│   │   ├── core/                # Application core (graph.py, nodes.py, state.py)
 │   │   ├── utils/               # Shared utilities (logger.py, llm_factory.py, chunk_creator.py)
 │   │   ├── classification/      # Stage 0: File type classification
 │   │   ├── text/                # Stage 1: Text extraction (document/presentation)
@@ -205,7 +206,7 @@ docker-compose up -d neo4j
 ## Command Line Arguments
 
 ```bash
-python src/core/main.py [PDF_PATH] [OPTIONS]
+python src/main.py [PDF_PATH] [OPTIONS]
 ```
 
 ### Arguments
@@ -222,16 +223,16 @@ python src/core/main.py [PDF_PATH] [OPTIONS]
 
 ```bash
 # Use default settings
-python src/core/main.py
+python src/main.py
 
 # Specify project name
-python src/core/main.py ../doc/sample.pdf --project test
+python src/main.py ../doc/sample.pdf --project test
 
 # Development testing with cost-effective model
-python src/core/main.py ../doc/sample.pdf --project test --model gpt-5-nano
+python src/main.py ../doc/sample.pdf --project test --model gpt-5-nano
 
 # All options
-python src/core/main.py ../doc/sample.pdf --project test --model gpt-5-nano --output-dir /custom/output
+python src/main.py ../doc/sample.pdf --project test --model gpt-5-nano --output-dir /custom/output
 ```
 
 ## Tips

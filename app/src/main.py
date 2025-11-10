@@ -12,7 +12,7 @@ from typing import Dict, Any
 from dotenv import load_dotenv
 
 # Add the app directory to sys.path to enable src imports
-app_dir = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+app_dir = os.path.dirname(os.path.dirname(__file__))
 if app_dir not in sys.path:
     sys.path.insert(0, app_dir)
 
