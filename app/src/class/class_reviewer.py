@@ -99,6 +99,19 @@ class ClassReviewer(Runnable):
 
         return schema
 
+    def _build_duplicate_schema(self) -> dict:
+        """重複検出用LLMスキーマファイルを読み込み
+
+        Returns:
+            dict: 重複検出用のJSONスキーマ
+        """
+        # Go up 2 levels from src/class/ to /workspace/app/
+        app_dir = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+        schema_path = os.path.join(app_dir, "schemas",
+                                   "class-reviewer", "llm-duplicate.schema.json")
+        with open(schema_path, "r", encoding="utf-8") as f:
+            return json.load(f)
+
     def _load_metamodel(self) -> dict:
         """メタモデルファイルを読み込む"""
         # Go up 2 levels from src/class/ to /workspace/app/
@@ -137,6 +150,115 @@ class ClassReviewer(Runnable):
 
         return template
 
+    def _load_duplicate_prompt_template(self) -> str:
+        """重複検出用プロンプトテンプレートファイルを読み込み"""
+        # Go up 2 levels from src/class/ to /workspace/app/
+        app_dir = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+        prompt_path = os.path.join(app_dir, "prompts",
+                                   "class_reviewer_duplicate.txt")
+        with open(prompt_path, "r", encoding="utf-8") as f:
+            return f.read()
+
+    def _convert_duplicate_response_to_dict(self, parsed_response: dict) -> dict:
+        """LLM応答を内部形式の辞書に変換
+
+        Args:
+            parsed_response: LLMからのJSON応答（duplicate_groupsを含む）
+
+        Returns:
+            dict: グループIDをキーとした辞書
+                {
+                    "dup_group_0": {
+                        "class_ids": [...],
+                        "labels": [...],
+                        "reason": "..."
+                    },
+                    ...
+                }
+        """
+        result = {}
+        duplicate_groups = parsed_response.get("duplicate_groups", [])
+
+        for i, group in enumerate(duplicate_groups):
+            group_id = f"dup_group_{i}"
+            result[group_id] = {
+                "class_ids": group.get("class_ids", []),
+                "labels": group.get("labels", []),
+                "reason": group.get("reason", "")
+            }
+
+        return result
+
+    async def _detect_duplicates_async(self, classes: list, class_iri: str) -> dict:
+        """指定されたクラスリストで重複を検出（非同期版）
+
+        Args:
+            classes: 重複検出対象のクラスインスタンスリスト
+            class_iri: 対象クラスのIRI
+
+        Returns:
+            dict: 重複グループの辞書
+                {
+                    "dup_group_0": {
+                        "class_ids": ["cls_001", "cls_003"],
+                        "labels": ["User", "System User"],
+                        "reason": "..."
+                    },
+                    ...
+                }
+        """
+        if not classes or len(classes) < 2:
+            # 1つ以下の場合は重複なし
+            return {}
+
+        # スキーマを構築
+        schema = self._build_duplicate_schema()
+        llm_json = self.llm.bind(
+            response_format={
+                "type": "json_schema",
+                "json_schema": {
+                    "name": "class_reviewer_duplicate",
+                    "schema": schema
+                }
+            }
+        )
+
+        # クラスIDとラベルを抽出
+        class_data = [
+            {"id": c.get("id", ""), "label": c.get("label", "")}
+            for c in classes
+        ]
+        class_data_json = json.dumps(class_data, ensure_ascii=False, indent=2)
+
+        # プロンプトテンプレートを読み込み
+        prompt_template = self._load_duplicate_prompt_template()
+        prompt = f"{prompt_template}\n{class_data_json}"
+
+        # LLMで重複検出実行（リトライ付き）
+        try:
+            response = await self._invoke_with_retry(llm_json, prompt)
+
+            # レスポンスからテキストを抽出
+            result_text = self._to_text(response.content)
+
+            # JSON パース
+            parsed = json.loads(result_text)
+
+            # 内部形式に変換
+            duplicate_groups = self._convert_duplicate_response_to_dict(parsed)
+
+            return duplicate_groups
+
+        except (json.JSONDecodeError, KeyError) as e:
+            if self.progress:
+                print(f"[ClassReviewer] Duplicate detection JSON parse error: {e}")
+            # エラー時は重複なしとして扱う
+            return {}
+        except Exception as e:
+            if self.progress:
+                print(f"[ClassReviewer] Duplicate detection error: {e}")
+            return {}
+
     def invoke(self, input: Dict[str, Any], config=None) -> Dict[str, Any]:
         classes = input.get("classes", [])
 
@@ -165,8 +287,61 @@ class ClassReviewer(Runnable):
 
         return output
 
+    def _merge_review_results(self, classes: list, prohibit_judgments: list, duplicate_groups: dict) -> list:
+        """禁止ルールレビューと重複検出の結果をマージ
+
+        Args:
+            classes: 元のクラスインスタンスリスト
+            prohibit_judgments: 禁止ルールレビューの判定結果リスト
+            duplicate_groups: 重複グループの辞書
+
+        Returns:
+            list: マージ後のクラスリスト（REJECT以外のみ）
+        """
+        results = []
+
+        for i, cls in enumerate(classes):
+            class_id = cls.get("id", "")
+
+            # 禁止ルールレビューの結果を取得
+            judgment = prohibit_judgments[i].get("judgment", "REJECT")
+            justification = prohibit_judgments[i].get("justification", "")
+
+            # 重複グループに含まれるかチェック
+            found_in_duplicate = False
+            for group_id, group_info in duplicate_groups.items():
+                if class_id in group_info.get("class_ids", []):
+                    found_in_duplicate = True
+
+                    # 重複が見つかった場合の処理
+                    if judgment != "REVIEW":
+                        # 禁止ルールでREVIEWでない場合、重複理由でREVIEWに変更
+                        judgment = "REVIEW"
+                        justification = f"Duplicate detected: {group_info.get('reason', '')}"
+                    # else: 禁止ルールでREVIEWの場合は、そのjustificationを優先
+
+                    # 重複フィールドを追加
+                    cls["duplicate_group_id"] = group_id
+                    # 自分以外のラベルを抽出
+                    cls["duplicate_labels"] = [
+                        label for cid, label in zip(
+                            group_info.get("class_ids", []),
+                            group_info.get("labels", [])
+                        )
+                        if cid != class_id
+                    ]
+                    break
+
+            # REJECT以外のクラスのみ結果に含める
+            if judgment != "REJECT":
+                cls["judgment"] = judgment
+                cls["justification"] = justification
+                results.append(cls)
+
+        return results
+
     async def _process_classes_parallel(self, class_groups: Dict[str, list]) -> list:
-        """クラスグループを並列処理"""
+        """クラスグループを並列処理（禁止ルールレビューと重複検出を並行実行）"""
         sem = asyncio.Semaphore(self.max_concurrency)
         total = len(class_groups)
         counter = 0
@@ -180,20 +355,30 @@ class ClassReviewer(Runnable):
             async with sem:
                 class_name = self._get_class_name_from_iri(class_iri)
 
-                filtered = await self._filter_classes_async(class_instances, class_iri)
+                # 禁止ルールレビューと重複検出を並列実行
+                prohibit_judgments, duplicate_groups = await asyncio.gather(
+                    self._review_prohibit_rules_async(class_instances, class_iri),
+                    self._detect_duplicates_async(class_instances, class_iri)
+                )
+
+                # 結果をマージ
+                merged = self._merge_review_results(class_instances, prohibit_judgments, duplicate_groups)
 
                 async with lock:
                     counter += 1
                     if self.progress:
                         # 判定結果の内訳を集計
-                        accept_count = sum(1 for c in filtered if c.get("judgment") == "ACCEPT")
-                        review_count = sum(1 for c in filtered if c.get("judgment") == "REVIEW")
-                        reject_count = len(class_instances) - len(filtered)
-                        print(f"[{counter}/{total}] ClassReviewer: {class_name} processed "
-                              f"({len(class_instances)} -> {len(filtered)} instances) "
-                              f"[ACCEPT: {accept_count}, REVIEW: {review_count}, REJECT: {reject_count}]")
+                        accept_count = sum(1 for c in merged if c.get("judgment") == "ACCEPT")
+                        review_count = sum(1 for c in merged if c.get("judgment") == "REVIEW")
+                        reject_count = len(class_instances) - len(merged)
+                        duplicate_count = len(duplicate_groups)
 
-                return filtered
+                        print(f"[{counter}/{total}] ClassReviewer: {class_name} processed "
+                              f"({len(class_instances)} -> {len(merged)} instances) "
+                              f"[ACCEPT: {accept_count}, REVIEW: {review_count}, REJECT: {reject_count}] "
+                              f"[Duplicate groups: {duplicate_count}]")
+
+                return merged
 
         results = await asyncio.gather(*[_wrapped(iri, instances) for iri, instances in class_groups.items()])
 
@@ -223,12 +408,15 @@ class ClassReviewer(Runnable):
                 return cls.get("name", "unknown")
         return class_iri.split("#")[-1] if "#" in class_iri else class_iri
 
-    async def _filter_classes_async(self, classes: list, class_iri: str) -> list:
-        """指定されたクラスリストをLLMでフィルタリング（非同期版）
+    async def _review_prohibit_rules_async(self, classes: list, class_iri: str) -> list:
+        """指定されたクラスリストをLLMで禁止ルールレビュー（非同期版）
 
         Args:
-            classes: フィルタリング対象のクラスインスタンスリスト
+            classes: レビュー対象のクラスインスタンスリスト
             class_iri: 対象クラスのIRI（このクラスのprohibit_rulesのみを使用）
+
+        Returns:
+            list: 判定結果のリスト [{"judgment": "ACCEPT", "justification": "..."}, ...]
         """
         if not classes:
             return []
@@ -264,28 +452,13 @@ class ClassReviewer(Runnable):
         try:
             parsed = json.loads(result_text)
             judgments = parsed["judgments"]
-
-            # 各クラスに判定結果を追加
-            filtered_classes = []
-            for c, judgment_obj in zip(classes, judgments):
-                judgment = judgment_obj.get("judgment", "REJECT")
-                justification = judgment_obj.get("justification", "")
-
-                # REJECT以外のクラスを通過させる（ACCEPT + REVIEW）
-                if judgment != "REJECT":
-                    # クラスに判定結果を追加
-                    c_with_judgment = c.copy()
-                    c_with_judgment["judgment"] = judgment
-                    c_with_judgment["justification"] = justification
-                    filtered_classes.append(c_with_judgment)
+            return judgments
 
         except (json.JSONDecodeError, KeyError) as e:
             if self.progress:
-                print(f"[ClassReviewer] JSON parse error: {e}, response: {result_text}")
-            # エラー時は全てREJECT扱いで通過させない
-            filtered_classes = []
-
-        return filtered_classes
+                print(f"[ClassReviewer] Prohibit rules review JSON parse error: {e}, response: {result_text}")
+            # エラー時は全てREJECT扱い
+            return [{"judgment": "REJECT", "justification": "Parse error"} for _ in classes]
 
     async def _invoke_with_retry(self, llm_json, prompt: str):
         """リトライ機能付きのLLM呼び出し"""

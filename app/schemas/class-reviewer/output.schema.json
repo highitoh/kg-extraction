@@ -48,6 +48,17 @@
           "justification": {
             "type": "string",
             "description": "Brief reasoning for the judgment"
+          },
+          "duplicate_group_id": {
+            "type": "string",
+            "description": "Group identifier if this class is part of a duplicate group (e.g., 'dup_group_0')"
+          },
+          "duplicate_labels": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Labels of OTHER duplicate classes in the same group (excludes own label)"
           }
         },
         "required": ["id", "class_iri", "label", "sources", "file_ids", "judgment", "justification"],

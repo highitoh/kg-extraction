@@ -1,0 +1,39 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {
+    "duplicate_groups": {
+      "type": "array",
+      "description": "Groups of semantically similar/duplicate class candidates",
+      "items": {
+        "type": "object",
+        "properties": {
+          "class_ids": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "minItems": 2,
+            "description": "Array of class IDs that are semantically duplicates"
+          },
+          "labels": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "minItems": 2,
+            "description": "Corresponding labels in same order as class_ids"
+          },
+          "reason": {
+            "type": "string",
+            "description": "Explanation of why these candidates are considered duplicates"
+          }
+        },
+        "required": ["class_ids", "labels", "reason"],
+        "additionalProperties": false
+      }
+    }
+  },
+  "required": ["duplicate_groups"],
+  "additionalProperties": false
+}
