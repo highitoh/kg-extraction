@@ -103,6 +103,82 @@ class ClassEditor(Runnable):
         with open(prompt_path, "r", encoding="utf-8") as f:
             return f.read()
 
+    def _build_duplicate_fix_schema(self) -> dict:
+        """重複修正用LLMスキーマファイルを読み込み
+
+        Returns:
+            dict: 重複修正用のJSONスキーマ
+        """
+        # Go up 2 levels from src/class/ to /workspace/app/
+        app_dir = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+        schema_path = os.path.join(app_dir, "schemas",
+                                   "class-editor", "llm-duplicate.schema.json")
+        with open(schema_path, "r", encoding="utf-8") as f:
+            return json.load(f)
+
+    def _load_duplicate_fix_prompt_template(self) -> str:
+        """重複修正用プロンプトテンプレートファイルを読み込み"""
+        # Go up 2 levels from src/class/ to /workspace/app/
+        app_dir = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+        prompt_path = os.path.join(app_dir, "prompts",
+                                   "class_editor_duplicate.txt")
+        with open(prompt_path, "r", encoding="utf-8") as f:
+            return f.read()
+
+    def _merge_duplicate_classes(self, group_classes: list, canonical_label: str, merged_class_id: str) -> dict:
+        """重複クラスを1つにマージ
+
+        Args:
+            group_classes: マージ対象のクラスインスタンスリスト
+            canonical_label: 正準ラベル
+            merged_class_id: 代表となるクラスのID
+
+        Returns:
+            dict: マージ後のクラスインスタンス
+        """
+        # 代表となるクラスを探す
+        base_class = None
+        for cls in group_classes:
+            if cls.get("id") == merged_class_id:
+                base_class = cls.copy()
+                break
+
+        if not base_class:
+            # フォールバック: 最初のクラスを使用
+            base_class = group_classes[0].copy()
+
+        # ラベルを正準ラベルに更新
+        base_class["label"] = canonical_label
+
+        # sourcesとfile_idsをマージ（ClassConsolidatorパターン）
+        all_pairs = []
+        for cls in group_classes:
+            sources = cls.get("sources", [])
+            file_ids = cls.get("file_ids", [])
+
+            # sourcesとfile_idsの長さを合わせる
+            min_length = min(len(sources), len(file_ids))
+            sources = sources[:min_length]
+            file_ids = file_ids[:min_length]
+
+            # (source, file_id)のペアとして収集
+            for source, file_id in zip(sources, file_ids):
+                all_pairs.append((source, file_id))
+
+        # 重複を除去しつつ順序を保持
+        unique_pairs = list(dict.fromkeys(all_pairs))
+
+        # ペアを分解してsourcesとfile_idsに戻す
+        if unique_pairs:
+            base_class["sources"], base_class["file_ids"] = zip(*unique_pairs)
+            base_class["sources"] = list(base_class["sources"])
+            base_class["file_ids"] = list(base_class["file_ids"])
+        else:
+            base_class["sources"] = []
+            base_class["file_ids"] = []
+
+        return base_class
+
     def invoke(self, input: Dict[str, Any], config=None) -> Dict[str, Any]:
         """
         クラスラベル修正処理のメインエントリーポイント
@@ -160,8 +236,206 @@ class ClassEditor(Runnable):
 
         return output
 
+    async def _fix_duplicates_async(self, classes: list, class_iri: str) -> dict:
+        """重複クラスのマージ判定と修正（非同期版）
+
+        Args:
+            classes: 修正対象のクラスインスタンスリスト
+            class_iri: 対象クラスのIRI
+
+        Returns:
+            dict: 重複修正結果の辞書
+                {
+                    "dup_group_0": {
+                        "should_merge": true,
+                        "canonical_label": "User",
+                        "merged_class_id": "cls_001",
+                        "reason": "...",
+                        "merged_class": {...}
+                    },
+                    ...
+                }
+        """
+        # duplicate_group_idを持つクラスのみ抽出
+        duplicates = [c for c in classes if "duplicate_group_id" in c]
+
+        if not duplicates:
+            return {}
+
+        # duplicate_group_idでグループ化
+        groups = {}
+        for cls in duplicates:
+            group_id = cls.get("duplicate_group_id")
+            if group_id not in groups:
+                groups[group_id] = []
+            groups[group_id].append(cls)
+
+        if not groups:
+            return {}
+
+        # LLMへの入力データを構築
+        duplicate_groups_input = []
+        for group_id, group_classes in groups.items():
+            candidates = []
+            for cls in group_classes:
+                candidates.append({
+                    "id": cls.get("id", ""),
+                    "label": cls.get("label", ""),
+                    "sources": cls.get("sources", [])
+                })
+
+            duplicate_groups_input.append({
+                "duplicate_group_id": group_id,
+                "candidates": candidates
+            })
+
+        duplicate_groups_json = json.dumps(duplicate_groups_input, ensure_ascii=False, indent=2)
+
+        # スキーマを構築
+        schema = self._build_duplicate_fix_schema()
+        llm_json = self.llm.bind(
+            response_format={
+                "type": "json_schema",
+                "json_schema": {
+                    "name": "class_editor_duplicate",
+                    "schema": schema
+                }
+            }
+        )
+
+        # プロンプトを構築
+        prompt_template = self._load_duplicate_fix_prompt_template()
+        prompt = prompt_template.replace("{duplicate_groups_json}", duplicate_groups_json)
+
+        # LLMで重複修正実行（リトライ付き）
+        try:
+            response = await self._invoke_with_retry(llm_json, prompt)
+
+            # レスポンスからテキストを抽出
+            result_text = self._to_text(response.content)
+
+            # JSON パース
+            parsed = json.loads(result_text)
+            resolutions = parsed.get("resolutions", [])
+
+            # 結果を辞書に変換
+            result = {}
+            for resolution in resolutions:
+                group_id = resolution.get("duplicate_group_id")
+                should_merge = resolution.get("should_merge", False)
+                reason = resolution.get("reason", "")
+
+                result[group_id] = {
+                    "should_merge": should_merge,
+                    "reason": reason
+                }
+
+                if should_merge:
+                    canonical_label = resolution.get("canonical_label", "")
+                    merged_class_id = resolution.get("merged_class_id", "")
+
+                    # canonical_labelとmerged_class_idが必須
+                    if not canonical_label or not merged_class_id:
+                        # フォールバック: マージしない
+                        result[group_id]["should_merge"] = False
+                        result[group_id]["reason"] = f"Missing required fields: {reason}"
+                    else:
+                        result[group_id]["canonical_label"] = canonical_label
+                        result[group_id]["merged_class_id"] = merged_class_id
+
+                        # マージされたクラスを生成
+                        group_classes = groups.get(group_id, [])
+                        if group_classes:
+                            merged_class = self._merge_duplicate_classes(
+                                group_classes,
+                                canonical_label,
+                                merged_class_id
+                            )
+                            result[group_id]["merged_class"] = merged_class
+
+            return result
+
+        except (json.JSONDecodeError, KeyError) as e:
+            if self.progress:
+                print(f"[ClassEditor] Duplicate fix JSON parse error: {e}")
+            # エラー時は空の辞書を返す（マージなし）
+            return {}
+        except Exception as e:
+            if self.progress:
+                print(f"[ClassEditor] Duplicate fix error: {e}")
+            return {}
+
+    def _merge_fix_results(self, classes: list, prohibit_fixed: list, duplicate_resolved: dict) -> list:
+        """禁止ルール修正と重複修正の結果をマージ
+
+        Args:
+            classes: 元のクラスインスタンスリスト
+            prohibit_fixed: 禁止ルール修正後のクラスリスト
+            duplicate_resolved: 重複修正結果の辞書
+
+        Returns:
+            list: マージ後のクラスリスト
+        """
+        results = []
+        processed_ids = set()
+
+        # 禁止ルール修正結果とマッピング
+        prohibit_map = {c.get("id"): c for c in prohibit_fixed}
+
+        for cls in classes:
+            class_id = cls.get("id", "")
+
+            if class_id in processed_ids:
+                continue
+
+            # Step 1: 禁止ルール修正を適用
+            corrected_cls = prohibit_map.get(class_id, cls)
+
+            # REJECTされた場合はスキップ
+            if corrected_cls.get("judgment") == "REJECT":
+                results.append(corrected_cls)
+                processed_ids.add(class_id)
+                continue
+
+            # Step 2: 重複修正をチェック
+            duplicate_group_id = cls.get("duplicate_group_id")
+
+            if duplicate_group_id and duplicate_group_id in duplicate_resolved:
+                resolution = duplicate_resolved[duplicate_group_id]
+                should_merge = resolution.get("should_merge", False)
+
+                if should_merge:
+                    merged_class_id = resolution.get("merged_class_id")
+
+                    if class_id == merged_class_id:
+                        # 代表クラス: マージされたクラスを使用
+                        merged_class = resolution.get("merged_class")
+                        if merged_class:
+                            # 禁止ルール修正のjudgmentとjustificationを保持
+                            merged_class["judgment"] = corrected_cls.get("judgment", "REVIEW")
+                            merged_class["justification"] = corrected_cls.get("justification", "")
+                            results.append(merged_class)
+                            processed_ids.add(class_id)
+                        else:
+                            # マージ失敗時は修正後のクラスを使用
+                            results.append(corrected_cls)
+                            processed_ids.add(class_id)
+                    else:
+                        # 代表以外: マージされたのでスキップ
+                        processed_ids.add(class_id)
+                else:
+                    # should_merge=false: そのまま保持
+                    results.append(corrected_cls)
+                    processed_ids.add(class_id)
+            else:
+                # 重複グループに含まれない: そのまま保持
+                results.append(corrected_cls)
+                processed_ids.add(class_id)
+
+        return results
+
     async def _process_classes_parallel(self, class_groups: Dict[str, list]) -> list:
-        """クラスグループを並列処理"""
+        """クラスグループを並列処理（禁止ルール修正と重複修正を並行実行）"""
         sem = asyncio.Semaphore(self.max_concurrency)
         total = len(class_groups)
         counter = 0
@@ -175,19 +449,35 @@ class ClassEditor(Runnable):
             async with sem:
                 class_name = self._get_class_name_from_iri(class_iri)
 
-                corrected = await self._correct_classes_async(class_instances, class_iri)
+                # 禁止ルール修正と重複修正を並列実行
+                prohibit_fixed, duplicate_resolved = await asyncio.gather(
+                    self._fix_prohibit_violations_async(class_instances, class_iri),
+                    self._fix_duplicates_async(class_instances, class_iri)
+                )
+
+                # 結果をマージ
+                merged = self._merge_fix_results(class_instances, prohibit_fixed, duplicate_resolved)
 
                 async with lock:
                     counter += 1
                     if self.progress:
                         # 修正結果の内訳を集計
-                        review_count = sum(1 for c in corrected if c.get("judgment") == "REVIEW")
-                        reject_count = sum(1 for c in corrected if c.get("judgment") == "REJECT")
-                        print(f"[{counter}/{total}] ClassEditor: {class_name} processed "
-                              f"({len(class_instances)} instances) "
-                              f"[REVIEW: {review_count}, REJECT: {reject_count}]")
+                        review_count = sum(1 for c in merged if c.get("judgment") == "REVIEW")
+                        reject_count = sum(1 for c in merged if c.get("judgment") == "REJECT")
 
-                return corrected
+                        # マージ数をカウント
+                        merge_count = sum(
+                            1 for res in duplicate_resolved.values()
+                            if res.get("should_merge", False)
+                        )
+                        total_dup_groups = len(duplicate_resolved)
+
+                        print(f"[{counter}/{total}] ClassEditor: {class_name} processed "
+                              f"({len(class_instances)} -> {len(merged)} instances) "
+                              f"[REVIEW: {review_count}, REJECT: {reject_count}] "
+                              f"[Duplicates merged: {merge_count}/{total_dup_groups}]")
+
+                return merged
 
         results = await asyncio.gather(*[_wrapped(iri, instances) for iri, instances in class_groups.items()])
 
@@ -217,8 +507,8 @@ class ClassEditor(Runnable):
                 return cls.get("name", "unknown")
         return class_iri.split("#")[-1] if "#" in class_iri else class_iri
 
-    async def _correct_classes_async(self, classes: list, class_iri: str) -> list:
-        """指定されたクラスリストをLLMでラベル修正（非同期版）
+    async def _fix_prohibit_violations_async(self, classes: list, class_iri: str) -> list:
+        """指定されたクラスリストをLLMで禁止ルール違反を修正（非同期版）
 
         Args:
             classes: 修正対象のクラスインスタンスリスト（すべてREVIEW判定）

@@ -1,0 +1,39 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {
+    "resolutions": {
+      "type": "array",
+      "description": "Merge decisions and canonical label selections for each duplicate group",
+      "items": {
+        "type": "object",
+        "properties": {
+          "duplicate_group_id": {
+            "type": "string",
+            "description": "The duplicate group ID (e.g., 'dup_group_0')"
+          },
+          "should_merge": {
+            "type": "boolean",
+            "description": "Whether the duplicates should be merged (true) or kept separate (false)"
+          },
+          "canonical_label": {
+            "type": "string",
+            "description": "Selected canonical label from the group (required if should_merge=true)"
+          },
+          "merged_class_id": {
+            "type": "string",
+            "description": "ID of the class to use as representative (required if should_merge=true)"
+          },
+          "reason": {
+            "type": "string",
+            "description": "Explanation for merge decision and label selection"
+          }
+        },
+        "required": ["duplicate_group_id", "should_merge", "reason"],
+        "additionalProperties": false
+      }
+    }
+  },
+  "required": ["resolutions"],
+  "additionalProperties": false
+}
