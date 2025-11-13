@@ -32,17 +32,15 @@ def _save_accumulated_knowledge(result: Dict[str, Any], project_output_dir: str)
         result: 現在の実行結果
         project_output_dir: プロジェクト出力ディレクトリ
     """
+    from src.utils.knowledge_filter import filter_accumulated_knowledge
+
     knowledge_path = os.path.join(project_output_dir, "knowledge.json")
 
     # 現在の実行結果からACCEPT'edクラスと有効なプロパティを抽出
-    current_classes = [
-        c for c in result.get("classes", [])
-        if c.get("judgment") == "ACCEPT"
-    ]
-    current_properties = [
-        p for p in result.get("properties", [])
-        if p.get("strength", 0) > 0
-    ]
+    current_classes, current_properties = filter_accumulated_knowledge(
+        result.get("classes", []),
+        result.get("properties", [])
+    )
 
     # 既存のknowledge.jsonがあれば読み込み
     existing_knowledge = {"id": result.get("id", ""), "classes": [], "properties": []}

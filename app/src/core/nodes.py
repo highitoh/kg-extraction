@@ -310,8 +310,12 @@ def generate_outputs_node(state: KnowledgeExtractionState) -> KnowledgeExtractio
     """
     Turtleファイルとneo4j CSVファイルを生成するノード
     classes, properties -> turtle_file, nodes_csv, relationships_csv, summary
+
+    Note: 累積知識として有効なクラス(ACCEPT判定)とプロパティ(強度>0)のみを出力
     """
     try:
+        from src.utils.knowledge_filter import filter_accumulated_knowledge
+
         output_dir = state.get("output_dir", "/workspace/app/output")
         project = state.get("project", "default")
 
@@ -319,16 +323,22 @@ def generate_outputs_node(state: KnowledgeExtractionState) -> KnowledgeExtractio
         project_output_dir = os.path.join(output_dir, project)
         os.makedirs(project_output_dir, exist_ok=True)
 
+        # 累積知識として有効なデータのみをフィルタリング
+        filtered_classes, filtered_properties = filter_accumulated_knowledge(
+            state["classes"],
+            state["properties"]
+        )
+
         # TurtleGenerator
         turtle_generator = TurtleGenerator(output_dir=project_output_dir)
         turtle_input = {
             "class_info": {
                 "id": state["id"],
-                "classes": state["classes"]
+                "classes": filtered_classes
             },
             "property_info": {
                 "id": state["id"],
-                "properties": state["properties"]
+                "properties": filtered_properties
             }
         }
         turtle_path, turtle_result = turtle_generator.generate_and_save(turtle_input)
@@ -345,8 +355,8 @@ def generate_outputs_node(state: KnowledgeExtractionState) -> KnowledgeExtractio
 
         # サマリー情報を生成
         state["summary"] = {
-            "classes_count": len(state["classes"]),
-            "properties_count": len(state["properties"]),
+            "classes_count": len(filtered_classes),
+            "properties_count": len(filtered_properties),
             "files_generated": [turtle_path, csv_result["nodes_path"], csv_result["properties_path"]]
         }
 
