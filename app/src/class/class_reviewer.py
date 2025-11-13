@@ -321,15 +321,12 @@ class ClassReviewer(Runnable):
                     # else: 禁止ルールでREVIEWの場合は、そのjustificationを優先
 
                     # 重複フィールドを追加
+                    # duplicate_group_id: ClassEditorが重複グループを識別するための一時フィールド
                     cls["duplicate_group_id"] = group_id
-                    # 自分以外のラベルを抽出
-                    cls["duplicate_labels"] = [
-                        label for cid, label in zip(
-                            group_info.get("class_ids", []),
-                            group_info.get("labels", [])
-                        )
-                        if cid != class_id
-                    ]
+                    # consolidated_ids/consolidated_labelsは初期状態では空
+                    # ClassEditorがマージ時に実際のマージされたIDとラベルを設定する
+                    cls["consolidated_ids"] = []
+                    cls["consolidated_labels"] = []
                     break
 
             # REJECT以外のクラスのみ結果に含める

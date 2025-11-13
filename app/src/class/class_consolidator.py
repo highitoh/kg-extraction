@@ -286,6 +286,22 @@ class ClassConsolidator(Runnable):
         # labelを正準ラベルに更新
         merged["label"] = canonical_label
 
+        # Collect IDs and labels of consolidated classes (excluding the first one)
+        consolidated_ids = []
+        consolidated_labels = []
+
+        for i, cls in enumerate(group_classes):
+            if i == 0:
+                # Skip the first class (the canonical one)
+                continue
+            cls_id = cls.get("id")
+            if cls_id:
+                consolidated_ids.append(cls_id)
+                consolidated_labels.append(cls.get("label", ""))
+
+        merged["consolidated_ids"] = consolidated_ids
+        merged["consolidated_labels"] = consolidated_labels
+
         # sourcesとfile_idsを統合
         all_source_file_pairs = []
 

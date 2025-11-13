@@ -18,18 +18,18 @@
           },
           "canonical_label": {
             "type": "string",
-            "description": "Selected canonical label from the group (required if should_merge=true)"
+            "description": "Selected canonical label from the group (required if should_merge=true, empty string otherwise)"
           },
           "merged_class_id": {
             "type": "string",
-            "description": "ID of the class to use as representative (required if should_merge=true)"
+            "description": "ID of the class to use as representative (required if should_merge=true, empty string otherwise)"
           },
           "reason": {
             "type": "string",
             "description": "Explanation for merge decision and label selection"
           }
         },
-        "required": ["duplicate_group_id", "should_merge", "reason"],
+        "required": ["duplicate_group_id", "should_merge", "canonical_label", "merged_class_id", "reason"],
         "additionalProperties": false
       }
     }

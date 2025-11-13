@@ -49,16 +49,19 @@
             "type": "string",
             "description": "Brief reasoning for the judgment"
           },
-          "duplicate_group_id": {
-            "type": "string",
-            "description": "Group identifier if this class is part of a duplicate group (e.g., 'dup_group_0')"
-          },
-          "duplicate_labels": {
+          "consolidated_ids": {
             "type": "array",
             "items": {
               "type": "string"
             },
-            "description": "Labels of OTHER duplicate classes in the same group (excludes own label)"
+            "description": "List of other class IDs that were merged into this canonical class instance (empty for non-merged classes)"
+          },
+          "consolidated_labels": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Labels of OTHER classes that were merged into this instance (excludes own label). For human verification of merge decisions."
           }
         },
         "required": ["id", "class_iri", "label", "sources", "file_ids", "judgment", "justification"],

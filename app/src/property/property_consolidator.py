@@ -121,8 +121,29 @@ class PropertyConsolidator(Runnable):
         # 既存プロパティのIDを正規化
         normalized_existing = self._normalize_property_ids(existing_properties, class_id_mapping)
 
+        # Filter out properties with invalid class references
+        valid_normalized = []
+        invalid_properties = []
+        class_ids_set = set(class_id_mapping.values())  # All valid canonical IDs
+
+        for prop in normalized_existing:
+            src_id = prop.get("src_id", "")
+            dest_id = prop.get("dest_id", "")
+
+            if src_id in class_ids_set and dest_id in class_ids_set:
+                valid_normalized.append(prop)
+            else:
+                # Track invalid properties for logging
+                invalid_properties.append({
+                    "property": prop,
+                    "reason": f"src_id or dest_id not in current classes (src_id={src_id}, dest_id={dest_id})"
+                })
+
+        if invalid_properties and self.progress:
+            print(f"[PropertyConsolidator] Filtered {len(invalid_properties)} properties with invalid class references")
+
         # 新規＋既存を統合
-        all_properties = new_properties + normalized_existing
+        all_properties = new_properties + valid_normalized
 
         if self.progress:
             print(f"[PropertyConsolidator] Total {len(all_properties)} properties to consolidate")
@@ -154,16 +175,25 @@ class PropertyConsolidator(Runnable):
     def _build_class_id_mapping(self, class_info: Dict[str, Any]) -> Dict[str, str]:
         """
         クラスIDマッピングを構築
-        現在のクラスIDを正規IDとする（ClassConsolidator統合済み）
+        consolidated_idsを使用して、マージされたクラスIDを正規IDに変換
 
-        Note: 現在の実装では identity mapping（ID→ID）
-        将来的には (class_iri, label) による類似クラスマッチングを実装可能
+        Returns:
+            mapping: {class_id: canonical_id} for all classes
+                     Includes both current classes (identity) and merged IDs
         """
         mapping = {}
+
         for cls in class_info.get("classes", []):
-            cls_id = cls.get("id")
-            if cls_id:
-                mapping[cls_id] = cls_id
+            canonical_id = cls.get("id")
+            if canonical_id:
+                # Current class: identity mapping
+                mapping[canonical_id] = canonical_id
+
+                # Merged classes: map old IDs to this canonical ID
+                consolidated_ids = cls.get("consolidated_ids", [])
+                for old_id in consolidated_ids:
+                    mapping[old_id] = canonical_id
+
         return mapping
 
     def _normalize_property_ids(

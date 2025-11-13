@@ -134,7 +134,7 @@ class ClassEditor(Runnable):
             merged_class_id: 代表となるクラスのID
 
         Returns:
-            dict: マージ後のクラスインスタンス
+            dict: マージ後のクラスインスタンス (consolidated_ids と consolidated_labels を含む)
         """
         # 代表となるクラスを探す
         base_class = None
@@ -149,6 +149,19 @@ class ClassEditor(Runnable):
 
         # ラベルを正準ラベルに更新
         base_class["label"] = canonical_label
+
+        # Collect IDs and labels of merged classes (excluding canonical)
+        consolidated_ids = []
+        consolidated_labels = []
+
+        for cls in group_classes:
+            cls_id = cls.get("id")
+            if cls_id != merged_class_id:
+                consolidated_ids.append(cls_id)
+                consolidated_labels.append(cls.get("label", ""))
+
+        base_class["consolidated_ids"] = consolidated_ids
+        base_class["consolidated_labels"] = consolidated_labels
 
         # sourcesとfile_idsをマージ（ClassConsolidatorパターン）
         all_pairs = []
@@ -431,6 +444,11 @@ class ClassEditor(Runnable):
                 # 重複グループに含まれない: そのまま保持
                 results.append(corrected_cls)
                 processed_ids.add(class_id)
+
+        # Clean up temporary duplicate_group_id field from all results
+        for cls in results:
+            if "duplicate_group_id" in cls:
+                del cls["duplicate_group_id"]
 
         return results
 
