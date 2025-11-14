@@ -13,6 +13,7 @@ from src.core.nodes import (
     extract_views_node,
     extract_classes_node,
     extract_properties_node,
+    save_accumulated_knowledge_node,
     generate_outputs_node,
     route_by_file_type
 )
@@ -38,6 +39,8 @@ def create_knowledge_extraction_graph():
               ↓
          extract_properties
               ↓
+         save_accumulated_knowledge
+              ↓
          generate_outputs
               ↓
             END
@@ -54,6 +57,7 @@ def create_knowledge_extraction_graph():
     workflow.add_node("extract_views", extract_views_node)
     workflow.add_node("extract_classes", extract_classes_node)
     workflow.add_node("extract_properties", extract_properties_node)
+    workflow.add_node("save_accumulated_knowledge", save_accumulated_knowledge_node)
     workflow.add_node("generate_outputs", generate_outputs_node)
 
     # ========== エントリーポイントを設定 ==========
@@ -75,11 +79,12 @@ def create_knowledge_extraction_graph():
     workflow.add_edge("extract_text_document", "transform_to_chunks")
     workflow.add_edge("extract_text_presentation", "transform_to_chunks")
 
-    # チャンク分割 → ビュー抽出 → クラス抽出 → プロパティ抽出 → 出力生成
+    # チャンク分割 → ビュー抽出 → クラス抽出 → プロパティ抽出 → 累積保存 → 出力生成
     workflow.add_edge("transform_to_chunks", "extract_views")
     workflow.add_edge("extract_views", "extract_classes")
     workflow.add_edge("extract_classes", "extract_properties")
-    workflow.add_edge("extract_properties", "generate_outputs")
+    workflow.add_edge("extract_properties", "save_accumulated_knowledge")
+    workflow.add_edge("save_accumulated_knowledge", "generate_outputs")
 
     # 出力生成後は終了
     workflow.add_edge("generate_outputs", END)

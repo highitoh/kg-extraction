@@ -23,80 +23,6 @@ from src.core.graph import create_knowledge_extraction_graph
 from src.core.state import KnowledgeExtractionState
 
 
-def _save_accumulated_knowledge(result: Dict[str, Any], project_output_dir: str) -> None:
-    """
-    knowledge.jsonに累積保存する
-    ACCEPT判定のクラスと強度>0のプロパティのみを保存
-
-    Args:
-        result: 現在の実行結果
-        project_output_dir: プロジェクト出力ディレクトリ
-    """
-    from src.utils.knowledge_filter import filter_accumulated_knowledge
-
-    knowledge_path = os.path.join(project_output_dir, "knowledge.json")
-
-    # 現在の実行結果からACCEPT'edクラスと有効なプロパティを抽出
-    current_classes, current_properties = filter_accumulated_knowledge(
-        result.get("classes", []),
-        result.get("properties", [])
-    )
-
-    # 既存のknowledge.jsonがあれば読み込み
-    existing_knowledge = {"id": result.get("id", ""), "classes": [], "properties": []}
-    if os.path.exists(knowledge_path):
-        try:
-            with open(knowledge_path, "r", encoding="utf-8") as f:
-                existing_knowledge = json.load(f)
-        except (json.JSONDecodeError, KeyError) as e:
-            print(f"[Warning] Could not load existing knowledge.json: {e}")
-
-    # クラスをマージ（semantic keyベースで重複排除・置換）
-    # Build map of current classes by semantic key
-    current_class_map = {
-        (c.get("class_iri"), c.get("label")): c
-        for c in current_classes
-    }
-
-    # Build map of existing classes by semantic key
-    existing_class_map = {
-        (c.get("class_iri"), c.get("label")): c
-        for c in existing_knowledge.get("classes", [])
-    }
-
-    # Merge: current classes override existing ones with same (class_iri, label)
-    for key, cls in current_class_map.items():
-        existing_class_map[key] = cls  # Replace or add
-
-    merged_classes = list(existing_class_map.values())
-
-    # プロパティをマージ（IDベースで重複排除、強度更新）
-    existing_property_map = {p.get("id"): p for p in existing_knowledge.get("properties", [])}
-    for prop in current_properties:
-        prop_id = prop.get("id")
-        if prop_id in existing_property_map:
-            # 既存プロパティの強度を比較して高い方を保持
-            if prop.get("strength", 0) > existing_property_map[prop_id].get("strength", 0):
-                existing_property_map[prop_id] = prop
-        else:
-            existing_property_map[prop_id] = prop
-    merged_properties = list(existing_property_map.values())
-
-    # knowledge.jsonに保存
-    accumulated_knowledge = {
-        "id": result.get("id", ""),
-        "classes": merged_classes,
-        "properties": merged_properties
-    }
-
-    with open(knowledge_path, "w", encoding="utf-8") as f:
-        json.dump(accumulated_knowledge, f, ensure_ascii=False, indent=2)
-
-    print(f"  - Knowledge accumulated to: {knowledge_path}")
-    print(f"    Total classes: {len(merged_classes)} (added {len(merged_classes) - len(existing_knowledge.get('classes', []))} new)")
-    print(f"    Total properties: {len(merged_properties)} (added {len(merged_properties) - len(existing_knowledge.get('properties', []))} new)")
-
-
 def run_knowledge_extraction(pdf_path: str, output_dir: str = "/workspace/app/output", model: str = None, project: str = "default") -> Dict[str, Any]:
     """
     PDFファイルから知識抽出を実行
@@ -187,8 +113,6 @@ if __name__ == "__main__":
 
             print(f"  - Result saved to: {output_json}")
 
-            # knowledge.jsonに累積保存（ACCEPT'edクラス + 強度>0のプロパティのみ）
-            _save_accumulated_knowledge(result, project_output_dir)
         else:
             print("\n=== Extraction Failed ===")
             print(f"Extraction did not complete successfully.")

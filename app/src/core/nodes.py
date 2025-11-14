@@ -306,39 +306,126 @@ def extract_properties_node(state: KnowledgeExtractionState) -> KnowledgeExtract
     return state
 
 
-def generate_outputs_node(state: KnowledgeExtractionState) -> KnowledgeExtractionState:
+def save_accumulated_knowledge_node(state: KnowledgeExtractionState) -> KnowledgeExtractionState:
     """
-    Turtleファイルとneo4j CSVファイルを生成するノード
-    classes, properties -> turtle_file, nodes_csv, relationships_csv, summary
+    knowledge.jsonに累積知識を保存するノード
+    ACCEPT判定のクラスと強度>0のプロパティのみを保存
 
-    Note: 累積知識として有効なクラス(ACCEPT判定)とプロパティ(強度>0)のみを出力
+    このノードはgenerate_outputs_nodeの前に実行され、
+    出力生成時に最新の累積知識が利用可能になる
     """
     try:
         from src.utils.knowledge_filter import filter_accumulated_knowledge
 
         output_dir = state.get("output_dir", "/workspace/app/output")
         project = state.get("project", "default")
-
-        # プロジェクト別の出力ディレクトリを作成
         project_output_dir = os.path.join(output_dir, project)
         os.makedirs(project_output_dir, exist_ok=True)
 
-        # 累積知識として有効なデータのみをフィルタリング
-        filtered_classes, filtered_properties = filter_accumulated_knowledge(
-            state["classes"],
-            state["properties"]
+        knowledge_path = os.path.join(project_output_dir, "knowledge.json")
+
+        # 現在の実行結果からACCEPT'edクラスと有効なプロパティを抽出
+        current_classes, current_properties = filter_accumulated_knowledge(
+            state.get("classes", []),
+            state.get("properties", [])
         )
+
+        # 既存のknowledge.jsonがあれば読み込み
+        existing_knowledge = {"id": state.get("id", ""), "classes": [], "properties": []}
+        if os.path.exists(knowledge_path):
+            try:
+                with open(knowledge_path, "r", encoding="utf-8") as f:
+                    existing_knowledge = json.load(f)
+            except (json.JSONDecodeError, KeyError) as e:
+                print(f"[Warning] Could not load existing knowledge.json: {e}")
+
+        # クラスをマージ（semantic keyベースで重複排除・置換）
+        current_class_map = {
+            (c.get("class_iri"), c.get("label")): c
+            for c in current_classes
+        }
+        existing_class_map = {
+            (c.get("class_iri"), c.get("label")): c
+            for c in existing_knowledge.get("classes", [])
+        }
+        for key, cls in current_class_map.items():
+            existing_class_map[key] = cls
+        merged_classes = list(existing_class_map.values())
+
+        # プロパティをマージ（IDベースで重複排除、強度更新）
+        existing_property_map = {p.get("id"): p for p in existing_knowledge.get("properties", [])}
+        for prop in current_properties:
+            prop_id = prop.get("id")
+            if prop_id in existing_property_map:
+                if prop.get("strength", 0) > existing_property_map[prop_id].get("strength", 0):
+                    existing_property_map[prop_id] = prop
+            else:
+                existing_property_map[prop_id] = prop
+        merged_properties = list(existing_property_map.values())
+
+        # knowledge.jsonに保存
+        accumulated_knowledge = {
+            "id": state.get("id", ""),
+            "classes": merged_classes,
+            "properties": merged_properties
+        }
+
+        with open(knowledge_path, "w", encoding="utf-8") as f:
+            json.dump(accumulated_knowledge, f, ensure_ascii=False, indent=2)
+
+        print(f"[Info] Knowledge accumulated to: {knowledge_path}")
+        print(f"[Info] Total classes: {len(merged_classes)}, Total properties: {len(merged_properties)}")
+
+        state["current_stage"] = "knowledge_saved"
+
+    except Exception as e:
+        state.setdefault("errors", [])
+        state["errors"].append(f"Knowledge save failed: {e}")
+        state["current_stage"] = "knowledge_save_failed"
+
+    return state
+
+
+def generate_outputs_node(state: KnowledgeExtractionState) -> KnowledgeExtractionState:
+    """
+    Turtleファイルとneo4j CSVファイルを生成するノード
+
+    Note: knowledge.jsonから累積知識を読み込んで出力を生成する
+    このノードの前にsave_accumulated_knowledge_nodeが実行されているため、
+    knowledge.jsonには最新の累積知識が含まれている
+    """
+    try:
+        from src.utils.knowledge_filter import filter_accumulated_knowledge
+
+        output_dir = state.get("output_dir", "/workspace/app/output")
+        project = state.get("project", "default")
+        project_output_dir = os.path.join(output_dir, project)
+        os.makedirs(project_output_dir, exist_ok=True)
+
+        # knowledge.jsonから累積知識を読み込む
+        knowledge_path = os.path.join(project_output_dir, "knowledge.json")
+        if os.path.exists(knowledge_path):
+            with open(knowledge_path, "r", encoding="utf-8") as f:
+                knowledge = json.load(f)
+            accumulated_classes = knowledge.get("classes", [])
+            accumulated_properties = knowledge.get("properties", [])
+        else:
+            # 初回実行時（knowledge.jsonがまだない場合）は現在の結果をフィルタリング
+            accumulated_classes, accumulated_properties = filter_accumulated_knowledge(
+                state["classes"],
+                state["properties"]
+            )
 
         # TurtleGenerator
         turtle_generator = TurtleGenerator(output_dir=project_output_dir)
         turtle_input = {
             "class_info": {
                 "id": state["id"],
-                "classes": filtered_classes
+                "classes": accumulated_classes
             },
             "property_info": {
                 "id": state["id"],
-                "properties": filtered_properties
+                "properties": accumulated_properties
             }
         }
         turtle_path, turtle_result = turtle_generator.generate_and_save(turtle_input)
@@ -355,8 +442,8 @@ def generate_outputs_node(state: KnowledgeExtractionState) -> KnowledgeExtractio
 
         # サマリー情報を生成
         state["summary"] = {
-            "classes_count": len(filtered_classes),
-            "properties_count": len(filtered_properties),
+            "classes_count": len(accumulated_classes),
+            "properties_count": len(accumulated_properties),
             "files_generated": [turtle_path, csv_result["nodes_path"], csv_result["properties_path"]]
         }
 
