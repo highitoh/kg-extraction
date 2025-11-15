@@ -33,6 +33,7 @@ class Neo4jCSVGenerator:
         ":TYPE",             # プロパティのローカル名
         "property_iri",      # プロパティIRI
         "id",                # プロパティID
+        "strength:int",      # 関係の強度
     ]
 
     def __init__(self, output_dir: str = "./output"):
@@ -42,7 +43,7 @@ class Neo4jCSVGenerator:
         # ノード情報
         self.nodes: Dict[str, Dict[str, str]] = {}
         # リレーション情報
-        self.relationships: Set[Tuple[str, str, str, str, str]] = set()
+        self.relationships: Set[Tuple[str, str, str, str, str, int]] = set()
 
     @staticmethod
     def _local_name(iri: str) -> str:
@@ -92,6 +93,7 @@ class Neo4jCSVGenerator:
             src_id = prop_item["src_id"]
             dest_id = prop_item["dest_id"]
             property_iri = prop_item["property_iri"]
+            strength = int(prop_item.get("strength", 0))
 
             # リレーションのタイプ（プロパティのローカル名をスネークケースに変換）
             rel_type = self._to_snake_case(self._local_name(property_iri))
@@ -101,7 +103,8 @@ class Neo4jCSVGenerator:
                 dest_id,        # :END_ID
                 rel_type,       # :TYPE
                 property_iri,   # property_iri
-                prop_id         # id
+                prop_id,        # id
+                strength,       # strength
             ))
 
     def generate(self, input_data: Dict[str, Any]) -> Dict[str, str]:
@@ -156,13 +159,14 @@ class Neo4jCSVGenerator:
             writer = csv.DictWriter(f, fieldnames=self.REL_HEADERS, quoting=csv.QUOTE_MINIMAL)
             writer.writeheader()
 
-            for (start_id, end_id, rel_type, prop_iri, prop_id) in sorted(self.relationships):
+            for (start_id, end_id, rel_type, prop_iri, prop_id, strength) in sorted(self.relationships):
                 writer.writerow({
                     ":START_ID": start_id,
                     ":END_ID": end_id,
                     ":TYPE": rel_type,
                     "property_iri": prop_iri,
                     "id": prop_id,
+                    "strength:int": strength,
                 })
 
         return rels_path
