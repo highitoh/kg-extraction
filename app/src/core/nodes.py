@@ -340,6 +340,7 @@ def save_accumulated_knowledge_node(state: KnowledgeExtractionState) -> Knowledg
                 print(f"[Warning] Could not load existing knowledge.json: {e}")
 
         # クラスをマージ（semantic keyベースで重複排除・置換）
+        # UUIDが変わった場合のマッピングを記録するため、既存クラスを保持
         current_class_map = {
             (c.get("class_iri"), c.get("label")): c
             for c in current_classes
@@ -348,12 +349,38 @@ def save_accumulated_knowledge_node(state: KnowledgeExtractionState) -> Knowledg
             (c.get("class_iri"), c.get("label")): c
             for c in existing_knowledge.get("classes", [])
         }
-        for key, cls in current_class_map.items():
-            existing_class_map[key] = cls
+
+        # UUIDマッピング: old_uuid -> new_uuid (クラス置換時に使用)
+        uuid_map = {}
+        for key, new_class in current_class_map.items():
+            old_class = existing_class_map.get(key)
+            if old_class and old_class.get("id") != new_class.get("id"):
+                # 同じsemantic keyだがUUIDが異なる → UUIDが変わった
+                uuid_map[old_class["id"]] = new_class["id"]
+            existing_class_map[key] = new_class
         merged_classes = list(existing_class_map.values())
 
+        # プロパティのsrc_id/dest_idをリマップ（クラスUUID変更に対応）
+        def remap_property_ids(properties, uuid_mapping):
+            """プロパティのsrc_id/dest_idを新しいUUIDにリマップ"""
+            remapped = []
+            for prop in properties:
+                p = prop.copy()
+                p["src_id"] = uuid_mapping.get(p["src_id"], p["src_id"])
+                p["dest_id"] = uuid_mapping.get(p["dest_id"], p["dest_id"])
+                remapped.append(p)
+            return remapped
+
+        # 既存プロパティのUUIDをリマップ
+        existing_properties = remap_property_ids(
+            existing_knowledge.get("properties", []),
+            uuid_map
+        )
+        # 現在のプロパティもリマップ（念のため）
+        current_properties = remap_property_ids(current_properties, uuid_map)
+
         # プロパティをマージ（IDベースで重複排除、強度更新）
-        existing_property_map = {p.get("id"): p for p in existing_knowledge.get("properties", [])}
+        existing_property_map = {p.get("id"): p for p in existing_properties}
         for prop in current_properties:
             prop_id = prop.get("id")
             if prop_id in existing_property_map:
@@ -362,6 +389,20 @@ def save_accumulated_knowledge_node(state: KnowledgeExtractionState) -> Knowledg
             else:
                 existing_property_map[prop_id] = prop
         merged_properties = list(existing_property_map.values())
+
+        # 孤立したプロパティを除去（存在しないクラスを参照しているもの）
+        valid_class_ids = {c["id"] for c in merged_classes}
+        orphaned_count = 0
+        validated_properties = []
+        for prop in merged_properties:
+            if prop["src_id"] in valid_class_ids and prop["dest_id"] in valid_class_ids:
+                validated_properties.append(prop)
+            else:
+                orphaned_count += 1
+        merged_properties = validated_properties
+
+        if orphaned_count > 0:
+            print(f"[Info] Removed {orphaned_count} orphaned properties (referencing non-existent classes)")
 
         # knowledge.jsonに保存
         accumulated_knowledge = {
