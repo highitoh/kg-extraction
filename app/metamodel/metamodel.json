@@ -61,7 +61,7 @@
                 "手段・方式・構成（例：API接続、CDN活用、クラウド活用、OS要件）をビジョンとして抽出しない（IT/システム要件へ分類）",
                 "短期数値目標・運用目標（例：72時間以内の復旧、稼働率、性能値）をビジョンとして抽出しない（非機能/運用要件へ）",
                 "個別機能や画面仕様、操作手順、同意フロー等の説明をビジョンとして抽出しない",
-                "便益（安心感、迅速な通知など）をそのままビジョンにしない（ValueやProject Purposeへ）",
+                "便益（安心感、迅速な通知など）をそのままビジョンにしない",
                 "対象が個別組織・一部署・一機能に閉じる記述（広域的な社会像がないもの）はビジョンとしない",
                 "スローガンのみで主体・将来状態が不明瞭な抽象文は採用しない（原文で理念のスコープが確認できる場合のみ可）",
                 "具体的な運用・連携・通知・登録などの業務行為を述べる文（業務要求へ分類すべき内容）"
@@ -87,30 +87,6 @@
                 "外部規程への準拠のみを述べる文は除外し、方針の中核（何をどう実現したいか）が示された文を採用する",
                 "個別作業やFAQ整備などの運用手順・事務的義務は除外する"
             ]          
-        },
-        {
-            "iri": "https://github.com/highitoh/kg-extraction#project-purpose",
-            "name": "プロジェクト目的",
-            "description": "チームがプロジェクトで活動をするための目的に関する記述",
-            "view_type": "business_concept",
-            "min_length": 3,
-            "max_length": 16,
-            "extract_rules": [
-                "『〜の向上』『〜の確立』『〜の実現』『〜の提供』など名詞句で簡潔に",
-                "ステークホルダではなくプロジェクトチーム自身が得られる価値を記述する",
-                "手段（例：透明性の確保、基準への準拠、オープン技術の採用）が原文に現れる場合は、その手段で達成したい最終状態に言い換えて目的として記述する",
-                "抽出ノードには必ずsource（原文の根拠範囲）を付与し、目的＝最終状態の根拠が読み取れるようにする"
-            ],
-            "prohibit_rules": [
-                "前提条件や維持要件に関する記述",
-                "性能目標・可用性目標・復旧目標などのシステム要件（SLO/SLA/RTO/RPO 等）",
-                "手続きや引継ぎ、アンケート等の補助的業務目的",
-                "システムやサービスを提供する等、提供行為そのものを目的とした記述",
-                "技術手段・構成・方式を目的として記すもの",
-                "体制・契約や役割分担の記述を目的として採用しない",
-                "『〜の確保』『〜に準拠』『〜を採用』など手段のみで終わる表現を、そのまま目的として採用しない",
-                "法令・基準名や製品名の羅列のみの記述は除外（準拠・採用は手段に該当）"
-            ]
         },
         {
             "iri": "https://github.com/highitoh/kg-extraction#business-requirement",
@@ -279,17 +255,10 @@
             ]
         },
         {
-            "iri": "https://github.com/highitoh/kg-extraction#targetsValue",
-            "name": "targetsValue",
-            "description": "プロジェクト目的が狙う価値を関連付ける",
-            "src_class": "https://github.com/highitoh/kg-extraction#project-purpose",
-            "dest_class": "https://github.com/highitoh/kg-extraction#value"
-        },
-        {
             "iri": "https://github.com/highitoh/kg-extraction#hasBusinessRequirement",
             "name": "hasBusinessRequirement",
-            "description": "プロジェクト目的に紐づく業務要求を関連付ける",
-            "src_class": "https://github.com/highitoh/kg-extraction#project-purpose",
+            "description": "価値に紐づく業務要求を関連付ける",
+            "src_class": "https://github.com/highitoh/kg-extraction#value",
             "dest_class": "https://github.com/highitoh/kg-extraction#business-requirement"
         },
         {
@@ -300,11 +269,11 @@
             "dest_class": "https://github.com/highitoh/kg-extraction#concept"
         },
         {
-            "iri": "https://github.com/highitoh/kg-extraction#realizesProjectPurpose",
-            "name": "realizesProjectPurpose",
-            "description": "コンセプトが実現するプロジェクト目的を関連付ける",
+            "iri": "https://github.com/highitoh/kg-extraction#realizesValue",
+            "name": "realizesValue",
+            "description": "コンセプトが実現する価値を関連付ける",
             "src_class": "https://github.com/highitoh/kg-extraction#concept",
-            "dest_class": "https://github.com/highitoh/kg-extraction#project-purpose"
+            "dest_class": "https://github.com/highitoh/kg-extraction#value"
         },
         {
             "iri": "https://github.com/highitoh/kg-extraction#hasSystemRequirement",
