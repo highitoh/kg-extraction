@@ -11,6 +11,8 @@ from typing import Dict, List, Any, Optional, Tuple
 import uuid
 import glob
 
+from openai import APIConnectionError, RateLimitError, APIError
+
 # Add src directory to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
@@ -26,6 +28,7 @@ class KnowledgeValidator:
         model: str = "gpt-5-mini",
         temperature: float = 0.0,
         output_base_dir: str = "/workspace/app/output",
+        max_retries: int = 3,
     ):
         """
         Initialize the KnowledgeValidator.
@@ -35,11 +38,13 @@ class KnowledgeValidator:
             model: LLM model name
             temperature: LLM temperature setting
             output_base_dir: Base directory for project outputs
+            max_retries: Maximum number of retries for LLM API calls
         """
         self.project = project
         self.model = model
         self.temperature = temperature
         self.output_base_dir = output_base_dir
+        self.max_retries = max_retries
 
         # Resolve file paths from project name (do this FIRST before LLM initialization)
         self.knowledge_file, self.extraction_result_file = self._resolve_project_paths(project, output_base_dir)
@@ -250,6 +255,29 @@ class KnowledgeValidator:
 
         return prompt
 
+    async def _invoke_with_retry(self, llm_bound, prompt: str):
+        """Invoke LLM with retry logic and exponential backoff."""
+        delay = 1.0
+        max_delay = 60.0
+        last_exception = None
+
+        for attempt in range(self.max_retries + 1):
+            try:
+                return await llm_bound.ainvoke(prompt)
+            except (APIConnectionError, RateLimitError, APIError) as e:
+                last_exception = e
+
+                if attempt == self.max_retries:
+                    raise
+
+                wait_time = min(delay, max_delay)
+                print(f"[KnowledgeValidator Retry {attempt + 1}/{self.max_retries}] API error: {type(e).__name__}. Retrying in {wait_time:.1f}s...")
+                await asyncio.sleep(wait_time)
+                delay *= 2
+
+        if last_exception:
+            raise last_exception
+
     async def _validate_class_async(self, class_group: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         """Validate a group of classes with the same class_iri asynchronously."""
         if not class_group:
@@ -260,7 +288,8 @@ class KnowledgeValidator:
 
         try:
             # Invoke LLM with class schema
-            response = await self.llm_class.ainvoke(prompt)
+            print(f"[KnowledgeValidator] Invoking LLM for class validation: {class_iri} ({len(class_group)} instances)")
+            response = await self._invoke_with_retry(self.llm_class, prompt)
             # Handle response content (can be string or structured content)
             if isinstance(response.content, str):
                 result = json.loads(response.content)
@@ -279,7 +308,7 @@ class KnowledgeValidator:
             else:
                 raise ValueError(f"Expected 'class_validations' in response, got: {result.keys()}")
         except Exception as e:
-            print(f"Error validating class group for IRI {class_iri}: {e}")
+            print(f"[KnowledgeValidator] Error validating class for IRI {class_iri}: {e}")
             # Return default validations for all classes in the group
             return [
                 {
@@ -303,7 +332,8 @@ class KnowledgeValidator:
 
         try:
             # Invoke LLM with property schema
-            response = await self.llm_property.ainvoke(prompt)
+            print(f"[KnowledgeValidator] Invoking LLM for property validation: {property_iri} ({len(property_group)} instances)")
+            response = await self._invoke_with_retry(self.llm_property, prompt)
             # Handle response content (can be string or structured content)
             if isinstance(response.content, str):
                 result = json.loads(response.content)
@@ -322,7 +352,7 @@ class KnowledgeValidator:
             else:
                 raise ValueError(f"Expected 'property_validations' in response, got: {result.keys()}")
         except Exception as e:
-            print(f"Error validating property group for IRI {property_iri}: {e}")
+            print(f"[KnowledgeValidator] Error validating property for IRI {property_iri}: {e}")
             # Return default validations for all properties in the group
             return [
                 {
@@ -341,7 +371,7 @@ class KnowledgeValidator:
         classes = self.knowledge_data.get('classes', [])
         properties = self.knowledge_data.get('properties', [])
 
-        print(f"Starting validation: {len(classes)} classes, {len(properties)} properties")
+        print(f"[KnowledgeValidator] Starting validation: {len(classes)} classes, {len(properties)} properties")
 
         # Group classes by class_iri
         from collections import defaultdict
@@ -350,8 +380,27 @@ class KnowledgeValidator:
             class_iri = cls.get('class_iri', 'Unknown')
             class_groups[class_iri].append(cls)
 
-        print(f"Validating {len(class_groups)} class groups in parallel...")
-        class_tasks = [self._validate_class_async(group) for group in class_groups.values()]
+        print(f"[KnowledgeValidator] {len(class_groups)} class types found")
+        print(f"[KnowledgeValidator] Starting parallel validation: {len(class_groups)} class types")
+
+        # Validate classes with progress tracking
+        total_class_groups = len(class_groups)
+        class_counter = 0
+        class_lock = asyncio.Lock()
+
+        async def _wrapped_class_validation(group: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+            nonlocal class_counter
+            result = await self._validate_class_async(group)
+
+            async with class_lock:
+                class_counter += 1
+                if group:
+                    class_iri = group[0].get('class_iri', 'Unknown')
+                    print(f"[{class_counter}/{total_class_groups}] KnowledgeValidator: {class_iri} validated ({len(group)} instances)")
+
+            return result
+
+        class_tasks = [_wrapped_class_validation(group) for group in class_groups.values()]
         class_validation_groups = await asyncio.gather(*class_tasks)
 
         # Flatten the results
@@ -359,20 +408,43 @@ class KnowledgeValidator:
         for group in class_validation_groups:
             class_validations.extend(group)
 
+        print(f"[KnowledgeValidator] Class validation completed: {len(class_validations)} validations generated")
+
         # Group properties by property_iri
         property_groups = defaultdict(list)
         for prop in properties:
             property_iri = prop.get('property_iri', 'Unknown')
             property_groups[property_iri].append(prop)
 
-        print(f"Validating {len(property_groups)} property groups in parallel...")
-        property_tasks = [self._validate_property_async(group) for group in property_groups.values()]
+        print(f"[KnowledgeValidator] {len(property_groups)} property types found")
+        print(f"[KnowledgeValidator] Starting parallel validation: {len(property_groups)} property types")
+
+        # Validate properties with progress tracking
+        total_property_groups = len(property_groups)
+        property_counter = 0
+        property_lock = asyncio.Lock()
+
+        async def _wrapped_property_validation(group: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+            nonlocal property_counter
+            result = await self._validate_property_async(group)
+
+            async with property_lock:
+                property_counter += 1
+                if group:
+                    property_iri = group[0].get('property_iri', 'Unknown')
+                    print(f"[{property_counter}/{total_property_groups}] KnowledgeValidator: {property_iri} validated ({len(group)} instances)")
+
+            return result
+
+        property_tasks = [_wrapped_property_validation(group) for group in property_groups.values()]
         property_validation_groups = await asyncio.gather(*property_tasks)
 
         # Flatten the results
         property_validations = []
         for group in property_validation_groups:
             property_validations.extend(group)
+
+        print(f"[KnowledgeValidator] Property validation completed: {len(property_validations)} validations generated")
 
         # Create validation report
         timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
@@ -384,6 +456,8 @@ class KnowledgeValidator:
             "class_validations": class_validations,
             "property_validations": property_validations
         }
+
+        print(f"[KnowledgeValidator] Validation completed: {len(class_validations)} classes, {len(property_validations)} properties validated")
 
         return report
 
