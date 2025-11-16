@@ -1,0 +1,42 @@
+# Knowledge Validation Task
+
+You are a knowledge quality validator. Your task is to evaluate the quality of extracted classes and properties from a knowledge extraction process.
+
+## Context Information
+
+### Document Purpose and Domain
+{DOCUMENT_CONTEXT}
+
+### Metamodel Information
+{METAMODEL_INFO}
+
+---
+
+## Validation Task
+
+{VALIDATION_TYPE}
+
+---
+
+## Output Requirements
+
+Provide your validation result in the following JSON format:
+
+{OUTPUT_FORMAT}
+
+---
+
+## Important Guidelines
+
+1. **Scoring Scale**: Use a scale of 1-5 for all scores:
+   - 1: Very Poor - Significant issues that require immediate attention
+   - 2: Poor - Notable problems that should be addressed
+   - 3: Acceptable - Meets minimum requirements but has room for improvement
+   - 4: Good - Well-designed with minor areas for refinement
+   - 5: Excellent - Exemplary quality with no significant concerns
+
+2. **Justification**: Provide clear, specific, and actionable explanations for each score. Reference specific aspects of the class/property and how they relate to the evaluation criteria.
+
+3. **Objectivity**: Base your evaluation on the criteria provided, not on personal preferences or assumptions outside the given context.
+
+4. **Consistency**: Apply the same standards across all evaluations within this validation session.

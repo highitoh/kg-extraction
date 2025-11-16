@@ -1,0 +1,17 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "KnowledgeValidatorInput",
+  "description": "Input schema for Knowledge Validator",
+  "type": "object",
+  "properties": {
+    "knowledge_file": {
+      "type": "string",
+      "description": "Path to knowledge.json file"
+    },
+    "extraction_result_file": {
+      "type": "string",
+      "description": "Path to extraction_result_XXX.json file for context"
+    }
+  },
+  "required": ["knowledge_file", "extraction_result_file"]
+}

@@ -1,0 +1,92 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "ClassValidationResponse",
+  "description": "LLM response schema for Class Validation",
+  "type": "object",
+  "properties": {
+    "class_validation": {
+      "type": "object",
+      "description": "Validation result for a single class",
+      "properties": {
+        "class_id": {
+          "type": "string"
+        },
+        "class_label": {
+          "type": "string"
+        },
+        "necessity": {
+          "type": "object",
+          "properties": {
+            "score": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 5,
+              "description": "Score from 1 (lowest) to 5 (highest)"
+            },
+            "justification": {
+              "type": "string",
+              "description": "Detailed explanation for the score"
+            }
+          },
+          "required": ["score", "justification"],
+          "additionalProperties": false
+        },
+        "understandability": {
+          "type": "object",
+          "properties": {
+            "score": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 5,
+              "description": "Score from 1 (lowest) to 5 (highest)"
+            },
+            "justification": {
+              "type": "string",
+              "description": "Detailed explanation for the score"
+            }
+          },
+          "required": ["score", "justification"],
+          "additionalProperties": false
+        },
+        "boundary_suitability": {
+          "type": "object",
+          "properties": {
+            "score": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 5,
+              "description": "Score from 1 (lowest) to 5 (highest)"
+            },
+            "justification": {
+              "type": "string",
+              "description": "Detailed explanation for the score"
+            }
+          },
+          "required": ["score", "justification"],
+          "additionalProperties": false
+        },
+        "conceptual_structure_validity": {
+          "type": "object",
+          "properties": {
+            "score": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 5,
+              "description": "Score from 1 (lowest) to 5 (highest)"
+            },
+            "justification": {
+              "type": "string",
+              "description": "Detailed explanation for the score"
+            }
+          },
+          "required": ["score", "justification"],
+          "additionalProperties": false
+        }
+      },
+      "required": ["class_id", "class_label", "necessity", "understandability", "boundary_suitability", "conceptual_structure_validity"],
+      "additionalProperties": false
+    }
+  },
+  "required": ["class_validation"],
+  "additionalProperties": false
+}
