@@ -6,6 +6,8 @@ services:
       context: ./app
       dockerfile: Dockerfile
     container_name: app_container
+    env_file:
+      - ./app/.env
     entrypoint: ["/bin/sh","-c","echo Container started\n trap \"exit 0\" 15\n \n exec \"$@\"\n while sleep 1 & wait $!; do :; done","-"]
     command: ["sleep","infinity"]
     volumes:
