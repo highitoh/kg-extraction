@@ -1,64 +1,67 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "title": "PropertyValidationResponse",
-  "description": "LLM response schema for Property Validation",
+  "title": "PropertyValidationBatchResponse",
+  "description": "LLM response schema for Batch Property Validation",
   "type": "object",
   "properties": {
-    "property_validation": {
-      "type": "object",
-      "description": "Validation result for a single property",
-      "properties": {
-        "property_id": {
-          "type": "string"
-        },
-        "src_label": {
-          "type": "string"
-        },
-        "property_iri": {
-          "type": "string"
-        },
-        "dest_label": {
-          "type": "string"
-        },
-        "relation_type_validity": {
-          "type": "object",
-          "properties": {
-            "score": {
-              "type": "integer",
-              "minimum": 1,
-              "maximum": 5,
-              "description": "Score from 1 (lowest) to 5 (highest)"
-            },
-            "justification": {
-              "type": "string",
-              "description": "Detailed explanation for the score"
-            }
+    "property_validations": {
+      "type": "array",
+      "description": "Validation results for multiple properties with the same property_iri",
+      "items": {
+        "type": "object",
+        "properties": {
+          "property_id": {
+            "type": "string"
           },
-          "required": ["score", "justification"],
-          "additionalProperties": false
-        },
-        "strength_validity": {
-          "type": "object",
-          "properties": {
-            "score": {
-              "type": "integer",
-              "minimum": 1,
-              "maximum": 5,
-              "description": "Score from 1 (lowest) to 5 (highest)"
-            },
-            "justification": {
-              "type": "string",
-              "description": "Detailed explanation for the score"
-            }
+          "src_label": {
+            "type": "string"
           },
-          "required": ["score", "justification"],
-          "additionalProperties": false
-        }
-      },
-      "required": ["property_id", "src_label", "property_iri", "dest_label", "relation_type_validity", "strength_validity"],
-      "additionalProperties": false
+          "property_iri": {
+            "type": "string"
+          },
+          "dest_label": {
+            "type": "string"
+          },
+          "relation_type_validity": {
+            "type": "object",
+            "properties": {
+              "score": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 5,
+                "description": "Score from 1 (lowest) to 5 (highest)"
+              },
+              "justification": {
+                "type": "string",
+                "description": "Detailed explanation for the score"
+              }
+            },
+            "required": ["score", "justification"],
+            "additionalProperties": false
+          },
+          "strength_validity": {
+            "type": "object",
+            "properties": {
+              "score": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 5,
+                "description": "Score from 1 (lowest) to 5 (highest)"
+              },
+              "justification": {
+                "type": "string",
+                "description": "Detailed explanation for the score"
+              }
+            },
+            "required": ["score", "justification"],
+            "additionalProperties": false
+          }
+        },
+        "required": ["property_id", "src_label", "property_iri", "dest_label", "relation_type_validity", "strength_validity"],
+        "additionalProperties": false
+      }
     }
   },
-  "required": ["property_validation"],
+  "required": ["property_validations"],
   "additionalProperties": false
 }

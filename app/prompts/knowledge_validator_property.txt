@@ -1,0 +1,80 @@
+# Knowledge Validation Task - Property Validation
+
+You are a knowledge quality validator. Your task is to evaluate the quality of extracted properties from a knowledge extraction process.
+
+## Context Information
+
+### Document Purpose and Domain
+{DOCUMENT_CONTEXT}
+
+---
+
+## Validation Task
+
+### PROPERTY VALIDATION (Batch)
+
+**Property IRI:** {PROPERTY_IRI}
+
+{PROPERTY_DEF}
+
+**Properties to Validate:**
+{PROPERTY_INSTANCES}
+
+**Validation Perspectives:**
+
+1. **Relation Type Validity** (Score 1-5)
+   - Evaluates whether the extracted property is correctly classified according to the relationship types defined in the metamodel.
+   - Consider: Does this relationship match the expected property type? Are source and destination classes correct?
+
+2. **Strength Validity** (Score 1-5)
+   - Evaluates whether the strength of the relationship expressed by the property aligns with the actual strength of the conceptual relationship within the domain.
+   - Strength scale: 0 (invalid), 1 (weak), 2 (moderate), 3 (strong)
+   - Consider: Is the assigned strength appropriate for this relationship? Does it reflect the actual importance/strength in the domain?
+
+Evaluate ALL properties listed above and provide scores with detailed justifications for each perspective FOR EACH PROPERTY.
+
+---
+
+## Output Requirements
+
+Provide your validation result in the following JSON format (array of validations, one for each property):
+
+```json
+{
+  "property_validations": [
+    {
+      "property_id": "<property_id_1>",
+      "src_label": "<src_label_1>",
+      "property_iri": "<property_iri>",
+      "dest_label": "<dest_label_1>",
+      "relation_type_validity": {
+        "score": <1-5>,
+        "justification": "<detailed explanation>"
+      },
+      "strength_validity": {
+        "score": <1-5>,
+        "justification": "<detailed explanation>"
+      }
+    }
+  ]
+}
+```
+
+IMPORTANT: Return validations for ALL properties in the batch in the same order they were provided.
+
+---
+
+## Important Guidelines
+
+1. **Scoring Scale**: Use a scale of 1-5 for all scores:
+   - 1: Very Poor - Significant issues that require immediate attention
+   - 2: Poor - Notable problems that should be addressed
+   - 3: Acceptable - Meets minimum requirements but has room for improvement
+   - 4: Good - Well-designed with minor areas for refinement
+   - 5: Excellent - Exemplary quality with no significant concerns
+
+2. **Justification**: Provide clear, specific, and actionable explanations for each score. Reference specific aspects of the property and how they relate to the evaluation criteria.
+
+3. **Objectivity**: Base your evaluation on the criteria provided, not on personal preferences or assumptions outside the given context.
+
+4. **Consistency**: Apply the same standards across all evaluations within this validation session.

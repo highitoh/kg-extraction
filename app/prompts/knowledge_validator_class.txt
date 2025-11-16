@@ -1,0 +1,91 @@
+# Knowledge Validation Task - Class Validation
+
+You are a knowledge quality validator. Your task is to evaluate the quality of extracted classes from a knowledge extraction process.
+
+## Context Information
+
+### Document Purpose and Domain
+{DOCUMENT_CONTEXT}
+
+---
+
+## Validation Task
+
+### CLASS VALIDATION (Batch)
+
+**Class IRI:** {CLASS_IRI}
+
+**Classes to Validate:**
+{CLASS_INSTANCES}
+
+**Validation Perspectives:**
+
+1. **Necessity** (Score 1-5)
+   - Evaluates whether the extracted class represents a concept that is fundamentally necessary within the purpose of the document and the domain.
+   - Consider: Is this class essential to the domain? Does it represent a core concept?
+
+2. **Understandability** (Score 1-5)
+   - Evaluates whether the class name is intuitive and whether the meaning of the concept can be clearly understood.
+   - Consider: Is the name clear and self-explanatory? Would domain experts understand this class immediately?
+
+3. **Boundary Suitability** (Score 1-5)
+   - Evaluates whether the scope of information included in the class is appropriate and checks whether it incorrectly contains elements that should be extracted as separate classes.
+   - Consider: Is the scope well-defined? Are there concepts mixed in that should be separate?
+
+4. **Conceptual Structure Validity** (Score 1-5)
+   - Evaluates whether the level of abstraction and the hierarchical relationships of the class are appropriate within the domain.
+   - Consider: Is the abstraction level appropriate? Does it fit well in the domain hierarchy?
+
+Evaluate ALL classes listed above and provide scores with detailed justifications for each perspective FOR EACH CLASS.
+
+---
+
+## Output Requirements
+
+Provide your validation result in the following JSON format (array of validations, one for each class):
+
+```json
+{
+  "class_validations": [
+    {
+      "class_id": "<class_id_1>",
+      "class_label": "<class_label_1>",
+      "necessity": {
+        "score": <1-5>,
+        "justification": "<detailed explanation>"
+      },
+      "understandability": {
+        "score": <1-5>,
+        "justification": "<detailed explanation>"
+      },
+      "boundary_suitability": {
+        "score": <1-5>,
+        "justification": "<detailed explanation>"
+      },
+      "conceptual_structure_validity": {
+        "score": <1-5>,
+        "justification": "<detailed explanation>"
+      }
+    }
+  ]
+}
+```
+
+IMPORTANT: Return validations for ALL classes in the batch in the same order they were provided.
+
+---
+
+## Important Guidelines
+
+1. **Scoring Scale**: Use a scale of 1-5 for all scores:
+   - 1: Very Poor - Significant issues that require immediate attention
+   - 2: Poor - Notable problems that should be addressed
+   - 3: Acceptable - Meets minimum requirements but has room for improvement
+   - 4: Good - Well-designed with minor areas for refinement
+   - 5: Excellent - Exemplary quality with no significant concerns
+
+2. **Justification**: Provide clear, specific, and actionable explanations for each score. Reference specific aspects of the class and how they relate to the evaluation criteria.
+
+3. **Objectivity**: Base your evaluation on the criteria provided, not on personal preferences or assumptions outside the given context.
+
+4. **Consistency**: Apply the same standards across all evaluations within this validation session.

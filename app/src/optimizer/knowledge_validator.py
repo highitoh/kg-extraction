@@ -91,12 +91,12 @@ class KnowledgeValidator:
             }
         )
 
-        # Load prompt template (path: /workspace/app/prompts/)
-        self.prompt_template = self._load_prompt()
+        # Load prompt templates (path: /workspace/app/prompts/)
+        self.class_prompt_template = self._load_prompt("knowledge_validator_class.txt")
+        self.property_prompt_template = self._load_prompt("knowledge_validator_property.txt")
 
         # Extract context
         self.document_context = self._extract_document_context()
-        self.metamodel_info = self._extract_metamodel_info()
 
     def _load_schema(self, schema_name: str) -> Dict[str, Any]:
         """Load a JSON schema file."""
@@ -104,9 +104,9 @@ class KnowledgeValidator:
         with open(schema_path, 'r', encoding='utf-8') as f:
             return json.load(f)
 
-    def _load_prompt(self) -> str:
-        """Load the prompt template."""
-        prompt_path = Path(__file__).parent.parent.parent / "prompts" / "knowledge_validator.txt"
+    def _load_prompt(self, prompt_filename: str) -> str:
+        """Load a prompt template."""
+        prompt_path = Path(__file__).parent.parent.parent / "prompts" / prompt_filename
         with open(prompt_path, 'r', encoding='utf-8') as f:
             return f.read()
 
@@ -183,178 +183,80 @@ class KnowledgeValidator:
 
         return "\n".join(context_parts)
 
-    def _extract_metamodel_info(self) -> str:
-        """Extract metamodel information from extraction result."""
-        metamodel = self.metamodel_data
+    def _create_class_validation_prompt(self, class_group: List[Dict[str, Any]]) -> str:
+        """Create validation prompt for a group of classes with the same class_iri."""
+        if not class_group:
+            raise ValueError("class_group cannot be empty")
 
-        info_parts = []
-        info_parts.append("**Metamodel Classes:**")
+        class_iri = class_group[0].get('class_iri', 'Unknown')
 
-        # Extract class information
-        classes = metamodel.get('classes', [])
-        for cls in classes:
-            class_name = cls.get('name', 'Unknown')
-            class_desc = cls.get('description', '')
-            info_parts.append(f"- {class_name}: {class_desc}")
+        # Format class instances
+        class_instances_parts = []
+        for idx, class_data in enumerate(class_group, 1):
+            class_id = class_data.get('id', 'Unknown')
+            class_label = class_data.get('label', 'Unknown')
+            sources = class_data.get('sources', [])
 
-        info_parts.append("\n**Metamodel Properties:**")
-
-        # Extract property information
-        properties = metamodel.get('properties', [])
-        for prop in properties:
-            prop_name = prop.get('name', 'Unknown')
-            prop_desc = prop.get('description', '')
-            src_class = prop.get('src_class', '').split('/')[-1]
-            dest_class = prop.get('dest_class', '').split('/')[-1]
-            info_parts.append(f"- {prop_name}: {src_class} → {dest_class}")
-            if prop_desc:
-                info_parts.append(f"  {prop_desc}")
-
-        return "\n".join(info_parts)
-
-    def _create_class_validation_prompt(self, class_data: Dict[str, Any]) -> str:
-        """Create validation prompt for a class."""
-        class_id = class_data.get('id', 'Unknown')
-        class_label = class_data.get('label', 'Unknown')
-        class_iri = class_data.get('class_iri', 'Unknown')
-        sources = class_data.get('sources', [])
-
-        validation_type = f"""
-### CLASS VALIDATION
-
-**Class Information:**
+            instance_info = f"""
+**Class {idx}:**
 - ID: {class_id}
 - Label: {class_label}
-- IRI: {class_iri}
-- Sources: {json.dumps(sources, indent=2)}
-
-**Validation Perspectives:**
-
-1. **Necessity** (Score 1-5)
-   - Evaluates whether the extracted class represents a concept that is fundamentally necessary within the purpose of the document and the domain.
-   - Consider: Is this class essential to the domain? Does it represent a core concept?
-
-2. **Understandability** (Score 1-5)
-   - Evaluates whether the class name is intuitive and whether the meaning of the concept can be clearly understood.
-   - Consider: Is the name clear and self-explanatory? Would domain experts understand this class immediately?
-
-3. **Boundary Suitability** (Score 1-5)
-   - Evaluates whether the scope of information included in the class is appropriate and checks whether it incorrectly contains elements that should be extracted as separate classes.
-   - Consider: Is the scope well-defined? Are there concepts mixed in that should be separate?
-
-4. **Conceptual Structure Validity** (Score 1-5)
-   - Evaluates whether the level of abstraction and the hierarchical relationships of the class are appropriate within the domain.
-   - Consider: Is the abstraction level appropriate? Does it fit well in the domain hierarchy?
-
-Evaluate this class and provide scores with detailed justifications for each perspective.
+- Sources: {json.dumps(sources, indent=2, ensure_ascii=False)}
 """
+            class_instances_parts.append(instance_info)
 
-        output_format = """
-{
-  "class_validation": {
-    "class_id": "{class_id}",
-    "class_label": "{class_label}",
-    "necessity": {
-      "score": <1-5>,
-      "justification": "<detailed explanation>"
-    },
-    "understandability": {
-      "score": <1-5>,
-      "justification": "<detailed explanation>"
-    },
-    "boundary_suitability": {
-      "score": <1-5>,
-      "justification": "<detailed explanation>"
-    },
-    "conceptual_structure_validity": {
-      "score": <1-5>,
-      "justification": "<detailed explanation>"
-    }
-  }
-}
-""".replace("{class_id}", class_id).replace("{class_label}", class_label)
+        class_instances = "\n".join(class_instances_parts)
 
-        prompt = self.prompt_template.replace("{DOCUMENT_CONTEXT}", self.document_context)
-        prompt = prompt.replace("{METAMODEL_INFO}", self.metamodel_info)
-        prompt = prompt.replace("{VALIDATION_TYPE}", validation_type)
-        prompt = prompt.replace("{OUTPUT_FORMAT}", output_format)
+        prompt = self.class_prompt_template.replace("{DOCUMENT_CONTEXT}", self.document_context)
+        prompt = prompt.replace("{CLASS_IRI}", class_iri)
+        prompt = prompt.replace("{CLASS_INSTANCES}", class_instances)
 
         return prompt
 
-    def _create_property_validation_prompt(self, property_data: Dict[str, Any]) -> str:
-        """Create validation prompt for a property."""
-        property_id = property_data.get('id', 'Unknown')
-        src_label = property_data.get('src_label', 'Unknown')
-        property_iri = property_data.get('property_iri', 'Unknown')
-        dest_label = property_data.get('dest_label', 'Unknown')
-        strength = property_data.get('strength', 0)
+    def _create_property_validation_prompt(self, property_group: List[Dict[str, Any]]) -> str:
+        """Create validation prompt for a group of properties with the same property_iri."""
+        if not property_group:
+            raise ValueError("property_group cannot be empty")
+
+        property_iri = property_group[0].get('property_iri', 'Unknown')
 
         # Find property definition in metamodel
-        metamodel = self.extraction_result_data.get('metamodel', {})
-        properties = metamodel.get('properties', [])
-        property_def = None
-        for prop in properties:
-            if prop.get('iri') == property_iri:
-                property_def = prop
-                break
+        property_def = self.metamodel_property_map.get(property_iri)
+        property_def_str = f"**Property Definition:** {json.dumps(property_def, indent=2, ensure_ascii=False)}" if property_def else ""
 
-        property_info = f"- Property Definition: {json.dumps(property_def, indent=2)}" if property_def else ""
+        # Format property instances
+        property_instances_parts = []
+        for idx, property_data in enumerate(property_group, 1):
+            property_id = property_data.get('id', 'Unknown')
+            src_label = property_data.get('src_label', 'Unknown')
+            dest_label = property_data.get('dest_label', 'Unknown')
+            strength = property_data.get('strength', 0)
 
-        validation_type = f"""
-### PROPERTY VALIDATION
-
-**Property Information:**
+            instance_info = f"""
+**Property {idx}:**
 - ID: {property_id}
 - Source Class: {src_label}
-- Property IRI: {property_iri}
 - Destination Class: {dest_label}
 - Current Strength: {strength}
-
-{property_info}
-
-**Validation Perspectives:**
-
-1. **Relation Type Validity** (Score 1-5)
-   - Evaluates whether the extracted property is correctly classified according to the relationship types defined in the metamodel.
-   - Consider: Does this relationship match the expected property type? Are source and destination classes correct?
-
-2. **Strength Validity** (Score 1-5)
-   - Evaluates whether the strength of the relationship expressed by the property aligns with the actual strength of the conceptual relationship within the domain.
-   - Strength scale: 0 (invalid), 1 (weak), 2 (moderate), 3 (strong)
-   - Consider: Is the assigned strength appropriate for this relationship? Does it reflect the actual importance/strength in the domain?
-
-Evaluate this property and provide scores with detailed justifications for each perspective.
 """
+            property_instances_parts.append(instance_info)
 
-        output_format = """
-{
-  "property_validation": {
-    "property_id": "{property_id}",
-    "src_label": "{src_label}",
-    "property_iri": "{property_iri}",
-    "dest_label": "{dest_label}",
-    "relation_type_validity": {
-      "score": <1-5>,
-      "justification": "<detailed explanation>"
-    },
-    "strength_validity": {
-      "score": <1-5>,
-      "justification": "<detailed explanation>"
-    }
-  }
-}
-""".replace("{property_id}", property_id).replace("{src_label}", src_label).replace("{property_iri}", property_iri).replace("{dest_label}", dest_label)
+        property_instances = "\n".join(property_instances_parts)
 
-        prompt = self.prompt_template.replace("{DOCUMENT_CONTEXT}", self.document_context)
-        prompt = prompt.replace("{METAMODEL_INFO}", self.metamodel_info)
-        prompt = prompt.replace("{VALIDATION_TYPE}", validation_type)
-        prompt = prompt.replace("{OUTPUT_FORMAT}", output_format)
+        prompt = self.property_prompt_template.replace("{DOCUMENT_CONTEXT}", self.document_context)
+        prompt = prompt.replace("{PROPERTY_IRI}", property_iri)
+        prompt = prompt.replace("{PROPERTY_DEF}", property_def_str)
+        prompt = prompt.replace("{PROPERTY_INSTANCES}", property_instances)
 
         return prompt
 
-    async def _validate_class_async(self, class_data: Dict[str, Any]) -> Dict[str, Any]:
-        """Validate a single class asynchronously."""
-        prompt = self._create_class_validation_prompt(class_data)
+    async def _validate_class_async(self, class_group: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        """Validate a group of classes with the same class_iri asynchronously."""
+        if not class_group:
+            return []
+
+        class_iri = class_group[0].get('class_iri', 'Unknown')
+        prompt = self._create_class_validation_prompt(class_group)
 
         try:
             # Invoke LLM with class schema
@@ -363,32 +265,41 @@ Evaluate this property and provide scores with detailed justifications for each 
             if isinstance(response.content, str):
                 result = json.loads(response.content)
             elif isinstance(response.content, list) and len(response.content) > 0:
-                # Extract text from structured content
-                result = json.loads(response.content[0].get('text', '{}'))
+                # Find the record whose type is "text"
+                text_record = next((item for item in response.content if item.get('type') == 'text'), None)
+                if text_record is None:
+                    raise ValueError(f"No text record found in response.content: {response.content}")
+                result = json.loads(text_record.get('text', '{}'))
             else:
                 raise ValueError(f"Unexpected response format: {type(response.content)}")
 
-            # Return the result directly if it has the validation structure
-            if 'class_validation' in result:
-                return result['class_validation']
+            # Return the validations array
+            if 'class_validations' in result:
+                return result['class_validations']
             else:
-                # The response might already be the class_validation object
-                return result
+                raise ValueError(f"Expected 'class_validations' in response, got: {result.keys()}")
         except Exception as e:
-            print(f"Error validating class {class_data.get('id')}: {e}")
-            # Return default validation on error
-            return {
-                "class_id": class_data.get('id', 'Unknown'),
-                "class_label": class_data.get('label', 'Unknown'),
-                "necessity": {"score": 0, "justification": f"Error: {str(e)}"},
-                "understandability": {"score": 0, "justification": f"Error: {str(e)}"},
-                "boundary_suitability": {"score": 0, "justification": f"Error: {str(e)}"},
-                "conceptual_structure_validity": {"score": 0, "justification": f"Error: {str(e)}"}
-            }
+            print(f"Error validating class group for IRI {class_iri}: {e}")
+            # Return default validations for all classes in the group
+            return [
+                {
+                    "class_id": cls.get('id', 'Unknown'),
+                    "class_label": cls.get('label', 'Unknown'),
+                    "necessity": {"score": 0, "justification": f"Error: {str(e)}"},
+                    "understandability": {"score": 0, "justification": f"Error: {str(e)}"},
+                    "boundary_suitability": {"score": 0, "justification": f"Error: {str(e)}"},
+                    "conceptual_structure_validity": {"score": 0, "justification": f"Error: {str(e)}"}
+                }
+                for cls in class_group
+            ]
 
-    async def _validate_property_async(self, property_data: Dict[str, Any]) -> Dict[str, Any]:
-        """Validate a single property asynchronously."""
-        prompt = self._create_property_validation_prompt(property_data)
+    async def _validate_property_async(self, property_group: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        """Validate a group of properties with the same property_iri asynchronously."""
+        if not property_group:
+            return []
+
+        property_iri = property_group[0].get('property_iri', 'Unknown')
+        prompt = self._create_property_validation_prompt(property_group)
 
         try:
             # Invoke LLM with property schema
@@ -397,45 +308,71 @@ Evaluate this property and provide scores with detailed justifications for each 
             if isinstance(response.content, str):
                 result = json.loads(response.content)
             elif isinstance(response.content, list) and len(response.content) > 0:
-                # Extract text from structured content
-                result = json.loads(response.content[0].get('text', '{}'))
+                # Find the record whose type is "text"
+                text_record = next((item for item in response.content if item.get('type') == 'text'), None)
+                if text_record is None:
+                    raise ValueError(f"No text record found in response.content: {response.content}")
+                result = json.loads(text_record.get('text', '{}'))
             else:
                 raise ValueError(f"Unexpected response format: {type(response.content)}")
 
-            # Return the result directly if it has the validation structure
-            if 'property_validation' in result:
-                return result['property_validation']
+            # Return the validations array
+            if 'property_validations' in result:
+                return result['property_validations']
             else:
-                # The response might already be the property_validation object
-                return result
+                raise ValueError(f"Expected 'property_validations' in response, got: {result.keys()}")
         except Exception as e:
-            print(f"Error validating property {property_data.get('id')}: {e}")
-            # Return default validation on error
-            return {
-                "property_id": property_data.get('id', 'Unknown'),
-                "src_label": property_data.get('src_label', 'Unknown'),
-                "property_iri": property_data.get('property_iri', 'Unknown'),
-                "dest_label": property_data.get('dest_label', 'Unknown'),
-                "relation_type_validity": {"score": 0, "justification": f"Error: {str(e)}"},
-                "strength_validity": {"score": 0, "justification": f"Error: {str(e)}"}
-            }
+            print(f"Error validating property group for IRI {property_iri}: {e}")
+            # Return default validations for all properties in the group
+            return [
+                {
+                    "property_id": prop.get('id', 'Unknown'),
+                    "src_label": prop.get('src_label', 'Unknown'),
+                    "property_iri": prop.get('property_iri', 'Unknown'),
+                    "dest_label": prop.get('dest_label', 'Unknown'),
+                    "relation_type_validity": {"score": 0, "justification": f"Error: {str(e)}"},
+                    "strength_validity": {"score": 0, "justification": f"Error: {str(e)}"}
+                }
+                for prop in property_group
+            ]
 
     async def validate_all_async(self) -> Dict[str, Any]:
-        """Validate all classes and properties in parallel."""
+        """Validate all classes and properties in parallel (grouped by IRI)."""
         classes = self.knowledge_data.get('classes', [])
         properties = self.knowledge_data.get('properties', [])
 
         print(f"Starting validation: {len(classes)} classes, {len(properties)} properties")
 
-        # Validate all classes in parallel
-        print(f"Validating {len(classes)} classes in parallel...")
-        class_tasks = [self._validate_class_async(cls) for cls in classes]
-        class_validations = await asyncio.gather(*class_tasks)
+        # Group classes by class_iri
+        from collections import defaultdict
+        class_groups = defaultdict(list)
+        for cls in classes:
+            class_iri = cls.get('class_iri', 'Unknown')
+            class_groups[class_iri].append(cls)
 
-        # Validate all properties in parallel
-        print(f"Validating {len(properties)} properties in parallel...")
-        property_tasks = [self._validate_property_async(prop) for prop in properties]
-        property_validations = await asyncio.gather(*property_tasks)
+        print(f"Validating {len(class_groups)} class groups in parallel...")
+        class_tasks = [self._validate_class_async(group) for group in class_groups.values()]
+        class_validation_groups = await asyncio.gather(*class_tasks)
+
+        # Flatten the results
+        class_validations = []
+        for group in class_validation_groups:
+            class_validations.extend(group)
+
+        # Group properties by property_iri
+        property_groups = defaultdict(list)
+        for prop in properties:
+            property_iri = prop.get('property_iri', 'Unknown')
+            property_groups[property_iri].append(prop)
+
+        print(f"Validating {len(property_groups)} property groups in parallel...")
+        property_tasks = [self._validate_property_async(group) for group in property_groups.values()]
+        property_validation_groups = await asyncio.gather(*property_tasks)
+
+        # Flatten the results
+        property_validations = []
+        for group in property_validation_groups:
+            property_validations.extend(group)
 
         # Create validation report
         timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
@@ -474,8 +411,7 @@ Evaluate this property and provide scores with detailed justifications for each 
         return str(output_file)
 
 
-def main():
-    """Main entry point for CLI."""
+if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Knowledge Validator - Validates classes and properties using LLM")
     parser.add_argument(
         "--project",
@@ -487,22 +423,6 @@ def main():
         default="gpt-5-mini",
         help="LLM model name (default: gpt-5-mini)"
     )
-    parser.add_argument(
-        "--temperature",
-        type=float,
-        default=0.0,
-        help="LLM temperature (default: 0.0)"
-    )
-    parser.add_argument(
-        "--output-dir",
-        default=None,
-        help="Output directory for validation report (default: /workspace/app/output/{project}/)"
-    )
-    parser.add_argument(
-        "--output-base-dir",
-        default="/workspace/app/output",
-        help="Base directory for project outputs (default: /workspace/app/output)"
-    )
 
     args = parser.parse_args()
 
@@ -511,9 +431,7 @@ def main():
         print(f"Initializing KnowledgeValidator with model: {args.model}")
         validator = KnowledgeValidator(
             project=args.project,
-            model=args.model,
-            temperature=args.temperature,
-            output_base_dir=args.output_base_dir
+            model=args.model
         )
 
         # Run validation
@@ -521,14 +439,9 @@ def main():
         report = validator.validate()
 
         # Save report
-        output_file = validator.save_report(report, args.output_dir)
+        output_file = validator.save_report(report)
         print(f"\nValidation completed!")
         print(f"Report saved to: {output_file}")
-
-        # Print summary
-        print(f"\nSummary:")
-        print(f"- Classes validated: {len(report['class_validations'])}")
-        print(f"- Properties validated: {len(report['property_validations'])}")
 
     except FileNotFoundError as e:
         print(f"\nError: {e}")
@@ -538,7 +451,3 @@ def main():
         import traceback
         traceback.print_exc()
         sys.exit(1)
-
-
-if __name__ == "__main__":
-    main()
