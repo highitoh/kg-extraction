@@ -78,3 +78,5 @@ IMPORTANT: Return validations for ALL properties in the batch in the same order 
 3. **Objectivity**: Base your evaluation on the criteria provided, not on personal preferences or assumptions outside the given context.
 
 4. **Consistency**: Apply the same standards across all evaluations within this validation session.
+
+5. **Language**: Respond in the same language as the label.
