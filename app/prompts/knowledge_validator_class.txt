@@ -49,6 +49,7 @@ Provide your validation result in the following JSON format (array of validation
   "class_validations": [
     {
       "class_id": "<class_id_1>",
+      "class_iri": "<class_iri>",
       "class_label": "<class_label_1>",
       "necessity": {
         "score": <1-5>,

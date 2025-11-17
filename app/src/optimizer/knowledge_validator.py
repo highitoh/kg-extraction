@@ -313,6 +313,7 @@ class KnowledgeValidator:
             return [
                 {
                     "class_id": cls.get('id', 'Unknown'),
+                    "class_iri": cls.get('class_iri', 'Unknown'),
                     "class_label": cls.get('label', 'Unknown'),
                     "necessity": {"score": 0, "justification": f"Error: {str(e)}"},
                     "understandability": {"score": 0, "justification": f"Error: {str(e)}"},

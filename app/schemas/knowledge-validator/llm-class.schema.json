@@ -13,6 +13,9 @@
           "class_id": {
             "type": "string"
           },
+          "class_iri": {
+            "type": "string"
+          },
           "class_label": {
             "type": "string"
           },
@@ -85,7 +88,7 @@
             "additionalProperties": false
           }
         },
-        "required": ["class_id", "class_label", "necessity", "understandability", "boundary_suitability", "conceptual_structure_validity"],
+        "required": ["class_id", "class_iri", "class_label", "necessity", "understandability", "boundary_suitability", "conceptual_structure_validity"],
         "additionalProperties": false
       }
     }
