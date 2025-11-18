@@ -1,0 +1,32 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Issue Classifier - Class Issues LLM Response",
+  "description": "LLM response schema for class issue classification",
+  "type": "object",
+  "properties": {
+    "class_issues": {
+      "type": "array",
+      "description": "List of class issue classifications",
+      "items": {
+        "type": "object",
+        "properties": {
+          "class_id": {
+            "type": "string",
+            "description": "UUID of the class being classified"
+          },
+          "issue_labels": {
+            "type": "array",
+            "description": "List of issue labels (free-form, UPPER_SNAKE_CASE)",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": ["class_id", "issue_labels"],
+        "additionalProperties": false
+      }
+    }
+  },
+  "required": ["class_issues"],
+  "additionalProperties": false
+}

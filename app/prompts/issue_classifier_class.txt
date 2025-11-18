@@ -1,0 +1,97 @@
+# Issue Classification Task - Class Issues
+
+You are an issue classifier for knowledge extraction quality analysis. Your task is to analyze validation results for extracted classes and assign issue labels that identify the root causes of poor extraction quality.
+
+## Context Information
+
+### Metamodel Definition
+{METAMODEL_CONTEXT}
+
+---
+
+## Classification Task
+
+### CLASS ISSUE CLASSIFICATION (Batch)
+
+**Class IRI:** {CLASS_IRI}
+
+**Classes with Poor Validation Scores (Score ≤ 3):**
+{CLASS_INSTANCES}
+
+**Your Task:**
+For each class listed above that has at least one validation dimension scored ≤ 3, analyze the validation scores and justifications to identify the root causes of poor quality. Assign 1-3 appropriate issue labels to each class.
+
+**Validation Dimensions to Consider:**
+1. **Necessity** (Score 1-5) - Whether the class is fundamentally necessary for the document purpose
+2. **Understandability** (Score 1-5) - Whether the class name is clear and intuitive
+3. **Boundary Suitability** (Score 1-5) - Whether the scope is appropriate and not mixing concepts
+4. **Conceptual Structure Validity** (Score 1-5) - Whether the abstraction level and hierarchy are appropriate
+
+---
+
+## Issue Label Guidelines
+
+**Label Format:**
+- Use UPPER_SNAKE_CASE format
+- Be concise yet descriptive (e.g., TOO_BROAD_CLASS_BOUNDARY)
+- Focus on identifying the ROOT CAUSE of the problem
+
+**Example Issue Labels (for reference - you can create new labels as needed):**
+
+Common Class Issues:
+- MIXED_STAKEHOLDER_AND_VALUE - Stakeholder and value concepts are confused or mixed
+- ROLE_VS_CLASS_CONFUSION - Role (e.g., "利用者") is confused with a concrete class
+- WRONG_METAMODEL_LAYER - Class is defined at the wrong abstraction level in the metamodel
+- DATASET_VS_PROCESS_MIXED - Dataset concepts mixed with process/analysis concepts
+- NAMING_INCLUDES_ACTOR_IN_PARENTHESIS - Class name includes actor information in parentheses (e.g., "患者（利用者）")
+- TOO_BROAD_CLASS_BOUNDARY - Class scope is too broad, mixing multiple distinct concepts
+- TOO_NARROW_CLASS_BOUNDARY - Class scope is too narrow, over-fragmenting concepts
+- UNCLEAR_TERMINOLOGY - Class name uses ambiguous or unclear terminology
+- REDUNDANT_WITH_EXISTING_CLASS - Class duplicates an existing concept
+- METAMODEL_VIOLATION - Class violates metamodel constraints or rules
+
+**You are NOT limited to these examples.** Create new, appropriate labels that accurately describe the specific issue based on the validation justifications.
+
+---
+
+## Output Requirements
+
+Provide your classification result in the following JSON format:
+
+```json
+{
+  "class_issues": [
+    {
+      "class_id": "<class_id_1>",
+      "issue_labels": ["LABEL_1", "LABEL_2"]
+    },
+    {
+      "class_id": "<class_id_2>",
+      "issue_labels": ["LABEL_3"]
+    }
+  ]
+}
+```
+
+IMPORTANT:
+- Return classifications for ALL classes in the batch
+- Assign 1-3 issue labels per class
+- Base labels on the validation scores and justifications provided
+- Create labels that identify ROOT CAUSES, not just symptoms
+- Use the same language as the justifications when analyzing context
+
+---
+
+## Analysis Approach
+
+1. **Review all validation dimensions** for each class
+2. **Identify which dimensions scored ≤ 3** (these indicate problems)
+3. **Read the justifications carefully** to understand WHY the score was low
+4. **Identify the root cause** (what fundamental issue led to this problem?)
+5. **Assign concise labels** that capture the essence of the issue
+6. **Consider related classes** in the same IRI group for context
+
+Example Analysis:
+- If "boundary_suitability" scored 2 with justification "ステークホルダと価値が混在している" → MIXED_STAKEHOLDER_AND_VALUE
+- If "understandability" scored 3 with justification "括弧内に役割が含まれており分かりにくい" → NAMING_INCLUDES_ACTOR_IN_PARENTHESIS
+- If "conceptual_structure_validity" scored 2 with justification "メタモデルの階層が不適切" → WRONG_METAMODEL_LAYER
