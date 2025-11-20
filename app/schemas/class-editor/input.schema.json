@@ -2,6 +2,6 @@
   "$id": "https://github.com/highitoh/kg-extraction/schemas/class-editor/input.schema.json",
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "ClassEditorInput",
-  "description": "クラスエディタの入力情報（ClassReviewerの出力と同一）",
+  "description": "Input information for class editor (same as ClassReviewer output)",
   "$ref": "https://github.com/highitoh/kg-extraction/schemas/class-reviewer/output.schema.json"
 }

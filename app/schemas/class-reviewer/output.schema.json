@@ -2,7 +2,7 @@
   "$id": "https://github.com/highitoh/kg-extraction/schemas/class-reviewer/output.schema.json",
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "ClassReviewerOutput",
-  "description": "クラスレビュアーの出力情報",
+  "description": "Output information for class reviewer",
   "type": "object",
   "properties": {
     "id": {

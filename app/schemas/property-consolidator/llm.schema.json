@@ -3,11 +3,11 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "PropertyConsolidatorLLMOutput",
   "type": "object",
-  "description": "PropertyConsolidatorのLLM出力スキーマ - 類似プロパティのグループ化結果",
+  "description": "LLM output schema for PropertyConsolidator - grouping result of similar properties",
   "properties": {
     "groups": {
       "type": "array",
-      "description": "類似プロパティのグループリスト",
+      "description": "List of similar property groups",
       "items": {
         "type": "object",
         "properties": {
@@ -17,11 +17,11 @@
               "type": "integer"
             },
             "minItems": 1,
-            "description": "同一関係を表すプロパティのインデックスリスト（0始まり）"
+            "description": "Index list of properties representing the same relationship (0-indexed)"
           },
           "reason": {
             "type": "string",
-            "description": "グループ化の理由（ログ・デバッグ用）"
+            "description": "Reason for grouping (for logging/debugging)"
           }
         },
         "required": ["indices", "reason"],

@@ -2,7 +2,7 @@
   "$id": "https://github.com/highitoh/kg-extraction/schemas/view-extractor/llm.schema.json",
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "ViewExtractorLLMOutput",
-  "description": "ViewExtractorのLLM出力スキーマ",
+  "description": "LLM output schema for ViewExtractor",
   "type": "object",
   "properties": {
     "value_analysis": {
@@ -10,42 +10,42 @@
       "items": {
         "type": "string"
       },
-      "description": "価値分析に関連するテキスト"
+      "description": "Text related to value analysis"
     },
     "business_concept": {
       "type": "array",
       "items": {
         "type": "string"
       },
-      "description": "ビジネスコンセプトに関連するテキスト"
+      "description": "Text related to business concepts"
     },
     "business_requirement": {
       "type": "array",
       "items": {
         "type": "string"
       },
-      "description": "ビジネス要求に関連するテキスト"
+      "description": "Text related to business requirements"
     },
     "system_requirement": {
       "type": "array",
       "items": {
         "type": "string"
       },
-      "description": "システム要求に関連するテキスト"
+      "description": "Text related to system requirements"
     },
     "system_component": {
       "type": "array",
       "items": {
         "type": "string"
       },
-      "description": "システムコンポーネントに関連するテキスト"
+      "description": "Text related to system components"
     },
     "data_analysis": {
       "type": "array",
       "items": {
         "type": "string"
       },
-      "description": "データ分析に関連するテキスト"
+      "description": "Text related to data analysis"
     }
   },
   "required": [

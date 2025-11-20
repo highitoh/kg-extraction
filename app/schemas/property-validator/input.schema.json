@@ -3,19 +3,19 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "PropertyValidatorInput",
   "type": "object",
-  "description": "PropertyValidatorの入力情報",
+  "description": "Input information for PropertyValidator",
   "properties": {
     "property_candidates": {
       "$ref": "https://github.com/highitoh/kg-extraction/schemas/property-reviewer/output.schema.json",
-      "description": "PropertyReviewerの出力（フィルタリング済みプロパティ情報）"
+      "description": "PropertyReviewer output (filtered property information)"
     },
     "class_info": {
       "$ref": "https://github.com/highitoh/kg-extraction/schemas/class-chain/output.schema.json",
-      "description": "ClassReviewerの出力（クラス情報）"
+      "description": "ClassReviewer output (class information)"
     },
     "metamodel": {
       "$ref": "https://github.com/highitoh/kg-extraction/schemas/common/metamodel.schema.json",
-      "description": "メタモデル定義"
+      "description": "Metamodel definition"
     }
   },
   "required": ["property_candidates", "class_info", "metamodel"],

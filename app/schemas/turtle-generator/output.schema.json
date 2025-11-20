@@ -3,11 +3,11 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "TurtleGeneratorOutput",
   "type": "object",
-  "description": "Turtle生成の出力情報",
+  "description": "Output information for Turtle generation",
   "properties": {
     "turtle": {
       "type": "string",
-      "description": "生成されたTurtle文字列。"
+      "description": "Generated Turtle string"
     }
   },
   "required": ["turtle"],

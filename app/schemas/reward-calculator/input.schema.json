@@ -2,6 +2,6 @@
   "$id": "https://github.com/highitoh/kg-extraction/schemas/reward-calculator/input.schema.json",
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "RewardCalculatorInput",
-  "description": "報酬計算の入力情報（KnowledgeValidator出力への参照）",
+  "description": "Input information for reward calculation (reference to KnowledgeValidator output)",
   "$ref": "https://github.com/highitoh/kg-extraction/schemas/knowledge-validator/output.schema.json"
 }

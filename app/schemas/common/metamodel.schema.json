@@ -3,11 +3,11 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "Metamodel",
   "type": "object",
-  "description": "メタモデルの定義",
+  "description": "Metamodel definition",
   "properties": {
     "classes": {
       "type": "array",
-      "description": "メタモデルに定義されたクラス",
+      "description": "Classes defined in the metamodel",
       "minItems": 1,
       "items": {
         "type": "object",
@@ -16,7 +16,7 @@
           "iri": {
             "type": "string",
             "format": "uri",
-            "description": "識別子(IRI)"
+            "description": "Identifier (IRI)"
           }
         },
         "required": ["iri"]
@@ -24,7 +24,7 @@
     },
     "properties": {
       "type": "array",
-      "description": "メタモデルに定義されたプロパティ",
+      "description": "Properties defined in the metamodel",
       "minItems": 1,
       "items": {
         "type": "object",
@@ -33,17 +33,17 @@
           "iri": {
             "type": "string",
             "format": "uri",
-            "description": "識別子(IRI)"
+            "description": "Identifier (IRI)"
           },
           "src_iri": {
             "type": "string",
             "format": "uri",
-            "description": "プロパティの出発点となるクラスのIRI"
+            "description": "IRI of the source class for the property"
           },
           "dest_iri": {
             "type": "string",
             "format": "uri",
-            "description": "プロパティの到達点となるクラスのIRI"
+            "description": "IRI of the destination class for the property"
           }
         },
         "required": ["iri", "src_iri", "dest_iri"]

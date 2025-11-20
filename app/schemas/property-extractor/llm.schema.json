@@ -2,7 +2,7 @@
   "$id": "https://github.com/highitoh/kg-extraction/schemas/property-extractor/llm.schema.json",
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "PropertyExtractorLLMOutput",
-  "description": "PropertyExtractorのLLM出力スキーマ",
+  "description": "LLM output schema for PropertyExtractor",
   "type": "object",
   "properties": {
     "properties": {

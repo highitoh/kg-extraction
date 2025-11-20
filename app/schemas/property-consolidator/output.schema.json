@@ -3,15 +3,15 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "PropertyConsolidatorOutput",
   "type": "object",
-  "description": "PropertyConsolidatorの出力スキーマ（PropertyExtractorと同じ形式）",
+  "description": "Output schema for PropertyConsolidator (same format as PropertyExtractor)",
   "properties": {
     "id": {
       "type": "string",
-      "description": "抽出ID"
+      "description": "Extraction ID"
     },
     "properties": {
       "type": "array",
-      "description": "統合済みプロパティリスト",
+      "description": "Consolidated property list",
       "items": {
         "type": "object",
         "properties": {

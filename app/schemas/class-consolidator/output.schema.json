@@ -2,6 +2,6 @@
   "$id": "https://github.com/highitoh/kg-extraction/schemas/class-consolidator/output.schema.json",
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "ClassConsolidatorOutput",
-  "description": "クラス集約の出力情報",
+  "description": "Output information for class consolidation",
   "$ref": "https://github.com/highitoh/kg-extraction/schemas/class-chain/output.schema.json"
 }

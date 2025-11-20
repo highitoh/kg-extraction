@@ -3,31 +3,31 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "ViewChainOutput",
   "type": "object",
-  "description": "ビュー記述抽出の入力情報",
+  "description": "Output information for view description extraction",
   "properties": {
     "id": {
       "type": "string",
-      "description": "抽出ID"
+      "description": "Extraction ID"
     },
     "views": {
       "type": "array",
-      "description": "各抽出ビュー記述情報",
+      "description": "Extracted view description information for each type",
       "minItems": 1,
       "items": {
         "type": "object",
         "additionalProperties": false,
         "properties": {
-          "type": { "type": "string", "description": "ビュー種別" },
+          "type": { "type": "string", "description": "View type" },
           "texts": {
             "type": "array",
-            "description": "抽出ビュー記述情報",
+            "description": "Extracted view description information",
             "minItems": 1,
             "items": {
               "type": "object",
               "additionalProperties": false,
               "properties": {
-                "file_id": { "type": "string", "description": "ファイルID" },
-                "text": { "type": "string", "description": "抽出ビュー記述" }
+                "file_id": { "type": "string", "description": "File ID" },
+                "text": { "type": "string", "description": "Extracted view description" }
               },
               "required": ["file_id", "text"]
             }

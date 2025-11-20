@@ -3,15 +3,15 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "ClassChainOutput",
   "type": "object",
-  "description": "クラス抽出の出力情報",
+  "description": "Output information for class extraction",
   "properties": {
     "id": {
       "type": "string",
-      "description": "抽出ID"
+      "description": "Extraction ID"
     },
     "classes": {
       "type": "array",
-      "description": "クラス個体の抽出情報",
+      "description": "Extracted class instance information",
       "minItems": 1,
       "items": {
         "type": "object",
@@ -19,16 +19,16 @@
         "properties": {
           "id": {
             "type": "string",
-            "description": "クラス個体ID"
+            "description": "Class instance ID"
           },
           "class_iri": {
             "type": "string",
             "format": "uri",
-            "description": "メタモデルのクラスIRI。"
+            "description": "Class IRI from the metamodel"
           },
           "label": {
             "type": "string",
-            "description": "抽出クラス"
+            "description": "Extracted class label"
           },
           "sources": {
             "type": "array",
@@ -36,7 +36,7 @@
               "type": "string"
             },
             "minItems": 1,
-            "description": "抽出元文章（複数）。file_idsと1:1対応し、sources[i]はfile_ids[i]に対応する。配列長はfile_idsと同じである必要がある。"
+            "description": "Source texts (multiple). Has 1:1 correspondence with file_ids, where sources[i] corresponds to file_ids[i]. Array length must match file_ids."
           },
           "file_ids": {
             "type": "array",
@@ -44,7 +44,7 @@
               "type": "string"
             },
             "minItems": 1,
-            "description": "抽出元ファイルID（複数）。sourcesと1:1対応し、file_ids[i]はsources[i]に対応する。配列長はsourcesと同じである必要がある。"
+            "description": "Source file IDs (multiple). Has 1:1 correspondence with sources, where file_ids[i] corresponds to sources[i]. Array length must match sources."
           }
         },
         "required": ["id", "class_iri", "label", "sources", "file_ids"]

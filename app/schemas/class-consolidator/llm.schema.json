@@ -3,11 +3,11 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "ClassConsolidatorLLMOutput",
   "type": "object",
-  "description": "ClassConsolidatorのLLM出力スキーマ",
+  "description": "LLM output schema for ClassConsolidator",
   "properties": {
     "groups": {
       "type": "array",
-      "description": "類似クラスのグループリスト",
+      "description": "List of similar class groups",
       "items": {
         "type": "object",
         "properties": {
@@ -17,15 +17,15 @@
               "type": "integer"
             },
             "minItems": 1,
-            "description": "同一概念を表すラベルのインデックスリスト（0始まり）"
+            "description": "Index list of labels representing the same concept (0-indexed)"
           },
           "canonical_label": {
             "type": "string",
-            "description": "グループの正準ラベル（入力ラベルのいずれかと完全一致すること）"
+            "description": "Canonical label for the group (must exactly match one of the input labels)"
           },
           "reason": {
             "type": "string",
-            "description": "選択理由（ログ・デバッグ用）"
+            "description": "Reason for selection (for logging/debugging)"
           }
         },
         "required": ["indices", "canonical_label", "reason"],

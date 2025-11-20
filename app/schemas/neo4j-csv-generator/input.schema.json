@@ -3,7 +3,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "Neo4jCSVGeneratorInput",
   "type": "object",
-  "description": "Neo4j Bulk Import用CSV生成の入力情報",
+  "description": "Input information for Neo4j Bulk Import CSV generation",
   "properties": {
     "class_info": {
       "$ref": "https://github.com/highitoh/kg-extraction/schemas/class-chain/output.schema.json"

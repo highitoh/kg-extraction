@@ -3,11 +3,11 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "TextChainInput",
   "type": "object",
-  "description": "TextChainの入力情報",
+  "description": "Input information for TextChain",
   "properties": {
     "files": {
       "type": "array",
-      "description": "処理対象ファイル情報",
+      "description": "Target file information for processing",
       "minItems": 1,
       "items": {
         "type": "object",
@@ -15,7 +15,7 @@
         "properties": {
           "path": {
             "type": "string",
-            "description": "ファイルパス"
+            "description": "File path"
           }
         },
         "required": ["path"]

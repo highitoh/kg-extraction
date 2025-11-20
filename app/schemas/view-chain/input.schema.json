@@ -3,24 +3,24 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "ViewChainInput",
   "type": "object",
-  "description": "ビュー記述抽出の入力情報",
+  "description": "Input information for view description extraction",
   "properties": {
     "target": {
       "type": "object",
-      "description": "抽出対象の文章情報",
+      "description": "Target text information for extraction",
       "additionalProperties": false,
       "properties": {
-        "id": { "type": "string", "description": "抽出ID" },
-        "file_id": { "type": "string", "description": "ファイルID" },
+        "id": { "type": "string", "description": "Extraction ID" },
+        "file_id": { "type": "string", "description": "File ID" },
         "chunks": {
           "type": "array",
-          "description": "チャンク分割済みテキスト情報",
+          "description": "Chunked text information",
           "minItems": 1,
           "items": {
             "type": "object",
             "additionalProperties": false,
             "properties": {
-              "text": { "type": "string", "description": "チャンクテキスト" }
+              "text": { "type": "string", "description": "Chunk text" }
             },
             "required": ["text"]
           }

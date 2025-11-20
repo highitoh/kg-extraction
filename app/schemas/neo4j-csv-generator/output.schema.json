@@ -3,15 +3,15 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "Neo4jCSVGeneratorOutput",
   "type": "object",
-  "description": "Neo4j Bulk Import用CSV生成の出力情報",
+  "description": "Output information for Neo4j Bulk Import CSV generation",
   "properties": {
     "nodes_path": {
       "type": "string",
-      "description": "生成されたノードCSVの保存先パス。"
+      "description": "Path to the generated nodes CSV file"
     },
     "properties_path": {
       "type": "string",
-      "description": "生成されたプロパティ（関係）CSVの保存先パス。"
+      "description": "Path to the generated properties (relationships) CSV file"
     }
   },
   "required": ["nodes_path", "properties_path"],

@@ -2,7 +2,7 @@
   "$id": "https://github.com/highitoh/kg-extraction/schemas/class-editor/llm.schema.json",
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "ClassEditorLLMOutput",
-  "description": "クラスエディタのLLM出力スキーマ",
+  "description": "LLM output schema for class editor",
   "type": "object",
   "properties": {
     "corrections": {
@@ -12,15 +12,15 @@
         "properties": {
           "revised_label": {
             "type": "string",
-            "description": "修正後のラベル（修正しない場合は空文字列）"
+            "description": "Revised label (empty string if no revision needed)"
           },
           "should_reject": {
             "type": "boolean",
-            "description": "除外すべきかどうか（true=REJECT, false=REVIEW継続）"
+            "description": "Whether to reject (true=REJECT, false=continue REVIEW)"
           },
           "revision_reason": {
             "type": "string",
-            "description": "修正理由または除外理由"
+            "description": "Reason for revision or rejection"
           }
         },
         "required": ["revised_label", "should_reject", "revision_reason"],

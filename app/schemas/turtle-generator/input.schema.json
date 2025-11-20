@@ -3,7 +3,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "TurtleGeneratorInput",
   "type": "object",
-  "description": "Turtle生成の入力情報",
+  "description": "Input information for Turtle generation",
   "properties": {
     "class_info": {
       "$ref": "https://github.com/highitoh/kg-extraction/schemas/class-chain/output.schema.json"

@@ -3,15 +3,15 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "PropertyConsolidatorInput",
   "type": "object",
-  "description": "PropertyConsolidatorの入力スキーマ",
+  "description": "Input schema for PropertyConsolidator",
   "properties": {
     "id": {
       "type": "string",
-      "description": "抽出ID"
+      "description": "Extraction ID"
     },
     "properties": {
       "type": "array",
-      "description": "新規抽出プロパティリスト",
+      "description": "Newly extracted property list",
       "items": {
         "type": "object",
         "properties": {
@@ -26,7 +26,7 @@
     },
     "existing_properties": {
       "type": "array",
-      "description": "既存プロパティリスト（オプション）",
+      "description": "Existing property list (optional)",
       "items": {
         "type": "object",
         "properties": {
@@ -41,7 +41,7 @@
     },
     "class_info": {
       "type": "object",
-      "description": "クラス情報（ID正規化用）",
+      "description": "Class information (for ID normalization)",
       "properties": {
         "id": {"type": "string"},
         "classes": {

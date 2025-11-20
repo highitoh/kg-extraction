@@ -3,19 +3,19 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "TextChainOutput",
   "type": "object",
-  "description": "TextChainの出力情報",
+  "description": "Output information for TextChain",
   "properties": {
     "id": {
       "type": "string",
-      "description": "抽出ID（UUID）"
+      "description": "Extraction ID (UUID)"
     },
     "file_name": {
       "type": "string",
-      "description": "処理したファイル名"
+      "description": "Processed file name"
     },
     "sentences": {
       "type": "array",
-      "description": "抽出・フィルタリングされた文章情報",
+      "description": "Extracted and filtered sentence information",
       "minItems": 1,
       "items": {
         "type": "object",
@@ -23,7 +23,7 @@
         "properties": {
           "text": {
             "type": "string",
-            "description": "抽出テキスト"
+            "description": "Extracted text"
           }
         },
         "required": ["text"]

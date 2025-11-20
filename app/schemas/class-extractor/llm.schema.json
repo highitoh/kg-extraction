@@ -2,7 +2,7 @@
   "$id": "https://github.com/highitoh/kg-extraction/schemas/class-extractor/llm.schema.json",
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "ClassExtractorLLMOutput",
-  "description": "ClassExtractorのLLM出力スキーマ",
+  "description": "LLM output schema for ClassExtractor",
   "type": "object",
   "properties": {
     "classes": {
@@ -12,21 +12,21 @@
         "properties": {
           "class": {
             "type": "string",
-            "description": "クラスの種類"
+            "description": "Class type"
           },
           "label": {
             "type": "string",
-            "description": "抽出したインスタンスの名前"
+            "description": "Name of the extracted instance"
           },
           "source": {
             "type": "string",
-            "description": "抽出元の文章"
+            "description": "Source text"
           }
         },
         "required": ["class", "label", "source"],
         "additionalProperties": false
       },
-      "description": "抽出したクラス情報"
+      "description": "Extracted class information"
     }
   },
   "required": ["classes"],

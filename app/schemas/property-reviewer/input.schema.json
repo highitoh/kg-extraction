@@ -3,15 +3,15 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "PropertyReviewerInput",
   "type": "object",
-  "description": "プロパティフィルタの入力情報",
+  "description": "Input information for property filter",
   "properties": {
     "property_candidates": {
       "$ref": "https://github.com/highitoh/kg-extraction/schemas/property-chain/output.schema.json",
-      "description": "PropertyExtractorの出力（候補プロパティ情報）"
+      "description": "PropertyExtractor output (candidate property information)"
     },
     "class_info": {
       "$ref": "https://github.com/highitoh/kg-extraction/schemas/class-chain/output.schema.json",
-      "description": "ClassReviewerの出力（クラス情報）"
+      "description": "ClassReviewer output (class information)"
     }
   },
   "required": ["property_candidates", "class_info"],

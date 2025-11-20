@@ -3,7 +3,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "ClassChainInput",
   "type": "object",
-  "description": "クラス抽出の入力情報",
+  "description": "Input information for class extraction",
   "properties": {
     "view_info": {
       "$ref": "https://github.com/highitoh/kg-extraction/schemas/view-chain/output.schema.json"
