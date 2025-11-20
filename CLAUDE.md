@@ -1,7 +1,7 @@
 # Project Configuration for Claude Code
 
 ## Project Overview
-PDFファイルから知識を抽出してTurtleファイルとNeo4j用CSVファイルを生成するLangChainベースのアプリケーション
+A LangChain-based application that extracts knowledge from PDF files and generates Turtle files and CSV files for Neo4j
 
 ## Development Environment
 - **Language**: Python
@@ -12,31 +12,31 @@ PDFファイルから知識を抽出してTurtleファイルとNeo4j用CSVファ
 ## Key Files and Structure
 ```
 /workspace/
-├── app/                    # メインアプリケーション
-│   ├── src/               # ソースコード (ステージベース構成)
-│   │   ├── main.py        # エントリポイント
-│   │   ├── core/          # アプリケーション中核 (graph.py, nodes.py, state.py)
-│   │   ├── utils/         # 共通ユーティリティ (logger.py, llm_factory.py, chunk_creator.py)
-│   │   ├── classification/  # ファイル分類ステージ
-│   │   ├── text/          # テキスト抽出ステージ (document/presentation)
-│   │   ├── view/          # ビュー抽出ステージ
-│   │   ├── class/         # クラス抽出ステージ
-│   │   ├── property/      # プロパティ抽出ステージ
-│   │   └── output/        # 出力生成ステージ (turtle_generator.py, neo4j_csv_generator.py)
-│   ├── schemas/           # 入出力スキーマ定義
+├── app/                    # Main application
+│   ├── src/               # Source code (stage-based architecture)
+│   │   ├── main.py        # Entry point
+│   │   ├── core/          # Application core (graph.py, nodes.py, state.py)
+│   │   ├── utils/         # Common utilities (logger.py, llm_factory.py, chunk_creator.py)
+│   │   ├── classification/  # File classification stage
+│   │   ├── text/          # Text extraction stage (document/presentation)
+│   │   ├── view/          # View extraction stage
+│   │   ├── class/         # Class extraction stage
+│   │   ├── property/      # Property extraction stage
+│   │   └── output/        # Output generation stage (turtle_generator.py, neo4j_csv_generator.py)
+│   ├── schemas/           # Input/output schema definitions
 │   │   ├── *-chain/
-│   │   └── common/        # 共通スキーマ
-│   ├── prompts/           # タスク用プロンプトテキスト
-│   ├── metamodel/         # メタモデル定義
-│   ├── output/            # 生成ファイル出力先
-│   ├── log/               # ログファイル
-│   └── requirements.txt   # Python依存関係
-├── neo4j/                 # Neo4jデータ
-└── doc/                   # ドキュメント
+│   │   └── common/        # Common schemas
+│   ├── prompts/           # Prompt text for tasks
+│   ├── metamodel/         # Metamodel definitions
+│   ├── output/            # Generated file output directory
+│   ├── log/               # Log files
+│   └── requirements.txt   # Python dependencies
+├── neo4j/                 # Neo4j data
+└── doc/                   # Documentation
 ```
 
 ## Schema Structure
-`/workspace/app/schemas/`は、各チェインやLLMの入出力のJSONスキーマを定義している。再利用性を高めるため、上位と同じ入出力の場合はスキーマを参照して定義する。
+`/workspace/app/schemas/` defines JSON schemas for the input/output of each chain and LLM. To improve reusability, schemas are defined by reference when the input/output is the same as the parent level.
 - **Chains**: doc-text-chain, view-chain, class-chain, property-chain
 - **Extractors**: text-extractor, view-extractor, class-extractor, property-extractor
 - **Filters**: text-filter, view-filter
@@ -44,25 +44,25 @@ PDFファイルから知識を抽出してTurtleファイルとNeo4j用CSVファ
 - **Common**: Shared schema definitions (metamodel.schema.json)
 
 ## Prompt Templates
-`/workspace/app/prompts/` は、LLMで使用するプロンプトのテキストを記述している
+`/workspace/app/prompts/` contains the prompt text used by the LLM
 
 ## Common Commands
 
 ### Development
 ```bash
-# 依存関係のインストール
+# Install dependencies
 cd app && pip install -r requirements.txt
 
-# メインアプリケーションの実行
+# Run main application
 cd app && python src/main.py [PDF_PATH]
 
-# プロジェクト別に出力ファイルを管理
+# Manage output files by project
 cd app && python src/main.py [PDF_PATH] --project [PROJECT_NAME]
 
-# すべてのオプション
+# All options
 cd app && python src/main.py [PDF_PATH] --project [PROJECT_NAME] --model [MODEL_NAME] --output-dir [OUTPUT_DIR]
 
-# 特定のチェインの実行 (開発・デバッグ用)
+# Run specific chain (for development/debugging)
 cd app && python -c "import sys; sys.path.insert(0, '.'); from src.text.doc_text_chain import *"
 cd app && python -c "import sys; sys.path.insert(0, '.'); from src.view.view_chain import *"
 cd app && python -c "import sys; sys.path.insert(0, '.'); from src.class.class_chain import *"
@@ -71,25 +71,25 @@ cd app && python -c "import sys; sys.path.insert(0, '.'); from src.property.prop
 
 ### Docker Environment
 ```bash
-# 環境の起動
+# Start environment
 docker-compose up -d
 
-# アプリケーションコンテナに入る
+# Enter application container
 docker exec -it app_container bash
 
-# Neo4jブラウザアクセス
+# Access Neo4j browser
 # http://localhost:7474 (neo4j/neo4jpassword)
 ```
 
 ## Testing and Quality
-全体処理を動作確認するときは、コストを抑えるため**gpt-5-nano**を使用する
+Use **gpt-5-nano** when testing the entire process to reduce costs
 
 ### Single file extraction
 ```bash
-# デフォルトプロジェクト
+# Default project
 python src/main.py ../doc/sample.pdf --model gpt-5-nano
 
-# 特定のプロジェクト
+# Specific project
 python src/main.py ../doc/sample.pdf --project test-project --model gpt-5-nano
 ```
 
@@ -100,21 +100,21 @@ python src/main.py ../doc/sample2.pdf --project test-project --model gpt-5-nano
 ```
 
 ## Environment Variables
-- `NEO4J_AUTH=neo4j/neo4jpassword` (Docker環境)
+- `NEO4J_AUTH=neo4j/neo4jpassword` (Docker environment)
 
 ## Output Files
-出力ファイルは`--project`パラメータで指定したプロジェクト別に管理される。
+Output files are managed by project, specified with the `--project` parameter.
 
-### ディレクトリ構造
+### Directory Structure
 ```
 /workspace/app/output/
-├── default/                           # デフォルトプロジェクト
+├── default/                           # Default project
 │   ├── knowledge_graph_YYYYMMDD_HHMMSS.ttl
 │   ├── nodes.csv
 │   ├── relationships.csv
-│   ├── knowledge.json                 # 累積知識（ACCEPT済みクラス+有効プロパティ）
+│   ├── knowledge.json                 # Accumulated knowledge (ACCEPT classes + valid properties)
 │   └── extraction_result_YYYYMMDD_HHMMSS.json
-├── project1/                          # カスタムプロジェクト
+├── project1/                          # Custom project
 │   ├── knowledge_graph_YYYYMMDD_HHMMSS.ttl
 │   ├── nodes.csv
 │   ├── relationships.csv
@@ -124,39 +124,39 @@ python src/main.py ../doc/sample2.pdf --project test-project --model gpt-5-nano
     └── ...
 ```
 
-### ファイル種別
-- **Turtle files**: `knowledge_graph_*.ttl` - RDF/Turtle形式の知識グラフ
-- **Neo4j CSV files**: `nodes.csv`, `relationships.csv` - Neo4jインポート用CSVファイル
-- **Knowledge JSON**: `knowledge.json` - 累積知識（軽量版、次回実行時のインプットとして使用）
-  - ACCEPT判定されたクラスのみ
-  - 強度>0のプロパティのみ
-  - 複数回実行で自動的に累積される
-- **Result JSON**: `extraction_result_YYYYMMDD_HHMMSS.json` - 各実行の完全な処理結果（タイムスタンプ付き、履歴・監査用）
+### File Types
+- **Turtle files**: `knowledge_graph_*.ttl` - Knowledge graph in RDF/Turtle format
+- **Neo4j CSV files**: `nodes.csv`, `relationships.csv` - CSV files for Neo4j import
+- **Knowledge JSON**: `knowledge.json` - Accumulated knowledge (lightweight version, used as input for next execution)
+  - Only ACCEPT-judged classes
+  - Only properties with strength > 0
+  - Automatically accumulated across multiple executions
+- **Result JSON**: `extraction_result_YYYYMMDD_HHMMSS.json` - Complete processing results for each execution (with timestamp, for history/audit)
 
 ## Key Dependencies
-- langchain: LLMチェイン構築
-- langchain-openai: OpenAI API連携
-- pdfplumber, pypdf: PDF処理
-- rdflib: RDF/Turtle生成
-- neo4j: グラフデータベース
+- langchain: LLM chain construction
+- langchain-openai: OpenAI API integration
+- pdfplumber, pypdf: PDF processing
+- rdflib: RDF/Turtle generation
+- neo4j: Graph database
 
 ## Notes
-- PDFファイルは `/workspace/doc/` に配置
-- 出力ファイルは `/workspace/app/output/{project}/` に生成
-- ログファイルは `/workspace/app/log/` に生成
-- Neo4jデータは永続化される (`./neo4j/data`)
-- スキーマ定義により各チェイン・タスクの入出力仕様が明確化
-- プロンプトテキストは外部ファイル管理により調整・保守が容易
+- PDF files are placed in `/workspace/doc/`
+- Output files are generated in `/workspace/app/output/{project}/`
+- Log files are generated in `/workspace/app/log/`
+- Neo4j data is persisted (`./neo4j/data`)
+- Schema definitions clarify input/output specifications for each chain/task
+- Prompt text is managed in external files for easy adjustment and maintenance
 
 ## Command Line Arguments
 ```bash
 python src/main.py [PDF_PATH] [OPTIONS]
 
 Arguments:
-  PDF_PATH              抽出対象のPDFファイルパス (デフォルト: ../doc/sample.pdf)
+  PDF_PATH              Target PDF file path (default: ../doc/sample.pdf)
 
 Options:
-  --project PROJECT     プロジェクト名 (デフォルト: default)
-  --model MODEL         LLMモデル名 (例: gpt-5-mini, gpt-5-nano)
-  --output-dir DIR      出力ディレクトリ (デフォルト: /workspace/app/output)
+  --project PROJECT     Project name (default: default)
+  --model MODEL         LLM model name (e.g., gpt-5-mini, gpt-5-nano)
+  --output-dir DIR      Output directory (default: /workspace/app/output)
 ```
