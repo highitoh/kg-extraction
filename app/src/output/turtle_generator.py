@@ -7,7 +7,7 @@ import uuid
 from datetime import datetime
 from typing import Dict, Any, Optional, Tuple
 
-# ---------- ユーティリティ ----------
+# ---------- Utilities ----------
 def _normalize_ws(s: str) -> str:
     return re.sub(r"\s+", " ", s or "").strip()
 
@@ -23,7 +23,7 @@ def _slug(s: str) -> str:
 
 class TurtleGenerator:
     """
-    クラス抽出情報とプロパティ抽出情報を受け取り、RDF/OWL(Turtle) ファイルを生成する。
+    Receives class extraction information and property extraction information, and generates RDF/OWL (Turtle) files.
     """
 
     def __init__(
@@ -35,32 +35,32 @@ class TurtleGenerator:
         self.base_prefix = base_prefix
         self.output_dir = output_dir
 
-        # 出力ディレクトリを作成
+        # Create output directory
         os.makedirs(self.output_dir, exist_ok=True)
 
     def _iri(self, path: str) -> str:
         """
-        ex: のプレフィックス表記ではなく、<https://…> のフルIRIを返す。
-        例) path="Extraction/0-aaaa" -> "<https://github.com/highitoh/kg-extraction#Extraction/0-aaaa>"
+        Returns the full IRI <https://...> instead of the prefix notation ex:.
+        Example) path="Extraction/0-aaaa" -> "<https://github.com/highitoh/kg-extraction#Extraction/0-aaaa>"
         """
         base = self.base_prefix.rstrip("#/") + "#"
         return f"<{base}{path}>"
 
     def _escape_string(self, s: str) -> str:
         """
-        Turtle文字列リテラルのエスケープ処理
+        Escape processing for Turtle string literals
         """
         return s.replace('\\', '\\\\').replace('"', '\\"').replace('\n', '\\n').replace('\r', '\\r')
 
     def _escape_turtle_text(self, s: str) -> str:
         """
-        Turtle の長文字列リテラルのエスケープ処理
+        Escape processing for Turtle long string literals
         """
         return s.replace('"""', '\\"""')
 
     def _generate_turtle_header(self) -> str:
         """
-        Turtle ファイルのヘッダー部分を生成
+        Generate the header section of the Turtle file
         """
         header_lines = [
             f"# Generated on {datetime.now().isoformat()}",
@@ -79,7 +79,7 @@ class TurtleGenerator:
 
     def _generate_class_declarations(self, class_iris: set) -> str:
         """
-        クラス宣言部分を生成
+        Generate the class declarations section
         """
         lines = ["# Class Declarations"]
         for class_iri in sorted(class_iris):
@@ -90,7 +90,7 @@ class TurtleGenerator:
 
     def _generate_property_declarations(self, property_iris: set) -> str:
         """
-        プロパティ宣言部分を生成
+        Generate the property declarations section
         """
         lines = ["# Property Declarations"]
         for prop_iri in sorted(property_iris):
@@ -101,37 +101,37 @@ class TurtleGenerator:
 
     def _generate_instances(self, class_info: Dict[str, Any], property_info: Dict[str, Any]) -> Tuple[str, set, set]:
         """
-        インスタンス部分を生成し、使用されているクラスIRIとプロパティIRIのセットを返す
+        Generate the instances section and return the set of class IRIs and property IRIs being used
         """
         lines = ["# Instances"]
         class_iris = set()
         property_iris = set()
 
-        # クラス個体のマップを作成
+        # Create a map of class instances
         class_instances = {}
         for class_item in class_info.get("classes", []):
             class_instances[class_item["id"]] = class_item
 
-        # クラス個体を出力
+        # Output class instances
         for class_item in class_info.get("classes", []):
             class_id = class_item["id"]
             class_iri = class_item["class_iri"]
             label = class_item["label"]
 
-            # file_idsフィールドを取得（配列または文字列）
+            # Get file_ids field (array or string)
             file_ids = class_item.get("file_ids", [])
             if isinstance(file_ids, str):
                 file_ids = [file_ids]
-            # カンマ区切りで連結（複数の出典を保持）
+            # Concatenate with comma separation (retain multiple sources)
             file_id = ",".join(file_ids) if file_ids else ""
 
-            # インスタンスIRIを生成
+            # Generate instance IRI
             instance_iri = self._iri(f"instance/{_slug(label)}-{_uuid8()}")
 
-            # クラスIRIを記録
+            # Record class IRI
             class_iris.add(class_iri)
 
-            # インスタンス定義
+            # Instance definition
             lines.append(f"{instance_iri} a {class_iri} ;")
             lines.append(f'  rdfs:label "{self._escape_string(label)}"@ja ;')
             if file_id:
@@ -139,22 +139,22 @@ class TurtleGenerator:
             lines.append(f'  ex:classInstanceId "{self._escape_string(class_id)}" .')
             lines.append("")
 
-        # プロパティ関係を出力
+        # Output property relationships
         property_map = {}
         for prop_item in property_info.get("properties", []):
             src_id = prop_item["src_id"]
             dest_id = prop_item["dest_id"]
             property_iri = prop_item["property_iri"]
 
-            # プロパティIRIを記録
+            # Record property IRI
             property_iris.add(property_iri)
 
-            # クラス個体IDからインスタンスIRIへのマッピング
+            # Mapping from class instance ID to instance IRI
             if src_id not in property_map:
                 property_map[src_id] = []
             property_map[src_id].append((property_iri, dest_id))
 
-        # プロパティ関係を追加
+        # Add property relationships
         for src_id, relations in property_map.items():
             if src_id in class_instances:
                 src_class = class_instances[src_id]
@@ -167,45 +167,45 @@ class TurtleGenerator:
 
                         lines.append(f"{src_instance_iri} {property_iri} {dest_instance_iri} .")
 
-        if len(lines) > 1:  # "# Instances" 以外にも行がある場合
+        if len(lines) > 1:  # If there are lines other than "# Instances"
             lines.append("")
 
         return "\n".join(lines), class_iris, property_iris
 
     def generate(self, input_data: Dict[str, Any]) -> Dict[str, str]:
         """
-        入力データからTurtleファイルを生成する
+        Generate a Turtle file from input data
 
         Args:
-            input_data: スキーマに従った入力データ
+            input_data: Input data following the schema
 
         Returns:
-            生成されたTurtle文字列を含む辞書
+            Dictionary containing the generated Turtle string
         """
         class_info = input_data.get("class_info", {})
         property_info = input_data.get("property_info", {})
 
-        # Turtleファイルの各部分を生成
+        # Generate each section of the Turtle file
         header = self._generate_turtle_header()
         instances_content, class_iris, property_iris = self._generate_instances(class_info, property_info)
         class_declarations = self._generate_class_declarations(class_iris)
         property_declarations = self._generate_property_declarations(property_iris)
 
-        # 全体を結合
+        # Combine everything
         turtle_content = header + class_declarations + property_declarations + instances_content
 
         return {"turtle": turtle_content}
 
     def generate_and_save(self, input_data: Dict[str, Any], filename: Optional[str] = None) -> Tuple[str, Dict[str, str]]:
         """
-        Turtleファイルを生成してファイルに保存する
+        Generate a Turtle file and save it to disk
 
         Args:
-            input_data: スキーマに従った入力データ
-            filename: 出力ファイル名（省略時は自動生成）
+            input_data: Input data following the schema
+            filename: Output filename (auto-generated if omitted)
 
         Returns:
-            (保存ファイルパス, 生成結果辞書)
+            (saved file path, generated result dictionary)
         """
         result = self.generate(input_data)
 
@@ -223,9 +223,9 @@ class TurtleGenerator:
         return filepath, result
 
 
-# -------------- 使い方（例） --------------
+# -------------- Usage Example --------------
 if __name__ == "__main__":
-    # テスト用のサンプルデータ
+    # Sample data for testing
     sample_input = {
         "class_info": {
             "id": "test-extraction-001",

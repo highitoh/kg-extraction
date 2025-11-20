@@ -5,14 +5,14 @@ from datetime import datetime
 
 
 class Logger:
-    """ログ出力を行うクラス"""
+    """Class for logging output"""
 
     def __init__(self, log_dir: str):
         self.log_dir = log_dir
         os.makedirs(self.log_dir, exist_ok=True)
 
     def save_log(self, data: Dict[str, Any], filename_prefix: str = "") -> None:
-        """データをJSONファイルとしてログに保存"""
+        """Save data to log as JSON file"""
         timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
         filename = f"{filename_prefix}{timestamp}.json" if filename_prefix else f"{timestamp}.json"
         log_file = os.path.join(self.log_dir, filename)

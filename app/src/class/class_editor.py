@@ -14,15 +14,15 @@ from src.utils.llm_factory import LLMFactory
 
 class ClassEditor(Runnable):
     """
-    REVIEW判定されたクラスのラベルを修正または除外するクラス
+    Class to correct or exclude class labels judged as REVIEW
 
-    処理フロー:
-    1. 入力をACCEPT/REVIEW/REJECTに分離
-    2. REVIEWクラスのみをLLMで再評価（class_iriごとに並列実行）
-    3. LLM出力:
-       - revised_label が提供された場合: labelを更新し judgment="REVIEW" のまま
-       - should_reject=true の場合: judgment="REJECT" に変更
-    4. ACCEPT/REJECT/修正済みREVIEWを統合して出力
+    Processing flow:
+    1. Separate input into ACCEPT/REVIEW/REJECT
+    2. Re-evaluate only REVIEW classes with LLM (execute in parallel for each class_iri)
+    3. LLM output:
+       - If revised_label is provided: update label and keep judgment="REVIEW"
+       - If should_reject=true: change judgment="REJECT"
+    4. Consolidate ACCEPT/REJECT/corrected REVIEW for output
     """
 
     def __init__(self,
@@ -43,16 +43,16 @@ class ClassEditor(Runnable):
         self.max_retries = max_retries
         self.logger = Logger(log_dir)
 
-        # メタモデルを読み込み
+        # Load metamodel
         self.metamodel = self._load_metamodel()
-        # プロンプトテンプレートを読み込み
+        # Load prompt template
         self.prompt_template = self._load_prompt_template()
 
     def _build_schema(self, n: int) -> dict:
-        """LLMスキーマファイルを読み込み、要素数を設定
+        """Load LLM schema file and set element count
 
         Args:
-            n: 判定対象のクラス数
+            n: Number of classes to judge
         """
         # Go up 2 levels from src/class/ to /workspace/app/
         app_dir = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
@@ -61,14 +61,14 @@ class ClassEditor(Runnable):
         with open(schema_path, "r", encoding="utf-8") as f:
             schema = json.load(f)
 
-        # correctionsの配列要素数を設定
+        # Set array element count for corrections
         schema["properties"]["corrections"]["minItems"] = n
         schema["properties"]["corrections"]["maxItems"] = n
 
         return schema
 
     def _load_metamodel(self) -> dict:
-        """メタモデルファイルを読み込む"""
+        """Load metamodel file"""
         # Go up 2 levels from src/class/ to /workspace/app/
         app_dir = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
         metamodel_path = os.path.join(app_dir, "metamodel",
@@ -77,10 +77,10 @@ class ClassEditor(Runnable):
             return json.load(f)
 
     def _build_extract_rules_section(self, target_class_iri: str) -> str:
-        """指定されたクラスの抽出ルールセクションを動的に生成
+        """Dynamically generate extract rules section for specified class
 
         Args:
-            target_class_iri: 対象のクラスIRI
+            target_class_iri: Target class IRI
         """
         rules_lines = []
 
@@ -95,7 +95,7 @@ class ClassEditor(Runnable):
         return result if result else "(抽出ルールなし)"
 
     def _load_prompt_template(self) -> str:
-        """プロンプトテンプレートファイルを読み込み"""
+        """Load prompt template file"""
         # Go up 2 levels from src/class/ to /workspace/app/
         app_dir = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
         prompt_path = os.path.join(app_dir, "prompts",
@@ -104,10 +104,10 @@ class ClassEditor(Runnable):
             return f.read()
 
     def _build_duplicate_fix_schema(self) -> dict:
-        """重複修正用LLMスキーマファイルを読み込み
+        """Load LLM schema file for duplicate fixing
 
         Returns:
-            dict: 重複修正用のJSONスキーマ
+            dict: JSON schema for duplicate fixing
         """
         # Go up 2 levels from src/class/ to /workspace/app/
         app_dir = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
@@ -117,7 +117,7 @@ class ClassEditor(Runnable):
             return json.load(f)
 
     def _load_duplicate_fix_prompt_template(self) -> str:
-        """重複修正用プロンプトテンプレートファイルを読み込み"""
+        """Load prompt template file for duplicate fixing"""
         # Go up 2 levels from src/class/ to /workspace/app/
         app_dir = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
         prompt_path = os.path.join(app_dir, "prompts",
@@ -126,17 +126,17 @@ class ClassEditor(Runnable):
             return f.read()
 
     def _merge_duplicate_classes(self, group_classes: list, canonical_label: str, merged_class_id: str) -> dict:
-        """重複クラスを1つにマージ
+        """Merge duplicate classes into one
 
         Args:
-            group_classes: マージ対象のクラスインスタンスリスト
-            canonical_label: 正準ラベル
-            merged_class_id: 代表となるクラスのID
+            group_classes: List of class instances to merge
+            canonical_label: Canonical label
+            merged_class_id: ID of the class to be the representative
 
         Returns:
-            dict: マージ後のクラスインスタンス (consolidated_ids と consolidated_labels を含む)
+            dict: Merged class instance (including consolidated_ids and consolidated_labels)
         """
-        # 代表となるクラスを探す
+        # Find the class to be the representative
         base_class = None
         for cls in group_classes:
             if cls.get("id") == merged_class_id:
@@ -144,10 +144,10 @@ class ClassEditor(Runnable):
                 break
 
         if not base_class:
-            # フォールバック: 最初のクラスを使用
+            # Fallback: use the first class
             base_class = group_classes[0].copy()
 
-        # ラベルを正準ラベルに更新
+        # Update label to canonical label
         base_class["label"] = canonical_label
 
         # Collect IDs and labels of merged classes (excluding canonical)
@@ -163,25 +163,25 @@ class ClassEditor(Runnable):
         base_class["consolidated_ids"] = consolidated_ids
         base_class["consolidated_labels"] = consolidated_labels
 
-        # sourcesとfile_idsをマージ（ClassConsolidatorパターン）
+        # Merge sources and file_ids (ClassConsolidator pattern)
         all_pairs = []
         for cls in group_classes:
             sources = cls.get("sources", [])
             file_ids = cls.get("file_ids", [])
 
-            # sourcesとfile_idsの長さを合わせる
+            # Align lengths of sources and file_ids
             min_length = min(len(sources), len(file_ids))
             sources = sources[:min_length]
             file_ids = file_ids[:min_length]
 
-            # (source, file_id)のペアとして収集
+            # Collect as (source, file_id) pairs
             for source, file_id in zip(sources, file_ids):
                 all_pairs.append((source, file_id))
 
-        # 重複を除去しつつ順序を保持
+        # Remove duplicates while preserving order
         unique_pairs = list(dict.fromkeys(all_pairs))
 
-        # ペアを分解してsourcesとfile_idsに戻す
+        # Split pairs back to sources and file_ids
         if unique_pairs:
             base_class["sources"], base_class["file_ids"] = zip(*unique_pairs)
             base_class["sources"] = list(base_class["sources"])
@@ -194,13 +194,13 @@ class ClassEditor(Runnable):
 
     def invoke(self, input: Dict[str, Any], config=None) -> Dict[str, Any]:
         """
-        クラスラベル修正処理のメインエントリーポイント
+        Main entry point for class label correction processing
 
         Parameters
         ----------
         input: ClassLabelCorrectorInput (= ClassReviewerOutput)
-          - id: 抽出ID
-          - classes: クラス個体リスト（judgment/justificationを含む）
+          - id: Extraction ID
+          - classes: List of class instances (including judgment/justification)
 
         Returns
         -------
@@ -208,7 +208,7 @@ class ClassEditor(Runnable):
         """
         classes = input.get("classes", [])
 
-        # 判定ごとに分離
+        # Separate by judgment
         accept_classes = [c for c in classes if c.get("judgment") == "ACCEPT"]
         review_classes = [c for c in classes if c.get("judgment") == "REVIEW"]
         reject_classes = [c for c in classes if c.get("judgment") == "REJECT"]
@@ -218,28 +218,28 @@ class ClassEditor(Runnable):
                   f"[ACCEPT: {len(accept_classes)}, REVIEW: {len(review_classes)}, REJECT: {len(reject_classes)}]")
 
         if not review_classes:
-            # REVIEWクラスがない場合はそのまま返す
+            # Return as is if no REVIEW classes
             if self.progress:
                 print("[ClassEditor] No REVIEW classes to process")
             return input
 
-        # class_iriでグループ化
+        # Group by class_iri
         review_groups = self._group_classes_by_class_iri(review_classes)
 
         if self.progress:
             print(f"[ClassEditor] {len(review_groups)} class types found for review")
 
-        # REVIEWクラスごとに修正を並列実行
+        # Execute corrections in parallel for each REVIEW class
         corrected_classes = asyncio.run(self._process_classes_parallel(review_groups))
 
-        # 出力を構築（ACCEPT + 修正済みREVIEW + REJECT）
+        # Build output (ACCEPT + corrected REVIEW + REJECT)
         all_classes = accept_classes + corrected_classes + reject_classes
 
         output = input.copy()
         output["classes"] = all_classes
 
         if self.progress:
-            # 修正結果の内訳を集計
+            # Aggregate correction result breakdown
             corrected_review_count = sum(1 for c in corrected_classes if c.get("judgment") == "REVIEW")
             corrected_reject_count = sum(1 for c in corrected_classes if c.get("judgment") == "REJECT")
             print(f"[ClassEditor] Completed: Processed {len(review_classes)} REVIEW classes "
@@ -250,14 +250,14 @@ class ClassEditor(Runnable):
         return output
 
     async def _fix_duplicates_async(self, classes: list, class_iri: str) -> dict:
-        """重複クラスのマージ判定と修正（非同期版）
+        """Merge judgment and correction of duplicate classes (async version)
 
         Args:
-            classes: 修正対象のクラスインスタンスリスト
-            class_iri: 対象クラスのIRI
+            classes: List of class instances to correct
+            class_iri: Target class IRI
 
         Returns:
-            dict: 重複修正結果の辞書
+            dict: Dictionary of duplicate correction results
                 {
                     "dup_group_0": {
                         "should_merge": true,
@@ -269,13 +269,13 @@ class ClassEditor(Runnable):
                     ...
                 }
         """
-        # duplicate_group_idを持つクラスのみ抽出
+        # Extract only classes with duplicate_group_id
         duplicates = [c for c in classes if "duplicate_group_id" in c]
 
         if not duplicates:
             return {}
 
-        # duplicate_group_idでグループ化
+        # Group by duplicate_group_id
         groups = {}
         for cls in duplicates:
             group_id = cls.get("duplicate_group_id")
@@ -286,7 +286,7 @@ class ClassEditor(Runnable):
         if not groups:
             return {}
 
-        # LLMへの入力データを構築
+        # Build input data for LLM
         duplicate_groups_input = []
         for group_id, group_classes in groups.items():
             candidates = []
@@ -304,7 +304,7 @@ class ClassEditor(Runnable):
 
         duplicate_groups_json = json.dumps(duplicate_groups_input, ensure_ascii=False, indent=2)
 
-        # スキーマを構築
+        # Build schema
         schema = self._build_duplicate_fix_schema()
         llm_json = self.llm.bind(
             response_format={
@@ -316,22 +316,22 @@ class ClassEditor(Runnable):
             }
         )
 
-        # プロンプトを構築
+        # Build prompt
         prompt_template = self._load_duplicate_fix_prompt_template()
         prompt = prompt_template.replace("{duplicate_groups_json}", duplicate_groups_json)
 
-        # LLMで重複修正実行（リトライ付き）
+        # Execute duplicate fixing with LLM (with retry)
         try:
             response = await self._invoke_with_retry(llm_json, prompt)
 
-            # レスポンスからテキストを抽出
+            # Extract text from response
             result_text = self._to_text(response.content)
 
-            # JSON パース
+            # Parse JSON
             parsed = json.loads(result_text)
             resolutions = parsed.get("resolutions", [])
 
-            # 結果を辞書に変換
+            # Convert results to dictionary
             result = {}
             for resolution in resolutions:
                 group_id = resolution.get("duplicate_group_id")
@@ -347,16 +347,16 @@ class ClassEditor(Runnable):
                     canonical_label = resolution.get("canonical_label", "")
                     merged_class_id = resolution.get("merged_class_id", "")
 
-                    # canonical_labelとmerged_class_idが必須
+                    # canonical_label and merged_class_id are required
                     if not canonical_label or not merged_class_id:
-                        # フォールバック: マージしない
+                        # Fallback: do not merge
                         result[group_id]["should_merge"] = False
                         result[group_id]["reason"] = f"Missing required fields: {reason}"
                     else:
                         result[group_id]["canonical_label"] = canonical_label
                         result[group_id]["merged_class_id"] = merged_class_id
 
-                        # マージされたクラスを生成
+                        # Generate merged class
                         group_classes = groups.get(group_id, [])
                         if group_classes:
                             merged_class = self._merge_duplicate_classes(
@@ -371,7 +371,7 @@ class ClassEditor(Runnable):
         except (json.JSONDecodeError, KeyError) as e:
             if self.progress:
                 print(f"[ClassEditor] Duplicate fix JSON parse error: {e}")
-            # エラー時は空の辞書を返す（マージなし）
+            # Return empty dictionary on error (no merge)
             return {}
         except Exception as e:
             if self.progress:
@@ -379,20 +379,20 @@ class ClassEditor(Runnable):
             return {}
 
     def _merge_fix_results(self, classes: list, prohibit_fixed: list, duplicate_resolved: dict) -> list:
-        """禁止ルール修正と重複修正の結果をマージ
+        """Merge results of prohibit rule correction and duplicate correction
 
         Args:
-            classes: 元のクラスインスタンスリスト
-            prohibit_fixed: 禁止ルール修正後のクラスリスト
-            duplicate_resolved: 重複修正結果の辞書
+            classes: Original class instance list
+            prohibit_fixed: Class list after prohibit rule correction
+            duplicate_resolved: Dictionary of duplicate correction results
 
         Returns:
-            list: マージ後のクラスリスト
+            list: Merged class list
         """
         results = []
         processed_ids = set()
 
-        # 禁止ルール修正結果とマッピング
+        # Map prohibit rule correction results
         prohibit_map = {c.get("id"): c for c in prohibit_fixed}
 
         for cls in classes:
@@ -401,16 +401,16 @@ class ClassEditor(Runnable):
             if class_id in processed_ids:
                 continue
 
-            # Step 1: 禁止ルール修正を適用
+            # Step 1: Apply prohibit rule correction
             corrected_cls = prohibit_map.get(class_id, cls)
 
-            # REJECTされた場合はスキップ
+            # Skip if REJECTED
             if corrected_cls.get("judgment") == "REJECT":
                 results.append(corrected_cls)
                 processed_ids.add(class_id)
                 continue
 
-            # Step 2: 重複修正をチェック
+            # Step 2: Check duplicate correction
             duplicate_group_id = cls.get("duplicate_group_id")
 
             if duplicate_group_id and duplicate_group_id in duplicate_resolved:
@@ -421,27 +421,27 @@ class ClassEditor(Runnable):
                     merged_class_id = resolution.get("merged_class_id")
 
                     if class_id == merged_class_id:
-                        # 代表クラス: マージされたクラスを使用
+                        # Representative class: use merged class
                         merged_class = resolution.get("merged_class")
                         if merged_class:
-                            # 禁止ルール修正のjudgmentとjustificationを保持
+                            # Preserve judgment and justification from prohibit rule correction
                             merged_class["judgment"] = corrected_cls.get("judgment", "REVIEW")
                             merged_class["justification"] = corrected_cls.get("justification", "")
                             results.append(merged_class)
                             processed_ids.add(class_id)
                         else:
-                            # マージ失敗時は修正後のクラスを使用
+                            # Use corrected class on merge failure
                             results.append(corrected_cls)
                             processed_ids.add(class_id)
                     else:
-                        # 代表以外: マージされたのでスキップ
+                        # Non-representative: skip as merged
                         processed_ids.add(class_id)
                 else:
-                    # should_merge=false: そのまま保持
+                    # should_merge=false: keep as is
                     results.append(corrected_cls)
                     processed_ids.add(class_id)
             else:
-                # 重複グループに含まれない: そのまま保持
+                # Not included in duplicate group: keep as is
                 results.append(corrected_cls)
                 processed_ids.add(class_id)
 
@@ -453,7 +453,7 @@ class ClassEditor(Runnable):
         return results
 
     async def _process_classes_parallel(self, class_groups: Dict[str, list]) -> list:
-        """クラスグループを並列処理（禁止ルール修正と重複修正を並行実行）"""
+        """Process class groups in parallel (execute prohibit rule correction and duplicate correction concurrently)"""
         sem = asyncio.Semaphore(self.max_concurrency)
         total = len(class_groups)
         counter = 0
@@ -467,23 +467,23 @@ class ClassEditor(Runnable):
             async with sem:
                 class_name = self._get_class_name_from_iri(class_iri)
 
-                # 禁止ルール修正と重複修正を並列実行
+                # Execute prohibit rule correction and duplicate correction in parallel
                 prohibit_fixed, duplicate_resolved = await asyncio.gather(
                     self._fix_prohibit_violations_async(class_instances, class_iri),
                     self._fix_duplicates_async(class_instances, class_iri)
                 )
 
-                # 結果をマージ
+                # Merge results
                 merged = self._merge_fix_results(class_instances, prohibit_fixed, duplicate_resolved)
 
                 async with lock:
                     counter += 1
                     if self.progress:
-                        # 修正結果の内訳を集計
+                        # Aggregate correction result breakdown
                         review_count = sum(1 for c in merged if c.get("judgment") == "REVIEW")
                         reject_count = sum(1 for c in merged if c.get("judgment") == "REJECT")
 
-                        # マージ数をカウント
+                        # Count merges
                         merge_count = sum(
                             1 for res in duplicate_resolved.values()
                             if res.get("should_merge", False)
@@ -499,7 +499,7 @@ class ClassEditor(Runnable):
 
         results = await asyncio.gather(*[_wrapped(iri, instances) for iri, instances in class_groups.items()])
 
-        # 結果をフラット化
+        # Flatten results
         all_corrected = []
         for result in results:
             all_corrected.extend(result)
@@ -507,7 +507,7 @@ class ClassEditor(Runnable):
         return all_corrected
 
     def _group_classes_by_class_iri(self, classes: list) -> Dict[str, list]:
-        """class_iriでグループ化"""
+        """Group by class_iri"""
         class_groups = {}
 
         for c in classes:
@@ -519,18 +519,18 @@ class ClassEditor(Runnable):
         return class_groups
 
     def _get_class_name_from_iri(self, class_iri: str) -> str:
-        """class_iriからクラス名を取得"""
+        """Get class name from class_iri"""
         for cls in self.metamodel.get("classes", []):
             if cls.get("iri", "") == class_iri:
                 return cls.get("name", "unknown")
         return class_iri.split("#")[-1] if "#" in class_iri else class_iri
 
     async def _fix_prohibit_violations_async(self, classes: list, class_iri: str) -> list:
-        """指定されたクラスリストをLLMで禁止ルール違反を修正（非同期版）
+        """Fix prohibit rule violations in specified class list with LLM (async version)
 
         Args:
-            classes: 修正対象のクラスインスタンスリスト（すべてREVIEW判定）
-            class_iri: 対象クラスのIRI（このクラスのextract_rulesのみを使用）
+            classes: List of class instances to correct (all are REVIEW judgments)
+            class_iri: Target class IRI (use only this class's extract_rules)
         """
         if not classes:
             return []
@@ -545,7 +545,7 @@ class ClassEditor(Runnable):
                 }
             })
 
-        # LLMへの入力データを構築
+        # Build input data for LLM
         input_data = []
         for c in classes:
             input_data.append({
@@ -556,25 +556,25 @@ class ClassEditor(Runnable):
 
         input_json = json.dumps(input_data, ensure_ascii=False, indent=2)
 
-        # 対象クラスのextract_rulesのみを取得
+        # Get only the target class's extract_rules
         extract_rules = self._build_extract_rules_section(class_iri)
 
-        # プロンプトを構築（対象クラス専用の抽出ルールを埋め込む）
+        # Build prompt (embed extract rules specific to target class)
         prompt_with_rules = self.prompt_template.replace("{EXTRACT_RULES}", extract_rules)
         prompt = f"{prompt_with_rules}\n{input_json}"
 
-        # LLMでラベル修正実行（リトライ付き）
+        # Execute label correction with LLM (with retry)
         response = await self._invoke_with_retry(llm_json, prompt)
 
-        # レスポンスからテキストを抽出
+        # Extract text from response
         result_text = self._to_text(response.content)
 
-        # JSON パース
+        # Parse JSON
         try:
             parsed = json.loads(result_text)
             corrections = parsed["corrections"]
 
-            # 各クラスに修正結果を適用
+            # Apply correction results to each class
             corrected_classes = []
             for c, correction_obj in zip(classes, corrections):
                 c_corrected = c.copy()
@@ -584,14 +584,14 @@ class ClassEditor(Runnable):
                 revision_reason = correction_obj.get("revision_reason", "")
 
                 if should_reject:
-                    # 除外する場合はREJECTに変更
+                    # Change to REJECT if excluding
                     c_corrected["judgment"] = "REJECT"
                     c_corrected["justification"] = revision_reason
                 else:
-                    # ラベル修正した場合はREVIEWのまま（ClassReviewerで再評価される）
+                    # Keep as REVIEW if label corrected (will be re-evaluated by ClassReviewer)
                     if revised_label and revised_label != c.get("label", ""):
                         c_corrected["label"] = revised_label
-                    # judgment = "REVIEW" のまま
+                    # judgment = "REVIEW" unchanged
                     c_corrected["justification"] = revision_reason
 
                 corrected_classes.append(c_corrected)
@@ -599,7 +599,7 @@ class ClassEditor(Runnable):
         except (json.JSONDecodeError, KeyError) as e:
             if self.progress:
                 print(f"[ClassLabelCorrector] JSON parse error: {e}, response: {result_text}")
-            # エラー時はすべてREJECT扱い
+            # Treat all as REJECT on error
             corrected_classes = []
             for c in classes:
                 c_rejected = c.copy()
@@ -610,7 +610,7 @@ class ClassEditor(Runnable):
         return corrected_classes
 
     async def _invoke_with_retry(self, llm_json, prompt: str):
-        """リトライ機能付きのLLM呼び出し"""
+        """LLM invocation with retry functionality"""
         delay = 1.0
         max_delay = 60.0
         last_exception = None
@@ -635,7 +635,7 @@ class ClassEditor(Runnable):
 
     @staticmethod
     def _to_text(content: Any) -> str:
-        """LLMレスポンスからテキストを抽出"""
+        """Extract text from LLM response"""
         if isinstance(content, str):
             return content
         if isinstance(content, list):
@@ -648,7 +648,7 @@ class ClassEditor(Runnable):
 if __name__ == "__main__":
     import glob
 
-    # ログディレクトリから最新のclass_reviewerログファイルを取得
+    # Get the latest class_reviewer log file from log directory
     log_dir = "/workspace/app/log/class_reviewer"
     log_files = glob.glob(os.path.join(log_dir, "class_reviewer_output_*.json"))
 
@@ -656,7 +656,7 @@ if __name__ == "__main__":
         print("Error: No class_reviewer log files found")
         exit(1)
 
-    # 最新のログファイルを取得
+    # Get the latest log file
     latest_log = max(log_files, key=os.path.getmtime)
     print(f"Loading input from: {latest_log}")
     with open(latest_log, "r", encoding="utf-8") as f:

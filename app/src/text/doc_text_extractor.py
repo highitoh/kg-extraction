@@ -8,14 +8,14 @@ import pdfplumber
 from src.utils.logger import Logger
 
 class DocTextExtractor(Runnable):
-    """ドキュメントファイルからテキストを抽出するタスク"""
+    """Task to extract text from document files"""
 
     def __init__(self):
         self.logger = Logger("/workspace/app/log/doc_text_extractor")
 
     def _extract_text(self, pdf_path: str) -> str:
         """
-        pdfplumberを使用してPDFからテキストを抽出
+        Extract text from PDF using pdfplumber
         """
         if not os.path.exists(pdf_path):
             raise FileNotFoundError(f"PDFファイルが見つかりません: {pdf_path}")
@@ -41,13 +41,13 @@ class DocTextExtractor(Runnable):
 
         file_path = input["files"][0]["path"]
 
-        # PDFからテキストを抽出
+        # Extract text from PDF
         extracted_text = self._extract_text(file_path)
 
-        # テキストを行ごとに分割
+        # Split text by line
         sentences = []
         for line_text in extracted_text.split('\n'):
-            if line_text.strip():  # 空行は除外
+            if line_text.strip():  # Exclude empty lines
                 sentences.append({
                     "text": line_text.strip()
                 })
@@ -58,7 +58,7 @@ class DocTextExtractor(Runnable):
             "sentences": sentences
         }
 
-        # 出力JSONをログに保存
+        # Save output JSON to log
         self.logger.save_log(output, "doc_text_extractor_output_")
 
         return output

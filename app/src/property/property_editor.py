@@ -14,15 +14,15 @@ from src.utils.llm_factory import LLMFactory
 
 class PropertyEditor(Runnable):
     """
-    REVIEW判定されたプロパティの強度を修正または除外するクラス
+    Class that corrects strength or excludes properties judged as REVIEW
 
-    処理フロー:
-    1. 入力をACCEPT/REVIEW/REJECTに分離
-    2. REVIEWプロパティのみをLLMで再評価（property_iriごとに並列実行）
-    3. LLM出力:
-       - revised_strength が 1-3 の場合: strengthを更新し judgment="REVIEW" のまま
-       - revised_strength=0 の場合: judgment="REJECT" に変更
-    4. ACCEPT/REJECT/修正済みREVIEWを統合して出力
+    Processing flow:
+    1. Separate input into ACCEPT/REVIEW/REJECT
+    2. Re-evaluate only REVIEW properties with LLM (parallel execution per property_iri)
+    3. LLM output:
+       - If revised_strength is 1-3: Update strength and keep judgment="REVIEW"
+       - If revised_strength=0: Change judgment to "REJECT"
+    4. Integrate ACCEPT/REJECT/corrected REVIEW and output
     """
 
     def __init__(self,
@@ -43,16 +43,16 @@ class PropertyEditor(Runnable):
         self.max_retries = max_retries
         self.logger = Logger(log_dir)
 
-        # メタモデルを読み込み
+        # Load metamodel
         self.metamodel = self._load_metamodel()
-        # プロンプトテンプレートを読み込み
+        # Load prompt template
         self.prompt_template = self._load_prompt_template()
 
     def _build_schema(self, n: int) -> dict:
-        """LLMスキーマファイルを読み込み、要素数を設定
+        """Load LLM schema file and set number of elements
 
         Args:
-            n: 判定対象のプロパティ数
+            n: Number of properties to be judged
         """
         # Go up 2 levels from src/XXX/ to /workspace/app/
 
@@ -63,14 +63,14 @@ class PropertyEditor(Runnable):
         with open(schema_path, "r", encoding="utf-8") as f:
             schema = json.load(f)
 
-        # correctionsの配列要素数を設定
+        # Set number of correction array elements
         schema["properties"]["corrections"]["minItems"] = n
         schema["properties"]["corrections"]["maxItems"] = n
 
         return schema
 
     def _load_metamodel(self) -> dict:
-        """メタモデルファイルを読み込む"""
+        """Load metamodel file"""
         # Go up 2 levels from src/XXX/ to /workspace/app/
 
         app_dir = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
@@ -81,20 +81,20 @@ class PropertyEditor(Runnable):
             return json.load(f)
 
     def _build_property_rules_section(self, target_property_iri: str) -> str:
-        """指定されたプロパティのルールセクションを動的に生成
+        """Dynamically generate rules section for specified property
 
         Args:
-            target_property_iri: 対象のプロパティIRI
+            target_property_iri: Target property IRI
         """
         rules_lines = []
 
         for prop in self.metamodel.get("properties", []):
             if prop.get("iri", "") == target_property_iri:
-                # property_rulesがあればそれを使用
+                # Use property_rules if available
                 if "property_rules" in prop and prop.get("property_rules"):
                     for rule in prop["property_rules"]:
                         rules_lines.append(f"- {rule}")
-                # prohibit_rulesも含める
+                # Include prohibit_rules as well
                 if "prohibit_rules" in prop and prop.get("prohibit_rules"):
                     rules_lines.append("\n【除外ルール】")
                     for rule in prop["prohibit_rules"]:
@@ -105,7 +105,7 @@ class PropertyEditor(Runnable):
         return result if result else "(プロパティルールなし)"
 
     def _load_prompt_template(self) -> str:
-        """プロンプトテンプレートファイルを読み込み"""
+        """Load prompt template file"""
         # Go up 2 levels from src/XXX/ to /workspace/app/
 
         app_dir = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
@@ -117,13 +117,13 @@ class PropertyEditor(Runnable):
 
     def invoke(self, input: Dict[str, Any], config=None) -> Dict[str, Any]:
         """
-        プロパティ強度修正処理のメインエントリーポイント
+        Main entry point for property strength correction processing
 
         Parameters
         ----------
         input: PropertyEditorInput (= PropertyReviewerOutput)
-          - id: 抽出ID
-          - properties: プロパティリスト（judgment/justificationを含む）
+          - id: Extraction ID
+          - properties: Property list (includes judgment/justification)
 
         Returns
         -------
@@ -131,7 +131,7 @@ class PropertyEditor(Runnable):
         """
         properties = input.get("properties", [])
 
-        # 判定ごとに分離
+        # Separate by judgment
         accept_properties = [p for p in properties if p.get("judgment") == "ACCEPT"]
         review_properties = [p for p in properties if p.get("judgment") == "REVIEW"]
         reject_properties = [p for p in properties if p.get("judgment") == "REJECT"]
@@ -141,28 +141,28 @@ class PropertyEditor(Runnable):
                   f"[ACCEPT: {len(accept_properties)}, REVIEW: {len(review_properties)}, REJECT: {len(reject_properties)}]")
 
         if not review_properties:
-            # REVIEWプロパティがない場合はそのまま返す
+            # If no REVIEW properties, return as is
             if self.progress:
                 print("[PropertyEditor] No REVIEW properties to process")
             return input
 
-        # property_iriでグループ化
+        # Group by property_iri
         review_groups = self._group_properties_by_property_iri(review_properties)
 
         if self.progress:
             print(f"[PropertyEditor] {len(review_groups)} property types found for review")
 
-        # REVIEWプロパティごとに修正を並列実行
+        # Execute correction in parallel for each REVIEW property
         corrected_properties = asyncio.run(self._process_properties_parallel(review_groups))
 
-        # 出力を構築（ACCEPT + 修正済みREVIEW + REJECT）
+        # Build output (ACCEPT + corrected REVIEW + REJECT)
         all_properties = accept_properties + corrected_properties + reject_properties
 
         output = input.copy()
         output["properties"] = all_properties
 
         if self.progress:
-            # 修正結果の内訳を集計
+            # Aggregate correction results breakdown
             corrected_review_count = sum(1 for p in corrected_properties if p.get("judgment") == "REVIEW")
             corrected_reject_count = sum(1 for p in corrected_properties if p.get("judgment") == "REJECT")
             print(f"[PropertyEditor] Completed: Processed {len(review_properties)} REVIEW properties "
@@ -173,7 +173,7 @@ class PropertyEditor(Runnable):
         return output
 
     async def _process_properties_parallel(self, property_groups: Dict[str, list]) -> list:
-        """プロパティグループを並列処理"""
+        """Process property groups in parallel"""
         sem = asyncio.Semaphore(self.max_concurrency)
         total = len(property_groups)
         counter = 0
@@ -192,7 +192,7 @@ class PropertyEditor(Runnable):
                 async with lock:
                     counter += 1
                     if self.progress:
-                        # 修正結果の内訳を集計
+                        # Aggregate correction results breakdown
                         review_count = sum(1 for p in corrected if p.get("judgment") == "REVIEW")
                         reject_count = sum(1 for p in corrected if p.get("judgment") == "REJECT")
                         print(f"[{counter}/{total}] PropertyEditor: {property_name} processed "
@@ -203,7 +203,7 @@ class PropertyEditor(Runnable):
 
         results = await asyncio.gather(*[_wrapped(iri, instances) for iri, instances in property_groups.items()])
 
-        # 結果をフラット化
+        # Flatten results
         all_corrected = []
         for result in results:
             all_corrected.extend(result)
@@ -211,7 +211,7 @@ class PropertyEditor(Runnable):
         return all_corrected
 
     def _group_properties_by_property_iri(self, properties: list) -> Dict[str, list]:
-        """property_iriでグループ化"""
+        """Group by property_iri"""
         property_groups = {}
 
         for p in properties:
@@ -223,18 +223,18 @@ class PropertyEditor(Runnable):
         return property_groups
 
     def _get_property_name_from_iri(self, property_iri: str) -> str:
-        """property_iriからプロパティ名を取得"""
+        """Get property name from property_iri"""
         for prop in self.metamodel.get("properties", []):
             if prop.get("iri", "") == property_iri:
                 return prop.get("name", "unknown")
         return property_iri.split("#")[-1] if "#" in property_iri else property_iri
 
     async def _correct_properties_async(self, properties: list, property_iri: str) -> list:
-        """指定されたプロパティリストをLLMで強度修正（非同期版）
+        """Correct strength of specified property list with LLM (async version)
 
         Args:
-            properties: 修正対象のプロパティインスタンスリスト（すべてREVIEW判定）
-            property_iri: 対象プロパティのIRI（このプロパティのproperty_rulesのみを使用）
+            properties: Property instance list to be corrected (all judged as REVIEW)
+            property_iri: Target property IRI (only property_rules of this property are used)
         """
         if not properties:
             return []
@@ -268,25 +268,25 @@ class PropertyEditor(Runnable):
 
         input_json = json.dumps(input_data, ensure_ascii=False, indent=2)
 
-        # 対象プロパティのproperty_rulesのみを取得
+        # Get only property_rules of the target property
         property_rules = self._build_property_rules_section(property_iri)
 
-        # プロンプトを構築（対象プロパティ専用のルールを埋め込む）
+        # Build prompt (embed rules specific to target property)
         prompt_with_rules = self.prompt_template.replace("{PROPERTY_RULES}", property_rules)
         prompt = f"{prompt_with_rules}\n{input_json}"
 
-        # LLMで強度修正実行（リトライ付き）
+        # Execute strength correction with LLM (with retry)
         response = await self._invoke_with_retry(llm_json, prompt)
 
-        # レスポンスからテキストを抽出
+        # Extract text from response
         result_text = self._to_text(response.content)
 
-        # JSON パース
+        # Parse JSON
         try:
             parsed = json.loads(result_text)
             corrections = parsed["corrections"]
 
-            # 各プロパティに修正結果を適用
+            # Apply correction results to each property
             corrected_properties = []
             for p, correction_obj in zip(properties, corrections):
                 p_corrected = p.copy()
@@ -295,14 +295,14 @@ class PropertyEditor(Runnable):
                 revision_reason = correction_obj.get("revision_reason", "")
 
                 if revised_strength == 0:
-                    # 強度0の場合はREJECTに変更
+                    # If strength is 0, change to REJECT
                     p_corrected["judgment"] = "REJECT"
                     p_corrected["strength"] = 0
                     p_corrected["justification"] = revision_reason
                 else:
-                    # 強度修正した場合はREVIEWのまま（PropertyReviewerで再評価される）
+                    # If strength is corrected, keep as REVIEW (will be re-evaluated by PropertyReviewer)
                     p_corrected["strength"] = revised_strength
-                    # judgment = "REVIEW" のまま
+                    # Keep judgment = "REVIEW"
                     p_corrected["justification"] = revision_reason
 
                 corrected_properties.append(p_corrected)
@@ -310,7 +310,7 @@ class PropertyEditor(Runnable):
         except (json.JSONDecodeError, KeyError) as e:
             if self.progress:
                 print(f"[PropertyEditor] JSON parse error: {e}, response: {result_text}")
-            # エラー時はすべてREJECT扱い
+            # On error, treat all as REJECT
             corrected_properties = []
             for p in properties:
                 p_rejected = p.copy()
@@ -322,7 +322,7 @@ class PropertyEditor(Runnable):
         return corrected_properties
 
     async def _invoke_with_retry(self, llm_json, prompt: str):
-        """リトライ機能付きのLLM呼び出し"""
+        """LLM invocation with retry functionality"""
         delay = 1.0
         max_delay = 60.0
         last_exception = None
@@ -347,7 +347,7 @@ class PropertyEditor(Runnable):
 
     @staticmethod
     def _to_text(content: Any) -> str:
-        """LLMレスポンスからテキストを抽出"""
+        """Extract text from LLM response"""
         if isinstance(content, str):
             return content
         if isinstance(content, list):
@@ -360,7 +360,7 @@ class PropertyEditor(Runnable):
 if __name__ == "__main__":
     import glob
 
-    # ログディレクトリから最新のproperty_reviewerログファイルを取得
+    # Get the latest property_reviewer log file from log directory
     log_dir = "/workspace/app/log/property_reviewer"
     log_files = glob.glob(os.path.join(log_dir, "property_reviewer_output_*.json"))
 
@@ -368,7 +368,7 @@ if __name__ == "__main__":
         print("Error: No property_reviewer log files found")
         exit(1)
 
-    # 最新のログファイルを取得
+    # Get the latest log file
     latest_log = max(log_files, key=os.path.getmtime)
     print(f"Loading input from: {latest_log}")
     with open(latest_log, "r", encoding="utf-8") as f:

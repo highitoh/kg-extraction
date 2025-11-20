@@ -1,6 +1,6 @@
 """
 Knowledge Graph Extraction Main
-PDFファイルから知識を抽出してTurtleとNeo4j用CSVファイルを生成する
+Extract knowledge from PDF files and generate Turtle and Neo4j CSV files
 """
 
 import os
@@ -25,21 +25,21 @@ from src.core.state import KnowledgeExtractionState
 
 def run_knowledge_extraction(pdf_path: str, output_dir: str = "/workspace/app/output", model: str = None, project: str = "default") -> Dict[str, Any]:
     """
-    PDFファイルから知識抽出を実行
+    Execute knowledge extraction from PDF file
 
     Args:
-        pdf_path: 抽出対象のPDFファイルパス
-        output_dir: 出力ディレクトリ
-        model: LLMモデル名（Noneの場合は各ノードのデフォルトを使用）
-        project: プロジェクト名（出力ファイルをプロジェクト別に分類）
+        pdf_path: PDF file path to extract from
+        output_dir: Output directory
+        model: LLM model name (if None, use default for each node)
+        project: Project name (output files classified by project)
 
     Returns:
-        抽出結果辞書
+        Extraction result dictionary
     """
-    # グラフを作成
+    # Create graph
     app = create_knowledge_extraction_graph()
 
-    # 初期Stateを準備
+    # Prepare initial State
     initial_state: KnowledgeExtractionState = {
         "files": [{"path": pdf_path}],
         "output_dir": output_dir,
@@ -47,23 +47,23 @@ def run_knowledge_extraction(pdf_path: str, output_dir: str = "/workspace/app/ou
         "errors": []
     }
 
-    # modelが指定されている場合はStateに追加
+    # Add model to State if specified
     if model:
         initial_state["model"] = model
 
-    # グラフを実行
+    # Execute graph
     result = app.invoke(initial_state)
 
     return result
 
 
 if __name__ == "__main__":
-    # コマンドライン引数のパース
-    parser = argparse.ArgumentParser(description="PDFファイルから知識を抽出してTurtleとNeo4j用CSVファイルを生成")
-    parser.add_argument("pdf_path", nargs="?", default="../doc/sample.pdf", help="抽出対象のPDFファイルパス")
-    parser.add_argument("--model", type=str, default=None, help="使用するLLMモデル名（デフォルト: 各ノードのデフォルトモデル）")
-    parser.add_argument("--output-dir", type=str, default="/workspace/app/output", help="出力ディレクトリ（デフォルト: /workspace/app/output）")
-    parser.add_argument("--project", type=str, default="default", help="プロジェクト名（デフォルト: default）")
+    # Parse command line arguments
+    parser = argparse.ArgumentParser(description="Extract knowledge from PDF files and generate Turtle and Neo4j CSV files")
+    parser.add_argument("pdf_path", nargs="?", default="../doc/sample.pdf", help="PDF file path to extract from")
+    parser.add_argument("--model", type=str, default=None, help="LLM model name to use (default: default model for each node)")
+    parser.add_argument("--output-dir", type=str, default="/workspace/app/output", help="Output directory (default: /workspace/app/output)")
+    parser.add_argument("--project", type=str, default="default", help="Project name (default: default)")
 
     args = parser.parse_args()
     pdf_path = args.pdf_path
@@ -83,13 +83,13 @@ if __name__ == "__main__":
     try:
         result = run_knowledge_extraction(pdf_path, output_dir=args.output_dir, model=args.model, project=args.project)
 
-        # エラーチェック
+        # Check for errors
         if result.get("errors"):
             print("\n=== Warnings/Errors ===")
             for error in result["errors"]:
                 print(f"  - {error}")
 
-        # 結果表示
+        # Display results
         if "summary" in result:
             print("\n=== Extraction Complete ===")
             print(f"Final stage: {result.get('current_stage', 'unknown')}")
@@ -101,12 +101,12 @@ if __name__ == "__main__":
             print(f"  - Classes extracted: {result['summary']['classes_count']}")
             print(f"  - Properties extracted: {result['summary']['properties_count']}")
 
-            # 結果をJSONファイルに保存
+            # Save results to JSON file
             project_output_dir = os.path.join(args.output_dir, args.project)
             timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
             output_json = os.path.join(project_output_dir, f"extraction_result_{timestamp}.json")
             with open(output_json, "w", encoding="utf-8") as f:
-                # turtle_contentは長すぎるので保存時は除外
+                # Exclude turtle_content when saving as it's too large
                 result_copy = result.copy()
                 result_copy.pop("turtle_content", None)
                 json.dump(result_copy, f, ensure_ascii=False, indent=2)

@@ -14,8 +14,8 @@ from src.utils.llm_factory import LLMFactory
 
 class ClassConsolidator(Runnable):
     """
-    類似したクラスラベルを集約するクラス
-    LLMで同一概念を判定し、正準ラベルを選択して統合する
+    Class to consolidate similar class labels
+    Judges same concept with LLM and integrates by selecting canonical label
     """
 
     def __init__(
@@ -38,13 +38,13 @@ class ClassConsolidator(Runnable):
         self.max_retries = max_retries
         self.logger = Logger(log_dir)
 
-        # メタモデルを読み込み
+        # Load metamodel
         self.metamodel = self._load_metamodel()
-        # プロンプトテンプレートを読み込み
+        # Load prompt template
         self.prompt_template = self._load_prompt_template()
 
     def _load_metamodel(self) -> dict:
-        """メタモデルファイルを読み込む"""
+        """Load metamodel file"""
         # Go up 2 levels from src/class/ to /workspace/app/
         app_dir = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
         metamodel_path = os.path.join(app_dir, "metamodel", "metamodel.json")
@@ -52,7 +52,7 @@ class ClassConsolidator(Runnable):
             return json.load(f)
 
     def _load_prompt_template(self) -> str:
-        """プロンプトテンプレートファイルを読み込み"""
+        """Load prompt template file"""
         # Go up 2 levels from src/class/ to /workspace/app/
         app_dir = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
         prompt_path = os.path.join(app_dir, "prompts", "class_consolidator.txt")
@@ -60,7 +60,7 @@ class ClassConsolidator(Runnable):
             return f.read()
 
     def _build_schema(self) -> dict:
-        """LLM用のJSONスキーマを読み込む"""
+        """Load JSON schema for LLM"""
         # Go up 2 levels from src/class/ to /workspace/app/
         app_dir = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
         schema_path = os.path.join(app_dir, "schemas", "class-consolidator", "llm.schema.json")
@@ -69,13 +69,13 @@ class ClassConsolidator(Runnable):
 
     def invoke(self, input: Dict[str, Any], config=None) -> Dict[str, Any]:
         """
-        クラス集約処理のメインエントリーポイント
+        Main entry point for class consolidation processing
 
         Parameters
         ----------
         input: ClassConsolidatorInput (= ClassChainOutput)
-          - id: 抽出ID
-          - classes: クラス個体リスト
+          - id: Extraction ID
+          - classes: List of class instances
 
         Returns
         -------
@@ -86,16 +86,16 @@ class ClassConsolidator(Runnable):
         if self.progress:
             print(f"[ClassConsolidator] Processing {len(classes)} classes")
 
-        # class_iriでグループ化
+        # Group by class_iri
         class_groups = self._group_classes_by_class_iri(classes)
 
         if self.progress:
             print(f"[ClassConsolidator] {len(class_groups)} class types found")
 
-        # クラスごとに集約を並列実行
+        # Execute consolidation in parallel for each class
         all_consolidated_classes = asyncio.run(self._process_classes_parallel(class_groups))
 
-        # 出力を構築
+        # Build output
         output = input.copy()
         output["classes"] = all_consolidated_classes
 
@@ -107,7 +107,7 @@ class ClassConsolidator(Runnable):
         return output
 
     def _group_classes_by_class_iri(self, classes: list) -> Dict[str, list]:
-        """class_iriでグループ化"""
+        """Group by class_iri"""
         class_groups = {}
 
         for c in classes:
@@ -119,14 +119,14 @@ class ClassConsolidator(Runnable):
         return class_groups
 
     def _get_class_name_from_iri(self, class_iri: str) -> str:
-        """class_iriからクラス名を取得"""
+        """Get class name from class_iri"""
         for cls in self.metamodel.get("classes", []):
             if cls.get("iri", "") == class_iri:
                 return cls.get("name", "unknown")
         return class_iri.split("#")[-1] if "#" in class_iri else class_iri
 
     async def _process_classes_parallel(self, class_groups: Dict[str, list]) -> list:
-        """クラスグループを並列処理"""
+        """Process class groups in parallel"""
         sem = asyncio.Semaphore(self.max_concurrency)
         total = len(class_groups)
         counter = 0
@@ -151,7 +151,7 @@ class ClassConsolidator(Runnable):
 
         results = await asyncio.gather(*[_wrapped(iri, instances) for iri, instances in class_groups.items()])
 
-        # 結果をフラット化
+        # Flatten results
         all_consolidated = []
         for result in results:
             all_consolidated.extend(result)
@@ -160,23 +160,23 @@ class ClassConsolidator(Runnable):
 
     async def _consolidate_classes_async(self, classes: list, class_iri: str) -> list:
         """
-        指定されたクラスリストをLLMで集約（非同期版）
+        Consolidate specified class list with LLM (async version)
 
         Args:
-            classes: 集約対象のクラスインスタンスリスト
-            class_iri: 対象クラスのIRI
+            classes: List of class instances to consolidate
+            class_iri: Target class IRI
 
         Returns:
-            集約後のクラスインスタンスリスト
+            Consolidated class instance list
         """
         if not classes:
             return []
 
-        # インスタンスが1つだけの場合は集約不要
+        # No consolidation needed if only one instance
         if len(classes) == 1:
             return classes
 
-        # スキーマを構築
+        # Build schema
         schema = self._build_schema()
         llm_json = self.llm.bind(
             response_format={
@@ -188,28 +188,28 @@ class ClassConsolidator(Runnable):
             }
         )
 
-        # ラベルリストを作成
+        # Create label list
         labels = [c.get("label", "") for c in classes]
         label_list_text = "\n".join([f"{i}: {label}" for i, label in enumerate(labels)])
 
-        # クラス名と正規化ルールを取得
+        # Get class name and consolidation rules
         class_name = self._get_class_name_from_iri(class_iri)
         consolidation_rules = self._build_consolidation_rules(class_iri)
 
-        # プロンプトを構築
+        # Build prompt
         prompt = self.prompt_template.format(
             class_name=class_name,
             consolidation_rules=consolidation_rules,
             label_list=label_list_text
         )
 
-        # LLMで集約実行（リトライ付き）
+        # Execute consolidation with LLM (with retry)
         response = await self._invoke_with_retry(llm_json, prompt)
 
-        # レスポンスからテキストを抽出
+        # Extract text from response
         result_text = self._to_text(response.content)
 
-        # JSON パース
+        # Parse JSON
         try:
             parsed = json.loads(result_text)
             groups = parsed.get("groups", [])
@@ -218,7 +218,7 @@ class ClassConsolidator(Runnable):
                 print(f"[ClassConsolidator] JSON parse error: {result_text}")
             return classes
 
-        # グループ情報から統合後のクラスインスタンスを生成
+        # Generate consolidated class instances from group information
         consolidated_classes = []
         for group in groups:
             indices = group.get("indices", [])
@@ -228,12 +228,12 @@ class ClassConsolidator(Runnable):
             if not indices or not canonical_label:
                 continue
 
-            # グループ内のクラスインスタンスを取得
+            # Get class instances within group
             group_classes = [classes[i] for i in indices if i < len(classes)]
             if not group_classes:
                 continue
 
-            # 統合処理
+            # Consolidation processing
             consolidated_class = self._merge_classes(group_classes, canonical_label, reason)
             consolidated_classes.append(consolidated_class)
 
@@ -241,18 +241,18 @@ class ClassConsolidator(Runnable):
 
     def _build_consolidation_rules(self, class_iri: str) -> str:
         """
-        metamodelから該当クラスのextract_rulesを取得し、
-        正規化に関連するルールのテキストを生成
+        Get extract_rules for corresponding class from metamodel and
+        generate text of rules related to normalization
 
         Parameters
         ----------
         class_iri : str
-            対象クラスのIRI
+            Target class IRI
 
         Returns
         -------
         str
-            正規化ルールの文字列
+            Consolidation rules string
         """
         consolidation_rules = []
         for cls in self.metamodel.get("classes", []):
@@ -264,26 +264,26 @@ class ClassConsolidator(Runnable):
 
     def _merge_classes(self, group_classes: List[Dict[str, Any]], canonical_label: str, reason: str = "") -> Dict[str, Any]:
         """
-        グループ内のクラスインスタンスを1つに統合
+        Consolidate class instances within group into one
 
         Parameters
         ----------
         group_classes : List[Dict[str, Any]]
-            統合対象のクラスインスタンスリスト
+            List of class instances to consolidate
         canonical_label : str
-            正準ラベル
+            Canonical label
         reason : str
-            選択理由（ログ用）
+            Selection reason (for logging)
 
         Returns
         -------
         Dict[str, Any]
-            統合後のクラスインスタンス
+            Consolidated class instance
         """
-        # 最初のインスタンスをベースにする
+        # Use first instance as base
         merged = group_classes[0].copy()
 
-        # labelを正準ラベルに更新
+        # Update label to canonical label
         merged["label"] = canonical_label
 
         # Collect IDs and labels of consolidated classes (excluding the first one)
@@ -302,36 +302,36 @@ class ClassConsolidator(Runnable):
         merged["consolidated_ids"] = consolidated_ids
         merged["consolidated_labels"] = consolidated_labels
 
-        # sourcesとfile_idsを統合
+        # Consolidate sources and file_ids
         all_source_file_pairs = []
 
         for cls in group_classes:
-            # sourcesフィールドを取得（配列または文字列）
+            # Get sources field (array or string)
             sources = cls.get("sources", [])
             if isinstance(sources, str):
                 sources = [sources]
 
-            # file_idsフィールドを取得（配列または文字列）
+            # Get file_ids field (array or string)
             file_ids = cls.get("file_ids", [])
             if isinstance(file_ids, str):
                 file_ids = [file_ids]
 
-            # sourcesとfile_idsの長さが一致することを確認
-            # 長さが異なる場合は、短い方に合わせる（後方互換性のため）
+            # Verify that sources and file_ids have matching lengths
+            # If lengths differ, align to shorter one (for backward compatibility)
             min_length = min(len(sources), len(file_ids))
             if len(sources) != len(file_ids):
                 print(f"Warning: sources length ({len(sources)}) != file_ids length ({len(file_ids)}) in class {cls.get('id', 'unknown')}")
                 sources = sources[:min_length]
                 file_ids = file_ids[:min_length]
 
-            # (source, file_id)のペアとして収集
+            # Collect as (source, file_id) pairs
             for source, file_id in zip(sources, file_ids):
                 all_source_file_pairs.append((source, file_id))
 
-        # 重複を除去しつつ順序を保持
+        # Remove duplicates while preserving order
         unique_pairs = list(dict.fromkeys(all_source_file_pairs))
 
-        # ペアを分解してsourcesとfile_idsに戻す
+        # Split pairs back to sources and file_ids
         if unique_pairs:
             merged["sources"], merged["file_ids"] = zip(*unique_pairs)
             merged["sources"] = list(merged["sources"])
@@ -343,7 +343,7 @@ class ClassConsolidator(Runnable):
         return merged
 
     async def _invoke_with_retry(self, llm_json, prompt: str):
-        """リトライ機能付きのLLM呼び出し"""
+        """LLM invocation with retry functionality"""
         delay = 1.0
         max_delay = 60.0
         last_exception = None
@@ -368,7 +368,7 @@ class ClassConsolidator(Runnable):
 
     @staticmethod
     def _to_text(content: Any) -> str:
-        """LLMレスポンスからテキストを抽出"""
+        """Extract text from LLM response"""
         if isinstance(content, str):
             return content
         if isinstance(content, list):
@@ -381,7 +381,7 @@ class ClassConsolidator(Runnable):
 if __name__ == "__main__":
     import glob
 
-    # ログディレクトリから最新のclass_reviewerログファイルを取得
+    # Get the latest class_reviewer log file from log directory
     log_dir = "/workspace/app/log/class_reviewer"
     log_files = glob.glob(os.path.join(log_dir, "class_reviewer_output_*.json"))
 
@@ -389,7 +389,7 @@ if __name__ == "__main__":
         print("Error: No class_reviewer log files found")
         exit(1)
 
-    # 最新のログファイルを取得
+    # Get the latest log file
     latest_log = max(log_files, key=os.path.getmtime)
     print(f"Loading input from: {latest_log}")
     with open(latest_log, "r", encoding="utf-8") as f:

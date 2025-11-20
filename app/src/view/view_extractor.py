@@ -14,9 +14,9 @@ from src.utils.llm_factory import LLMFactory
 
 class ViewExtractor(Runnable):
     """
-    ビュー記述を抽出するタスク
-    入力: ViewChainInput
-    出力: ViewChainOutput
+    Task to extract view descriptions
+    Input: ViewChainInput
+    Output: ViewChainOutput
     """
 
     def __init__(
@@ -36,7 +36,7 @@ class ViewExtractor(Runnable):
             reasoning_effort="minimal",
         )
 
-        # JSONスキーマを読み込み
+        # Load JSON schema
         schema = self._load_schema()
         self.llm_json = self.llm.bind(response_format={"type": "json_schema", "json_schema": {"name": "view_extractor", "schema": schema}})
         self.max_concurrency = max_concurrency
@@ -44,10 +44,10 @@ class ViewExtractor(Runnable):
         self.progress = progress
         self.max_spans_per_label = max_spans_per_label
 
-        # プロンプトファイルを読み込み
+        # Load prompt file
         self.prompt = self._load_prompt()
 
-        # 対象ビュー
+        # Target views
         self.views = [
             "value_analysis",
             "business_concept",
@@ -57,11 +57,11 @@ class ViewExtractor(Runnable):
             "data_analysis",
         ]
 
-        # Loggerを初期化
+        # Initialize Logger
         self.logger = Logger(log_dir)
 
     def _load_schema(self) -> dict:
-        """JSONスキーマファイルを読み込む"""
+        """Load JSON schema file"""
         # Go up 2 levels from src/XXX/ to /workspace/app/
 
         app_dir = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
@@ -71,7 +71,7 @@ class ViewExtractor(Runnable):
             return json.load(f)
 
     def _load_prompt(self) -> str:
-        """プロンプトファイルを読み込む"""
+        """Load prompt file"""
         # Go up 2 levels from src/XXX/ to /workspace/app/
 
         app_dir = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
@@ -82,7 +82,7 @@ class ViewExtractor(Runnable):
 
     @staticmethod
     def _to_text(c: Union[str, List[Any]]) -> str:
-        """LLMメッセージをテキストに変換"""
+        """Convert LLM message to text"""
         if isinstance(c, str):
             return c
         for part in c:
@@ -91,7 +91,7 @@ class ViewExtractor(Runnable):
         return ""
 
     async def _extract_spans_for_chunk(self, chunk: str) -> Dict[str, List[str]]:
-        """1チャンク分のビュー別スパン抽出"""
+        """Extract view-specific spans for one chunk"""
         msg = HumanMessage(
             content=[
                 {"type": "text", "text": self.prompt},
@@ -105,7 +105,7 @@ class ViewExtractor(Runnable):
         except Exception:
             data = {}
 
-        # 正規化（既知キーのみ、重複除去、最大件数制限）
+        # Normalize (only known keys, remove duplicates, limit maximum count)
         spans: Dict[str, List[str]] = {k: [] for k in self.views}
         for k in self.views:
             v = data.get(k, [])
@@ -127,7 +127,7 @@ class ViewExtractor(Runnable):
         return spans
 
     async def _invoke_with_retry(self, msg: HumanMessage):
-        """リトライ機能付きのLLM呼び出し"""
+        """LLM invocation with retry functionality"""
         delay = 1.0
         max_delay = 60.0
         last_exception = None
@@ -151,7 +151,7 @@ class ViewExtractor(Runnable):
             raise last_exception
 
     async def _process_chunks_parallel(self, chunks: List[str]) -> List[Dict[str, Any]]:
-        """チャンクを並列処理でビュー抽出"""
+        """Extract views from chunks using parallel processing"""
         sem = asyncio.Semaphore(self.max_concurrency)
         total = len(chunks)
         counter = 0
@@ -185,13 +185,13 @@ class ViewExtractor(Runnable):
         chunks_data: List[Dict[str, Any]] = target["chunks"]
         file_id = target.get("file_id", str(uuid.uuid4()))
 
-        # チャンクテキストのリストを取得
+        # Get list of chunk texts
         chunks = [chunk["text"] for chunk in chunks_data]
 
-        # 並列実行でビュー抽出
+        # Extract views with parallel execution
         chunk_results = asyncio.run(self._process_chunks_parallel(chunks))
 
-        # 結果をViewChainOutput形式に変換
+        # Convert results to ViewChainOutput format
         views = []
         for view_type in self.views:
             texts = []
@@ -203,7 +203,7 @@ class ViewExtractor(Runnable):
                         "text": span,
                     })
 
-            if texts:  # 抽出されたテキストがある場合のみビューを追加
+            if texts:  # Add view only if extracted texts exist
                 views.append({
                     "type": view_type,
                     "texts": texts,
@@ -214,14 +214,14 @@ class ViewExtractor(Runnable):
             "views": views,
         }
 
-        # Loggerを使ってViewChainOutputをログ出力
+        # Log ViewChainOutput using Logger
         self.logger.save_log(output, filename_prefix="view_extractor_output_")
 
         return output
 
 
 if __name__ == "__main__":
-    # テスト用のサンプルデータ
+    # Sample data for testing
     sample_input = {
         "target": {
             "id": "test_001",
@@ -241,20 +241,20 @@ if __name__ == "__main__":
         }
     }
 
-    # ViewExtractorのインスタンス作成
+    # Create ViewExtractor instance
     print("ViewExtractor テスト開始...")
     extractor = ViewExtractor(
         model="gpt-5-nano",
         temperature=0.0,
-        max_concurrency=2,  # テスト用に並列数を制限
+        max_concurrency=2,  # Limit concurrency for testing
         progress=True,
-        max_spans_per_label=2  # テスト用に制限
+        max_spans_per_label=2  # Limit for testing
     )
 
-    print(f"対象ビュー: {extractor.views}")
+    print(f"Target views: {extractor.views}")
 
     try:
-        # テスト実行
+        # Run test
         result = extractor.invoke(sample_input)
 
         print("\n=== テスト結果 ===")
@@ -264,7 +264,7 @@ if __name__ == "__main__":
         for view in result['views']:
             print(f"\nビュー種別: {view['type']}")
             print(f"抽出テキスト数: {len(view['texts'])}")
-            for i, text in enumerate(view['texts'][:2]):  # 最初の2件のみ表示
+            for i, text in enumerate(view['texts'][:2]):  # Show only first 2 items
                 print(f"  [{i+1}] {text['text']}")
 
         print("\n✅ ViewExtractor テスト完了")

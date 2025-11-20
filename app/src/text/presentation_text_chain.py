@@ -8,13 +8,13 @@ from .text_filter import TextFilter
 from .text_transformer import TextTransformer
 
 class PresentationTextChain(Runnable):
-    """プレゼンテーションテキスト抽出チェイン"""
+    """Presentation text extraction chain"""
 
     def __init__(self, model: str = None, progress: bool = True):
         """
         Args:
-            model: LLMモデル名（現在未使用、将来の拡張用）
-            progress: 進捗表示フラグ
+            model: LLM model name (currently unused, for future extension)
+            progress: Progress display flag
         """
         self.extractor = PresentationTextExtractor()
         #self.filter = TextFilter()
@@ -22,12 +22,12 @@ class PresentationTextChain(Runnable):
         self.progress = progress
 
     def invoke(self, input: Dict[str, Any], config: RunnableConfig = None) -> Dict[str, Any]:
-        # Step 1: テキスト抽出
+        # Step 1: Text extraction
         if self.progress:
             print("\n=== PresentationTextExtractor ===")
         extracted = self.extractor.invoke(input, config)
 
-        # Step 2: フィルタリング
+        # Step 2: Filtering
         #filtered = self.filter.invoke({"source": extracted, "filter": {"name": "dummy"}}, config)
         return extracted
 

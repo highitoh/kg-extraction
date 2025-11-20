@@ -12,12 +12,12 @@ class ClassChainWithReview(Runnable):
     Class extraction chain with iterative review loop:
       ClassExtractor -> ClassConsolidator -> ClassReviewer -> (ClassLabelCorrector -> ClassReviewer)*
 
-    ループロジック:
-    - ClassConsolidatorで類似ラベルを先に統合
-    - ClassReviewerでREVIEW判定されたクラスをClassLabelCorrectorで修正
-    - 修正後、再度ClassReviewerで評価
-    - すべてACCEPT/REJECTになるか、最大反復回数に達するまで繰り返す
-    - 最大回数到達後もREVIEWが残る場合はACCEPTに変換
+    Loop logic:
+    - ClassConsolidator first consolidates similar labels
+    - ClassEditor corrects classes judged as REVIEW by ClassReviewer
+    - After correction, ClassReviewer re-evaluates
+    - Repeats until all become ACCEPT/REJECT or maximum iterations reached
+    - If REVIEW remains after maximum iterations, converts to ACCEPT
     """
 
     def __init__(self,
@@ -29,12 +29,12 @@ class ClassChainWithReview(Runnable):
                  progress: bool = True):
         """
         Args:
-            extractor: ClassExtractorインスタンス
-            class_reviewer: ClassReviewerインスタンス
-            corrector: ClassLabelCorrectorインスタンス
-            consolidator: ClassConsolidatorインスタンス
-            max_review_iterations: REVIEW判定の最大反復回数（デフォルト: 2）
-            progress: 進捗表示フラグ
+            extractor: ClassExtractor instance
+            class_reviewer: ClassReviewer instance
+            corrector: ClassLabelCorrector instance
+            consolidator: ClassConsolidator instance
+            max_review_iterations: Maximum iterations for REVIEW judgments (default: 2)
+            progress: Progress display flag
         """
         self.extractor = extractor
         self.class_reviewer = class_reviewer
@@ -45,54 +45,54 @@ class ClassChainWithReview(Runnable):
 
     def invoke(self, input: Dict[str, Any], config=None) -> Dict[str, Any]:
         """
-        クラス抽出チェインのメイン実行
+        Main execution of class extraction chain
 
         Parameters
         ----------
         input: ViewChainOutput
-          - view_info: ビュー抽出結果
-          - metamodel: メタモデル情報
-          - existing_classes: (オプション) 既存の抽出済みクラス
+          - view_info: View extraction results
+          - metamodel: Metamodel information
+          - existing_classes: (optional) Previously extracted classes
 
         Returns
         -------
         output: ClassConsolidatorOutput
-          - id: 抽出ID
-          - classes: 統合されたクラス個体リスト
+          - id: Extraction ID
+          - classes: Consolidated list of class instances
         """
-        # 既存クラスを取得（あれば）
+        # Get existing classes if available
         existing_classes = input.get("existing_classes", [])
 
-        # 1. ClassExtractor実行
+        # 1. Execute ClassExtractor
         if self.progress:
             print("\n=== ClassExtractor ===")
         result = self.extractor.invoke(input)
 
-        # 2. 既存クラスを統合対象に追加
-        # ClassConsolidatorに渡す前に、新規抽出クラスと既存クラスをマージ
+        # 2. Add existing classes to consolidation targets
+        # Merge newly extracted classes with existing classes before passing to ClassConsolidator
         if existing_classes:
             if self.progress:
                 print(f"\n=== Merging {len(existing_classes)} existing classes with {len(result.get('classes', []))} new classes ===")
             result["classes"] = result.get("classes", []) + existing_classes
 
-        # 3. ClassConsolidator実行
-        # 抽出されたクラスのラベル統合を先に実行
+        # 3. Execute ClassConsolidator
+        # First execute label consolidation of extracted classes
         if self.progress:
             print("\n=== ClassConsolidator ===")
         result = self.consolidator.invoke(result)
 
-        # 4. ClassReviewer実行（初回）
+        # 4. Execute ClassReviewer (initial)
         if self.progress:
             print("\n=== ClassReviewer (Initial) ===")
         result = self.class_reviewer.invoke(result)
 
-        # 5. ループ: ClassLabelCorrector -> ClassReviewer
+        # 5. Loop: ClassLabelCorrector -> ClassReviewer
         for iteration in range(self.max_review_iterations):
-            # REVIEWが残っているか確認
+            # Check if REVIEW classes remain
             review_count = sum(1 for c in result.get("classes", []) if c.get("judgment") == "REVIEW")
 
             if review_count == 0:
-                # すべてACCEPT/REJECT → ループ終了
+                # All ACCEPT/REJECT -> End loop
                 if self.progress:
                     print(f"\n=== Review Loop Complete (iteration {iteration + 1}) ===")
                     print("No REVIEW classes remaining")
@@ -102,17 +102,17 @@ class ClassChainWithReview(Runnable):
                 print(f"\n=== Review Iteration {iteration + 1}/{self.max_review_iterations} ===")
                 print(f"REVIEW classes remaining: {review_count}")
 
-            # ClassLabelCorrector実行
+            # Execute ClassLabelCorrector
             if self.progress:
                 print(f"\n--- ClassLabelCorrector (iteration {iteration + 1}) ---")
             result = self.corrector.invoke(result)
 
-            # ClassReviewer再実行
+            # Re-execute ClassReviewer
             if self.progress:
                 print(f"\n--- ClassReviewer (iteration {iteration + 1}) ---")
             result = self.class_reviewer.invoke(result)
 
-        # 6. 最大回数到達後もREVIEWが残っている場合はACCEPTに変換
+        # 6. Convert remaining REVIEW to ACCEPT after reaching maximum iterations
         final_classes = []
         accepted_review_count = 0
         for c in result.get("classes", []):
@@ -139,9 +139,9 @@ def create_class_chain(model: str = None, max_review_iterations: int = 2, progre
       ClassExtractor -> ClassConsolidator -> ClassReviewer -> (ClassLabelCorrector -> ClassReviewer)*
 
     Args:
-        model: LLMモデル名（Noneの場合は各コンポーネントのデフォルトを使用）
-        max_review_iterations: REVIEW判定の最大反復回数（デフォルト: 2）
-        progress: 進捗表示フラグ（デフォルト: True）
+        model: LLM model name (if None, use default for each component)
+        max_review_iterations: Maximum iterations for REVIEW judgments (default: 2)
+        progress: Progress display flag (default: True)
     """
     if model is not None:
         extractor = ClassExtractor(model=model)

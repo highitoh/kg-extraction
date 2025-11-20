@@ -15,9 +15,9 @@ from src.utils.llm_factory import LLMFactory
 
 class PropertyRanker(Runnable):
     """
-    プロパティ関係性の強度評価（Ranking）
-    入力: PropertyChainOutput (properties with strength=0)
-    出力: PropertyChainOutput (properties with strength=0-3)
+    Property relationship strength evaluation (Ranking)
+    Input: PropertyChainOutput (properties with strength=0)
+    Output: PropertyChainOutput (properties with strength=0-3)
     """
 
     def __init__(
@@ -49,7 +49,7 @@ class PropertyRanker(Runnable):
 
     # ===== Utilities =====
     def _load_llm_schema(self) -> Dict[str, Any]:
-        """LLM出力スキーマを読み込み"""
+        """Load LLM output schema"""
         # Go up 2 levels from src/XXX/ to /workspace/app/
 
         app_dir = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
@@ -59,7 +59,7 @@ class PropertyRanker(Runnable):
             return json.load(f)
 
     def _load_prompt(self) -> str:
-        """プロンプトファイルを読み込み"""
+        """Load prompt file"""
         # Go up 2 levels from src/XXX/ to /workspace/app/
 
         app_dir = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
@@ -69,7 +69,7 @@ class PropertyRanker(Runnable):
             return f.read()
 
     def _load_metamodel(self) -> Dict[str, Any]:
-        """メタモデルを読み込み"""
+        """Load metamodel"""
         # Go up 2 levels from src/XXX/ to /workspace/app/
 
         app_dir = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
@@ -80,7 +80,7 @@ class PropertyRanker(Runnable):
 
     @staticmethod
     def _to_text(c: Union[str, List[Any]]) -> str:
-        """LLMの出力をテキスト形式に変換"""
+        """Convert LLM output to text format"""
         if isinstance(c, str):
             return c
         for part in c:
@@ -90,7 +90,7 @@ class PropertyRanker(Runnable):
 
     @staticmethod
     def _index_classes_by_id(class_info: Dict[str, Any]) -> Dict[str, Dict[str, Any]]:
-        """class_infoのclasses配列をidで引けるようにインデックス化"""
+        """Index classes array in class_info to be retrievable by id"""
         idx = {}
         for c in class_info.get("classes", []):
             cid = c.get("id")
@@ -99,7 +99,7 @@ class PropertyRanker(Runnable):
         return idx
 
     def _group_by_property_iri(self, props: List[Dict[str, Any]]) -> Dict[str, List[Dict[str, Any]]]:
-        """候補プロパティをproperty_iriごとにグルーピング"""
+        """Group candidate properties by property_iri"""
         groups: Dict[str, List[Dict[str, Any]]] = {}
         for p in props:
             prop_iri = p.get("property_iri", "")
@@ -109,14 +109,14 @@ class PropertyRanker(Runnable):
         return groups
 
     def _get_class_definition(self, class_iri: str) -> tuple[str, str]:
-        """メタモデルからクラス定義を取得（label, definition）"""
+        """Get class definition from metamodel (label, definition)"""
         for cls in self.metamodel.get("classes", []):
             if cls.get("iri") == class_iri:
                 return cls.get("name", ""), cls.get("description", "")
         return "", ""
 
     def _get_property_definition(self, property_iri: str) -> tuple[str, str, str, str]:
-        """メタモデルからプロパティ定義を取得（label, definition, src_class_iri, dest_class_iri）"""
+        """Get property definition from metamodel (label, definition, src_class_iri, dest_class_iri)"""
         for prop in self.metamodel.get("properties", []):
             if prop.get("iri") == property_iri:
                 return (
@@ -128,19 +128,19 @@ class PropertyRanker(Runnable):
         return "", "", "", ""
 
     def _format_instances(self, instances: List[Dict[str, Any]]) -> str:
-        """インスタンスリストをテキスト形式に整形"""
+        """Format instance list to text format"""
         lines = []
         for inst in instances:
             lines.append(f"- ID: {inst.get('id', '')}, Label: {inst.get('label', '')}, Source: {inst.get('source', '')}")
         return "\n".join(lines)
 
     def _format_property_candidates(self, batch: List[Dict[str, Any]], class_index: Dict[str, Dict[str, Any]]) -> str:
-        """評価対象のプロパティ候補をテキスト形式に整形"""
+        """Format property candidates for evaluation to text format"""
         lines = []
         for i, p in enumerate(batch, 1):
             src = class_index.get(p.get("src_id", ""), {})
             dest = class_index.get(p.get("dest_id", ""), {})
-            lines.append(f"候補{i}:")
+            lines.append(f"Candidate {i}:")
             lines.append(f"  src_id: {p.get('src_id', '')}")
             lines.append(f"    - src_label: {src.get('label', '')}")
             lines.append(f"    - src_source: {src.get('source', '')}")
@@ -155,18 +155,18 @@ class PropertyRanker(Runnable):
         class_index: Dict[str, Dict[str, Any]],
         property_iri: str
     ) -> List[Dict[str, Any]]:
-        """LLMで1バッチ分の候補の強度を評価"""
+        """Evaluate strength of one batch of candidates with LLM"""
 
-        # プロパティ定義を取得
+        # Get property definition
         property_label, property_definition, src_class_iri, dest_class_iri = self._get_property_definition(property_iri)
         src_class_label, src_class_definition = self._get_class_definition(src_class_iri)
         dest_class_label, dest_class_definition = self._get_class_definition(dest_class_iri)
 
-        # インスタンスリストを取得
+        # Get instance list
         src_instances = [class_index[p.get("src_id", "")] for p in batch if p.get("src_id") in class_index]
         dest_instances = [class_index[p.get("dest_id", "")] for p in batch if p.get("dest_id") in class_index]
 
-        # プロンプトを整形
+        # Format prompt
         property_candidates_text = self._format_property_candidates(batch, class_index)
         src_instances_text = self._format_instances(src_instances)
         dest_instances_text = self._format_instances(dest_instances)
@@ -185,7 +185,7 @@ class PropertyRanker(Runnable):
 
         msg = HumanMessage(content=[{"type": "text", "text": prompt_filled}])
 
-        # リトライ機能付きでLLM呼び出し
+        # LLM invocation with retry functionality
         ai = await self._invoke_with_retry(msg)
         raw = self._to_text(ai.content)
         try:
@@ -205,7 +205,7 @@ class PropertyRanker(Runnable):
         return results
 
     async def _invoke_with_retry(self, msg: HumanMessage):
-        """リトライ機能付きのLLM呼び出し"""
+        """LLM invocation with retry functionality"""
         delay = 1.0
         max_delay = 60.0
         last_exception = None
@@ -233,9 +233,9 @@ class PropertyRanker(Runnable):
         properties: List[Dict[str, Any]],
         class_index: Dict[str, Dict[str, Any]]
     ) -> Dict[str, Dict[str, Any]]:
-        """全プロパティの強度評価を非同期で実行"""
+        """Execute strength evaluation of all properties asynchronously"""
 
-        # property_iriごとにグループ化
+        # Group by property_iri
         groups = self._group_by_property_iri(properties)
 
         total = len(groups)
@@ -245,7 +245,7 @@ class PropertyRanker(Runnable):
         if self.progress:
             print(f"[PropertyRanker] Starting parallel processing: {total} property types (concurrency={self.max_concurrency})")
 
-        # 各グループをバッチに分割してタスクを作成
+        # Create tasks by dividing each group into batches
         async def _wrapped_group(property_iri: str, props: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
             nonlocal counter
             batch_results = []
@@ -261,10 +261,10 @@ class PropertyRanker(Runnable):
 
             return batch_results
 
-        # 並列実行
+        # Execute in parallel
         all_results = await asyncio.gather(*[_wrapped_group(prop_iri, props) for prop_iri, props in groups.items()])
 
-        # 結果をsrc_id+dest_idのキーで辞書化
+        # Convert results to dictionary with src_id+dest_id as key
         strength_map = {}
         for batch_results in all_results:
             for result in batch_results:
@@ -275,7 +275,7 @@ class PropertyRanker(Runnable):
 
     def invoke(self, input: Dict[str, Any], config=None) -> Dict[str, Any]:
         """
-        PropertyChainOutputを入力として受け取り、strengthを更新したPropertyChainOutputを出力
+        Accept PropertyChainOutput as input and output PropertyChainOutput with updated strength
         """
         property_candidates = input.get("property_candidates", {})
         class_info = input.get("class_info", {})
@@ -284,7 +284,7 @@ class PropertyRanker(Runnable):
         classes = class_info.get("classes", [])
 
         if not properties:
-            # プロパティがない場合はそのまま返す
+            # If no properties, return as is
             output = {
                 "id": property_candidates.get("id", str(uuid.uuid4())),
                 "properties": []
@@ -292,13 +292,13 @@ class PropertyRanker(Runnable):
             self.logger.save_log(output, filename_prefix="property_ranker_output_")
             return output
 
-        # クラスインデックスを作成
+        # Create class index
         class_index = self._index_classes_by_id(class_info)
 
-        # 強度評価を実行
+        # Execute strength evaluation
         strength_map = asyncio.run(self._rank_properties_async(properties, class_index))
 
-        # プロパティにstrengthを設定
+        # Set strength in properties
         ranked_properties = []
         ranked_properties_with_labels = []
         for prop in properties:
@@ -307,7 +307,7 @@ class PropertyRanker(Runnable):
 
             strength = ranking_result.get("strength", 0)
 
-            # strengthとranker_justificationを更新したプロパティを作成
+            # Create property with updated strength and ranker_justification
             ranked_prop = {
                 "id": prop.get("id", str(uuid.uuid4())),
                 "src_id": prop.get("src_id", ""),
@@ -318,7 +318,7 @@ class PropertyRanker(Runnable):
             }
             ranked_properties.append(ranked_prop)
 
-            # ログ用にラベル情報と評価情報を追加
+            # Add label information and evaluation information for logging
             src_class = class_index.get(prop.get("src_id", ""), {})
             dest_class = class_index.get(prop.get("dest_id", ""), {})
 
@@ -335,14 +335,14 @@ class PropertyRanker(Runnable):
         }
 
         if self.progress:
-            # 強度の分布を表示
+            # Display strength distribution
             strength_counts = {0: 0, 1: 0, 2: 0, 3: 0}
             for prop in ranked_properties:
                 strength_counts[prop["strength"]] += 1
             print(f"[PropertyRanker] Completed: ranked {len(ranked_properties)} properties")
             print(f"[PropertyRanker] Strength distribution: 0={strength_counts[0]}, 1={strength_counts[1]}, 2={strength_counts[2]}, 3={strength_counts[3]}")
 
-        # ログ出力（ラベル情報と評価情報付き）
+        # Log output (with label information and evaluation information)
         log_output = {
             "id": output["id"],
             "properties": ranked_properties_with_labels

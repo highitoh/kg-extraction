@@ -1,8 +1,8 @@
 """
 Neo4j Bulk Import CSV Generator
 
-JSON入力からNeo4j Bulk Import用のCSVファイルを生成する。
-bk/rdf_to_property_graph.pyのロジックを参考に、JSONスキーマから情報を取得してCSVを生成。
+Generates CSV files for Neo4j Bulk Import from JSON input.
+Retrieves information from JSON schema and generates CSV, based on the logic in bk/rdf_to_property_graph.py.
 """
 
 import os
@@ -13,41 +13,41 @@ from typing import Dict, Set, Tuple, Any
 
 class Neo4jCSVGenerator:
     """
-    JSON入力からNeo4j Bulk Import用のCSVファイル（nodes.csv, relationships.csv）を生成する。
+    Generates CSV files (nodes.csv, relationships.csv) for Neo4j Bulk Import from JSON input.
 
-    Input: class_info (ClassChainOutput) と property_info (PropertyChainOutput)
-    Output: nodes.csv と relationships.csv を app/output に生成
+    Input: class_info (ClassChainOutput) and property_info (PropertyChainOutput)
+    Output: Generates nodes.csv and relationships.csv in app/output
     """
 
     NODE_HEADERS = [
-        "id:ID",             # クラス個体ID
-        "iri",               # class_iri (表示・確認用)
-        ":LABEL",            # クラスのローカル名
-        "label",             # 抽出クラスラベル
-        "file_id",           # 抽出元ファイルID
+        "id:ID",             # Class instance ID
+        "iri",               # class_iri (for display/verification)
+        ":LABEL",            # Class local name
+        "label",             # Extracted class label
+        "file_id",           # Source file ID
     ]
 
     REL_HEADERS = [
         ":START_ID",         # src_id
         ":END_ID",           # dest_id
-        ":TYPE",             # プロパティのローカル名
-        "property_iri",      # プロパティIRI
-        "id",                # プロパティID
-        "strength:int",      # 関係の強度
+        ":TYPE",             # Property local name
+        "property_iri",      # Property IRI
+        "id",                # Property ID
+        "strength:int",      # Relationship strength
     ]
 
     def __init__(self, output_dir: str = "./output"):
         self.output_dir = output_dir
         os.makedirs(self.output_dir, exist_ok=True)
 
-        # ノード情報
+        # Node information
         self.nodes: Dict[str, Dict[str, str]] = {}
-        # リレーション情報
+        # Relationship information
         self.relationships: Set[Tuple[str, str, str, str, str, int]] = set()
 
     @staticmethod
     def _local_name(iri: str) -> str:
-        """IRIからローカル名を抽出"""
+        """Extract local name from IRI"""
         if "#" in iri:
             return iri.rsplit("#", 1)[-1]
         if "/" in iri:
@@ -58,24 +58,24 @@ class Neo4jCSVGenerator:
 
     @staticmethod
     def _to_snake_case(name: str) -> str:
-        """チェインケース（ハイフン区切り）をスネークケースに変換"""
+        """Convert chain case (hyphen-separated) to snake case"""
         return name.replace("-", "_")
 
     def _process_classes(self, class_info: Dict[str, Any]):
-        """クラス情報からノードを生成"""
+        """Generate nodes from class information"""
         for class_item in class_info.get("classes", []):
             node_id = class_item["id"]
             class_iri = class_item["class_iri"]
             label = class_item["label"]
 
-            # file_idsフィールドを取得（配列または文字列）
+            # Get file_ids field (array or string)
             file_ids = class_item.get("file_ids", [])
             if isinstance(file_ids, str):
                 file_ids = [file_ids]
-            # カンマ区切りで連結（複数の出典を保持）
+            # Concatenate with comma separation (retain multiple sources)
             file_id = ",".join(file_ids) if file_ids else ""
 
-            # ノードのラベル（クラスのローカル名をスネークケースに変換）
+            # Node label (convert class local name to snake case)
             class_label = self._to_snake_case(self._local_name(class_iri))
 
             self.nodes[node_id] = {
@@ -87,7 +87,7 @@ class Neo4jCSVGenerator:
             }
 
     def _process_properties(self, property_info: Dict[str, Any]):
-        """プロパティ情報からリレーションを生成"""
+        """Generate relationships from property information"""
         for prop_item in property_info.get("properties", []):
             prop_id = prop_item["id"]
             src_id = prop_item["src_id"]
@@ -95,7 +95,7 @@ class Neo4jCSVGenerator:
             property_iri = prop_item["property_iri"]
             strength = int(prop_item.get("strength", 0))
 
-            # リレーションのタイプ（プロパティのローカル名をスネークケースに変換）
+            # Relationship type (convert property local name to snake case)
             rel_type = self._to_snake_case(self._local_name(property_iri))
 
             self.relationships.add((
@@ -109,7 +109,7 @@ class Neo4jCSVGenerator:
 
     def generate(self, input_data: Dict[str, Any]) -> Dict[str, str]:
         """
-        JSON入力からCSVファイルを生成
+        Generate CSV files from JSON input
 
         Args:
             input_data: {"class_info": {...}, "property_info": {...}}
@@ -117,15 +117,15 @@ class Neo4jCSVGenerator:
         Returns:
             {"nodes_path": str, "properties_path": str}
         """
-        # 入力データの処理
+        # Process input data
         class_info = input_data.get("class_info", {})
         property_info = input_data.get("property_info", {})
 
-        # ノードとリレーションの処理
+        # Process nodes and relationships
         self._process_classes(class_info)
         self._process_properties(property_info)
 
-        # CSVファイルの生成
+        # Generate CSV files
         nodes_path = self._write_nodes_csv()
         relationships_path = self._write_relationships_csv()
 
@@ -135,7 +135,7 @@ class Neo4jCSVGenerator:
         }
 
     def _write_nodes_csv(self) -> str:
-        """ノードCSVの書き出し"""
+        """Write nodes CSV"""
         nodes_path = os.path.join(self.output_dir, "nodes.csv")
 
         with open(nodes_path, "w", newline="", encoding="utf-8") as f:
@@ -144,7 +144,7 @@ class Neo4jCSVGenerator:
 
             for node_id in sorted(self.nodes.keys()):
                 row = self.nodes[node_id]
-                # 不足列は空文字で埋める
+                # Fill missing columns with empty strings
                 for header in self.NODE_HEADERS:
                     row.setdefault(header, "")
                 writer.writerow(row)
@@ -152,7 +152,7 @@ class Neo4jCSVGenerator:
         return nodes_path
 
     def _write_relationships_csv(self) -> str:
-        """リレーションCSVの書き出し"""
+        """Write relationships CSV"""
         rels_path = os.path.join(self.output_dir, "relationships.csv")
 
         with open(rels_path, "w", newline="", encoding="utf-8") as f:
@@ -173,14 +173,14 @@ class Neo4jCSVGenerator:
 
 
 def load_input_from_file(file_path: str) -> Dict[str, Any]:
-    """JSONファイルから入力データを読み込み"""
+    """Load input data from JSON file"""
     with open(file_path, "r", encoding="utf-8") as f:
         return json.load(f)
 
 
 def main():
-    """サンプル実行"""
-    # サンプルデータ
+    """Sample execution"""
+    # Sample data
     sample_input = {
         "class_info": {
             "id": "extraction_001",

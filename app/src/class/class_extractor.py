@@ -26,12 +26,12 @@ VIEW_TYPES = [
 
 @dataclass
 class ExtractedClass:
-    """ClassExtractOutput.classes の 1 要素"""
-    id: str              # 必須: クラス個体ID
-    class_iri: str       # 必須: URI 形式
-    label: str           # 必須: 抽出クラス（表示ラベル）
-    sources: List[str]   # 必須: 抽出元文章（配列）
-    file_ids: List[str]  # 必須: 抽出元ファイルID（配列）
+    """One element of ClassExtractOutput.classes"""
+    id: str              # Required: Class instance ID
+    class_iri: str       # Required: URI format
+    label: str           # Required: Extracted class (display label)
+    sources: List[str]   # Required: Source text (array)
+    file_ids: List[str]  # Required: Source file IDs (array)
 
     def to_dict(self) -> Dict[str, Any]:
         return asdict(self)
@@ -39,7 +39,7 @@ class ExtractedClass:
 
 class ClassExtractor(Runnable):
     """
-    ビュー記述からクラス候補を抽出するクラス
+    Class for extracting class candidates from view descriptions
     """
 
     def __init__(
@@ -62,15 +62,15 @@ class ClassExtractor(Runnable):
         self.max_retries = max_retries
         self.logger = Logger(log_dir)
 
-        # JSONスキーマを読み込み
+        # Load JSON schema
         schema = self._load_schema()
         self.llm_json = self.llm.bind(response_format={"type": "json_schema", "json_schema": {"name": "class_extractor", "schema": schema}})
 
-        # プロンプトテンプレートを読み込み
+        # Load prompt template
         self.prompt_template = self._load_prompt_template()
 
     def _load_schema(self) -> dict:
-        """JSONスキーマファイルを読み込む"""
+        """Load JSON schema file"""
         # Go up 2 levels from src/class/ to /workspace/app/
         app_dir = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
         schema_path = os.path.join(app_dir, "schemas", "class-extractor", "llm.schema.json")
@@ -78,7 +78,7 @@ class ClassExtractor(Runnable):
             return json.load(f)
 
     def _load_prompt_template(self) -> str:
-        """プロンプトテンプレートファイルを読み込む"""
+        """Load prompt template file"""
         # Go up 2 levels from src/class/ to /workspace/app/
         app_dir = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
         prompt_path = os.path.join(app_dir, "prompts", "class_extractor.txt")
@@ -89,20 +89,20 @@ class ClassExtractor(Runnable):
         """
         Parameters
         ----------
-        input_data: ClassExtractorInput に準拠
-          - view_info: ビュー抽出結果（各ビューに texts 等が入っている想定）
-          - metamodel: メタモデル（クラスIRI決定で利用する想定・詳細は後段で実装）
+        input_data: Conforms to ClassExtractorInput
+          - view_info: View extraction results (assuming texts etc. in each view)
+          - metamodel: Metamodel (assumed to be used for class IRI determination, detailed implementation later)
         Returns
         -------
-        output: ClassCExtractorOutput に準拠
+        output: Conforms to ClassCExtractorOutput
         """
         view_info = self._get_view_info(input_data)
         metamodel = self._get_metamodel(input_data)
 
-        # ビューごとに並列実行
+        # Execute in parallel for each view
         view_results = asyncio.run(self._process_views_parallel(view_info, metamodel))
 
-        # class_iri 付与＆スキーマ整形
+        # Add class_iri and format schema
         classes: List[ExtractedClass] = []
         for result in view_results:
             view_type = result["view_type"]
@@ -113,9 +113,9 @@ class ClassExtractor(Runnable):
                 label = li["label"]
                 source = li["source"]
                 file_id = li["file_id"]
-                class_iri = self._resolve_class_iri(view_type, c, metamodel)  # URI を返す実装にする
+                class_iri = self._resolve_class_iri(view_type, c, metamodel)  # Implementation to return URI
 
-                # sourcesとfile_idsの1:1対応を保証
+                # Ensure 1:1 correspondence between sources and file_ids
                 sources = [source]
                 file_ids = [file_id]
 
@@ -127,16 +127,16 @@ class ClassExtractor(Runnable):
                     file_ids=file_ids,
                 ))
 
-        # ---- 出力（ClassChainOutput 準拠） -----------------------------------------
+        # ---- Output (conforms to ClassChainOutput) -----------------------------------------
         output: Dict[str, Any] = {
             "id": str(uuid.uuid4()),
-            "classes": [c.to_dict() for c in classes],  # スキーマ: minItems=1 を満たすのは実装後
+            "classes": [c.to_dict() for c in classes],  # Schema: meets minItems=1 after implementation
         }
 
         if self.progress:
             print(f"[ClassExtractor] Completed: extracted {len(classes)} classes")
 
-        # Loggerを使ってClassExtractorOutputをログ出力
+        # Log ClassExtractorOutput using Logger
         self.logger.save_log(output, filename_prefix="class_extractor_output_")
 
         return output
@@ -153,7 +153,7 @@ class ClassExtractor(Runnable):
 
     def _get_texts_for_view(self, view_info: Dict[str, Any], view_type: str) -> List[Dict[str, Any]]:
         """
-        view_info から特定 view_type の texts をフラットに取得するテンプレート。
+        Template to get texts for a specific view_type from view_info as a flat list.
         """
         views = view_info.get("views", [])
         for v in views:
@@ -162,7 +162,7 @@ class ClassExtractor(Runnable):
         return []
 
     async def _process_views_parallel(self, view_info: Dict[str, Any], metamodel: Dict[str, Any]) -> List[Dict[str, Any]]:
-        """ビューごとにクラス抽出を並列実行"""
+        """Execute class extraction in parallel for each view"""
         sem = asyncio.Semaphore(self.max_concurrency)
         total = len(VIEW_TYPES)
         counter = 0
@@ -182,7 +182,7 @@ class ClassExtractor(Runnable):
                         label_items = await self._extract_labels_from_view_async(view_type, texts, metamodel)
                         break
                     except Exception as e:
-                        if attempt == 4:  # 最後の試行
+                        if attempt == 4:  # Last attempt
                             if self.progress:
                                 print(f"[ClassExtractor] Error in view={view_type}: {e}")
                         await asyncio.sleep(min(2 ** attempt, 10))
@@ -204,30 +204,30 @@ class ClassExtractor(Runnable):
         metamodel: Dict[str, Any],
     ) -> List[Dict[str, str]]:
         """
-        対象ビューの記述からクラス候補を抽出する処理（非同期版）。
+        Process to extract class candidates from target view descriptions (async version).
         Returns:
-          [{"class": "<クラス>", "label": "<インスタンス>", "source": "<出所>", "file_id": "<抽出元ファイルID>"} , ...]
+          [{"class": "<class>", "label": "<instance>", "source": "<source>", "file_id": "<source file ID>"} , ...]
         """
         return await self._extract_labels_async(view_type, texts, metamodel)
 
     async def _extract_labels_async(self, view_type: str, texts: List[Dict[str, Any]], metamodel: Dict[str, Any] = None) -> List[Dict[str, str]]:
         """
-        指定されたビュータイプからクラスインスタンスをLLMで抽出する（非同期版）
+        Extract class instances from specified view type using LLM (async version)
         """
         if not texts:
             return []
 
-        # ビュー記述のテキストを取得
+        # Get text of view description
         chunk_lines = []
         for idx, t in enumerate(texts):
             chunk_lines.append(f"{t.get('text', '')}")
         chunks_text = "\n".join(chunk_lines)
 
-        # metamodelからクラス定義とポリシーの文字列を生成
+        # Generate class definition and policy strings from metamodel
         class_definitions = self._get_class_definitions(metamodel, view_type)
         class_policies = self._get_class_policies(metamodel, view_type)
 
-        # プロンプトテンプレートに値を埋め込む
+        # Embed values into prompt template
         prompt = self.prompt_template.format(
             class_definitions=class_definitions,
             class_policies=class_policies
@@ -236,10 +236,10 @@ class ClassExtractor(Runnable):
 
         response = await self._invoke_with_retry(HumanMessage(content=prompt))
 
-        # response.content からテキストを抽出
+        # Extract text from response.content
         result_text = self._to_text(response.content)
 
-        # JSON パース
+        # Parse JSON
         try:
             result = json.loads(result_text)
         except json.JSONDecodeError:
@@ -247,7 +247,7 @@ class ClassExtractor(Runnable):
                 print(f"[ClassExtractor] JSON parse error: {result_text}")
             return []
 
-        # ラベル候補リストに変換
+        # Convert to label candidate list
         labels = []
         value_items = result.get("classes", [])
         for item in value_items:
@@ -256,13 +256,13 @@ class ClassExtractor(Runnable):
                     "class": item["class"],
                     "label": item["label"],
                     "source": item["source"],
-                    "file_id": texts[0].get("file_id", "unknown")  # 便宜的に最初のファイルIDを使用
+                    "file_id": texts[0].get("file_id", "unknown")  # Use first file ID for convenience
                 })
 
         return labels
 
     async def _invoke_with_retry(self, msg: HumanMessage):
-        """リトライ機能付きのLLM呼び出し"""
+        """LLM invocation with retry functionality"""
         delay = 1.0
         max_delay = 60.0
         last_exception = None
@@ -287,19 +287,19 @@ class ClassExtractor(Runnable):
 
     def _get_class_definitions(self, metamodel: Dict[str, Any], view_type: str) -> str:
         """
-        metamodelから指定されたview_typeのクラス定義文字列を生成
+        Generate class definition string for specified view_type from metamodel
 
         Parameters
         ----------
         metamodel : Dict[str, Any]
-            メタモデル定義
+            Metamodel definition
         view_type : str
-            対象ビュータイプ
+            Target view type
 
         Returns
         -------
         str
-            クラス定義の文字列（例: "- ステークホルダ: 説明文\n- 価値: 説明文"）
+            Class definition string (e.g., "- Stakeholder: description\n- Value: description")
         """
         if not metamodel or "classes" not in metamodel:
             return ""
@@ -307,7 +307,7 @@ class ClassExtractor(Runnable):
         classes = metamodel.get("classes", [])
         view_classes = [cls for cls in classes if cls.get("view_type") == view_type]
 
-        # クラス定義を構築
+        # Build class definitions
         definitions = []
         for cls in view_classes:
             name = cls.get("name", "")
@@ -318,19 +318,19 @@ class ClassExtractor(Runnable):
 
     def _get_class_policies(self, metamodel: Dict[str, Any], view_type: str) -> str:
         """
-        metamodelから指定されたview_typeのクラスポリシー文字列を生成
+        Generate class policy string for specified view_type from metamodel
 
         Parameters
         ----------
         metamodel : Dict[str, Any]
-            メタモデル定義
+            Metamodel definition
         view_type : str
-            対象ビュータイプ
+            Target view type
 
         Returns
         -------
         str
-            クラスポリシーの文字列
+            Class policy string
         """
         if not metamodel or "classes" not in metamodel:
             return ""
@@ -338,19 +338,19 @@ class ClassExtractor(Runnable):
         classes = metamodel.get("classes", [])
         view_classes = [cls for cls in classes if cls.get("view_type") == view_type]
 
-        # ポリシーを構築
+        # Build policies
         policies = []
         for cls in view_classes:
             name = cls.get("name", "")
             policy_items = []
 
-            # 文字数制約
+            # Character count constraints
             min_len = cls.get("min_length")
             max_len = cls.get("max_length")
             if min_len is not None and max_len is not None:
                 policy_items.append(f"  - 文字数: {min_len}～{max_len}字")
 
-            # フォーマットガイドライン（配列対応）
+            # Format guidelines (array support)
             extract_rules = cls.get("extract_rules", [])
             for guideline in extract_rules:
                 policy_items.append(f"  - {guideline}")
@@ -363,7 +363,7 @@ class ClassExtractor(Runnable):
 
     @staticmethod
     def _to_text(content: Any) -> str:
-        """LLMレスポンスからテキストを抽出"""
+        """Extract text from LLM response"""
         if isinstance(content, str):
             return content
         if isinstance(content, list):
@@ -379,22 +379,22 @@ class ClassExtractor(Runnable):
         metamodel: Dict[str, Any],
     ) -> str:
         """
-        抽出したクラスに対応する class_iri(URI) を取得する処理
+        Process to get class_iri (URI) corresponding to extracted class
         """
-        # metamodel から class_iri のマッピングを探す
+        # Search for class_iri mapping from metamodel
         classes = metamodel.get("classes", [])
         for cls in classes:
             if cls.get("view_type") == view_type and cls.get("name") == class_name:
                 return cls.get("iri", "")
 
-        # 見つからない場合は空文字を返す
+        # Return empty string if not found
         return ""
 
 if __name__ == "__main__":
     import glob
     import os
 
-    # ログディレクトリから最新のview_filterログファイルを取得
+    # Get the latest view_filter log file from log directory
     log_dir = "/workspace/app/log/view_filter"
     log_files = glob.glob(os.path.join(log_dir, "view_filter_output_*.json"))
 
@@ -402,13 +402,13 @@ if __name__ == "__main__":
         print("Error: No view_filter log files found")
         exit(1)
 
-    # 最新のログファイルを取得
+    # Get the latest log file
     latest_log = max(log_files, key=os.path.getmtime)
     print(f"Loading input from: {latest_log}")
     with open(latest_log, "r", encoding="utf-8") as f:
         view_info = json.load(f)
 
-    # メタモデルを取得
+    # Get metamodel
     # Go up 2 levels from src/XXX/ to /workspace/app/
 
     app_dir = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))

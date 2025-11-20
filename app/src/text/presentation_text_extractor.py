@@ -8,10 +8,10 @@ import pdfplumber
 from src.utils.logger import Logger
 
 class PresentationTextExtractor(Runnable):
-    """プレゼンテーションファイルからスライドごとにテキストを抽出するタスク
+    """Task to extract text from presentation files slide by slide
 
-    各スライドのテキストの先頭に「スライド{番号}:」を付与して出力します。
-    既存のtext-extractorと同じスキーマ構造を維持します。
+    Adds "Slide {number}:" prefix to the beginning of each slide's text.
+    Maintains the same schema structure as the existing text-extractor.
     """
 
     def __init__(self):
@@ -19,10 +19,10 @@ class PresentationTextExtractor(Runnable):
 
     def _extract_text_by_slide(self, pdf_path: str) -> list[tuple[int, str]]:
         """
-        pdfplumberを使用してPDFからスライドごとにテキストを抽出
+        Extract text from PDF slide by slide using pdfplumber
 
         Returns:
-            list[tuple[int, str]]: (スライド番号, テキスト)のリスト
+            list[tuple[int, str]]: List of (slide number, text) tuples
         """
         if not os.path.exists(pdf_path):
             raise FileNotFoundError(f"PDFファイルが見つかりません: {pdf_path}")
@@ -43,19 +43,19 @@ class PresentationTextExtractor(Runnable):
         return slides
 
     def invoke(self, input: Dict[str, Any], config: RunnableConfig = None) -> Dict[str, Any]:
-        # input: PresentationTextExtractorInput (text-extractorと同じ)
-        # output: PresentationTextExtractorOutput (text-extractorと同じ構造)
+        # input: PresentationTextExtractorInput (same as text-extractor)
+        # output: PresentationTextExtractorOutput (same structure as text-extractor)
 
         file_path = input["files"][0]["path"]
 
-        # PDFからスライドごとにテキストを抽出
+        # Extract text from PDF slide by slide
         slides = self._extract_text_by_slide(file_path)
 
-        # スライドごとの文章を「スライド{番号}: 」プレフィックス付きで生成
+        # Generate sentences with "Slide {number}:" prefix for each slide
         sentences = []
         for slide_num, slide_text in slides:
             for line_text in slide_text.split('\n'):
-                if line_text.strip():  # 空行は除外
+                if line_text.strip():  # Exclude empty lines
                     sentences.append({
                         "text": f"[[スライド{slide_num}]] {line_text.strip()}"
                     })
@@ -66,7 +66,7 @@ class PresentationTextExtractor(Runnable):
             "sentences": sentences
         }
 
-        # 出力JSONをログに保存
+        # Save output JSON to log
         self.logger.save_log(output, "presentation_text_extractor_output_")
 
         return output

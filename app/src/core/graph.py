@@ -1,6 +1,6 @@
 """
 LangGraph Graph Construction for Knowledge Extraction
-知識抽出処理のLangGraphグラフ定義
+LangGraph graph definition for knowledge extraction processing
 """
 
 from langgraph.graph import StateGraph, END
@@ -21,9 +21,9 @@ from src.core.nodes import (
 
 def create_knowledge_extraction_graph():
     """
-    知識抽出処理のLangGraphを構築する
+    Build the LangGraph for knowledge extraction processing
 
-    グラフ構造:
+    Graph structure:
     START
       ↓
     classify_file_type
@@ -46,10 +46,10 @@ def create_knowledge_extraction_graph():
             END
     """
 
-    # StateGraphを作成
+    # Create StateGraph
     workflow = StateGraph(KnowledgeExtractionState)
 
-    # ========== ノードを追加 ==========
+    # ========== Add Nodes ==========
     workflow.add_node("classify_file_type", classify_file_type_node)
     workflow.add_node("extract_text_document", extract_text_document_node)
     workflow.add_node("extract_text_presentation", extract_text_presentation_node)
@@ -60,11 +60,11 @@ def create_knowledge_extraction_graph():
     workflow.add_node("save_accumulated_knowledge", save_accumulated_knowledge_node)
     workflow.add_node("generate_outputs", generate_outputs_node)
 
-    # ========== エントリーポイントを設定 ==========
+    # ========== Set Entry Point ==========
     workflow.set_entry_point("classify_file_type")
 
-    # ========== 条件付きエッジを追加 ==========
-    # ファイルタイプに応じてテキスト抽出ノードを選択
+    # ========== Add Conditional Edges ==========
+    # Select text extraction node based on file type
     workflow.add_conditional_edges(
         "classify_file_type",
         route_by_file_type,
@@ -74,22 +74,22 @@ def create_knowledge_extraction_graph():
         }
     )
 
-    # ========== 無条件エッジを追加 ==========
-    # テキスト抽出後はチャンク分割へ
+    # ========== Add Unconditional Edges ==========
+    # After text extraction, proceed to chunk splitting
     workflow.add_edge("extract_text_document", "transform_to_chunks")
     workflow.add_edge("extract_text_presentation", "transform_to_chunks")
 
-    # チャンク分割 → ビュー抽出 → クラス抽出 → プロパティ抽出 → 累積保存 → 出力生成
+    # Chunk splitting → View extraction → Class extraction → Property extraction → Accumulated save → Output generation
     workflow.add_edge("transform_to_chunks", "extract_views")
     workflow.add_edge("extract_views", "extract_classes")
     workflow.add_edge("extract_classes", "extract_properties")
     workflow.add_edge("extract_properties", "save_accumulated_knowledge")
     workflow.add_edge("save_accumulated_knowledge", "generate_outputs")
 
-    # 出力生成後は終了
+    # After output generation, end
     workflow.add_edge("generate_outputs", END)
 
-    # ========== グラフをコンパイル ==========
+    # ========== Compile Graph ==========
     app = workflow.compile()
 
     return app

@@ -8,13 +8,13 @@ from .doc_text_filter import DocTextFilter
 from .text_transformer import TextTransformer
 
 class DocTextChain(Runnable):
-    """ドキュメントテキスト抽出チェイン"""
+    """Document text extraction chain"""
 
     def __init__(self, model: str = None, progress: bool = True):
         """
         Args:
-            model: LLMモデル名（現在未使用、将来の拡張用）
-            progress: 進捗表示フラグ
+            model: LLM model name (currently unused, for future extension)
+            progress: Progress display flag
         """
         self.extractor = DocTextExtractor()
         self.transformer = TextTransformer()
@@ -23,15 +23,15 @@ class DocTextChain(Runnable):
         self.progress = progress
 
     def invoke(self, input: Dict[str, Any], config: RunnableConfig = None) -> Dict[str, Any]:
-        # Step 1: テキスト抽出
+        # Step 1: Text extraction
         if self.progress:
             print("\n=== DocTextExtractor ===")
         extracted = self.extractor.invoke(input, config)
 
-        # Step 2: テキスト連結
+        # Step 2: Text concatenation
         # transformed = self.transformer.invoke(extracted)
 
-        # Step 3: フィルタリング
+        # Step 3: Filtering
         if self.progress:
             print("\n=== DocTextFilter ===")
         filtered = self.filter.invoke({"source": extracted, "filter": {"name": "dummy"}}, config)

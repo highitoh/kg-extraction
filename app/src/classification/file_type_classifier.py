@@ -15,7 +15,7 @@ class FileTypeClassifierLLMSchema(BaseModel):
     justification: str
 
 class FileTypeClassifier(Runnable):
-    """ファイル種別を判定してinputに追加するRunnable"""
+    """Runnable that determines file type and adds it to input"""
 
     def __init__(
         self,
@@ -27,14 +27,14 @@ class FileTypeClassifier(Runnable):
         self.temperature = temperature
         self.client = OpenAI()
 
-        # プロンプトとスキーマを読み込み
+        # Load prompt and schema
         self.prompt = self._load_prompt()
 
-        # Loggerを初期化
+        # Initialize Logger
         self.logger = Logger(log_dir)
 
     def _load_prompt(self) -> str:
-        """プロンプトファイルを読み込む"""
+        """Load prompt file"""
         # Go up 2 levels from src/classification/ to /workspace/app/
         app_dir = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
         prompt_path = os.path.join(app_dir, "prompts", "file_type_classifier.txt")
@@ -45,7 +45,7 @@ class FileTypeClassifier(Runnable):
         reader = PdfReader(input_pdf)
         writer = PdfWriter()
 
-        # 最初の2ページを追加（ページ数が2未満なら存在する分だけ）
+        # Add first 2 pages (or as many as exist if less than 2)
         for i in range(min(2, len(reader.pages))):
             writer.add_page(reader.pages[i])
 
@@ -54,37 +54,37 @@ class FileTypeClassifier(Runnable):
 
     def invoke(self, input: Dict[str, Any], config=None) -> Dict[str, Any]:
         """
-        入力データにfile_typeフィールドを追加
+        Add file_type field to input data
 
         Args:
-            input: 入力データ
-            config: 実行設定
+            input: Input data
+            config: Execution configuration
 
         Returns:
-            file_typeフィールドが追加された入力データ
+            Input data with file_type field added
         """
-        # 入力ファイルパスを取得
+        # Get input file path
         file_path = input["files"][0]["path"]
 
-        # 一時ファイルで最初の2ページを抽出
+        # Extract first 2 pages to temporary file
         with tempfile.NamedTemporaryFile(suffix=".pdf", delete=False) as tmp_file:
             temp_pdf_path = tmp_file.name
 
         try:
-            # 最初の2ページを抽出
+            # Extract first 2 pages
             self._extract_first_two_pages(file_path, temp_pdf_path)
 
-            # Responses APIでプロンプト実行
+            # Execute prompt with Responses API
             from openai import OpenAI
             client = OpenAI()
 
-            # PDFをアップロード
+            # Upload PDF
             pdf = self.client.files.create(
                 file=open(temp_pdf_path, "rb"),
                 purpose="user_data",
             )
 
-            # PDFとプロンプトを入力
+            # Input PDF and prompt
             response = self.client.responses.parse(
                 model=self.model,
                 input=[{
@@ -97,20 +97,20 @@ class FileTypeClassifier(Runnable):
                 text_format=FileTypeClassifierLLMSchema
             )
 
-            # レスポンスをパース
+            # Parse response
             result_text = response.output_text
             result_json = json.loads(result_text)
 
             is_presentation = result_json["is_presentation"]
             justification = result_json["justification"]
 
-            # file_typeを決定
+            # Determine file_type
             file_type = "presentation" if is_presentation else "document"
 
-            # 判定結果を表示
+            # Display classification result
             print(f"File: {file_path}, Type: {file_type}")
 
-            # ログを保存
+            # Save log
             log_data = {
                 "file_path": file_path,
                 "file_type": file_type,
@@ -120,7 +120,7 @@ class FileTypeClassifier(Runnable):
             self.logger.save_log(log_data, "file_type_classifier_output_")
 
         finally:
-            # 一時ファイルを削除
+            # Delete temporary file
             if os.path.exists(temp_pdf_path):
                 os.remove(temp_pdf_path)
 
@@ -128,29 +128,29 @@ class FileTypeClassifier(Runnable):
 
 
 if __name__ == "__main__":
-    # テスト用のサンプルデータ
+    # Sample data for testing
     sample_input = {
         "files": [{"path": "../doc/sample.pdf"}]
     }
 
     print("FileTypeClassifier テスト開始...")
 
-    # FileTypeClassifierのインスタンス作成
+    # Create FileTypeClassifier instance
     classifier = FileTypeClassifier(
-        model="gpt-5-nano",  # コスト削減のため
+        model="gpt-5-nano",  # For cost reduction
         temperature=0.0
     )
 
     try:
-        # テスト実行
+        # Execute test
         result = classifier.invoke(sample_input)
 
-        print("\n=== テスト結果 ===")
-        print(f"ファイルパス: {result['files'][0]['path']}")
-        print(f"ファイルタイプ: {result['file_type']}")
-        print("\n✅ FileTypeClassifier テスト完了")
+        print("\n=== Test Results ===")
+        print(f"File path: {result['files'][0]['path']}")
+        print(f"File type: {result['file_type']}")
+        print("\nFileTypeClassifier test completed successfully")
 
     except Exception as e:
-        print(f"\n❌ テスト実行エラー: {e}")
+        print(f"\nTest execution error: {e}")
         import traceback
         traceback.print_exc()

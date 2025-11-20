@@ -1,8 +1,8 @@
 """
 Knowledge Filtering Utility
 
-累積知識のフィルタリングロジックを提供する。
-ACCEPT判定のクラスと強度>0のプロパティのみを抽出する。
+Provides filtering logic for accumulated knowledge.
+Extracts only ACCEPT-judged classes and properties with strength > 0.
 """
 
 from typing import List, Dict, Any, Tuple
@@ -13,18 +13,18 @@ def filter_accumulated_knowledge(
     properties: List[Dict[str, Any]]
 ) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]]]:
     """
-    累積知識として有効なクラスとプロパティをフィルタリングする。
+    Filter valid classes and properties as accumulated knowledge.
 
-    フィルタリング条件:
-    - クラス: judgment == "ACCEPT"
-    - プロパティ: strength > 0
+    Filtering conditions:
+    - Class: judgment == "ACCEPT"
+    - Property: strength > 0
 
     Args:
-        classes: クラスのリスト (ClassChainOutput.classes形式)
-        properties: プロパティのリスト (PropertyChainOutput.properties形式)
+        classes: List of classes (ClassChainOutput.classes format)
+        properties: List of properties (PropertyChainOutput.properties format)
 
     Returns:
-        (filtered_classes, filtered_properties) のタプル
+        Tuple of (filtered_classes, filtered_properties)
 
     Examples:
         >>> classes = [
@@ -41,13 +41,13 @@ def filter_accumulated_knowledge(
         >>> len(filtered_props)
         1
     """
-    # ACCEPT判定のクラスのみを抽出
+    # Extract only ACCEPT-judged classes
     filtered_classes = [
         cls for cls in classes
         if cls.get("judgment") == "ACCEPT"
     ]
 
-    # 強度が0より大きいプロパティのみを抽出
+    # Extract only properties with strength greater than 0
     filtered_properties = [
         prop for prop in properties
         if prop.get("strength", 0) > 0

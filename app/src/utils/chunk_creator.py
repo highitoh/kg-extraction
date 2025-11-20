@@ -4,8 +4,8 @@ from typing import List, Literal
 
 class ChunkCreator:
     """
-    テキストをチャンクに分割するユーティリティクラス
-    ViewExtractorで再利用可能
+    Utility class for splitting text into chunks
+    Reusable in ViewExtractor
     """
 
     def __init__(
@@ -16,31 +16,31 @@ class ChunkCreator:
     ):
         """
         Args:
-            chunk_mode: チャンク分割モード
-                - "char": 文字数ベースで分割（デフォルト）
-                - "page": ページ/スライド単位で分割
-            max_chars: 1チャンクの最大文字数（charモードで使用）
-            overlap_chars: チャンク間の重複文字数（charモードで使用）
+            chunk_mode: Chunk splitting mode
+                - "char": Split by character count (default)
+                - "page": Split by page/slide unit
+            max_chars: Maximum characters per chunk (used in char mode)
+            overlap_chars: Overlapping characters between chunks (used in char mode)
         """
         self.chunk_mode = chunk_mode
         self.max_chars = max_chars
         self.overlap_chars = overlap_chars
 
     def _split_into_sentences(self, text: str) -> List[str]:
-        """テキストを文に分割"""
+        """Split text into sentences"""
         text = text.replace("\r\n", "\n")
         parts = re.split(r'(?<=[。！？!?])\s*|\n{2,}', text)
         return [p.strip() for p in parts if p and p.strip()]
 
     def create(self, text: str) -> List[str]:
         """
-        テキストをチャンクに分割
+        Split text into chunks
 
         Args:
-            text: 入力テキスト
+            text: Input text
 
         Returns:
-            チャンクのリスト
+            List of chunks
         """
         if self.chunk_mode == "char":
             return self._create_char_based(text)
@@ -50,7 +50,7 @@ class ChunkCreator:
             raise ValueError(f"Unknown chunk_mode: {self.chunk_mode}")
 
     def _create_char_based(self, text: str) -> List[str]:
-        """文字数ベースでチャンクに分割（重複あり）"""
+        """Split into chunks based on character count (with overlap)"""
         sents = self._split_into_sentences(text)
         chunks, cur = [], ""
         for s in sents:
@@ -70,16 +70,16 @@ class ChunkCreator:
 
     def _create_page_based(self, text: str) -> List[str]:
         """
-        ページ/スライド単位でチャンクを作成
+        Create chunks by page/slide unit
 
-        テキスト内の "[[スライド{番号}]]" マーカーを検出し、
-        スライド番号ごとにグループ化して結合します。
+        Detects "[[スライド{number}]]" markers in text and
+        groups and joins them by slide number.
 
         Args:
-            text: "[[スライド{番号}]] {テキスト}" 形式を含むテキスト
+            text: Text containing "[[スライド{number}]] {text}" format
 
         Returns:
-            スライドごとに結合されたテキストのリスト（スライド番号順）
+            List of text joined by slide (in slide number order)
         """
         lines = text.split('\n')
         slide_chunks = {}
@@ -89,17 +89,17 @@ class ChunkCreator:
             if not line:
                 continue
 
-            # "[[スライド{番号}]]"を抽出
+            # Extract "[[スライド{number}]]"
             match = re.search(r'\[\[スライド(\d+)\]\]', line)
             if match:
                 slide_num = match.group(1)
                 slide_text = line.replace(match.group(0), '').strip()
                 if slide_num not in slide_chunks:
                     slide_chunks[slide_num] = []
-                if slide_text:  # 空文字列は追加しない
+                if slide_text:  # Don't add empty strings
                     slide_chunks[slide_num].append(slide_text)
 
-        # スライドごとに結合してリストを作成（番号順）
+        # Create list by joining per slide (in number order)
         chunks = [
             " ".join(texts)
             for slide_num, texts in sorted(slide_chunks.items(), key=lambda x: int(x[0]))

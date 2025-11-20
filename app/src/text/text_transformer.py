@@ -1,15 +1,15 @@
 """
-TextTransformer: PDFから抽出されたテキストの整形クラス
+TextTransformer: Text formatting class for text extracted from PDFs
 
-PDF等から抽出したテキストの「途中改行」を除去し、
-文末記号が出現した地点でのみ改行（文確定）する処理を行います。
+Removes mid-line breaks from text extracted from PDFs, etc., and processes
+line breaks only at sentence end markers (sentence finalization).
 
-特長:
-- 空行は段落区切りとして保持
-- 箇条書き行頭はそのまま保持
-- 英語の行末ハイフン re-\nport → report を吸収
-- CJK同士は無空白で連結、それ以外は半角スペースで連結
-- 文末記号（。．！？!?）＋閉じ記号（」』）】》"'"）までを文として確定
+Features:
+- Preserves empty lines as paragraph separators
+- Preserves bullet point line heads as-is
+- Absorbs English line-end hyphens: re-\nport → report
+- Concatenates CJK characters without spaces, other characters with half-width spaces
+- Finalizes sentences at sentence end markers (。．！？!?) + closing brackets (」』）】》"'")
 """
 
 from typing import Any, Dict, List, Iterable
@@ -22,22 +22,22 @@ from src.utils.logger import Logger
 
 
 class TextTransformer(Runnable):
-    """テキスト整形クラス"""
+    """Text formatting class"""
 
     def __init__(self):
         self.logger = Logger("/workspace/app/log/text_transformer")
-        # 文末記号と閉じ記号の定義
+        # Definition of sentence end markers and closing brackets
         self.EOS_CHARS = '。．！？!?'
         self.CLOSE_CHARS = '」』）】》"\'"'
         self.EOS_PAT = re.compile(rf'[{re.escape(self.EOS_CHARS)}][{re.escape(self.CLOSE_CHARS)}]*')
         self.BULLET = re.compile(r'^(\d+[\.\)]|[A-Za-z]\)|[・•\-–—◇◆●■□①-⑩])\s*')
 
     def _is_cjk(self, ch: str) -> bool:
-        """文字がCJK（中日韓）文字かどうかを判定"""
+        """Determine if character is CJK (Chinese-Japanese-Korean) character"""
         if not ch:
             return False
         o = ord(ch)
-        # ひらがな・カタカナ・CJK統合漢字・CJK互換漢字等の簡易判定
+        # Simple detection of Hiragana, Katakana, CJK Unified Ideographs, CJK Compatibility Ideographs, etc.
         return (
             0x3040 <= o <= 0x30FF or  # Hiragana/Katakana
             0x3400 <= o <= 0x4DBF or  # CJK Ext-A
@@ -46,13 +46,13 @@ class TextTransformer(Runnable):
         )
 
     def _needs_space(self, a: str, b: str) -> bool:
-        """CJK×CJKはスペース不要、それ以外は半角スペースを挿入"""
+        """CJK×CJK needs no space, otherwise insert half-width space"""
         return not (self._is_cjk(a) and self._is_cjk(b))
 
     def _flush_sentences(self, buf: str, out: List[str]) -> str:
         """
-        バッファから「文末記号＋閉じ記号列」までを繰り返し切り出して out に積む。
-        残り（未完文）を返す。
+        Repeatedly extract "sentence end marker + closing bracket sequence" from buffer and add to out.
+        Returns the remainder (incomplete sentence).
         """
         while True:
             m = self.EOS_PAT.search(buf)
@@ -67,13 +67,13 @@ class TextTransformer(Runnable):
 
     def normalize_lines(self, texts: List[str]) -> List[str]:
         """
-        行列から不自然な途中改行を除去し、文末でのみ改行する。
+        Remove unnatural mid-line breaks from line arrays and insert line breaks only at sentence ends.
 
         Args:
-            texts: 文章テキストのリスト
+            texts: List of sentence texts
 
         Returns:
-            正規化された文章テキストのリスト
+            List of normalized sentence texts
         """
         out: List[str] = []
         buf: str = ""
@@ -81,14 +81,14 @@ class TextTransformer(Runnable):
         for text in texts:
             cur = text.strip()
 
-            # 段落区切り（空行）
+            # Paragraph separator (empty line)
             if cur == "":
                 if buf:
                     out.append(buf)
                     buf = ""
                 continue
 
-            # 箇条書き行は独立で出力
+            # Output bullet point lines independently
             if self.BULLET.match(cur):
                 if buf:
                     out.append(buf)
@@ -96,7 +96,7 @@ class TextTransformer(Runnable):
                 out.append(cur)
                 continue
 
-            # 連結処理
+            # Concatenation processing
             if not buf:
                 buf = cur
             else:
@@ -105,15 +105,15 @@ class TextTransformer(Runnable):
                 else:
                     buf += (" " if self._needs_space(buf[-1], cur[0]) else "") + cur
 
-            # 文末が出現した分は確定して出力
+            # Finalize and output sentences where end markers appear
             temp_out = []
             remaining_buf = self._flush_sentences(buf, temp_out)
 
-            # 確定した文章を追加
+            # Add finalized sentences
             out.extend(temp_out)
             buf = remaining_buf
 
-        # 端数（未完文）が残っていれば末尾に出力
+        # Output any remaining fragments (incomplete sentences) at the end
         if buf:
             out.append(buf)
 
@@ -121,31 +121,31 @@ class TextTransformer(Runnable):
 
     def transform(self, input_data: Dict) -> Dict:
         """
-        入力データを整形して出力データを生成
+        Format input data and generate output data
 
         Args:
-            input_data: DocTextChainOutputフォーマットの入力データ
+            input_data: Input data in DocTextChainOutput format
 
         Returns:
-            整形されたDocTextChainOutputフォーマットの出力データ
+            Output data in formatted DocTextChainOutput format
         """
         sentences = input_data.get("sentences", [])
 
-        # 各文章のテキストを準備
+        # Prepare text for each sentence
         texts = [sentence.get("text", "") for sentence in sentences]
 
-        # テキストを正規化
+        # Normalize text
         normalized_texts = self.normalize_lines(texts)
 
-        # 正規化された結果を出力形式に変換
+        # Convert normalized results to output format
         new_sentences = []
         for normalized_text in normalized_texts:
-            if normalized_text.strip():  # 空文字列はスキップ
+            if normalized_text.strip():  # Skip empty strings
                 new_sentences.append({
                     "text": normalized_text
                 })
 
-        # 出力データを構築
+        # Build output data
         output_data = {
             "id": input_data.get("id", str(uuid.uuid4())),
             "file_name": input_data.get("file_name", ""),
@@ -156,26 +156,26 @@ class TextTransformer(Runnable):
 
     def invoke(self, input: Dict[str, Any]) -> Dict[str, Any]:
         """
-        LangChain Runnableのinvokeメソッド実装
+        LangChain Runnable invoke method implementation
 
         Args:
-            input: TextTransformerInputフォーマットの入力データ
-            config: RunnableConfig（オプション）
+            input: Input data in TextTransformerInput format
+            config: RunnableConfig (optional)
 
         Returns:
-            TextTransformerOutputフォーマットの出力データ
+            Output data in TextTransformerOutput format
         """
-        # 既存のtransformメソッドを呼び出し
+        # Call existing transform method
         output = self.transform(input)
 
-        # 出力JSONをログに保存
+        # Save output JSON to log
         self.logger.save_log(output, "text_transformer_output_")
 
         return output
 
 
 if __name__ == "__main__":
-    # テスト用のサンプルデータ
+    # Sample data for testing
     sample_data = {
         "id": "test-001",
         "file_name": "sample.pdf",

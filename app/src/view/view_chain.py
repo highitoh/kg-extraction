@@ -7,15 +7,15 @@ from .view_filter import ViewFilter
 
 class ViewChain(Runnable):
     """
-    ビュー記述抽出チェイン:
+    View description extraction chain:
       ViewExtractor -> ViewFilter
     """
 
     def __init__(self, model: str = None, progress: bool = True):
         """
         Args:
-            model: LLMモデル名（Noneの場合はViewExtractorのデフォルトを使用）
-            progress: 進捗表示フラグ
+            model: LLM model name (if None, use ViewExtractor's default)
+            progress: Progress display flag
         """
         if model is not None:
             self.extractor = ViewExtractor(model=model, progress=progress)
@@ -25,12 +25,12 @@ class ViewChain(Runnable):
         self.progress = progress
 
     def invoke(self, input: Dict[str, Any], config=None) -> Dict[str, Any]:
-        # ViewExtractor実行
+        # Execute ViewExtractor
         if self.progress:
             print("\n=== ViewExtractor ===")
         result = self.extractor.invoke(input, config)
 
-        # ViewFilter実行
+        # Execute ViewFilter
         if self.progress:
             print("\n=== ViewFilter ===")
         result = self.view_filter.invoke(result, config)
@@ -40,12 +40,12 @@ class ViewChain(Runnable):
 
 def create_view_chain(model: str = None, progress: bool = True) -> Runnable:
     """
-    ビュー記述抽出チェイン:
+    View description extraction chain:
       ViewExtractor -> ViewFilter
 
     Args:
-        model: LLMモデル名（Noneの場合はViewExtractorのデフォルトを使用）
-        progress: 進捗表示フラグ
+        model: LLM model name (if None, use ViewExtractor's default)
+        progress: Progress display flag
     """
     return ViewChain(model=model, progress=progress)
 
@@ -61,7 +61,7 @@ if __name__ == "__main__":
             ],
         },
         "metamodel": {
-            # 実装時: 参照するメタモデル（JSON Schema / OWL等）の情報をここに配置
+            # During implementation: Place reference metamodel information (JSON Schema / OWL, etc.) here
         },
     }
 

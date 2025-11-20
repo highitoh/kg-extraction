@@ -1,6 +1,6 @@
 """
 LangGraph State Definition for Knowledge Extraction
-知識抽出処理のLangGraph State定義
+LangGraph State definition for knowledge extraction processing
 """
 
 from typing import TypedDict, List, Dict, Any, Optional
@@ -8,77 +8,77 @@ from typing import TypedDict, List, Dict, Any, Optional
 
 class KnowledgeExtractionState(TypedDict, total=False):
     """
-    知識抽出処理全体のState定義
+    State definition for the entire knowledge extraction process
 
-    各ノードはこのStateを受け取り、必要なフィールドを読み取り・更新する。
-    total=Falseにより、全フィールドがオプショナル扱いとなり、
-    各ノードで必要なフィールドのみを更新可能。
+    Each node receives this State and reads/updates necessary fields.
+    With total=False, all fields are treated as optional,
+    allowing each node to update only the fields it needs.
     """
 
-    # ========== 入力情報 ==========
+    # ========== Input Information ==========
     files: List[Dict[str, str]]  # [{"path": "/path/to/file.pdf"}]
-    file_path: str  # 処理対象のファイルパス（filesから取り出した値）
+    file_path: str  # File path to process (value extracted from files)
     file_type: str  # "document" | "presentation"
 
-    # ========== メタモデル ==========
-    metamodel: Dict[str, Any]  # メタモデル定義（全ノードで参照）
+    # ========== Metamodel ==========
+    metamodel: Dict[str, Any]  # Metamodel definition (referenced by all nodes)
 
-    # ========== LLMモデル設定 ==========
-    model: Optional[str]  # LLMモデル名（例: "gpt-5-mini", "gpt-5-nano"）
+    # ========== LLM Model Settings ==========
+    model: Optional[str]  # LLM model name (e.g., "gpt-5-mini", "gpt-5-nano")
 
-    # ========== 出力先設定 ==========
-    output_dir: str  # 出力ディレクトリ
-    project: str  # プロジェクト名（出力ファイルをプロジェクト別に分類）
+    # ========== Output Destination Settings ==========
+    output_dir: str  # Output directory
+    project: str  # Project name (output files classified by project)
 
-    # ========== 中間結果: テキスト抽出段階 ==========
-    id: str  # 抽出ID（ファイルIDとして使用）
-    file_id: str  # ファイルID
-    file_name: str  # ファイル名
-    sentences: List[Dict[str, Any]]  # 抽出された文章リスト
+    # ========== Intermediate Results: Text Extraction Stage ==========
+    id: str  # Extraction ID (used as file ID)
+    file_id: str  # File ID
+    file_name: str  # File name
+    sentences: List[Dict[str, Any]]  # List of extracted sentences
     # sentence: {"text": str, ...}
 
-    # ========== 中間結果: チャンク分割段階 ==========
-    chunks: List[Dict[str, str]]  # テキストチャンク
+    # ========== Intermediate Results: Chunk Splitting Stage ==========
+    chunks: List[Dict[str, str]]  # Text chunks
     # chunk: {"text": str}
 
-    # ========== 中間結果: ビュー抽出段階 ==========
-    views: List[Dict[str, Any]]  # ビュー記述抽出結果
+    # ========== Intermediate Results: View Extraction Stage ==========
+    views: List[Dict[str, Any]]  # View description extraction results
     # view: {
-    #   "type": str,  # ビュー種別
+    #   "type": str,  # View type
     #   "texts": [{"file_id": str, "text": str}, ...]
     # }
 
-    # ========== 中間結果: クラス抽出段階 ==========
-    classes: List[Dict[str, Any]]  # クラス抽出結果
+    # ========== Intermediate Results: Class Extraction Stage ==========
+    classes: List[Dict[str, Any]]  # Class extraction results
     # class: {
-    #   "id": str,         # クラス個体ID
-    #   "class_iri": str,  # メタモデルのクラスIRI
-    #   "label": str,      # 抽出クラス名
-    #   "sources": List[str],   # 抽出元文章
-    #   "file_ids": List[str]   # 抽出元ファイルID
+    #   "id": str,         # Class instance ID
+    #   "class_iri": str,  # Metamodel class IRI
+    #   "label": str,      # Extracted class name
+    #   "sources": List[str],   # Source sentences
+    #   "file_ids": List[str]   # Source file IDs
     # }
 
-    # ========== 中間結果: プロパティ抽出段階 ==========
-    properties: List[Dict[str, Any]]  # プロパティ（関係）抽出結果
+    # ========== Intermediate Results: Property Extraction Stage ==========
+    properties: List[Dict[str, Any]]  # Property (relationship) extraction results
     # property: {
-    #   "id": str,           # プロパティID
-    #   "src_id": str,       # 出発点クラス個体ID
-    #   "property_iri": str, # プロパティIRI
-    #   "dest_id": str       # 到達点クラス個体ID
+    #   "id": str,           # Property ID
+    #   "src_id": str,       # Source class instance ID
+    #   "property_iri": str, # Property IRI
+    #   "dest_id": str       # Destination class instance ID
     # }
 
-    # ========== 最終出力 ==========
-    turtle_file: str  # Turtleファイルパス
-    turtle_content: str  # Turtle内容（大きいので通常はJSONに保存しない）
-    nodes_csv: str  # Neo4jノードCSVファイルパス
-    relationships_csv: str  # Neo4j関係CSVファイルパス
+    # ========== Final Output ==========
+    turtle_file: str  # Turtle file path
+    turtle_content: str  # Turtle content (usually not saved to JSON due to size)
+    nodes_csv: str  # Neo4j node CSV file path
+    relationships_csv: str  # Neo4j relationship CSV file path
 
-    # ========== メタ情報 ==========
-    current_stage: str  # 現在の処理ステージ（デバッグ用）
-    errors: List[str]  # エラーメッセージリスト
+    # ========== Meta Information ==========
+    current_stage: str  # Current processing stage (for debugging)
+    errors: List[str]  # Error message list
 
-    # ========== サマリー ==========
-    summary: Dict[str, Any]  # 最終サマリー情報
+    # ========== Summary ==========
+    summary: Dict[str, Any]  # Final summary information
     # {
     #   "classes_count": int,
     #   "properties_count": int,

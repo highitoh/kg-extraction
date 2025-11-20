@@ -1,4 +1,4 @@
-# text_filter.py (修正版: 目次・ページ番号を削除)
+# text_filter.py (modified version: removes table of contents and page numbers)
 
 from __future__ import annotations
 from typing import Any, Dict, List, Tuple
@@ -35,10 +35,10 @@ class TextFilter(Runnable):
     BULLET_RE = re.compile("|".join(BULLET_PATTERNS))
     SENT_END_RE = re.compile(r"[。！？!?](?:[)”\]\}』」】〉》]*)\s*$")
 
-    # === 追加: 除外パターン（目次・ページ番号） ===
+    # === Added: Exclude patterns (table of contents and page numbers) ===
     EXCLUDE_PATTERNS = [
-        re.compile(r"^\s*目\s*次\s*$"),          # 「目 次」
-        re.compile(r"^\s*別\d+-\d+\s*$"),       # 「別8-1」「別8-5」など
+        re.compile(r"^\s*目\s*次\s*$"),          # "Table of Contents"
+        re.compile(r"^\s*別\d+-\d+\s*$"),       # "Appendix 8-1", "Appendix 8-5", etc.
     ]
 
     def __init__(self):
@@ -89,7 +89,7 @@ class TextFilter(Runnable):
         while i < N:
             line = self._normalize_inline_whitespace(lines[i])
 
-            # --- 除外パターンの判定 ---
+            # --- Exclude pattern detection ---
             if any(p.match(line) for p in self.EXCLUDE_PATTERNS):
                 i += 1
                 continue
@@ -182,7 +182,7 @@ class TextFilter(Runnable):
 
 
 if __name__ == "__main__":
-    # ダミー入力データ（TextExtractorの出力を模倣）
+    # Dummy input data (mimicking TextExtractor output)
     source = {
         "file_name": "dummy.pdf",
         "sentences": [
@@ -196,16 +196,16 @@ if __name__ == "__main__":
         ]
     }
 
-    # TextFilterを初期化
+    # Initialize TextFilter
     filter_instance = TextFilter()
 
-    # フィルタを実行
+    # Execute filter
     result = filter_instance.invoke({
         "source": source,
         "filter": {"name": "sentence_extraction", "params": {}}
     })
 
-    # 出力確認
-    print("=== TextFilter 出力結果 ===")
+    # Verify output
+    print("=== TextFilter Output Result ===")
     for idx, s in enumerate(result["sentences"], 1):
         print(f"{idx:02d}: {s['text']}")
