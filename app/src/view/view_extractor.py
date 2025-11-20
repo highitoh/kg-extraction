@@ -242,7 +242,7 @@ if __name__ == "__main__":
     }
 
     # Create ViewExtractor instance
-    print("ViewExtractor テスト開始...")
+    print("ViewExtractor test starting...")
     extractor = ViewExtractor(
         model="gpt-5-nano",
         temperature=0.0,
@@ -257,20 +257,20 @@ if __name__ == "__main__":
         # Run test
         result = extractor.invoke(sample_input)
 
-        print("\n=== テスト結果 ===")
-        print(f"出力ID: {result['id']}")
-        print(f"抽出されたビュー数: {len(result['views'])}")
+        print("\n=== Test Results ===")
+        print(f"Output ID: {result['id']}")
+        print(f"Extracted Views: {len(result['views'])}")
 
         for view in result['views']:
-            print(f"\nビュー種別: {view['type']}")
-            print(f"抽出テキスト数: {len(view['texts'])}")
+            print(f"\nView Type: {view['type']}")
+            print(f"Extracted Texts: {len(view['texts'])}")
             for i, text in enumerate(view['texts'][:2]):  # Show only first 2 items
                 print(f"  [{i+1}] {text['text']}")
 
-        print("\n✅ ViewExtractor テスト完了")
+        print("\n✅ ViewExtractor test completed")
 
     except Exception as e:
-        print(f"\n❌ テスト実行エラー: {e}")
+        print(f"\n❌ Test execution error: {e}")
         import traceback
         traceback.print_exc()
 

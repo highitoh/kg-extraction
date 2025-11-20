@@ -25,10 +25,10 @@ class PresentationTextExtractor(Runnable):
             list[tuple[int, str]]: List of (slide number, text) tuples
         """
         if not os.path.exists(pdf_path):
-            raise FileNotFoundError(f"PDFファイルが見つかりません: {pdf_path}")
+            raise FileNotFoundError(f"PDF file not found: {pdf_path}")
 
         if not pdf_path.lower().endswith('.pdf'):
-            raise ValueError("PDFファイルではありません")
+            raise ValueError("Not a PDF file")
 
         slides = []
         try:
@@ -38,7 +38,7 @@ class PresentationTextExtractor(Runnable):
                     if page_text:
                         slides.append((page_num, page_text.strip()))
         except Exception as e:
-            print(f"pdfplumberでのテキスト抽出中にエラーが発生しました: {e}")
+            print(f"Error occurred during text extraction with pdfplumber: {e}")
 
         return slides
 
@@ -75,8 +75,8 @@ class PresentationTextExtractor(Runnable):
 if __name__ == "__main__":
     extractor = PresentationTextExtractor()
     result = extractor.invoke({"files": [{"path": "../doc/presentation_sample.pdf"}]})
-    print(f"抽出されたスライド数: {len([s for s in result['sentences'] if 'スライド1:' in s['text']])}")
-    print(f"総文章数: {len(result['sentences'])}")
-    print("\n最初の5文章:")
+    print(f"Extracted Slides: {len([s for s in result['sentences'] if 'スライド1:' in s['text']])}")
+    print(f"Total Sentences: {len(result['sentences'])}")
+    print("\nFirst 5 Sentences:")
     for i, sentence in enumerate(result['sentences'][:5], 1):
         print(f"{i}. {sentence['text']}")

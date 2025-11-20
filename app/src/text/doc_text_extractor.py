@@ -18,10 +18,10 @@ class DocTextExtractor(Runnable):
         Extract text from PDF using pdfplumber
         """
         if not os.path.exists(pdf_path):
-            raise FileNotFoundError(f"PDFファイルが見つかりません: {pdf_path}")
+            raise FileNotFoundError(f"PDF file not found: {pdf_path}")
 
         if not pdf_path.lower().endswith('.pdf'):
-            raise ValueError("PDFファイルではありません")
+            raise ValueError("Not a PDF file")
 
         text = ""
         try:
@@ -31,7 +31,7 @@ class DocTextExtractor(Runnable):
                     if page_text:
                         text += page_text + "\n"
         except Exception as e:
-            print(f"pdfplumberでのテキスト抽出中にエラーが発生しました: {e}")
+            print(f"Error occurred during text extraction with pdfplumber: {e}")
 
         return text.strip()
 
@@ -67,4 +67,4 @@ class DocTextExtractor(Runnable):
 if __name__ == "__main__":
     extractor = DocTextExtractor()
     result = extractor.invoke({"files": [{"path": "../doc/sample.pdf"}]})
-    print(f"処理結果: {result}")
+    print(f"Processing result: {result}")

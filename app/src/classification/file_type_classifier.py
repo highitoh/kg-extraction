@@ -133,7 +133,7 @@ if __name__ == "__main__":
         "files": [{"path": "../doc/sample.pdf"}]
     }
 
-    print("FileTypeClassifier テスト開始...")
+    print("FileTypeClassifier test starting...")
 
     # Create FileTypeClassifier instance
     classifier = FileTypeClassifier(

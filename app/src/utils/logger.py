@@ -21,4 +21,4 @@ class Logger:
             with open(log_file, "w", encoding="utf-8") as f:
                 json.dump(data, f, ensure_ascii=False, indent=2)
         except Exception as e:
-            print(f"ログファイルの保存中にエラーが発生しました: {e}")
+            print(f"Error occurred while saving log file: {e}")

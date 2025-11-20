@@ -191,9 +191,9 @@ if __name__ == "__main__":
     print("Starting ViewFilter test...")
     filter_instance = ViewFilter(progress=True)
 
-    print("\n=== 元のデータ ===")
+    print("\n=== Original Data ===")
     for view in sample_input["views"]:
-        print(f"ビュー種別: {view['type']}")
+        print(f"View Type: {view['type']}")
         for i, text in enumerate(view["texts"]):
             print(f"  [{i+1}] {text['text']}")
 
@@ -201,13 +201,13 @@ if __name__ == "__main__":
         # Run test
         result = filter_instance.invoke(sample_input)
 
-        print("\n=== フィルタリング結果 ===")
-        print(f"出力ID: {result['id']}")
-        print(f"フィルタ後のビュー数: {len(result['views'])}")
+        print("\n=== Filtering Results ===")
+        print(f"Output ID: {result['id']}")
+        print(f"Views After Filtering: {len(result['views'])}")
 
         for view in result['views']:
-            print(f"\nビュー種別: {view['type']}")
-            print(f"テキスト数: {len(view['texts'])}")
+            print(f"\nView Type: {view['type']}")
+            print(f"Text Count: {len(view['texts'])}")
             for i, text in enumerate(view['texts']):
                 print(f"  [{i+1}] {text['text']}")
 
@@ -215,14 +215,14 @@ if __name__ == "__main__":
         original_text_count = sum(len(v.get("texts", [])) for v in sample_input["views"])
         filtered_text_count = sum(len(v.get("texts", [])) for v in result["views"])
 
-        print(f"\n=== 統計情報 ===")
-        print(f"元のテキスト数: {original_text_count}")
-        print(f"フィルタ後のテキスト数: {filtered_text_count}")
-        print(f"削除されたテキスト数: {original_text_count - filtered_text_count}")
+        print(f"\n=== Statistics ===")
+        print(f"Original Text Count: {original_text_count}")
+        print(f"Filtered Text Count: {filtered_text_count}")
+        print(f"Removed Text Count: {original_text_count - filtered_text_count}")
 
-        print("\n✅ ViewFilter テスト完了")
+        print("\n✅ ViewFilter test completed")
 
     except Exception as e:
-        print(f"\n❌ テスト実行エラー: {e}")
+        print(f"\n❌ Test execution error: {e}")
         import traceback
         traceback.print_exc()

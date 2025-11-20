@@ -196,9 +196,9 @@ if __name__ == "__main__":
     transformer = TextTransformer()
     result = transformer.transform(sample_data)
 
-    print("=== TextTransformer テスト結果 ===")
-    print(f"入力文章数: {len(sample_data['sentences'])}")
-    print(f"出力文章数: {len(result['sentences'])}")
+    print("=== TextTransformer Test Results ===")
+    print(f"Input Sentences: {len(sample_data['sentences'])}")
+    print(f"Output Sentences: {len(result['sentences'])}")
     print()
     print("Sentences:")
     for i, sentence in enumerate(result['sentences'], 1):

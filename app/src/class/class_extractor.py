@@ -143,12 +143,12 @@ class ClassExtractor(Runnable):
 
     def _get_view_info(self, input_data: Dict[str, Any]) -> Dict[str, Any]:
         if "view_info" not in input_data or not isinstance(input_data["view_info"], dict):
-            raise ValueError("ClassChainInput: 'view_info' が不足しています。")
+            raise ValueError("ClassChainInput: 'view_info' is missing.")
         return input_data["view_info"]
 
     def _get_metamodel(self, input_data: Dict[str, Any]) -> Dict[str, Any]:
         if "metamodel" not in input_data or not isinstance(input_data["metamodel"], dict):
-            raise ValueError("ClassChainInput: 'metamodel' が不足しています。")
+            raise ValueError("ClassChainInput: 'metamodel' is missing.")
         return input_data["metamodel"]
 
     def _get_texts_for_view(self, view_info: Dict[str, Any], view_type: str) -> List[Dict[str, Any]]:
