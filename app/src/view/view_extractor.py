@@ -228,10 +228,10 @@ if __name__ == "__main__":
             "file_id": "sample_file",
             "chunks": [
                 {
-                    "text": "システムは顧客情報を管理する必要がある。顧客データベースには氏名、住所、電話番号を格納する。"
+                    "text": "The system needs to manage customer information. The customer database stores name, address, and phone number."
                 },
                 {
-                    "text": "プロジェクトの目的は売上向上である。APIサーバーはRESTfulな設計で構築する。"
+                    "text": "The project goal is to increase sales. The API server is built with RESTful design."
                 }
             ]
         },

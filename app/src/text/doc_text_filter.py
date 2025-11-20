@@ -186,13 +186,13 @@ if __name__ == "__main__":
     source = {
         "file_name": "dummy.pdf",
         "sentences": [
-            {"text": "これは1行目の文章です。"},
-            {"text": "これは2行目で"},
-            {"text": "途中で改行されています。"},
-            {"text": "・箇条書きの最初の項目です"},
-            {"text": "折返し行が続きます"},
-            {"text": "・箇条書きの2つ目"},
-            {"text": "最後の通常文です。"}
+            {"text": "This is the first line of text."},
+            {"text": "This is the second line"},
+            {"text": "broken in the middle."},
+            {"text": "・First bullet point item"},
+            {"text": "with continuation line"},
+            {"text": "・Second bullet point"},
+            {"text": "This is the last normal sentence."}
         ]
     }
 

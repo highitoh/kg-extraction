@@ -57,7 +57,7 @@ if __name__ == "__main__":
             "file_id": "file-abc",
             "file_name": "sample.pdf",
             "chunks": [
-                {"text": "本書はシステムのビジョンを述べる。利用者は注文をアプリから行える。"},
+                {"text": "This document describes the system vision. Users can place orders through the app."},
             ],
         },
         "metamodel": {

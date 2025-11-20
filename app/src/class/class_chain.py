@@ -177,7 +177,7 @@ if __name__ == "__main__":
                         {
                             "file_id": "file-abc",
                             "line": 1,
-                            "text": "顧客管理システムでは、ユーザー登録と認証を処理します"
+                            "text": "The customer management system handles user registration and authentication"
                         }
                     ]
                 },
@@ -187,7 +187,7 @@ if __name__ == "__main__":
                         {
                             "file_id": "file-abc",
                             "line": 2,
-                            "text": "データベース接続モジュールの実装"
+                            "text": "Implementation of database connection module"
                         }
                     ]
                 }

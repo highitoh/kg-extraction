@@ -146,15 +146,15 @@ if __name__ == "__main__":
                 "texts": [
                     {
                         "file_id": "test_file",
-                        "text": "顧客管理システム"
+                        "text": "Customer Management System"
                     },
                     {
                         "file_id": "test_file",
-                        "text": "顧客管理システムの開発"  # 包含関係（長い方）
+                        "text": "Customer Management System Development"  # Inclusion relationship (longer)
                     },
                     {
                         "file_id": "test_file",
-                        "text": "顧客管理システム"  # Exact match (duplicate)
+                        "text": "Customer Management System"  # Exact match (duplicate)
                     }
                 ]
             },
@@ -163,15 +163,15 @@ if __name__ == "__main__":
                 "texts": [
                     {
                         "file_id": "test_file",
-                        "text": "データベース連携機能"
+                        "text": "Database Integration Feature"
                     },
                     {
                         "file_id": "test_file",
-                        "text": "データベース連携"  # Inclusion relationship (shorter)
+                        "text": "Database Integration"  # Inclusion relationship (shorter)
                     },
                     {
                         "file_id": "test_file",
-                        "text": "API設計要件"
+                        "text": "API Design Requirements"
                     }
                 ]
             },
@@ -180,7 +180,7 @@ if __name__ == "__main__":
                 "texts": [
                     {
                         "file_id": "test_file",
-                        "text": "売上データ分析"
+                        "text": "Sales Data Analysis"
                     }
                 ]
             }

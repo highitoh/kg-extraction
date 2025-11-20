@@ -180,16 +180,16 @@ if __name__ == "__main__":
         "id": "test-001",
         "file_name": "sample.pdf",
         "sentences": [
-            {"text": "これは途中で改行された"},
-            {"text": "文章の例です。次の文も"},
-            {"text": "同様に途中で改行されて"},
-            {"text": "います！"},
+            {"text": "This is a line that was"},
+            {"text": "broken mid-sentence."},
+            {"text": "The next sentence is also"},
+            {"text": "broken in the middle!"},
             {"text": ""},
-            {"text": "• 箇条書きの項目1"},
-            {"text": "• 箇条書きの項目2"},
+            {"text": "• Bullet point item 1"},
+            {"text": "• Bullet point item 2"},
             {"text": ""},
-            {"text": "英語のハイフン処理 re-"},
-            {"text": "port example です。"}
+            {"text": "English hyphen handling re-"},
+            {"text": "port example text."}
         ]
     }
 
