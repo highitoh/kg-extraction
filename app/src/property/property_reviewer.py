@@ -45,7 +45,7 @@ class PropertyReviewer(Runnable):
 
     # ===== Utilities =====
     def _load_llm_schema(self) -> Dict[str, Any]:
-        """LLM出力スキーマを読み込み"""
+        """Load LLM output schema"""
         # Go up 2 levels from src/XXX/ to /workspace/app/
 
         app_dir = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
@@ -55,7 +55,7 @@ class PropertyReviewer(Runnable):
             return json.load(f)
 
     def _load_prompt(self) -> str:
-        """プロンプトファイルを読み込み"""
+        """Load prompt file"""
         # Go up 2 levels from src/XXX/ to /workspace/app/
 
         app_dir = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
@@ -65,7 +65,7 @@ class PropertyReviewer(Runnable):
             return f.read()
 
     def _load_metamodel(self) -> Dict[str, Any]:
-        """メタモデルを読み込み"""
+        """Load metamodel"""
         # Go up 2 levels from src/XXX/ to /workspace/app/
 
         app_dir = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
@@ -76,7 +76,7 @@ class PropertyReviewer(Runnable):
 
     @staticmethod
     def _to_text(c: Union[str, List[Any]]) -> str:
-        """LLMの出力をテキスト形式に変換（PropertyExtractorと同様の実装）"""
+        """Convert LLM output to text format (same implementation as PropertyExtractor)"""
         if isinstance(c, str):
             return c
         for part in c:
@@ -86,7 +86,7 @@ class PropertyReviewer(Runnable):
 
     @staticmethod
     def _index_classes_by_id(class_info: Dict[str, Any]) -> Dict[str, Dict[str, Any]]:
-        """class_infoのclasses配列をidで引けるようにインデックス化"""
+        """Index class_info.classes array by id for lookup"""
         idx = {}
         for c in class_info.get("classes", []):
             cid = c.get("id")
@@ -95,7 +95,7 @@ class PropertyReviewer(Runnable):
         return idx
 
     def _group_by_property_iri(self, props: List[Dict[str, Any]]) -> Dict[str, List[Dict[str, Any]]]:
-        """候補プロパティをproperty_iriごとにグルーピング"""
+        """Group candidate properties by property_iri"""
         groups: Dict[str, List[Dict[str, Any]]] = {}
         for p in props:
             prop_iri = p.get("property_iri", "")
@@ -105,13 +105,13 @@ class PropertyReviewer(Runnable):
         return groups
 
     def _format_batch_message(self, batch: List[Dict[str, Any]], class_index: Dict[str, Dict[str, Any]]) -> str:
-        """LLMへ渡すバッチ用のテキストを作成（strength, ranker_justificationを含める）"""
+        """Create batch text for LLM (including strength, ranker_justification)"""
         lines = []
-        lines.append("# 審査対象候補（src/destのlabel, class_iri, source, strength, ranker評価根拠を含む）")
+        lines.append("# Review Candidates (includes src/dest label, class_iri, source, strength, ranker evaluation justification)")
         for i, p in enumerate(batch, 1):
             src = class_index.get(p.get("src_id", ""), {})
             dest = class_index.get(p.get("dest_id", ""), {})
-            lines.append(f"候補{i}:")
+            lines.append(f"Candidate {i}:")
             lines.append(f"  property_iri: {p.get('property_iri', '')}")
             lines.append(f"  src_id: {p.get('src_id','')}")
             lines.append(f"    - src_label: {src.get('label','')}")
@@ -121,14 +121,14 @@ class PropertyReviewer(Runnable):
             lines.append(f"    - dest_label: {dest.get('label','')}")
             lines.append(f"    - dest_class_iri: {dest.get('class_iri','')}")
             lines.append(f"    - dest_source: {dest.get('source','')}")
-            lines.append(f"  strength: {p.get('strength', 0)} (PropertyRankerによる評価)")
+            lines.append(f"  strength: {p.get('strength', 0)} (evaluated by PropertyRanker)")
             ranker_justification = p.get('ranker_justification', '')
             if ranker_justification:
                 lines.append(f"  ranker_justification: {ranker_justification}")
         return "\n".join(lines)
 
     def _get_prohibit_rules(self, property_iri: str) -> str:
-        """メタモデルから該当プロパティの禁止ルールを取得"""
+        """Get prohibition rules for the property from metamodel"""
         for prop in self.metamodel.get("properties", []):
             if prop.get("iri") == property_iri:
                 rules = prop.get("prohibit_rules", [])
@@ -137,10 +137,10 @@ class PropertyReviewer(Runnable):
         return ""
 
     async def _judge_batch(self, batch: List[Dict[str, Any]], class_index: Dict[str, Dict[str, Any]]) -> List[Dict[str, Any]]:
-        """LLMで1バッチ分の候補を審査して結果(JSON)を返す"""
+        """Review one batch of candidates with LLM and return results (JSON)"""
         batch_text = self._format_batch_message(batch, class_index)
 
-        # バッチ内の最初のproperty_iriから禁止ルールを取得
+        # Get prohibition rules from the first property_iri in the batch
         property_iri = batch[0].get("property_iri", "") if batch else ""
         prohibit_rules = self._get_prohibit_rules(property_iri)
         prompt_filled = self.prompt.replace("{PROHIBIT_RULES}", prohibit_rules)
@@ -152,7 +152,7 @@ class PropertyReviewer(Runnable):
             ]
         )
 
-        # リトライ機能付きでLLM呼び出し
+        # Call LLM with retry functionality
         ai = await self._invoke_with_retry(msg)
         raw = self._to_text(ai.content)
         try:
@@ -165,18 +165,18 @@ class PropertyReviewer(Runnable):
             if not isinstance(r, dict):
                 continue
 
-            # evaluated_strengthを取得
+            # Get evaluated_strength
             evaluated_strength = r.get("evaluated_strength", 0)
             judgment = r.get("judgment", "REJECT")
 
-            # REJECTの場合はevaluated_strengthを0にする
+            # Set evaluated_strength to 0 if REJECT
             if judgment == "REJECT":
                 evaluated_strength = 0
 
             results.append(
                 {
                     "src_id": r.get("src_id", ""),
-                    "property_iri": property_iri,  # バッチのproperty_iriを保持
+                    "property_iri": property_iri,  # Keep the property_iri from the batch
                     "dest_id": r.get("dest_id", ""),
                     "judgment": judgment,
                     "evaluated_strength": evaluated_strength,
@@ -186,7 +186,7 @@ class PropertyReviewer(Runnable):
         return results
 
     async def _invoke_with_retry(self, msg: HumanMessage):
-        """リトライ機能付きのLLM呼び出し"""
+        """Call LLM with retry functionality"""
         delay = 1.0
         max_delay = 60.0
         last_exception = None
@@ -214,18 +214,18 @@ class PropertyReviewer(Runnable):
         property_candidates: Dict[str, Any],
         class_info: Dict[str, Any],
     ) -> List[Dict[str, Any]]:
-        """候補プロパティをproperty_iriごとに分割してLLM審査でフィルタリング"""
+        """Split candidate properties by property_iri and filter with LLM review"""
         candidates = property_candidates.get("properties", [])
         if not candidates:
             return []
 
         class_index = self._index_classes_by_id(class_info)
 
-        # property_iriごとにグルーピング
+        # Group by property_iri
         groups = self._group_by_property_iri(candidates)
 
         results_all: List[Dict[str, Any]] = []
-        failed_groups: List[str] = []  # エラーで失敗したproperty_iriを記録
+        failed_groups: List[str] = []  # Record property_iris that failed with errors
         completed_count = 0
         total_groups = len(groups)
 
@@ -235,7 +235,7 @@ class PropertyReviewer(Runnable):
                 res = await self._judge_batch(group, class_index)
                 results_all.extend(res)
             except Exception as e:
-                # グループ失敗時は記録
+                # Record on group failure
                 failed_groups.append(property_iri)
                 print(f"[PropertyReviewer] error for {property_iri}: {e}")
             finally:
@@ -254,15 +254,15 @@ class PropertyReviewer(Runnable):
 
         await asyncio.gather(*[sem_task(prop_iri, grp) for prop_iri, grp in groups.items()])
 
-        # 審査結果をマッピング
+        # Map review results
         result_map = {(r["src_id"], r["property_iri"], r["dest_id"]): r for r in results_all}
 
-        # 全候補を構築
+        # Build all candidates
         all_properties_with_judgment: List[Dict[str, Any]] = []
         for c in candidates:
             key = (c.get("src_id", ""), c.get("property_iri", ""), c.get("dest_id", ""))
 
-            # クラスラベルを取得
+            # Get class labels
             src_class = class_index.get(c.get("src_id", ""), {})
             dest_class = class_index.get(c.get("dest_id", ""), {})
             src_label = src_class.get("label", c.get("src_id", ""))
@@ -274,11 +274,11 @@ class PropertyReviewer(Runnable):
                 evaluated_strength = r.get("evaluated_strength", 0)
                 judgment = r["judgment"]
 
-                # 強度評価が異なる場合、judgmentをREVIEWに設定
+                # Set judgment to REVIEW if strength evaluation differs
                 if judgment != "REJECT" and original_strength != evaluated_strength:
                     judgment = "REVIEW"
 
-                # 最終的なstrength値（REJECTの場合は0、それ以外はevaluated_strength）
+                # Final strength value (0 if REJECT, otherwise evaluated_strength)
                 final_strength = 0 if judgment == "REJECT" else evaluated_strength
 
                 all_properties_with_judgment.append({
@@ -288,14 +288,14 @@ class PropertyReviewer(Runnable):
                     "property_iri": r["property_iri"],
                     "dest_id": r["dest_id"],
                     "dest_label": dest_label,
-                    "original_strength": original_strength,  # ログ用: 元の強度
-                    "evaluated_strength": evaluated_strength,  # ログ用: 再評価された強度
-                    "strength": final_strength,  # 最終的な強度
+                    "original_strength": original_strength,  # For logging: original strength
+                    "evaluated_strength": evaluated_strength,  # For logging: re-evaluated strength
+                    "strength": final_strength,  # Final strength
                     "judgment": judgment,
                     "justification": r["justification"],
                 })
             else:
-                # LLM審査エラーまたは未審査
+                # LLM review error or not reviewed
                 original_strength = c.get("strength", 0)
                 all_properties_with_judgment.append({
                     "id": str(uuid.uuid4()),
@@ -306,16 +306,16 @@ class PropertyReviewer(Runnable):
                     "dest_label": dest_label,
                     "original_strength": original_strength,
                     "evaluated_strength": 0,
-                    "strength": 0,  # REJECTなので0
+                    "strength": 0,  # 0 because REJECT
                     "judgment": "REJECT",
-                    "justification": "LLM審査エラー",
+                    "justification": "LLM review error",
                 })
 
-        # フィルタリング（ACCEPT/REVIEWのみ採用、REJECTは除外）
+        # Filter (accept only ACCEPT/REVIEW, exclude REJECT)
         filtered: List[Dict[str, Any]] = []
         for p in all_properties_with_judgment:
             judgment = p["judgment"]
-            # REJECT以外（ACCEPT, REVIEW）を通過させる
+            # Pass through non-REJECT (ACCEPT, REVIEW)
             if judgment in ("ACCEPT", "REVIEW"):
                 filtered.append({
                     "id": p["id"],
@@ -324,18 +324,18 @@ class PropertyReviewer(Runnable):
                     "property_iri": p["property_iri"],
                     "dest_id": p["dest_id"],
                     "dest_label": p["dest_label"],
-                    "strength": p.get("strength", 0),  # 再評価されたstrength（REJECT時は0）
+                    "strength": p.get("strength", 0),  # Re-evaluated strength (0 if REJECT)
                     "judgment": p["judgment"],
                     "justification": p["justification"],
                 })
 
-        # 判定結果の統計
+        # Statistics of judgment results
         if self.progress:
             accept_count = sum(1 for p in all_properties_with_judgment if p.get("judgment") == "ACCEPT")
             review_count = sum(1 for p in all_properties_with_judgment if p.get("judgment") == "REVIEW")
             reject_count = sum(1 for p in all_properties_with_judgment if p.get("judgment") == "REJECT")
 
-            # 強度変更の統計
+            # Statistics of strength changes
             strength_changed_count = sum(
                 1 for p in all_properties_with_judgment
                 if p.get("original_strength") != p.get("evaluated_strength")
@@ -344,7 +344,7 @@ class PropertyReviewer(Runnable):
             print(f"[PropertyReviewer] Completed: {len(filtered)} properties [ACCEPT: {accept_count}, REVIEW: {review_count}, REJECT: {reject_count}]")
             print(f"[PropertyReviewer] Strength evaluation: {strength_changed_count} candidates had strength changed")
 
-        # ログ保存（全候補、ラベル・judgment・justification付き）
+        # Save log (all candidates with labels, judgment, justification)
         log_output: Dict[str, Any] = {
             "properties": all_properties_with_judgment,
         }
@@ -354,11 +354,11 @@ class PropertyReviewer(Runnable):
 
     def invoke(self, input: Dict[str, Any], config=None) -> Dict[str, Any]:
         """
-        入力:
-          - 推奨: {"property_candidates": {...}, "class_info": {...}}
-          - 互換: {"properties":[...], "id":"...", "class_info": {...}}
+        Input:
+          - Recommended: {"property_candidates": {...}, "class_info": {...}}
+          - Compatible: {"properties":[...], "id":"...", "class_info": {...}}
         """
-        # 柔軟に入力を解釈
+        # Flexibly interpret input
         property_candidates = input.get("property_candidates") or {
             "id": input.get("id"),
             "properties": input.get("properties", []),
@@ -366,10 +366,10 @@ class PropertyReviewer(Runnable):
         class_info = input.get("class_info") or {}
 
         if not class_info.get("classes"):
-            # class_infoが無いとsourceが参照できないため、エラー
+            # Error: cannot reference source without class_info
             raise ValueError("PropertyReviewer requires class_info with classes for filtering. Cannot proceed without class information.")
 
-        # LLMでフィルタリング
+        # Filter with LLM
         filtered = asyncio.run(self._filter_properties(property_candidates, class_info))
 
         if self.progress:
@@ -378,7 +378,7 @@ class PropertyReviewer(Runnable):
                 f"{len(filtered)} accepted"
             )
 
-        # 出力用（PropertyEditorとのループのためjudgment/justificationを含める）
+        # For output (include judgment/justification for loop with PropertyEditor)
         output_id = str(uuid.uuid4())
         properties = [
             {
@@ -388,7 +388,7 @@ class PropertyReviewer(Runnable):
                 "property_iri": p["property_iri"],
                 "dest_id": p["dest_id"],
                 "dest_label": p["dest_label"],
-                "strength": p.get("strength", 0),  # 再評価されたstrength
+                "strength": p.get("strength", 0),  # Re-evaluated strength
                 "judgment": p["judgment"],
                 "justification": p["justification"],
             }
@@ -402,10 +402,10 @@ class PropertyReviewer(Runnable):
 
 
 if __name__ == "__main__":
-    # テスト実行:
-    # - 最新の PropertyExtractor 出力 (log/property_extractor/property_extractor_output_*.json)
-    # - 最新の ClassConsolidator 出力 (log/class_consolidator/class_consolidator_output_*.json)
-    # を読み込み、フィルタリング結果を表示
+    # Test execution:
+    # - Load latest PropertyExtractor output (log/property_extractor/property_extractor_output_*.json)
+    # - Load latest ClassConsolidator output (log/class_consolidator/class_consolidator_output_*.json)
+    # - Display filtering results
     pf = PropertyReviewer()
 
     prop_files = sorted(glob.glob("/workspace/app/log/property_extractor/property_extractor_output_*.json"), reverse=True)
@@ -446,7 +446,7 @@ if __name__ == "__main__":
         print("\nSummary:")
         print(f"- Accepted properties: {len(result.get('properties', []))}")
         for i, p in enumerate(result.get("properties", []), 1):
-            # 表示用にラベル解決
+            # Resolve labels for display
             idx = {c["id"]: c for c in class_info.get("classes", [])}
             s = idx.get(p["src_id"], {})
             d = idx.get(p["dest_id"], {})

@@ -188,13 +188,13 @@ def main():
                 {
                     "id": "class_001",
                     "class_iri": "https://github.com/highitoh/kg-extraction#Stakeholder",
-                    "label": "店舗スタッフ",
+                    "label": "Store Staff",
                     "file_id": "file_001"
                 },
                 {
                     "id": "class_002",
                     "class_iri": "https://github.com/highitoh/kg-extraction#Value",
-                    "label": "待ち時間短縮",
+                    "label": "Reduced Wait Time",
                     "file_id": "file_001"
                 }
             ]

@@ -95,7 +95,7 @@ class ViewExtractor(Runnable):
         msg = HumanMessage(
             content=[
                 {"type": "text", "text": self.prompt},
-                {"type": "text", "text": f"# 対象テキスト\n{chunk}"},
+                {"type": "text", "text": f"# Target Text\n{chunk}"},
             ]
         )
         ai = await self._invoke_with_retry(msg)

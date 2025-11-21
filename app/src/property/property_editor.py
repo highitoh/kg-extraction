@@ -96,13 +96,13 @@ class PropertyEditor(Runnable):
                         rules_lines.append(f"- {rule}")
                 # Include prohibit_rules as well
                 if "prohibit_rules" in prop and prop.get("prohibit_rules"):
-                    rules_lines.append("\n【除外ルール】")
+                    rules_lines.append("\n[Exclusion Rules]")
                     for rule in prop["prohibit_rules"]:
                         rules_lines.append(f"- {rule}")
                 break
 
         result = "\n".join(rules_lines)
-        return result if result else "(プロパティルールなし)"
+        return result if result else "(No property rules)"
 
     def _load_prompt_template(self) -> str:
         """Load prompt template file"""
@@ -249,10 +249,10 @@ class PropertyEditor(Runnable):
                 }
             })
 
-        # LLMへの入力データを構築
+        # Build input data for LLM
         input_data = []
         for p in properties:
-            # sourcesフィールドがあればそれを使用、なければ空文字列
+            # Use sources field if available, otherwise empty string
             source_text = ""
             if "sources" in p and p["sources"]:
                 source_text = p["sources"][0]

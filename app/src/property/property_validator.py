@@ -10,13 +10,13 @@ from src.utils.logger import Logger
 
 class PropertyValidator(Runnable):
     """
-    プロパティの妥当性を検証するValidator
+    Validator to verify property validity
 
-    検証内容:
-    0. strength が 0 でないか (0 = no relationship は除外)
-    1. src_id, dest_id が class_info.classes に存在するか
-    2. property_iri が metamodel.properties に定義されているか
-    3. src/dest の class_iri が property 定義の src_class/dest_class と一致するか
+    Validation checks:
+    0. strength is not 0 (0 = no relationship, excluded)
+    1. src_id, dest_id exist in class_info.classes
+    2. property_iri is defined in metamodel.properties
+    3. src/dest class_iri matches src_class/dest_class in property definition
     """
 
     def __init__(
@@ -28,11 +28,11 @@ class PropertyValidator(Runnable):
         self.logger = Logger(log_dir)
 
     def _build_class_index(self, classes: List[Dict[str, Any]]) -> Dict[str, Dict[str, Any]]:
-        """class_id -> class情報 のインデックスを作成"""
+        """Create index: class_id -> class information"""
         return {c["id"]: c for c in classes}
 
     def _build_property_index(self, metamodel: Dict[str, Any]) -> Dict[str, Dict[str, Any]]:
-        """property_iri -> property定義 のインデックスを作成"""
+        """Create index: property_iri -> property definition"""
         return {p["iri"]: p for p in metamodel.get("properties", [])}
 
     def _validate_property(
@@ -42,12 +42,12 @@ class PropertyValidator(Runnable):
         property_index: Dict[str, Dict[str, Any]],
     ) -> tuple[bool, str]:
         """
-        プロパティの妥当性を検証
+        Validate property validity
 
         Returns:
-            (is_valid, reason): 検証結果と理由
+            (is_valid, reason): Validation result and reason
         """
-        # 0. strength の確認 (0 = no relationship は除外)
+        # 0. Check strength (0 = no relationship, excluded)
         strength = prop.get("strength", 0)
         if strength == 0:
             return False, "strength is 0 (no relationship)"
@@ -56,19 +56,19 @@ class PropertyValidator(Runnable):
         dest_id = prop.get("dest_id", "")
         property_iri = prop.get("property_iri", "")
 
-        # 1. src_id の存在確認
+        # 1. Check src_id existence
         if src_id not in class_index:
             return False, f"src_id '{src_id}' not found in classes"
 
-        # 2. dest_id の存在確認
+        # 2. Check dest_id existence
         if dest_id not in class_index:
             return False, f"dest_id '{dest_id}' not found in classes"
 
-        # 3. property_iri の存在確認
+        # 3. Check property_iri existence
         if property_iri not in property_index:
             return False, f"property_iri '{property_iri}' not found in metamodel"
 
-        # 4. class_iri の整合性確認
+        # 4. Verify class_iri consistency
         src_class = class_index[src_id]
         dest_class = class_index[dest_id]
         property_def = property_index[property_iri]
@@ -94,11 +94,11 @@ class PropertyValidator(Runnable):
 
     def invoke(self, input: Dict[str, Any], config=None) -> Dict[str, Any]:
         """
-        入力:
-          - 推奨: {"property_candidates": {...}, "class_info": {...}, "metamodel": {...}}
-          - 互換: {"properties":[...], "id":"...", "class_info": {...}, "metamodel": {...}}
+        Input:
+          - Recommended: {"property_candidates": {...}, "class_info": {...}, "metamodel": {...}}
+          - Compatible: {"properties":[...], "id":"...", "class_info": {...}, "metamodel": {...}}
         """
-        # 入力を柔軟に解釈
+        # Flexibly interpret input
         property_candidates = input.get("property_candidates") or {
             "id": input.get("id"),
             "properties": input.get("properties", []),
@@ -110,7 +110,7 @@ class PropertyValidator(Runnable):
         classes = class_info.get("classes", [])
 
         if not classes:
-            # class_info が無い場合はスキップ
+            # Skip if class_info is missing
             if self.progress:
                 print("PropertyValidator: class_info missing -> pass-through")
             output = {
@@ -120,7 +120,7 @@ class PropertyValidator(Runnable):
             return output
 
         if not metamodel:
-            # metamodel が無い場合はスキップ
+            # Skip if metamodel is missing
             if self.progress:
                 print("PropertyValidator: metamodel missing -> pass-through")
             output = {
@@ -129,11 +129,11 @@ class PropertyValidator(Runnable):
             }
             return output
 
-        # インデックス構築
+        # Build indexes
         class_index = self._build_class_index(classes)
         property_index = self._build_property_index(metamodel)
 
-        # プロパティを検証
+        # Validate properties
         valid_properties = []
         invalid_properties = []
 
@@ -148,7 +148,7 @@ class PropertyValidator(Runnable):
                     "reason": reason
                 })
 
-        # 出力構築
+        # Build output
         output: Dict[str, Any] = {
             "id": str(uuid.uuid4()),
             "properties": valid_properties,
@@ -160,7 +160,7 @@ class PropertyValidator(Runnable):
                 f"{len(valid_properties)} valid, {len(invalid_properties)} invalid"
             )
 
-        # ログ保存（invalidのみ）
+        # Save log (invalid only)
         if invalid_properties:
             log_data = {
                 "total": len(properties),
@@ -176,10 +176,10 @@ class PropertyValidator(Runnable):
 if __name__ == "__main__":
     import glob
 
-    # テスト実行:
-    # - 最新の PropertyReviewer 出力 (log/property_reviewer/property_reviewer_output_*.json)
-    # - 最新の ClassReviewer 出力 (log/class_reviewer/class_reviewer_output_*.json)
-    # を読み込み、検証結果を表示
+    # Test execution:
+    # - Load latest PropertyReviewer output (log/property_reviewer/property_reviewer_output_*.json)
+    # - Load latest ClassReviewer output (log/class_reviewer/class_reviewer_output_*.json)
+    # - Display validation results
     pv = PropertyValidator()
 
     prop_files = sorted(glob.glob("/workspace/app/log/property_reviewer/property_reviewer_output_*.json"), reverse=True)
@@ -202,7 +202,7 @@ if __name__ == "__main__":
     with open(cls_path, "r", encoding="utf-8") as f:
         class_info = json.load(f)
 
-    # メタモデルを読み込み
+    # Load metamodel
     # Go up 2 levels from src/XXX/ to /workspace/app/
 
     app_dir = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
@@ -229,7 +229,7 @@ if __name__ == "__main__":
         print(f"- Total candidates: {len(property_candidates.get('properties', []))}")
         print(f"- Valid properties: {len(result.get('properties', []))}")
 
-        # 合格したプロパティを表示
+        # Display valid properties
         if result.get('properties'):
             print("\nValid properties:")
             idx = {c["id"]: c for c in class_info.get("classes", [])}
@@ -240,7 +240,7 @@ if __name__ == "__main__":
                 d_label = d.get("label", p["dest_id"])
                 print(f"  {i:02d}. {s_label} --[{p['property_iri']}]--> {d_label}")
 
-        # ログファイルがあれば読み込んで表示
+        # Load and display log file if available
         log_files = sorted(glob.glob("/workspace/app/log/property_validator/property_validator_output_*.json"), reverse=True)
         if log_files:
             with open(log_files[0], "r", encoding="utf-8") as f:

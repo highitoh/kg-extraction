@@ -15,15 +15,15 @@ from src.utils.llm_factory import LLMFactory
 
 class PropertyConsolidator(Runnable):
     """
-    プロパティ候補を統合するクラス
-    新規抽出プロパティと既存プロパティをLLMで類似性を判定し統合する
+    Class to consolidate property candidates
+    Determines similarity between newly extracted and existing properties using LLM and consolidates them
 
-    処理フロー:
-    1. クラスIDマッピングを構築（ClassConsolidatorで統合されたクラスに対応）
-    2. 既存プロパティのsrc_id/dest_idを正規化
-    3. 新規＋既存プロパティをproperty_iriごとにグループ化
-    4. LLMで類似プロパティを検出
-    5. 類似プロパティをマージ（最高強度を選択）
+    Processing flow:
+    1. Build class ID mapping (corresponding to classes consolidated by ClassConsolidator)
+    2. Normalize src_id/dest_id of existing properties
+    3. Group new + existing properties by property_iri
+    4. Detect similar properties with LLM
+    5. Merge similar properties (select highest strength)
     """
 
     def __init__(
@@ -46,13 +46,13 @@ class PropertyConsolidator(Runnable):
         self.max_retries = max_retries
         self.logger = Logger(log_dir)
 
-        # メタモデルを読み込み
+        # Load metamodel
         self.metamodel = self._load_metamodel()
-        # プロンプトテンプレートを読み込み
+        # Load prompt template
         self.prompt_template = self._load_prompt_template()
 
     def _load_metamodel(self) -> dict:
-        """メタモデルファイルを読み込む"""
+        """Load metamodel file"""
         # Go up 2 levels from src/XXX/ to /workspace/app/
 
         app_dir = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
@@ -62,7 +62,7 @@ class PropertyConsolidator(Runnable):
             return json.load(f)
 
     def _load_prompt_template(self) -> str:
-        """プロンプトテンプレートファイルを読み込み"""
+        """Load prompt template file"""
         # Go up 2 levels from src/XXX/ to /workspace/app/
 
         app_dir = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
@@ -72,7 +72,7 @@ class PropertyConsolidator(Runnable):
             return f.read()
 
     def _build_schema(self) -> dict:
-        """LLM用のJSONスキーマを読み込む"""
+        """Load JSON schema for LLM"""
         # Go up 2 levels from src/XXX/ to /workspace/app/
 
         app_dir = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
@@ -83,21 +83,21 @@ class PropertyConsolidator(Runnable):
 
     def invoke(self, input: Dict[str, Any], config=None) -> Dict[str, Any]:
         """
-        プロパティ統合処理のメインエントリーポイント
+        Main entry point for property consolidation processing
 
         Parameters
         ----------
         input: PropertyConsolidatorInput
-          - id: 抽出ID
-          - properties: 新規抽出プロパティリスト
-          - existing_properties: 既存プロパティリスト（オプション）
-          - class_info: クラス情報（ID正規化用）
+          - id: Extraction ID
+          - properties: List of newly extracted properties
+          - existing_properties: List of existing properties (optional)
+          - class_info: Class information (for ID normalization)
 
         Returns
         -------
         output: PropertyConsolidatorOutput (= PropertyExtractor output format)
-          - id: 抽出ID
-          - properties: 統合済みプロパティリスト
+          - id: Extraction ID
+          - properties: List of consolidated properties
         """
         new_properties = input.get("properties", [])
         existing_properties = input.get("existing_properties", [])
@@ -106,7 +106,7 @@ class PropertyConsolidator(Runnable):
         if self.progress:
             print(f"[PropertyConsolidator] Processing {len(new_properties)} new + {len(existing_properties)} existing properties")
 
-        # 既存プロパティがない場合は新規プロパティをそのまま返す
+        # Return new properties as-is if no existing properties
         if not existing_properties:
             if self.progress:
                 print("[PropertyConsolidator] No existing properties to merge")
@@ -115,10 +115,10 @@ class PropertyConsolidator(Runnable):
                 "properties": new_properties
             }
 
-        # クラスIDマッピングを構築
+        # Build class ID mapping
         class_id_mapping = self._build_class_id_mapping(class_info)
 
-        # 既存プロパティのIDを正規化
+        # Normalize IDs of existing properties
         normalized_existing = self._normalize_property_ids(existing_properties, class_id_mapping)
 
         # Filter out properties with invalid class references
@@ -142,24 +142,24 @@ class PropertyConsolidator(Runnable):
         if invalid_properties and self.progress:
             print(f"[PropertyConsolidator] Filtered {len(invalid_properties)} properties with invalid class references")
 
-        # 新規＋既存を統合
+        # Merge new + existing
         all_properties = new_properties + valid_normalized
 
         if self.progress:
             print(f"[PropertyConsolidator] Total {len(all_properties)} properties to consolidate")
 
-        # property_iriでグループ化
+        # Group by property_iri
         property_groups = self._group_by_property_iri(all_properties)
 
         if self.progress:
             print(f"[PropertyConsolidator] {len(property_groups)} property types found")
 
-        # プロパティごとに統合を並列実行
+        # Execute consolidation in parallel for each property
         all_consolidated_properties = asyncio.run(
             self._process_properties_parallel(property_groups, class_info)
         )
 
-        # 出力を構築
+        # Build output
         output = {
             "id": input.get("id", str(uuid.uuid4())),
             "properties": all_consolidated_properties
@@ -174,8 +174,8 @@ class PropertyConsolidator(Runnable):
 
     def _build_class_id_mapping(self, class_info: Dict[str, Any]) -> Dict[str, str]:
         """
-        クラスIDマッピングを構築
-        consolidated_idsを使用して、マージされたクラスIDを正規IDに変換
+        Build class ID mapping
+        Convert merged class IDs to canonical IDs using consolidated_ids
 
         Returns:
             mapping: {class_id: canonical_id} for all classes
@@ -202,8 +202,8 @@ class PropertyConsolidator(Runnable):
         class_mapping: Dict[str, str]
     ) -> List[Dict[str, Any]]:
         """
-        プロパティのsrc_id/dest_idを正規化
-        古いクラスIDを新しい正規IDに変換
+        Normalize src_id/dest_id of properties
+        Convert old class IDs to new canonical IDs
         """
         normalized = []
         for prop in properties:
@@ -220,7 +220,7 @@ class PropertyConsolidator(Runnable):
         return normalized
 
     def _group_by_property_iri(self, properties: List[Dict[str, Any]]) -> Dict[str, List[Dict[str, Any]]]:
-        """property_iriでグループ化"""
+        """Group by property_iri"""
         groups = {}
         for prop in properties:
             prop_iri = prop.get("property_iri", "")
@@ -230,7 +230,7 @@ class PropertyConsolidator(Runnable):
         return groups
 
     def _get_property_name_from_iri(self, property_iri: str) -> str:
-        """property_iriからプロパティ名を取得"""
+        """Get property name from property_iri"""
         for prop in self.metamodel.get("properties", []):
             if prop.get("iri", "") == property_iri:
                 return prop.get("name", "unknown")
@@ -241,7 +241,7 @@ class PropertyConsolidator(Runnable):
         property_groups: Dict[str, List[Dict[str, Any]]],
         class_info: Dict[str, Any]
     ) -> List[Dict[str, Any]]:
-        """プロパティグループを並列処理"""
+        """Process property groups in parallel"""
         sem = asyncio.Semaphore(self.max_concurrency)
         total = len(property_groups)
         counter = 0
@@ -270,7 +270,7 @@ class PropertyConsolidator(Runnable):
             *[_wrapped(iri, props) for iri, props in property_groups.items()]
         )
 
-        # 結果をフラット化
+        # Flatten results
         all_consolidated = []
         for result in results:
             all_consolidated.extend(result)
@@ -284,27 +284,27 @@ class PropertyConsolidator(Runnable):
         class_info: Dict[str, Any]
     ) -> List[Dict[str, Any]]:
         """
-        同じproperty_iriのプロパティリストを統合（非同期版）
+        Consolidate property list with the same property_iri (async version)
 
         Args:
-            properties: 統合対象のプロパティリスト
-            property_iri: 対象プロパティのIRI
-            class_info: クラス情報（ラベル取得用）
+            properties: List of properties to consolidate
+            property_iri: Target property IRI
+            class_info: Class information (for label retrieval)
 
         Returns:
-            統合後のプロパティリスト
+            List of consolidated properties
         """
         if not properties:
             return []
 
-        # プロパティが1つだけの場合は統合不要
+        # No consolidation needed if only one property
         if len(properties) == 1:
             return properties
 
-        # クラスインデックスを作成
+        # Create class index
         class_index = self._index_classes_by_id(class_info)
 
-        # LLMで類似プロパティを検出
+        # Detect similar properties with LLM
         try:
             similar_groups = await self._detect_similar_properties_async(
                 properties, property_iri, class_index
@@ -312,10 +312,10 @@ class PropertyConsolidator(Runnable):
         except Exception as e:
             if self.progress:
                 print(f"[PropertyConsolidator] LLM detection failed for {property_iri}: {e}")
-            # LLM失敗時は重複なしとして全て個別に返す
+            # On LLM failure, return all individually as if no duplicates
             return properties
 
-        # 各グループをマージ
+        # Merge each group
         consolidated_properties = []
         processed_indices = set()
 
@@ -327,14 +327,14 @@ class PropertyConsolidator(Runnable):
             if not group_properties:
                 continue
 
-            # グループをマージ
+            # Merge group
             merged = self._merge_properties(group_properties)
             consolidated_properties.append(merged)
 
-            # 処理済みインデックスを記録
+            # Record processed indices
             processed_indices.update(group_indices)
 
-        # マージされなかったプロパティを追加
+        # Add properties that were not merged
         for i, prop in enumerate(properties):
             if i not in processed_indices:
                 consolidated_properties.append(prop)
@@ -348,23 +348,23 @@ class PropertyConsolidator(Runnable):
         class_index: Dict[str, Dict[str, Any]]
     ) -> List[List[int]]:
         """
-        LLMを使用して類似プロパティを検出
+        Detect similar properties using LLM
 
         Args:
-            properties: プロパティリスト
-            property_iri: プロパティIRI
-            class_index: クラスID->クラス情報のマッピング
+            properties: Property list
+            property_iri: Property IRI
+            class_index: Mapping of class_id -> class information
 
         Returns:
-            類似プロパティのインデックスグループのリスト
-            例: [[0, 2, 5], [1, 3], [4]] - 0,2,5は類似、1,3は類似、4は独立
+            List of index groups for similar properties
+            Example: [[0, 2, 5], [1, 3], [4]] - 0,2,5 are similar, 1,3 are similar, 4 is independent
         """
-        # プロパティ情報をフォーマット
+        # Format property information
         property_list_text = self._format_properties_for_llm(
             properties, property_iri, class_index
         )
 
-        # プロンプトを構築
+        # Build prompt
         property_name = self._get_property_name_from_iri(property_iri)
         prompt = self.prompt_template.format(
             property_name=property_name,
@@ -372,7 +372,7 @@ class PropertyConsolidator(Runnable):
             property_list=property_list_text
         )
 
-        # LLMスキーマを構築
+        # Build LLM schema
         schema = self._build_schema()
         llm_json = self.llm.bind(
             response_format={
@@ -386,13 +386,13 @@ class PropertyConsolidator(Runnable):
 
         msg = HumanMessage(content=[{"type": "text", "text": prompt}])
 
-        # LLMでグループ化を実行（リトライ付き）
+        # Execute grouping with LLM (with retry)
         response = await self._invoke_with_retry(llm_json, msg)
 
-        # レスポンスからテキストを抽出
+        # Extract text from response
         result_text = self._to_text(response.content)
 
-        # JSON パース
+        # Parse JSON
         try:
             parsed = json.loads(result_text)
             groups = parsed.get("groups", [])
@@ -401,11 +401,11 @@ class PropertyConsolidator(Runnable):
                 print(f"[PropertyConsolidator] JSON parse error: {result_text}")
             return []
 
-        # グループのインデックスリストを抽出
+        # Extract index lists of groups
         similar_groups = []
         for group in groups:
             indices = group.get("indices", [])
-            if len(indices) > 1:  # 2つ以上のプロパティが類似している場合のみ
+            if len(indices) > 1:  # Only when 2 or more properties are similar
                 similar_groups.append(indices)
 
         return similar_groups
@@ -416,7 +416,7 @@ class PropertyConsolidator(Runnable):
         property_iri: str,
         class_index: Dict[str, Dict[str, Any]]
     ) -> str:
-        """LLM用にプロパティリストをフォーマット"""
+        """Format property list for LLM"""
         lines = []
         for i, prop in enumerate(properties):
             src_id = prop.get("src_id", "")
@@ -428,7 +428,7 @@ class PropertyConsolidator(Runnable):
             src_label = src.get("label", "N/A")
             dest_label = dest.get("label", "N/A")
 
-            # ソーステキストも含める（利用可能な場合）
+            # Include source text (if available)
             src_sources = src.get("sources", [])
             dest_sources = dest.get("sources", [])
             src_source = src_sources[0] if src_sources else ""
@@ -446,30 +446,30 @@ class PropertyConsolidator(Runnable):
 
     def _merge_properties(self, group_properties: List[Dict[str, Any]]) -> Dict[str, Any]:
         """
-        プロパティグループをマージ
-        最高強度のプロパティを選択
+        Merge property group
+        Select property with highest strength
 
         Args:
-            group_properties: マージ対象のプロパティリスト
+            group_properties: List of properties to merge
 
         Returns:
-            マージ後のプロパティ
+            Merged property
         """
         if len(group_properties) == 1:
             return group_properties[0]
 
-        # 強度でソート（降順）
+        # Sort by strength (descending)
         sorted_props = sorted(
             group_properties,
             key=lambda p: p.get("strength", 0),
             reverse=True
         )
 
-        # 最高強度のプロパティを返す
+        # Return property with highest strength
         return sorted_props[0].copy()
 
     async def _invoke_with_retry(self, llm_json, msg: HumanMessage):
-        """リトライ機能付きのLLM呼び出し"""
+        """Call LLM with retry functionality"""
         delay = 1.0
         max_delay = 60.0
         last_exception = None
@@ -494,7 +494,7 @@ class PropertyConsolidator(Runnable):
 
     @staticmethod
     def _to_text(content: Union[str, List[Any]]) -> str:
-        """LLMレスポンスからテキストを抽出"""
+        """Extract text from LLM response"""
         if isinstance(content, str):
             return content
         if isinstance(content, list):
@@ -505,7 +505,7 @@ class PropertyConsolidator(Runnable):
 
     @staticmethod
     def _index_classes_by_id(class_info: Dict[str, Any]) -> Dict[str, Dict[str, Any]]:
-        """クラスID->クラス情報のマッピングを作成"""
+        """Create mapping of class_id -> class information"""
         index = {}
         for cls in class_info.get("classes", []):
             cls_id = cls.get("id")
@@ -517,11 +517,11 @@ class PropertyConsolidator(Runnable):
 if __name__ == "__main__":
     import glob
 
-    # ログディレクトリから最新のproperty_extractorログファイルを取得
+    # Get latest property_extractor log file from log directory
     extractor_log_dir = "/workspace/app/log/property_extractor"
     extractor_log_files = glob.glob(os.path.join(extractor_log_dir, "property_extractor_output_*.json"))
 
-    # クラスコンソリデータログを取得
+    # Get class consolidator logs
     class_log_dir = "/workspace/app/log/class_consolidator"
     class_log_files = glob.glob(os.path.join(class_log_dir, "class_consolidator_output_*.json"))
 
@@ -531,7 +531,7 @@ if __name__ == "__main__":
         print(f"  ClassConsolidator logs: {len(class_log_files)}")
         exit(1)
 
-    # 最新のログファイルを取得
+    # Get latest log files
     latest_extractor_log = max(extractor_log_files, key=os.path.getmtime)
     latest_class_log = max(class_log_files, key=os.path.getmtime)
 
@@ -544,11 +544,11 @@ if __name__ == "__main__":
     with open(latest_class_log, "r", encoding="utf-8") as f:
         class_data = json.load(f)
 
-    # テスト入力データを構築
+    # Build test input data
     sample_input = {
         "id": property_data.get("id", "test-id"),
         "properties": property_data.get("properties", []),
-        "existing_properties": [],  # 既存プロパティなしでテスト
+        "existing_properties": [],  # Test without existing properties
         "class_info": class_data
     }
 
@@ -557,7 +557,7 @@ if __name__ == "__main__":
     print(f"  - Existing properties: {len(sample_input['existing_properties'])}")
     print(f"  - Classes: {len(class_data.get('classes', []))}")
 
-    # PropertyConsolidatorを実行
+    # Execute PropertyConsolidator
     consolidator = PropertyConsolidator(progress=True)
     result = consolidator.invoke(sample_input)
 

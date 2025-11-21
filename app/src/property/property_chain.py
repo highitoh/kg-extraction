@@ -353,13 +353,13 @@ if __name__ == "__main__":
                 {
                     "id": "class-001",
                     "class_iri": "ex:BusinessConceptClass",
-                    "label": "顧客管理システム",
+                    "label": "Customer Management System",
                     "file_id": "file-abc",
                 },
                 {
                     "id": "class-002",
                     "class_iri": "ex:SystemComponentClass",
-                    "label": "データベース",
+                    "label": "Database",
                     "file_id": "file-abc",
                 }
             ]

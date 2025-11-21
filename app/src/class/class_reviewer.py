@@ -137,7 +137,7 @@ class ClassReviewer(Runnable):
                 break
 
         result = "\n".join(rules_lines)
-        return result if result else "(禁止ルールなし)"
+        return result if result else "(No prohibition rules)"
 
     def _load_prompt_template(self) -> str:
         """Load prompt template file and dynamically generate prohibit rules"""

@@ -92,7 +92,7 @@ class ClassEditor(Runnable):
                 break
 
         result = "\n".join(rules_lines)
-        return result if result else "(抽出ルールなし)"
+        return result if result else "(No extraction rules)"
 
     def _load_prompt_template(self) -> str:
         """Load prompt template file"""

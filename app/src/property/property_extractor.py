@@ -14,9 +14,9 @@ from src.utils.llm_factory import LLMFactory
 
 class PropertyExtractor(Runnable):
     """
-    プロパティ（関係）抽出
-    入力: PropertyChainInput (class_info, metamodel)
-    出力: PropertyChainOutput (id, properties)
+    Property (relationship) extraction
+    Input: PropertyChainInput (class_info, metamodel)
+    Output: PropertyChainOutput (id, properties)
     """
 
     def __init__(
@@ -36,7 +36,7 @@ class PropertyExtractor(Runnable):
             reasoning_effort="low",
         )
 
-        # JSONスキーマを読み込み
+        # Load JSON schema
         schema = self._load_schema()
         self.llm_json = self.llm.bind(response_format={"type": "json_schema", "json_schema": {"name": "property_extractor", "schema": schema}})
         self.max_concurrency = max_concurrency
@@ -44,17 +44,17 @@ class PropertyExtractor(Runnable):
         self.progress = progress
         self.batch_size = batch_size
 
-        # メタモデルを読み込み
+        # Load metamodel
         self.metamodel = self._load_metamodel()
 
-        # プロンプトを読み込み
+        # Load prompt
         self.prompt = self._load_prompt()
 
-        # Logger設定
+        # Logger setup
         self.logger = Logger(log_dir)
 
     def _load_schema(self) -> dict:
-        """JSONスキーマファイルを読み込む"""
+        """Load JSON schema file"""
         # Go up 2 levels from src/XXX/ to /workspace/app/
 
         app_dir = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
@@ -64,7 +64,7 @@ class PropertyExtractor(Runnable):
             return json.load(f)
 
     def _load_metamodel(self) -> dict:
-        """メタモデルファイルを読み込む"""
+        """Load metamodel file"""
         # Go up 2 levels from src/XXX/ to /workspace/app/
 
         app_dir = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
@@ -74,7 +74,7 @@ class PropertyExtractor(Runnable):
             return json.load(f)
 
     def _load_prompt(self) -> str:
-        """プロンプトを読み込み"""
+        """Load prompt"""
         # Go up 2 levels from src/XXX/ to /workspace/app/
 
         app_dir = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
@@ -85,7 +85,7 @@ class PropertyExtractor(Runnable):
 
     @staticmethod
     def _to_text(c: Union[str, List[Any]]) -> str:
-        """LLMの出力をテキスト形式に変換"""
+        """Convert LLM output to text format"""
         if isinstance(c, str):
             return c
         for part in c:
@@ -105,13 +105,13 @@ class PropertyExtractor(Runnable):
         src_batch: List[Dict[str, Any]],
         dest_batch: List[Dict[str, Any]]
     ) -> List[Dict[str, str]]:
-        """バッチ単位でプロパティ抽出を実行"""
+        """Execute property extraction per batch"""
 
-        # LLMに渡す入力を整形
+        # Format input to pass to LLM
         src_texts = [f"- ID: {c['id']}, Label: {c['label']}" for c in src_batch]
         dest_texts = [f"- ID: {c['id']}, Label: {c['label']}" for c in dest_batch]
 
-        # プロンプトテンプレートにデータを埋め込み
+        # Embed data into prompt template
         prompt_text = self.prompt.format(
             src_class_label=src_class_label,
             dest_class_label=dest_class_label,
@@ -132,7 +132,7 @@ class PropertyExtractor(Runnable):
         except Exception:
             data = {}
 
-        # プロパティ情報を整理
+        # Organize property information
         properties = []
         extracted_properties = data.get("properties", [])
         if isinstance(extracted_properties, list):
@@ -151,7 +151,7 @@ class PropertyExtractor(Runnable):
         return properties
 
     async def _invoke_with_retry(self, msg: HumanMessage):
-        """リトライ機能付きのLLM呼び出し"""
+        """Call LLM with retry functionality"""
         delay = 1.0
         max_delay = 60.0
         last_exception = None
@@ -179,7 +179,7 @@ class PropertyExtractor(Runnable):
         property_def: Dict[str, Any],
         classes: List[Dict[str, Any]]
     ) -> List[Dict[str, str]]:
-        """特定のプロパティタイプに対してクラス間の関係を抽出"""
+        """Extract relationships between classes for a specific property type"""
 
         property_label = property_def.get("name", "")
         property_iri = property_def.get("iri", "")
@@ -187,7 +187,7 @@ class PropertyExtractor(Runnable):
         src_class_iri = property_def.get("src_class", "")
         dest_class_iri = property_def.get("dest_class", "")
 
-        # メタモデルからクラス定義を取得
+        # Get class definitions from metamodel
         classes_def = self.metamodel.get("classes", [])
         src_class_def = next((c for c in classes_def if c.get("iri") == src_class_iri), None)
         dest_class_def = next((c for c in classes_def if c.get("iri") == dest_class_iri), None)
@@ -200,15 +200,15 @@ class PropertyExtractor(Runnable):
         src_class_definition = src_class_def.get("description", "")
         dest_class_definition = dest_class_def.get("description", "")
 
-        # 対象クラスのインスタンスを抽出
+        # Extract instances of target classes
         src_classes = [c for c in classes if c.get("class_iri") == src_class_iri]
         dest_classes = [c for c in classes if c.get("class_iri") == dest_class_iri]
 
-        # 該当するクラスインスタンスがない場合はスキップ
+        # Skip if no matching class instances
         if not src_classes or not dest_classes:
             return []
 
-        # クラスをバッチサイズで分割
+        # Split classes into batches by batch size
         src_batches = [
             src_classes[i:i + self.batch_size]
             for i in range(0, len(src_classes), self.batch_size)
@@ -218,7 +218,7 @@ class PropertyExtractor(Runnable):
             for i in range(0, len(dest_classes), self.batch_size)
         ]
 
-        # 全バッチの組み合わせを生成
+        # Generate all batch combinations
         tasks = []
         for src_batch in src_batches:
             for dest_batch in dest_batches:
@@ -236,10 +236,10 @@ class PropertyExtractor(Runnable):
                     )
                 )
 
-        # 並列実行
+        # Execute in parallel
         results = await asyncio.gather(*tasks)
 
-        # 全結果を統合
+        # Consolidate all results
         all_properties = []
         for result in results:
             all_properties.extend(result)
@@ -247,9 +247,9 @@ class PropertyExtractor(Runnable):
         return all_properties
 
     async def _extract_properties_from_classes(self, classes: List[Dict[str, Any]]) -> List[Dict[str, str]]:
-        """クラス情報からプロパティ候補を抽出"""
+        """Extract property candidates from class information"""
 
-        # メタモデルから全プロパティ定義を取得
+        # Get all property definitions from metamodel
         properties_def = self.metamodel.get("properties", [])
 
         if not properties_def:
@@ -262,7 +262,7 @@ class PropertyExtractor(Runnable):
         if self.progress:
             print(f"[PropertyExtractor] Starting parallel processing: {total} property types (concurrency={self.max_concurrency})")
 
-        # 各プロパティタイプに対して並列処理
+        # Parallel processing for each property type
         async def _wrapped(property_def: Dict[str, Any]) -> List[Dict[str, str]]:
             nonlocal counter
             property_name = property_def.get("name", "")
@@ -277,7 +277,7 @@ class PropertyExtractor(Runnable):
 
         results = await asyncio.gather(*[_wrapped(pd) for pd in properties_def])
 
-        # 全結果を統合
+        # Consolidate all results
         all_properties = []
         for result in results:
             all_properties.extend(result)
@@ -285,30 +285,30 @@ class PropertyExtractor(Runnable):
         return all_properties
 
     def invoke(self, input: Dict[str, Any], config=None) -> Dict[str, Any]:
-        """PropertyChainInputからプロパティを抽出してPropertyChainOutputを出力"""
+        """Extract properties from PropertyChainInput and output PropertyChainOutput"""
         class_info = input["class_info"]
         classes = class_info.get("classes", [])
 
-        # プロパティ抽出実行
+        # Execute property extraction
         extracted_properties = asyncio.run(self._extract_properties_from_classes(classes))
 
-        # 出力形式に合わせて整理
+        # Organize to match output format
         properties = []
         properties_with_labels = []
         for prop in extracted_properties:
             prop_id = str(uuid.uuid4())
 
-            # スキーマ準拠のプロパティ情報
+            # Schema-compliant property information
             property_item = {
                 "id": prop_id,
                 "src_id": prop["src_id"],
                 "property_iri": prop["property_iri"],
                 "dest_id": prop["dest_id"],
-                "strength": 0,  # デフォルト値、PropertyRankerで更新される
+                "strength": 0,  # Default value, updated by PropertyRanker
             }
             properties.append(property_item)
 
-            # ログ出力用にラベル情報を追加
+            # Add label information for log output
             src_class = next((c for c in classes if c["id"] == prop["src_id"]), None)
             dest_class = next((c for c in classes if c["id"] == prop["dest_id"]), None)
 
@@ -330,7 +330,7 @@ class PropertyExtractor(Runnable):
             total_properties = len(properties)
             print(f"[PropertyExtractor] Completed: extracted {total_properties} properties")
 
-        # Loggerでpropertyチェーンの出力を保存（ラベル情報付き）
+        # Save property chain output with Logger (with label information)
         log_output = {
             "id": output["id"],
             "properties": properties_with_labels,

@@ -233,19 +233,19 @@ if __name__ == "__main__":
                 {
                     "id": "cls-001",
                     "class_iri": "ex:Stakeholder",
-                    "label": "店舗スタッフ",
+                    "label": "Store Staff",
                     "file_id": "doc-001"
                 },
                 {
                     "id": "cls-002",
                     "class_iri": "ex:Value",
-                    "label": "待ち時間短縮",
+                    "label": "Reduced Wait Time",
                     "file_id": "doc-001"
                 },
                 {
                     "id": "cls-003",
                     "class_iri": "ex:Vision",
-                    "label": "待たせない店舗体験",
+                    "label": "No-Wait Store Experience",
                     "file_id": "doc-001"
                 }
             ]
