@@ -72,11 +72,11 @@ class ChunkCreator:
         """
         Create chunks by page/slide unit
 
-        Detects "[[スライド{number}]]" markers in text and
+        Detects "[[Slide{number}]]" markers in text and
         groups and joins them by slide number.
 
         Args:
-            text: Text containing "[[スライド{number}]] {text}" format
+            text: Text containing "[[Slide{number}]] {text}" format
 
         Returns:
             List of text joined by slide (in slide number order)
@@ -89,8 +89,8 @@ class ChunkCreator:
             if not line:
                 continue
 
-            # Extract "[[スライド{number}]]"
-            match = re.search(r'\[\[スライド(\d+)\]\]', line)
+            # Extract "[[Slide{number}]]"
+            match = re.search(r'\[\[Slide(\d+)\]\]', line)
             if match:
                 slide_num = match.group(1)
                 slide_text = line.replace(match.group(0), '').strip()

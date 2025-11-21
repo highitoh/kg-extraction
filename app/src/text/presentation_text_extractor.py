@@ -57,7 +57,7 @@ class PresentationTextExtractor(Runnable):
             for line_text in slide_text.split('\n'):
                 if line_text.strip():  # Exclude empty lines
                     sentences.append({
-                        "text": f"[[スライド{slide_num}]] {line_text.strip()}"
+                        "text": f"[[Slide{slide_num}]] {line_text.strip()}"
                     })
 
         output = {
@@ -75,7 +75,7 @@ class PresentationTextExtractor(Runnable):
 if __name__ == "__main__":
     extractor = PresentationTextExtractor()
     result = extractor.invoke({"files": [{"path": "../doc/presentation_sample.pdf"}]})
-    print(f"Extracted Slides: {len([s for s in result['sentences'] if 'スライド1:' in s['text']])}")
+    print(f"Extracted Slides: {len([s for s in result['sentences'] if 'Slide1' in s['text']])}")
     print(f"Total Sentences: {len(result['sentences'])}")
     print("\nFirst 5 Sentences:")
     for i, sentence in enumerate(result['sentences'][:5], 1):
