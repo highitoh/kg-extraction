@@ -2,242 +2,242 @@
     "classes": [
         {
             "iri": "https://github.com/highitoh/kg-extraction#stakeholder",
-            "name": "ステークホルダ",
-            "description": "開発するシステムやサービスにより、価値を提供または受け取る主体。組織や役割などで表す",
+            "name": "Stakeholder",
+            "description": "An entity that provides or receives value through the system or service being developed. Represented by organization or role.",
             "view_type": "value_analysis",
             "min_length": 2,
             "max_length": 10,
             "extract_rules": [
-                "個人名は避け、組織名・役割名（例：保健所、受託者、利用者、陽性者、接触確認者）を優先する",
-                "同一概念は正規化し、単一の正準ラベルを用いる（例：「ユーザー」「一般ユーザー」「アプリ利用者」→「利用者」）。属性（言語・年齢など）による分割は行わない",
-                "組織名は正式名称で表記する（例：厚生労働省、有識者検討会合）",
-                "役割名は仕様書での定義語・用語集に合わせ、単数・簡潔な名詞句で表す",
-                "外部プラットフォーム提供者は、API/基盤提供が明示される場合に限り技術基盤提供者として抽出する",
-                "source 近傍で当該主体が価値の受益または提供に関与することが読み取れる文脈（行為・責務・通知・同意・監督 等）が確認できる箇所から抽出する"
+                "Avoid personal names; prioritize organization names and role names (e.g., health center, contractor, user, positive patient, contact tracer)",
+                "Normalize the same concepts and use a single canonical label (e.g., 'user', 'general user', 'app user' → 'user'). Do not split by attributes (language, age, etc.)",
+                "Use official names for organizations (e.g., Ministry of Health, Labour and Welfare, Expert Advisory Committee)",
+                "Express role names as singular, concise noun phrases that match the terminology definitions in the specification or glossary",
+                "Extract external platform providers as infrastructure providers only when API/infrastructure provision is explicitly stated",
+                "Extract from contexts near the source where it can be confirmed that the entity is involved in receiving or providing value (actions, responsibilities, notifications, consent, supervision, etc.)"
             ],
             "prohibit_rules": [
-                "正式名称ではなく略称を登録しない。元の文章から部分的に名称を抽出しない",
-                "システム構成要素・技術要素（例：通知サーバー、システム、OS、API）をステークホルダとして抽出しない",
-                "製品・端末・ソフトウェア一般名詞（例：スマートフォン、アプリ、サーバー、クラウド）をステークホルダとして抽出しない",
-                "手順・義務・運用記述（問い合わせ対応、FAQ整備、同意 UI 等）の行為そのものを主体として誤抽出しない。主体が組織・役割として明確でない場合は除外する",
-                "属性の違いによる分割（例：『日本語以外の言語を使う利用者』を別ステークホルダにする）を禁止する。属性は必要に応じてプロパティで表現する",
-                "プロジェクト体制や審議体であっても、仕様書上の役割・責務が確認できない名称は抽出しない（名称だけの羅列・挨拶文・参考文献等からの抽出を禁止）"
+                "Do not register abbreviations instead of official names. Do not extract partial names from the original text",
+                "Do not extract system components or technical elements (e.g., notification server, system, OS, API) as stakeholders",
+                "Do not extract product, device, or general software terms (e.g., smartphone, app, server, cloud) as stakeholders",
+                "Do not misidentify procedures, obligations, or operational descriptions (inquiry response, FAQ preparation, consent UI, etc.) as entities. Exclude if the entity is not clearly an organization or role",
+                "Prohibit splitting by attribute differences (e.g., treating 'users who use languages other than Japanese' as a separate stakeholder). Express attributes as properties when necessary",
+                "Do not extract names from project structure or deliberative bodies if their role or responsibility is not confirmed in the specification (prohibit extraction from lists of names, greetings, references, etc.)"
             ]
         },
         {
             "iri": "https://github.com/highitoh/kg-extraction#value",
-            "name": "価値",
-            "description": "開発するシステムやサービスにより、ステークホルダが得る便益や達成したい状態を表す",
+            "name": "Value",
+            "description": "Represents the benefits or desired states that stakeholders gain through the system or service being developed",
             "view_type": "value_analysis",
             "min_length": 4,
             "max_length": 30,
             "extract_rules": [
-                "便益・結果・達成状態を名詞句で簡潔に表す（例：プライバシー保護／行動変容の促進／迅速な情報伝達）",
-                "原文に『〜できるようになる』『〜につながる』『〜を防ぐ』『〜を支援』等の便益を示す述語がある箇所を優先して抽出する",
-                "誰の便益かを後段で関係付けできるよう、抽出時に想定ステークホルダ（利用者／厚生労働省／社会全体 等）を付随メタとして保持する",
-                "抽出単位は便益そのもの。便益＋手段が混在する文は便益部分のみを切り出す"
+                "Express benefits, outcomes, and achieved states concisely as noun phrases (e.g., privacy protection / promotion of behavior change / rapid information transmission)",
+                "Prioritize extraction from locations in the original text that contain predicates indicating benefits such as 'become able to', 'lead to', 'prevent', 'support', etc.",
+                "Maintain associated metadata about the anticipated stakeholder (user / Ministry of Health, Labour and Welfare / society as a whole, etc.) so that the benefit recipient can be linked in later stages",
+                "The extraction unit is the benefit itself. For sentences where benefit and means are mixed, extract only the benefit portion"
             ],
             "prohibit_rules": [
-                "機能・手段・構成要素・技術（例：通知機能、Bluetooth利用、診断キー、サーバ、OS/API、RPI/TEK）を価値として抽出しない",
-                "手続・行為・プロセス（例：登録、送信、照合、ダウンロード、設定）を価値として抽出しない",
-                "SLO/SLA 等の性能・可用性や運用規程（例：稼働率、応答時間、データ廃棄手順、FAQ整備）を価値として抽出しない",
-                "抽象スローガンのみで受益主体や便益内容が不明瞭なもの（例：利便性向上、効率化）をそのまま採用しない（原文の便益記述に裏付けがある場合のみ可）",
-                "提供側の作業目的のみを示す記述（運営・管理・対応・窓口 等）を価値として抽出しない（受益側の状態変化が明示されない場合）"
+                "Do not extract functions, means, components, or technologies (e.g., notification function, Bluetooth usage, diagnosis key, server, OS/API, RPI/TEK) as values",
+                "Do not extract procedures, actions, or processes (e.g., registration, transmission, verification, download, settings) as values",
+                "Do not extract SLO/SLA performance, availability, or operational regulations (e.g., uptime rate, response time, data disposal procedures, FAQ preparation) as values",
+                "Do not adopt abstract slogans alone where the beneficiary or benefit content is unclear (e.g., improved convenience, efficiency) as-is (only allowed when supported by benefit descriptions in the original text)",
+                "Do not extract descriptions that only indicate the provider's work purpose (operation, management, response, service desk, etc.) as values (when the beneficiary's state change is not specified)"
             ]
         },
         {
             "iri": "https://github.com/highitoh/kg-extraction#vision",
-            "name": "ビジョン",
-            "description": "企業や事業、プロジェクトの目指す長期的な理想の姿を端的に表現した記述",
+            "name": "Vision",
+            "description": "A statement that concisely expresses the long-term ideal state that a company, business, or project aims to achieve",
             "view_type": "business_concept",
             "min_length": 3,
             "max_length": 30,
             "extract_rules": [
-                "'社会全体/国民/公共/基盤/信頼/透明性/持続/普及/相互運用性'など、広域スコープの将来状態を表す語を含む記述を優先する",
-                "理念は名詞句で簡潔に（例：『透明性と信頼に基づくデジタル基盤の確立』）",
-                "具体的手段（API/クラウド/CDN 等）が伴う文は、手段を切り離し到達したい状態のみを抽出する"
+                "Prioritize descriptions containing words that express broad-scope future states such as 'society as a whole/citizens/public/infrastructure/trust/transparency/sustainability/dissemination/interoperability'",
+                "Express the vision concisely as a noun phrase (e.g., 'Establishment of a digital infrastructure based on transparency and trust')",
+                "For sentences with specific means (API/cloud/CDN, etc.), separate the means and extract only the desired state to be reached"
             ],
             "prohibit_rules": [
-                "手段・方式・構成（例：API接続、CDN活用、クラウド活用、OS要件）をビジョンとして抽出しない（IT/システム要件へ分類）",
-                "短期数値目標・運用目標（例：72時間以内の復旧、稼働率、性能値）をビジョンとして抽出しない（非機能/運用要件へ）",
-                "個別機能や画面仕様、操作手順、同意フロー等の説明をビジョンとして抽出しない",
-                "便益（安心感、迅速な通知など）をそのままビジョンにしない",
-                "対象が個別組織・一部署・一機能に閉じる記述（広域的な社会像がないもの）はビジョンとしない",
-                "スローガンのみで主体・将来状態が不明瞭な抽象文は採用しない（原文で理念のスコープが確認できる場合のみ可）",
-                "具体的な運用・連携・通知・登録などの業務行為を述べる文（業務要求へ分類すべき内容）"
+                "Do not extract means, methods, or configurations (e.g., API connection, CDN utilization, cloud utilization, OS requirements) as vision (classify as IT/system requirements)",
+                "Do not extract short-term numerical targets or operational goals (e.g., recovery within 72 hours, uptime rate, performance values) as vision (classify as non-functional/operational requirements)",
+                "Do not extract explanations of individual functions, screen specifications, operational procedures, consent flows, etc. as vision",
+                "Do not make benefits (sense of security, prompt notification, etc.) into vision as-is",
+                "Do not treat descriptions limited to an individual organization, a single department, or a single function (without a broad social vision) as vision",
+                "Do not adopt abstract statements with slogans only where the entity and future state are unclear (only allowed when the scope of the vision can be confirmed in the original text)",
+                "Sentences describing specific operational, coordination, notification, registration, and other business activities (content that should be classified as business requirements)"
             ]
         },
         {
             "iri": "https://github.com/highitoh/kg-extraction#concept",
-            "name": "コンセプト",
-            "description": "企業や事業、プロジェクトの目指す理想（ビジョン）の実現に向けた活動方針を端的に表した記述",
+            "name": "Concept",
+            "description": "A statement that concisely expresses the activity policy toward realizing the ideal (vision) of a company, business, or project",
             "view_type": "business_concept",
             "min_length": 3,
             "max_length": 40,
             "extract_rules": [
-                "方針・原則・思想を名詞句で表す",
-                "理念（ビジョン）を実現するための行動指針かを確認し、機能詳細や数値KPIに踏み込まない抽象度で命名する",
-                "プライバシー・同意・透明性・中立性・相互運用性・データ主権などの横断原則を優先（例根拠：匿名識別子・端末内照合・透明性確保・オープン標準・国内リージョン運用）"
+                "Express policy, principles, or philosophy as noun phrases",
+                "Confirm whether it is an action guideline for realizing the vision, and name it at an abstract level that does not delve into functional details or numerical KPIs",
+                "Prioritize cross-cutting principles such as privacy, consent, transparency, neutrality, interoperability, data sovereignty (example basis: anonymous identifiers, on-device matching, transparency assurance, open standards, domestic region operations)"
             ],
             "prohibit_rules": [
-                "機能・手順・画面・フロー・構成・実装詳細（例：通知画面遷移、集計仕様、API接続手順、OS/CPU/メモリ等）をコンセプトとして抽出しない",
-                "非機能の数値目標や運用KPI（例：72時間以内の復旧、稼働率、同時接続数）をコンセプトとして抽出しない",
-                "具体的な業務運用・手続・サービス提供を明示する記述（業務要求へ分類すべき内容）",
-                "便益そのもの（安心感、迅速な通知等）をコンセプトとして抽出しない",
-                "外部規程への準拠のみを述べる文は除外し、方針の中核（何をどう実現したいか）が示された文を採用する",
-                "個別作業やFAQ整備などの運用手順・事務的義務は除外する"
-            ]          
+                "Do not extract functions, procedures, screens, flows, configurations, or implementation details (e.g., notification screen transitions, aggregation specifications, API connection procedures, OS/CPU/memory, etc.) as concepts",
+                "Do not extract non-functional numerical targets or operational KPIs (e.g., recovery within 72 hours, uptime rate, concurrent connections) as concepts",
+                "Descriptions that specify specific business operations, procedures, or service provision (content that should be classified as business requirements)",
+                "Do not extract benefits themselves (sense of security, prompt notification, etc.) as concepts",
+                "Exclude sentences that only mention compliance with external regulations, and adopt sentences that show the core of the policy (what you want to achieve and how)",
+                "Exclude individual tasks, FAQ preparation, and other operational procedures and administrative obligations"
+            ]
         },
         {
             "iri": "https://github.com/highitoh/kg-extraction#business-requirement",
-            "name": "業務要求",
-            "description": "開発するシステムやサービスに要求されるビジネス的な要求事項に関する記述",
+            "name": "Business Requirement",
+            "description": "Descriptions of business requirements demanded of the system or service being developed",
             "view_type": "business_requirement",
             "min_length": 5,
             "max_length": 50,
             "extract_rules": [
-                "記述は名詞句または短文（体言止め）とし、誰に・何を・なぜの要素を含めることが望ましい。",
-                "業務上のサービス提供や運用を対象とし、行政機関・利用者・事業者などの関与主体が明確なものを優先する。",
-                "抽象的な便益語（安心・安全・信頼・効率化・利便性向上など）だけで構成される文は対象外とする。",
-                "『通知』『登録』『問い合わせ』『連携』『判断支援』『運用』『受付』などの業務行為を含む文を積極的に抽出する。",
-                "便益（目的）と手段が混在する場合は、便益側を business-requirement、手段側を system-requirement に分離する。"
+                "The description should be a noun phrase or a short sentence (ending with a noun), and it is desirable to include the elements of to whom, what, and why.",
+                "Target business service provision and operations, and prioritize those where the entities involved such as government agencies, users, and businesses are clear.",
+                "Exclude sentences composed only of abstract benefit words (security, safety, trust, efficiency, improved convenience, etc.).",
+                "Actively extract sentences that include business activities such as 'notification', 'registration', 'inquiry', 'coordination', 'decision support', 'operations', 'reception', etc.",
+                "When benefits (purposes) and means are mixed, separate the benefit side as business-requirement and the means side as system-requirement."
             ],
             "prohibit_rules": [
-                "通信方式・構成・技術手段（Bluetooth、TEK、RPI、サーバ、クラウド、API、暗号方式など）に関する説明のみの文",
-                "抽象的スローガン（例：安心・安全・信頼性の確保、利便性向上、業務効率化など）で対象や基準が不明確な文",
-                "UI部品・画面レイアウト・操作手順など設計詳細に関する文",
-                "性能・可用性・稼働率・応答時間・数値目標などのSLO・SLAに関する文",
-                "組織方針・理念・計画方針・開発ガイドラインなどビジョン的記述",
-                "単なる製品名・技術名・識別子の羅列（例：Bluetooth、API Gateway、TEK、UUIDなど）"
+                "Sentences that only explain communication methods, configurations, or technical means (Bluetooth, TEK, RPI, server, cloud, API, encryption methods, etc.)",
+                "Abstract slogans (e.g., ensuring security, safety, and reliability; improving convenience; business efficiency, etc.) where the target or criteria are unclear",
+                "Sentences about UI components, screen layouts, operational procedures, and other design details",
+                "Sentences about performance, availability, uptime rate, response time, numerical targets, and other SLO/SLA",
+                "Vision-like descriptions such as organizational policies, visions, planning policies, and development guidelines",
+                "Mere lists of product names, technology names, or identifiers (e.g., Bluetooth, API Gateway, TEK, UUID, etc.)"
             ]
         },
         {
             "iri": "https://github.com/highitoh/kg-extraction#system-requirement",
-            "name": "システム要件",
-            "description": "開発するシステムやサービスの技術仕様に関する記述",
+            "name": "System Requirement",
+            "description": "Descriptions of technical specifications for the system or service being developed",
             "view_type": "system_requirement",
             "min_length": 5,
             "max_length": 50,
             "extract_rules": [
-                "具体的な技術仕様を名詞句で記述（例: ハードウェア/ソフトウェア/ネットワーク構成、暗号化方式、ログ方式、API仕様、設計方針の具体値）",
-                "クラウド構成・ネットワーク層・認証方式・暗号通信など、システム構造や通信方式に関する具体仕様を抽出対象に含める。",
-                "性能・スケーラビリティ・冗長性・可用性など非機能要件の基準（数値・構成方針）を抽出対象に含める。",
-                "非機能の数値基準を含めてよい（例: 応答時間、同時接続数、稼働率、RTO/RPO）",
-                "セキュリティ・テスト・品質保証に関する技術要件（例: 脆弱性診断、静的解析、依存ライブラリ検査）を抽出対象に含める。",
-                "データ保持・匿名化・プライバシー保護・ログ管理・アクセス制御などの技術的制約を抽出対象に含める。",
-                "要件が複合的な場合（例: 端末内照合＋14日保持）は、原子的な技術仕様単位（方式・期間・構成）に分割して抽出する。"
+                "Describe specific technical specifications as noun phrases (e.g., hardware/software/network configuration, encryption methods, logging methods, API specifications, specific values of design policies)",
+                "Include specific specifications related to system structure and communication methods such as cloud configuration, network layer, authentication methods, and encrypted communication as extraction targets.",
+                "Include non-functional requirement criteria (numerical values, configuration policies) such as performance, scalability, redundancy, and availability as extraction targets.",
+                "May include non-functional numerical criteria (e.g., response time, concurrent connections, uptime rate, RTO/RPO)",
+                "Include technical requirements related to security, testing, and quality assurance (e.g., vulnerability assessment, static analysis, dependency library inspection) as extraction targets.",
+                "Include technical constraints such as data retention, anonymization, privacy protection, log management, and access control as extraction targets.",
+                "When requirements are complex (e.g., on-device matching + 14-day retention), divide and extract into atomic technical specification units (method, period, configuration)."
             ],
             "prohibit_rules": [
-                "業務要求・プロジェクト目的・コンセプト等の方針レベルの記述（例: サービス提供を目的とする）",
-                "行政・開発ベンダ・利用者など主体が関与する業務的行為（通知・登録・問い合わせ・運用・判断支援など）を含む文",
-                "サービス提供責務や社会的役割の達成を目的とする記述（業務要求へ分類すべき内容）",
-                "ステークホルダや体制の説明（例: 受託事業者の責務、運用体制）",
-                "運用・保守・配信・更新などの管理手続のみを述べる文",
-                "抽象的な設計思想・ガイドライン（例: 透明性の確保、信頼性向上など）で技術仕様を伴わない文"
+                "Business requirements, project purposes, conceptual policy-level descriptions (e.g., for the purpose of providing services)",
+                "Sentences involving business activities (notification, registration, inquiry, operations, decision support, etc.) where entities such as government, development vendors, and users are involved",
+                "Descriptions aimed at fulfilling service provision responsibilities or achieving social roles (content that should be classified as business requirements)",
+                "Explanations of stakeholders or organizational structure (e.g., contractor responsibilities, operational structure)",
+                "Sentences that only describe management procedures such as operations, maintenance, distribution, and updates",
+                "Abstract design philosophy or guidelines (e.g., ensuring transparency, improving reliability, etc.) that do not involve technical specifications"
             ]
         },
         {
             "iri": "https://github.com/highitoh/kg-extraction#system-component",
-            "name": "コンポーネント",
-            "description": "開発するシステムやサービスを構成するモジュールやライブラリに関する記述",
+            "name": "System Component",
+            "description": "Descriptions of modules and libraries that make up the system or service being developed",
             "view_type": "system_component",
             "min_length": 5,
             "max_length": 40,
             "extract_rules": [
-                "基本設計レベルの構成要素のみを抽出（例：ハードウェア構成、OS/ランタイム、クラウドサービス、外部SaaS、ライブラリ群、パッケージソフト）",
-                "ラベルは名詞句（単数形・簡潔）で表す",
-                "製品名やバージョンを含む場合はそのまま抽出する（例：PostgreSQL、Red Hat Enterprise Linux）"
+                "Extract only basic design level components (e.g., hardware configuration, OS/runtime, cloud services, external SaaS, library groups, packaged software)",
+                "Express labels as noun phrases (singular, concise)",
+                "If a product name or version is included, extract it as-is (e.g., PostgreSQL, Red Hat Enterprise Linux)"
             ],
             "prohibit_rules": [
-                "機能設計レベルの要素（例：○○機能）",
-                "画面設計に関する要素（例：○○画面）",
-                "システムやサービスの管理や運用、開発環境に関する要素（例：『監視』『死活監視』『リソース監視』『テスト環境』『保守環境』『構成管理』『診断対象』）",
-                "システムやサービスの設計方式や規程、業務手順",
-                "システムやサービスの便益や目的、活動方針（例：『効率化』『利便性向上』『サービス提供を目的』等）"
+                "Functional design level elements (e.g., XX function)",
+                "Screen design elements (e.g., XX screen)",
+                "Elements related to system or service management, operations, or development environments (e.g., 'monitoring', 'health monitoring', 'resource monitoring', 'test environment', 'maintenance environment', 'configuration management', 'diagnosis target')",
+                "System or service design methods, regulations, or business procedures",
+                "System or service benefits, purposes, or activity policies (e.g., 'efficiency', 'improved convenience', 'for the purpose of providing services', etc.)"
             ]
         },
         {
             "iri": "https://github.com/highitoh/kg-extraction#business-goal",
-            "name": "ビジネス目的",
-            "description": "データ分析によって得られた知見を活用する経営上の目的",
+            "name": "Business Goal",
+            "description": "A management objective that utilizes insights gained from data analysis",
             "view_type": "data_analysis",
             "min_length": 5,
             "max_length": 40,
             "extract_rules": [
-                "経営などビジネスに与えるインパクトを表現する"
+                "Express the impact on business such as management"
             ],
             "prohibit_rules": [
-                "sourceの文章がデータ分析と無関係の記述である",
-                "システムやサービスの機能や運用に関する説明になっている",
-                "単なる業務方針・スローガン(例:「業務効率化の推進」)",
-                "分析との関連が明示されないもの"
+                "The source text is a description unrelated to data analysis",
+                "It is an explanation of system or service functions or operations",
+                "Just a business policy or slogan (e.g., 'Promoting business efficiency')",
+                "Those where the relationship with analysis is not specified"
             ]
         },
         {
             "iri": "https://github.com/highitoh/kg-extraction#analysis-goal",
-            "name": "データ分析目的",
-            "description": "データを分析をする目的",
+            "name": "Analysis Goal",
+            "description": "The purpose of data analysis",
             "view_type": "data_analysis",
             "min_length": 5,
             "max_length": 40,
             "extract_rules": [
-                "端的に目的を表現する"
+                "Concisely express the purpose"
             ],
             "prohibit_rules": [
-                "sourceの文章がデータ分析と無関係の記述である",
-                "システムやサービスの機能や運用に関する説明になっている",
-                "分析と無関係な方針"
+                "The source text is a description unrelated to data analysis",
+                "It is an explanation of system or service functions or operations",
+                "Policies unrelated to analysis"
             ]
         },
         {
             "iri": "https://github.com/highitoh/kg-extraction#analysis-result",
-            "name": "データ分析結果",
-            "description": "データを分析した結果を整理した記述",
+            "name": "Analysis Result",
+            "description": "A description that organizes the results of data analysis",
             "view_type": "data_analysis",
             "min_length": 5,
             "max_length": 60,
             "extract_rules": [
-                "データの分析内容やアルゴリズム、分析結果を整理・要約する"
+                "Organize and summarize data analysis content, algorithms, and analysis results"
             ],
             "prohibit_rules": [
-                "sourceの文章がデータ分析と無関係の記述である",
-                "システムやサービスの機能や運用に関する説明になっている",
-                "数値や傾向が示されない一般表現",
-                "評価や結論に該当するもの(evaluationに分類すべき)"
+                "The source text is a description unrelated to data analysis",
+                "It is an explanation of system or service functions or operations",
+                "General expressions that do not show numerical values or trends",
+                "Those that correspond to evaluation or conclusions (should be classified as evaluation)"
             ]
         },
         {
             "iri": "https://github.com/highitoh/kg-extraction#dataset",
-            "name": "データセット",
-            "description": "データ分析に使用したデータセットに関する記述",
+            "name": "Dataset",
+            "description": "Descriptions of datasets used for data analysis",
             "view_type": "data_analysis",
             "min_length": 5,
             "max_length": 40,
             "extract_rules": [
-                "データセットの概要や特徴を端的に記述"
+                "Concisely describe the overview and characteristics of the dataset"
             ],
             "prohibit_rules": [
-                "sourceの文章がデータ分析と無関係の記述である",
-                "システムやサービスの機能や運用に関する説明になっている",
-                "移行や運用のための全量データ(「現行システムの全データ」など)",
-                "単なるデータ名で特徴が欠けるもの"
+                "The source text is a description unrelated to data analysis",
+                "It is an explanation of system or service functions or operations",
+                "All data for migration or operations ('all data from the current system', etc.)",
+                "Just a data name lacking characteristics"
             ]
         },
         {
             "iri": "https://github.com/highitoh/kg-extraction#evaluation",
-            "name": "評価結果",
-            "description": "データ分析結果をビジネス目的と照らして得られた結論に関する記述",
+            "name": "Evaluation Result",
+            "description": "Descriptions of conclusions obtained by comparing data analysis results with business objectives",
             "view_type": "data_analysis",
             "min_length": 5,
             "max_length": 40,
             "extract_rules": [
-                "ビジネスへの適合可能性を記述"
+                "Describe the applicability to business"
             ],
             "prohibit_rules": [
-                "sourceの文章がデータ分析と無関係の記述である",
-                "システムやサービスの機能や運用に関する説明になっている",
-                "運用義務・規程・方針の記述(例:「セキュリティ診断の定期実施が必要」)",
-                "単なる分析結果(analysis-resultに分類すべき)"
+                "The source text is a description unrelated to data analysis",
+                "It is an explanation of system or service functions or operations",
+                "Descriptions of operational obligations, regulations, or policies (e.g., 'Periodic security assessments are required')",
+                "Just analysis results (should be classified as analysis-result)"
             ]
         }
     ],
@@ -245,98 +245,98 @@
         {
             "iri": "https://github.com/highitoh/kg-extraction#hasValue",
             "name": "hasValue",
-            "description": "ステークホルダが得る価値を関連付ける",
+            "description": "Associates the value that a stakeholder gains",
             "src_class": "https://github.com/highitoh/kg-extraction#stakeholder",
             "dest_class": "https://github.com/highitoh/kg-extraction#value",
             "prohibit_rules": [
-                "関係が文中で明示されていない（Stakeholder が Value を受け取る／享受する旨の明示がない）",
-                "Stakeholder が Value の提供者・運営者・管理者・窓口・事務局の立場であり、Value を享受しない。次のいずれかが原文で確認できる場合は除外しない： (a) dest（Value）が公共利益または組織ミッション／成果／KPI／規制遵守／評判／財務健全性等の『組織としての到達状態・便益』を表す、(b) src が当該 dest の達成・維持に対する責任・目的・評価（語例：達成、実現、評価指標、KPI、成果、使命、目的、説明責任、法令遵守、信頼、評判、費用対効果、罰則回避 等）を負う、(c) 提供行為を通じて src が二次的に享受する利益（信頼維持、監督責任の達成、コスト削減 など）が因果として明示されている",
-                "dest が便益ではなく手段・手続き・義務・構成要素を指している（例: 設定・申請・報告・破棄の実施 等）"
+                "The relationship is not explicitly stated in the text (there is no explicit statement that the Stakeholder receives/enjoys the Value)",
+                "The Stakeholder is in the position of provider, operator, administrator, service desk, or secretariat of the Value and does not enjoy the Value. Do not exclude if any of the following can be confirmed in the original text: (a) dest (Value) represents public benefit or 'organizational attainment state/benefit' such as organizational mission/achievement/KPI/regulatory compliance/reputation/financial soundness, etc., (b) src bears responsibility/purpose/evaluation (word examples: achievement, realization, evaluation indicator, KPI, achievement, mission, purpose, accountability, legal compliance, trust, reputation, cost-effectiveness, penalty avoidance, etc.) for achieving or maintaining that dest, (c) secondary benefits that src enjoys through provision activities (maintaining trust, achieving supervisory responsibilities, cost reduction, etc.) are explicitly stated as causation",
+                "dest refers to means, procedures, obligations, or components rather than benefits (e.g., implementing settings, applications, reports, disposal, etc.)"
             ]
         },
         {
             "iri": "https://github.com/highitoh/kg-extraction#hasBusinessRequirement",
             "name": "hasBusinessRequirement",
-            "description": "価値に紐づく業務要求を関連付ける",
+            "description": "Associates business requirements linked to value",
             "src_class": "https://github.com/highitoh/kg-extraction#value",
             "dest_class": "https://github.com/highitoh/kg-extraction#business-requirement"
         },
         {
             "iri": "https://github.com/highitoh/kg-extraction#hasConcept",
             "name": "hasConcept",
-            "description": "ビジョンに紐づくコンセプトを関連付ける",
+            "description": "Associates concepts linked to vision",
             "src_class": "https://github.com/highitoh/kg-extraction#vision",
             "dest_class": "https://github.com/highitoh/kg-extraction#concept"
         },
         {
             "iri": "https://github.com/highitoh/kg-extraction#realizesValue",
             "name": "realizesValue",
-            "description": "コンセプトが実現する価値を関連付ける",
+            "description": "Associates the value that the concept realizes",
             "src_class": "https://github.com/highitoh/kg-extraction#concept",
             "dest_class": "https://github.com/highitoh/kg-extraction#value"
         },
         {
             "iri": "https://github.com/highitoh/kg-extraction#hasSystemRequirement",
             "name": "hasSystemRequirement",
-            "description": "業務要求に紐づくシステム要件を関連付ける",
+            "description": "Associates system requirements linked to business requirements",
             "src_class": "https://github.com/highitoh/kg-extraction#business-requirement",
             "dest_class": "https://github.com/highitoh/kg-extraction#system-requirement"
         },
         {
             "iri": "https://github.com/highitoh/kg-extraction#allocatedToComponent",
             "name": "allocatedToComponent",
-            "description": "システム要件を割り当てるコンポーネントを関連付ける",
+            "description": "Associates the component to which the system requirement is allocated",
             "src_class": "https://github.com/highitoh/kg-extraction#system-requirement",
             "dest_class": "https://github.com/highitoh/kg-extraction#system-component"
         },
         {
             "iri": "https://github.com/highitoh/kg-extraction#hasDataMiningObjective",
             "name": "hasDataMiningObjective",
-            "description": "ビジネス目的に紐づくデータ分析目的を関連付ける",
+            "description": "Associates data analysis objectives linked to business goals",
             "src_class": "https://github.com/highitoh/kg-extraction#business-goal",
             "dest_class": "https://github.com/highitoh/kg-extraction#analysis-goal",
             "prohibit_rules": [
-                "原文に目的句（例：「〜のために◯◯を分析する」「〜を実現するため◯◯分析を行う」等）が無い（因果・目的が明示されていない）",
-                "analysis-goal が単なる機能/作業の列挙で、business-goal への目的連結がない（例：「ログ管理・分析を行う」だけで「〜のために」が無い）",
-                "business-goal が抽象的スローガン（例：「効率化の推進」等）のみで、analysis-goal との因果句が欠落している",
-                "記述が一般論の関連付けに留まり、具体的な対象・手段・結果が示されない（例：「〜に役立つ分析」等の曖昧表現のみ）",
-                "dest（analysis-goal）が分析結果や評価、対策の実施を指している（例：「影響度の評価」「修正の決定」など結果/施策は別プロパティで扱う）"
+                "There is no purpose clause in the original text (e.g., 'analyze XX for ~', 'perform XX analysis to achieve ~', etc.) (causation/purpose is not specified)",
+                "The analysis-goal is merely a list of functions/tasks, with no purposeful connection to the business-goal (e.g., just 'perform log management/analysis' without 'for the purpose of ~')",
+                "The business-goal is only an abstract slogan (e.g., 'promoting efficiency', etc.), and the causal clause with the analysis-goal is missing",
+                "The description is limited to general associations, and specific targets, means, or results are not shown (only ambiguous expressions such as 'analysis useful for ~', etc.)",
+                "dest (analysis-goal) refers to analysis results, evaluations, or implementation of measures (e.g., 'evaluation of impact', 'decision to correct', etc. results/measures are handled by separate properties)"
             ]
         },
         {
             "iri": "https://github.com/highitoh/kg-extraction#hasDataMiningResult",
             "name": "hasDataMiningResult",
-            "description": "データ分析目的に紐づく分析結果を関連付ける",
+            "description": "Associates analysis results linked to data analysis objectives",
             "src_class": "https://github.com/highitoh/kg-extraction#analysis-goal",
             "dest_class": "https://github.com/highitoh/kg-extraction#analysis-result",
             "prohibit_rules": [
-                "原文が「〜を分析する／分析を実施する／分析対象とする」など分析行為の記述のみで、具体的な結果・知見（明らかになった／特定した／算出した 等）が述べられていない",
-                "dest が意思決定・評価・施策（例: 決定・承認・文書化・改善案・選択肢提示）であり、分析そのものの結果ではない",
-                "数値や指標が示されていても、当該 analysis-goal の結果として導かれたことが原文で明示されていない（別ゴール起因の可能性）",
-                "記述が一般論・説明的表現にとどまり、具体的アウトプット（指標/結論/分類/相関/影響度/範囲/要因推定 等）が示されない",
-                "dest が作業手順・運用・要求の列挙であり、分析アウトプットを表していない"
+                "The original text only describes analytical activities such as 'analyze ~', 'conduct analysis', 'target for analysis', and does not mention specific results or findings (revealed, identified, calculated, etc.)",
+                "dest is a decision, evaluation, or measure (e.g., decision, approval, documentation, improvement proposal, presentation of options) and is not the result of the analysis itself",
+                "Even if numerical values or indicators are shown, it is not explicitly stated in the original text that they were derived as a result of that analysis-goal (possibly due to another goal)",
+                "The description remains general or explanatory, and specific outputs (indicators/conclusions/classifications/correlations/impact/scope/causal estimation, etc.) are not shown",
+                "dest is a list of work procedures, operations, or requirements and does not represent analysis output"
             ]
         },
         {
             "iri": "https://github.com/highitoh/kg-extraction#usesDataset",
             "name": "usesDataset",
-            "description": "分析結果で利用したデータセットを関連付ける",
+            "description": "Associates the dataset used in the analysis results",
             "src_class": "https://github.com/highitoh/kg-extraction#analysis-result",
             "dest_class": "https://github.com/highitoh/kg-extraction#dataset"
         },
         {
             "iri": "https://github.com/highitoh/kg-extraction#hasEvaluationResult",
             "name": "hasEvaluationResult",
-            "description": "分析結果に対する評価結果を関連付ける",
+            "description": "Associates evaluation results for analysis results",
             "src_class": "https://github.com/highitoh/kg-extraction#analysis-result",
             "dest_class": "https://github.com/highitoh/kg-extraction#evaluation",
             "prohibit_rules": [
-                "src（analysis-result）が分析行為の記述のみであり、具体的な結果（明らかになった／特定した／算出した 等）が示されていない",
-                "src が意思決定・評価・計画（例: 決定・承認・文書化・選択肢提示 等）を表しており、analysis-result として不適切（これらは evaluation として扱う）",
-                "dest（evaluation）との因果関係が文中で明示されていない（例: 『〜に基づき』『〜を踏まえ』『〜の結果として』等が無い）",
-                "justification が一般論に留まり、src が実際に dest の評価に寄与したことが読み取れない",
-                "src が数値や指標でも、当該評価結果に基づいて意思決定・方針設定を行ったことが原文で確認できない（帰属不明）"
-            ]            
+                "src (analysis-result) is only a description of analytical activity and does not show specific results (revealed, identified, calculated, etc.)",
+                "src represents decision-making, evaluation, or planning (e.g., decision, approval, documentation, presentation of options, etc.) and is inappropriate as analysis-result (these are treated as evaluation)",
+                "The causal relationship with dest (evaluation) is not explicitly stated in the text (e.g., no 'based on ~', 'in light of ~', 'as a result of ~', etc.)",
+                "The justification remains general, and it cannot be confirmed that src actually contributed to the evaluation of dest",
+                "Even if src is a numerical value or indicator, it cannot be confirmed in the original text that decisions or policy settings were made based on the evaluation results (unattributed)"
+            ]
         }
     ]
 }
