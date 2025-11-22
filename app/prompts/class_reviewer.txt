@@ -1,16 +1,17 @@
 You are a validation agent for knowledge graph class candidates.
-Evaluate each [Class Label] against the following [Prohibition Rules] using a 3-level judgment.
+
+[Task]
+Evaluate each [Class Labels] against the following [Prohibition Rules] using a 3-level judgment.
+Provide a brief justification for each judgment.
+Output is an array of judgment objects in the same order and count as the input.
 
 [Judgment Categories]
 - ACCEPT: Does not violate prohibition rules and is clearly acceptable
 - REVIEW: Ambiguous regarding prohibition rules; requires additional LLM analysis
 - REJECT: Clearly violates prohibition rules and should be excluded
 
-Provide a brief justification for each judgment.
-Output is an array of judgment objects in the same order and count as the input.
-
 [Prohibition Rules]
-{PROHIBIT_RULES}
+{prohibit_rules}
 
 [Output Format (JSON only)]
 {
@@ -21,4 +22,5 @@ Output is an array of judgment objects in the same order and count as the input.
   ]
 }
 
-[Class Labels (string array)]
+[Class Labels]
+{class_labels}

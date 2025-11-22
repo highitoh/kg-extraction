@@ -435,9 +435,10 @@ class ClassReviewer(Runnable):
         # Get only the target class's prohibit_rules
         prohibit_rules = self._build_prohibit_rules_section(class_iri)
 
-        # Build prompt (embed prohibit rules specific to target class)
-        prompt_with_rules = self.prompt_template.replace("{PROHIBIT_RULES}", prohibit_rules)
-        prompt = f"{prompt_with_rules}\n{labels_json}"
+        # Build prompt (embed prohibit rules and class labels specific to target class)
+        prompt = (self.prompt_template
+                  .replace("{prohibit_rules}", prohibit_rules)
+                  .replace("{class_labels}", labels_json))
 
         # Execute filtering with LLM (with retry)
         response = await self._invoke_with_retry(llm_json, prompt)
