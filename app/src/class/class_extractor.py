@@ -232,7 +232,7 @@ class ClassExtractor(Runnable):
             class_definitions=class_definitions,
             class_policies=class_policies
         )
-        prompt = f"{prompt}\n\n【テキスト】\n{chunks_text}\n"
+        prompt = f"{prompt}\n\n[Text]\n{chunks_text}\n"
 
         response = await self._invoke_with_retry(HumanMessage(content=prompt))
 

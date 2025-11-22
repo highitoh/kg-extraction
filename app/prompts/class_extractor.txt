@@ -1,13 +1,13 @@
-以下の【テキスト】から、知識グラフの【クラス】に相当する情報を【ポリシー】を遵守して抽出してください。
-同一文意の範囲での軽い言い換えは可。ただし意味の改変は禁止です。
+Extract information corresponding to the knowledge graph [Classes] from the following [Text], adhering to the [Policies].
+Minor rephrasing within the same meaning is allowed. However, altering the meaning is prohibited.
 
-【クラス】
+[Classes]
 {class_definitions}
 
-【ポリシー】
+[Policies]
 {class_policies}
 
-【抽出項目】
-- class: クラスの種類
-- label: 抽出したインスタンスの名前
-- source: 抽出元の文章
+[Extraction Items]
+- class: Type of class
+- label: Name of the extracted instance
+- source: Source sentence
