@@ -50,6 +50,8 @@ class PropertyConsolidator(Runnable):
         self.metamodel = self._load_metamodel()
         # Load prompt template
         self.prompt_template = self._load_prompt_template()
+        # Load custom rules
+        self.custom_rules = self._load_custom_rules()
 
     def _load_metamodel(self) -> dict:
         """Load metamodel file"""
@@ -70,6 +72,45 @@ class PropertyConsolidator(Runnable):
         prompt_path = os.path.join(app_dir, "prompts", "property_consolidator.txt")
         with open(prompt_path, "r", encoding="utf-8") as f:
             return f.read()
+
+    def _load_custom_rules(self) -> str:
+        """Load custom rules file if it exists"""
+        # Go up 2 levels from src/XXX/ to /workspace/app/
+
+        app_dir = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+
+        custom_path = os.path.join(app_dir, "prompts", "custom", "property_consolidator_custom.txt")
+
+        # Return empty string if file doesn't exist
+        if not os.path.exists(custom_path):
+            return ""
+
+        with open(custom_path, "r", encoding="utf-8") as f:
+            content = f.read().strip()
+            return "\n" + content if content else ""
+
+    def _build_extraction_rules(self, property_iri: str) -> str:
+        """
+        Get extract_rules for corresponding property from metamodel
+        and generate text of rules related to property consolidation
+
+        Parameters
+        ----------
+        property_iri : str
+            Target property IRI
+
+        Returns
+        -------
+        str
+            Extraction rules string
+        """
+        extract_rules = []
+        for prop in self.metamodel.get("properties", []):
+            if prop.get("iri") == property_iri:
+                extract_rules = prop.get("extract_rules", [])
+                break
+
+        return "\n".join(extract_rules) if extract_rules else ""
 
     def _build_schema(self) -> dict:
         """Load JSON schema for LLM"""
@@ -366,9 +407,11 @@ class PropertyConsolidator(Runnable):
 
         # Build prompt
         property_name = self._get_property_name_from_iri(property_iri)
+        extraction_rules = self._build_extraction_rules(property_iri)
         prompt = self.prompt_template.format(
             property_name=property_name,
-            property_iri=property_iri,
+            extraction_rules=extraction_rules,
+            custom_rules=self.custom_rules,
             property_list=property_list_text
         )
 

@@ -1,0 +1,15 @@
+[Judgment Criteria]
+Consider properties to be in the same group in the following cases:
+1. Source and destination labels are identical or similar
+   - Example: "user" and "app user" are similar
+   - Example: "privacy protection" and "protection of privacy" are similar
+2. From context text, can be judged to point to the same entity
+   - Similar concepts extracted from the same text
+   - Entities considered to have the same role/function
+3. Relationships between clearly different entities should be in separate groups
+   - Example: "user→privacy" and "developer→security" are separate groups
+
+[Notes]
+- Do not use strength values for judgment (the highest value is selected after consolidation)
+- If uncertain, treat as separate groups
+- Avoid overly aggressive consolidation; only group those clearly judged to be identical

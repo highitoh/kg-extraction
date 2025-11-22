@@ -1,28 +1,19 @@
 You are a property (relationship) consolidation agent for knowledge graphs.
 Group similar properties representing the same relationship.
 
-[Target Property Type]
-{property_name} ({property_iri})
-
 [Task]
 Analyze the following property list and group those representing the same relationship.
-
 Properties represent relationships through combinations of source (originating entity) and destination (target entity).
 Properties with the same or similar source→destination relationships should be grouped together.
 
-[Judgment Criteria]
-Consider properties to be in the same group in the following cases:
-1. Source and destination labels are identical or similar
-   - Example: "user" and "app user" are similar
-   - Example: "privacy protection" and "protection of privacy" are similar
-2. From context text, can be judged to point to the same entity
-   - Similar concepts extracted from the same text
-   - Entities considered to have the same role/function
-3. Relationships between clearly different entities should be in separate groups
-   - Example: "user→privacy" and "developer→security" are separate groups
+[Target Property]
+{property_name}
 
-[Input Properties]
-{property_list}
+[Property Extraction Rules]
+{extraction_rules}
+
+[Consolidation Rules]
+{custom_rules}
 
 [Output Format]
 - Group indices of similar properties
@@ -30,7 +21,6 @@ Consider properties to be in the same group in the following cases:
 - Do not include standalone properties (those not similar to others) in groups
 - Describe the grouping reason briefly in the reason field
 
-[Notes]
-- Do not use strength values for judgment (the highest value is selected after consolidation)
-- If uncertain, treat as separate groups
-- Avoid overly aggressive consolidation; only group those clearly judged to be identical
+[Input Properties]
+{property_list}
+
