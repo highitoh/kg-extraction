@@ -1,64 +1,64 @@
-あなたは、重複クラス候補の統合判定と正準ラベル選択を行うエージェントです。
+You are an agent that performs merge judgment and canonical label selection for duplicate class candidates.
 
-【タスク1: 統合判定】
-各重複グループについて、候補を統合すべきか判定してください。
+[Task 1: Merge Judgment]
+For each duplicate group, judge whether the candidates should be merged.
 
-【統合すべき場合】
-- 完全に同一概念を表している（例: 「利用者」と「ユーザー」）
-- 正式名称と略称の関係（例: 「厚生労働省」と「厚労省」）
-- 表記ゆれ（例: 「データベース」と「DB」）
+[Cases to Merge]
+- Represent exactly the same concept (e.g., "user" and "app user")
+- Relationship of formal name and abbreviation (e.g., "Ministry of Health, Labour and Welfare" and "MoH")
+- Notational variations (e.g., "database" and "DB")
 
-【統合すべきでない場合】
-- 異なる概念・エンティティを表す
-- 文脈により意味が異なる
-- 粒度が異なる（例: 「管理者」と「システム管理者」が別概念の場合）
+[Cases NOT to Merge]
+- Represent different concepts or entities
+- Meaning differs by context
+- Different granularity (e.g., when "administrator" and "system administrator" are separate concepts)
 
-【タスク2: 正準ラベル選択（統合する場合のみ）】
-統合すると判定した場合、以下の基準で正準ラベルを1つ選択してください。
+[Task 2: Canonical Label Selection (only when merging)]
+When judged to merge, select one canonical label based on the following criteria.
 
-【選択基準】（優先順位順）
-1. 最も完全で正式な名称（略称より正式名）
-2. より簡潔で一般的な表記
-3. ソース文脈の質が高い
+[Selection Criteria] (in priority order)
+1. Most complete and formal name (formal name over abbreviation)
+2. More concise and general notation
+3. Higher quality source context
 
-【タスク3: 代表クラス選択】
-統合する場合、どのclass_idを代表として使用するか選択してください。
-（通常は選択した正準ラベルを持つクラスのIDを選ぶ）
+[Task 3: Representative Class Selection]
+When merging, select which class_id to use as the representative.
+(Normally choose the ID of the class with the selected canonical label)
 
-【入力データ】
+[Input Data]
 {duplicate_groups_json}
 
-各グループの形式:
+Format of each group:
 {
   "duplicate_group_id": "dup_group_0",
   "candidates": [
     {
       "id": "cls_001",
-      "label": "利用者",
-      "sources": ["ソーステキスト..."]
+      "label": "user",
+      "sources": ["source text..."]
     }
   ]
 }
 
-【出力形式（JSONのみ）】
+[Output Format (JSON only)]
 {
   "resolutions": [
     {
       "duplicate_group_id": "dup_group_0",
       "should_merge": true,
-      "canonical_label": "利用者",
+      "canonical_label": "user",
       "merged_class_id": "cls_001",
-      "reason": "統合理由と正準ラベル選択理由"
+      "reason": "Merge reason and canonical label selection reason"
     },
     {
       "duplicate_group_id": "dup_group_1",
       "should_merge": false,
-      "reason": "統合しない理由"
+      "reason": "Reason not to merge"
     }
   ]
 }
 
-【注意事項】
-- should_merge=true の場合、canonical_label と merged_class_id は必須
-- should_merge=false の場合、canonical_label と merged_class_id は不要
-- merged_class_id は必ず入力の候補のいずれかのIDを使用
+[Notes]
+- When should_merge=true, canonical_label and merged_class_id are required
+- When should_merge=false, canonical_label and merged_class_id are not needed
+- merged_class_id must use one of the candidate IDs from the input

@@ -90,7 +90,7 @@ IMPORTANT:
 7. **Check metamodel definitions** to verify correct property usage
 
 Example Analysis:
-- If "relation_type_validity" scored 2 with justification "hasValueではなくhasConcept が適切" → RELATION_TYPE_MISMATCH
-- If "strength_validity" scored 3 with justification "重要な関係だが強度が低すぎる" → RELATION_STRENGTH_UNDER_ESTIMATED
-- If "relation_type_validity" scored 2 with justification "中間クラスを経由すべき" → MISSING_INTERMEDIATE_CLASS
-- If "strength_validity" scored 2 with justification "この関係は重要でないのに強度が高い" → RELATION_STRENGTH_OVER_ESTIMATED
+- If "relation_type_validity" scored 2 with justification "Should use hasConcept instead of hasValue" → RELATION_TYPE_MISMATCH
+- If "strength_validity" scored 3 with justification "Important relationship but strength is too low" → RELATION_STRENGTH_UNDER_ESTIMATED
+- If "relation_type_validity" scored 2 with justification "Should go through an intermediate class" → MISSING_INTERMEDIATE_CLASS
+- If "strength_validity" scored 2 with justification "This relationship is not important but strength is too high" → RELATION_STRENGTH_OVER_ESTIMATED

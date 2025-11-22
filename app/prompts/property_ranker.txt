@@ -1,86 +1,86 @@
-# Task: 関係性の強度評価
+# Task: Relationship Strength Evaluation
 
-クラス間の関係性の強度を評価してください。
+Evaluate the strength of relationships between classes.
 
-## 入力情報
+## Input Information
 
-### クラス定義
+### Class Definitions
 
-**出発点クラス:**
-- ラベル: {src_class_label}
-- 定義: {src_class_definition}
+**Source Class:**
+- Label: {src_class_label}
+- Definition: {src_class_definition}
 
-**到達点クラス:**
-- ラベル: {dest_class_label}
-- 定義: {dest_class_definition}
+**Destination Class:**
+- Label: {dest_class_label}
+- Definition: {dest_class_definition}
 
-### プロパティ（関係性）定義
-- プロパティ名: {property_label}
-- 定義: {property_definition}
+### Property (Relationship) Definition
+- Property Name: {property_label}
+- Definition: {property_definition}
 
-### 評価対象の関係性候補
-以下の関係性候補について、それぞれの強度を評価してください：
+### Relationship Candidates to Evaluate
+Evaluate the strength of each of the following relationship candidates:
 
 {property_candidates}
 
-## 強度評価基準
+## Strength Evaluation Criteria
 
-各関係性について、以下の4段階で強度を評価してください：
+Evaluate the strength of each relationship on the following 4-level scale:
 
-### 3 / Strong（必須依存）
-**意味:** BがなければAが成立しない
-**例:**
-- 「認証システム」と「ユーザーデータベース」（認証システムはユーザーデータベースなしには機能しない）
-- 「決済機能」と「クレジットカード情報」（決済機能はクレジットカード情報なしには成立しない）
+### 3 / Strong (Essential Dependency)
+**Meaning:** A cannot exist without B
+**Examples:**
+- "Authentication System" and "User Database" (authentication system cannot function without user database)
+- "Payment Function" and "Credit Card Information" (payment function cannot exist without credit card information)
 
-### 2 / Medium（機能的依存）
-**意味:** AがBを利用すると効率・性能が上がる
-**例:**
-- 「検索機能」と「インデックス」（インデックスがあると検索が高速化される）
-- 「レポート生成」と「キャッシュ機構」（キャッシュがあると処理が効率化される）
+### 2 / Medium (Functional Dependency)
+**Meaning:** A's efficiency/performance improves when using B
+**Examples:**
+- "Search Function" and "Index" (search becomes faster with an index)
+- "Report Generation" and "Cache Mechanism" (processing becomes more efficient with cache)
 
-### 1 / Weak（環境的依存）
-**意味:** Bがあると望ましいが、なくても代替手段がある
-**例:**
-- 「システム」と「監視ツール」（監視ツールがなくてもシステムは動作する）
-- 「アプリケーション」と「ログ収集サービス」（ログがなくても機能は実行される）
+### 1 / Weak (Environmental Dependency)
+**Meaning:** B is desirable but alternative means exist without it
+**Examples:**
+- "System" and "Monitoring Tool" (system operates without monitoring tool)
+- "Application" and "Log Collection Service" (functions execute without logs)
 
-### 0 / None（関連なし）
-**意味:** 論理的に独立している、または関係性が誤っている
-**例:**
-- 「ユーザー登録機能」と「天気予報データ」（論理的に独立）
-- 明らかに誤った関係性
+### 0 / None (No Relationship)
+**Meaning:** Logically independent or relationship is incorrect
+**Examples:**
+- "User Registration Function" and "Weather Forecast Data" (logically independent)
+- Clearly incorrect relationships
 
-## クラスインスタンス情報
+## Class Instance Information
 
-### 出発点クラスのインスタンス:
+### Source Class Instances:
 {src_instances}
 
-### 到達点クラスのインスタンス:
+### Destination Class Instances:
 {dest_instances}
 
-## 出力形式
+## Output Format
 
-各関係性候補について、以下の情報を含むJSONオブジェクトを出力してください：
+For each relationship candidate, output a JSON object containing the following information:
 
 ```json
 {{
   "relations": [
     {{
-      "src_id": "出発点クラスのID",
-      "dest_id": "到達点クラスのID",
-      "strength": 0-3の整数値,
-      "justification": "強度評価の根拠（1-2文程度）"
+      "src_id": "Source class ID",
+      "dest_id": "Destination class ID",
+      "strength": integer value 0-3,
+      "justification": "Basis for strength evaluation (1-2 sentences)"
     }}
   ]
 }}
 ```
 
-## 評価の指針
+## Evaluation Guidelines
 
-1. **クラス定義を重視**: ラベルだけでなく、クラスの定義文を参照して関係性の本質を理解してください
-2. **インスタンスのラベルを参考**: 各インスタンスのラベルから具体的な文脈を読み取ってください
-3. **依存関係を考慮**: 出発点が到達点に依存する度合いを評価してください
-4. **justificationは簡潔に**: 評価の根拠を1-2文で明確に記述してください
+1. **Prioritize class definitions**: Refer to class definition statements, not just labels, to understand the essence of relationships
+2. **Reference instance labels**: Read specific context from each instance's label
+3. **Consider dependencies**: Evaluate the degree to which the source depends on the destination
+4. **Keep justification concise**: Clearly describe the basis for evaluation in 1-2 sentences
 
-すべての関係性候補について評価を実施し、出力してください。
+Evaluate and output all relationship candidates.

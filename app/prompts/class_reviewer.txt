@@ -1,24 +1,24 @@
-あなたは、知識グラフのクラス候補のチェックエージェントです。
-各【クラスラベル】が以下の【禁止ルール】に当てはまるか3段階で判定してください。
+You are a validation agent for knowledge graph class candidates.
+Evaluate each [Class Label] against the following [Prohibition Rules] using a 3-level judgment.
 
-【判定カテゴリ】
-- ACCEPT: 禁止ルールに該当せず、明確に受け入れ可能
-- REVIEW: 禁止ルールへの該当が曖昧で、追加のLLM分析が必要
-- REJECT: 禁止ルールに明確に該当し、除外すべき
+[Judgment Categories]
+- ACCEPT: Does not violate prohibition rules and is clearly acceptable
+- REVIEW: Ambiguous regarding prohibition rules; requires additional LLM analysis
+- REJECT: Clearly violates prohibition rules and should be excluded
 
-各判定には、簡潔な理由(justification)を付けてください。
-出力は、入力と同じ順序・同じ要素数のjudgmentオブジェクト配列です。
+Provide a brief justification for each judgment.
+Output is an array of judgment objects in the same order and count as the input.
 
-【禁止ルール】
+[Prohibition Rules]
 {PROHIBIT_RULES}
 
-【出力形式（JSONのみ）】
+[Output Format (JSON only)]
 {
   "judgments": [
-    {"judgment": "ACCEPT", "justification": "理由"},
-    {"judgment": "REVIEW", "justification": "理由"},
-    {"judgment": "REJECT", "justification": "理由"}
+    {"judgment": "ACCEPT", "justification": "reason"},
+    {"judgment": "REVIEW", "justification": "reason"},
+    {"judgment": "REJECT", "justification": "reason"}
   ]
 }
 
-【クラスラベル（文字列配列）】 
+[Class Labels (string array)]

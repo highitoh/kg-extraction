@@ -40,10 +40,10 @@ For each class listed above that has at least one validation dimension scored �
 
 Common Class Issues:
 - MIXED_STAKEHOLDER_AND_VALUE - Stakeholder and value concepts are confused or mixed
-- ROLE_VS_CLASS_CONFUSION - Role (e.g., "利用者") is confused with a concrete class
+- ROLE_VS_CLASS_CONFUSION - Role (e.g., "user") is confused with a concrete class
 - WRONG_METAMODEL_LAYER - Class is defined at the wrong abstraction level in the metamodel
 - DATASET_VS_PROCESS_MIXED - Dataset concepts mixed with process/analysis concepts
-- NAMING_INCLUDES_ACTOR_IN_PARENTHESIS - Class name includes actor information in parentheses (e.g., "患者（利用者）")
+- NAMING_INCLUDES_ACTOR_IN_PARENTHESIS - Class name includes actor information in parentheses (e.g., "patient (user)")
 - TOO_BROAD_CLASS_BOUNDARY - Class scope is too broad, mixing multiple distinct concepts
 - TOO_NARROW_CLASS_BOUNDARY - Class scope is too narrow, over-fragmenting concepts
 - UNCLEAR_TERMINOLOGY - Class name uses ambiguous or unclear terminology
@@ -92,6 +92,6 @@ IMPORTANT:
 6. **Consider related classes** in the same IRI group for context
 
 Example Analysis:
-- If "boundary_suitability" scored 2 with justification "ステークホルダと価値が混在している" → MIXED_STAKEHOLDER_AND_VALUE
-- If "understandability" scored 3 with justification "括弧内に役割が含まれており分かりにくい" → NAMING_INCLUDES_ACTOR_IN_PARENTHESIS
-- If "conceptual_structure_validity" scored 2 with justification "メタモデルの階層が不適切" → WRONG_METAMODEL_LAYER
+- If "boundary_suitability" scored 2 with justification "Stakeholder and value are mixed" → MIXED_STAKEHOLDER_AND_VALUE
+- If "understandability" scored 3 with justification "Unclear due to role information included in parentheses" → NAMING_INCLUDES_ACTOR_IN_PARENTHESIS
+- If "conceptual_structure_validity" scored 2 with justification "Inappropriate metamodel hierarchy" → WRONG_METAMODEL_LAYER

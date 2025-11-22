@@ -1,5 +1,5 @@
-添付のPDFがプレゼンテーション資料かどうか判定してください。
-出力は以下のJSON形式にしてください。
+Determine whether the attached PDF is a presentation document.
+Output in the following JSON format:
 {
   "is_presentation": bool,
   "justification": str

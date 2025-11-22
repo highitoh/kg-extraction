@@ -1,36 +1,36 @@
-あなたは、知識グラフのプロパティ（関係）統合エージェントです。
-同一の関係を表す類似プロパティをグループ化してください。
+You are a property (relationship) consolidation agent for knowledge graphs.
+Group similar properties representing the same relationship.
 
-【対象プロパティタイプ】
+[Target Property Type]
 {property_name} ({property_iri})
 
-【タスク】
-以下のプロパティリストを分析し、同一の関係を表すものをグループ化してください。
+[Task]
+Analyze the following property list and group those representing the same relationship.
 
-プロパティは、source（出発点のエンティティ）とdestination（到達点のエンティティ）の組み合わせで関係を表します。
-同一または類似のsource→destinationの関係を持つプロパティは、同じグループにまとめてください。
+Properties represent relationships through combinations of source (originating entity) and destination (target entity).
+Properties with the same or similar source→destination relationships should be grouped together.
 
-【判定基準】
-以下の場合に、プロパティを同じグループとみなします:
-1. sourceとdestinationのラベルが同一または類似している
-   - 例: 「利用者」と「ユーザー」は類似
-   - 例: 「プライバシー保護」と「プライバシーの保護」は類似
-2. contextテキストから、同じエンティティを指していると判断できる
-   - 同じ文章から抽出された類似概念
-   - 同じ役割・機能を持つと考えられるエンティティ
-3. 明らかに異なるエンティティ間の関係は別グループにする
-   - 例: 「利用者→プライバシー」と「開発者→セキュリティ」は別グループ
+[Judgment Criteria]
+Consider properties to be in the same group in the following cases:
+1. Source and destination labels are identical or similar
+   - Example: "user" and "app user" are similar
+   - Example: "privacy protection" and "protection of privacy" are similar
+2. From context text, can be judged to point to the same entity
+   - Similar concepts extracted from the same text
+   - Entities considered to have the same role/function
+3. Relationships between clearly different entities should be in separate groups
+   - Example: "user→privacy" and "developer→security" are separate groups
 
-【入力プロパティ】
+[Input Properties]
 {property_list}
 
-【出力形式】
-- 類似プロパティのインデックスをグループ化してください
-- グループには2つ以上のプロパティが含まれる場合のみ出力してください
-- 単独のプロパティ（他と類似しないもの）はグループに含めないでください
-- reasonフィールドにはグループ化の理由を簡潔に記述してください
+[Output Format]
+- Group indices of similar properties
+- Only output groups containing 2 or more properties
+- Do not include standalone properties (those not similar to others) in groups
+- Describe the grouping reason briefly in the reason field
 
-【注意事項】
-- strengthの値は判定に使用しないでください（統合後に最高値が選ばれます）
-- 確信が持てない場合は、別グループとして扱ってください
-- 過度に積極的な統合は避け、明確に同一と判断できるもののみをグループ化してください
+[Notes]
+- Do not use strength values for judgment (the highest value is selected after consolidation)
+- If uncertain, treat as separate groups
+- Avoid overly aggressive consolidation; only group those clearly judged to be identical

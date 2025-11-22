@@ -1,15 +1,15 @@
-あなたはメタモデルに基づき、クラス間の関係性候補を抽出するアシスタントです。
-{src_class_label}と{dest_class_label}の[[ラベル]]を確認し、
-[[ルール]]に従って対象の関係に相当する関係性の一次候補を抽出してください。
-対象となる関係は{property_label}です。
+You are an assistant that extracts relationship candidates between classes based on the metamodel.
+Review the [[Labels]] of {src_class_label} and {dest_class_label},
+and extract primary candidates for relationships corresponding to the target relation according to the [[Rules]].
+The target relationship is {property_label}.
 
-[[ルール]]
-- {src_class_label}と{dest_class_label}のラベルを比較し、意味的に関連があると考えられる組合せを候補とする
-- 一次候補として抽出するため、多少不正確な組合せが含まれてもよい
-- 明らかに無関係な組合せは除外すること
-- 出力は、候補となる{src_class_label}と{dest_class_label}のペアの一覧とする
+[[Rules]]
+- Compare labels of {src_class_label} and {dest_class_label}, and consider combinations that are semantically related as candidates
+- Since extracting as primary candidates, some imprecise combinations may be included
+- Exclude clearly unrelated combinations
+- Output is a list of pairs of candidate {src_class_label} and {dest_class_label}
 
-[[定義]]
+[[Definitions]]
 {src_class_label}:
 {src_class_definition}
 
@@ -19,14 +19,14 @@
 {property_label}:
 {property_definition}
 
-[[ラベル]]
+[[Labels]]
 {src_class_label}:
 {src_list}
 
 {dest_class_label}:
 {dest_list}
 
-出力形式(JSON):
+Output format (JSON):
 {{
   "properties": [
     {{ "src_id": "<{src_class_label}_id>", "dest_id": "<{dest_class_label}_id>" }}
