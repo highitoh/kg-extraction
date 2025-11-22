@@ -559,9 +559,9 @@ class ClassEditor(Runnable):
         # Get only the target class's extract_rules
         extract_rules = self._build_extract_rules_section(class_iri)
 
-        # Build prompt (embed extract rules specific to target class)
-        prompt_with_rules = self.prompt_template.replace("{EXTRACT_RULES}", extract_rules)
-        prompt = f"{prompt_with_rules}\n{input_json}"
+        # Build prompt (embed extract rules specific to target class and input data)
+        prompt = self.prompt_template.replace("{extract_rules}", extract_rules)
+        prompt = prompt.replace("{input_data}", input_json)
 
         # Execute label correction with LLM (with retry)
         response = await self._invoke_with_retry(llm_json, prompt)
