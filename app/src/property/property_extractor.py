@@ -50,6 +50,9 @@ class PropertyExtractor(Runnable):
         # Load prompt
         self.prompt = self._load_prompt()
 
+        # Load custom rules
+        self.custom_rules = self._load_custom_rules()
+
         # Logger setup
         self.logger = Logger(log_dir)
 
@@ -82,6 +85,22 @@ class PropertyExtractor(Runnable):
         prompt_path = os.path.join(app_dir, "prompts", "property_extractor.txt")
         with open(prompt_path, "r", encoding="utf-8") as f:
             return f.read()
+
+    def _load_custom_rules(self) -> str:
+        """Load custom rules file if it exists"""
+        # Go up 2 levels from src/XXX/ to /workspace/app/
+
+        app_dir = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+
+        custom_path = os.path.join(app_dir, "prompts", "custom", "property_extractor_custom.txt")
+
+        # Return empty string if file doesn't exist
+        if not os.path.exists(custom_path):
+            return ""
+
+        with open(custom_path, "r", encoding="utf-8") as f:
+            content = f.read().strip()
+            return "\n" + content if content else ""
 
     @staticmethod
     def _to_text(c: Union[str, List[Any]]) -> str:
@@ -119,6 +138,7 @@ class PropertyExtractor(Runnable):
             src_class_definition=src_class_definition,
             dest_class_definition=dest_class_definition,
             property_definition=property_definition,
+            custom_rules=self.custom_rules,
             src_list=os.linesep.join(src_texts),
             dest_list=os.linesep.join(dest_texts)
         )

@@ -1,0 +1,2 @@
+- Since extracting as primary candidates, some imprecise combinations may be included
+- Exclude clearly unrelated combinations

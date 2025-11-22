@@ -1,16 +1,17 @@
 You are an assistant that extracts relationship candidates between classes based on the metamodel.
-Review the [[Labels]] of {src_class_label} and {dest_class_label},
-and extract primary candidates for relationships corresponding to the target relation according to the [[Rules]].
+
+[Task]
+Review the [Labels] of {src_class_label} and {dest_class_label},
+and extract primary candidates for relationships corresponding to the target relation according to the [Rules].
 The target relationship is {property_label}.
 
-[[Rules]]
+[Rules]
 - Preserve the original language of the class labels as provided
 - Compare labels of {src_class_label} and {dest_class_label}, and consider combinations that are semantically related as candidates
-- Since extracting as primary candidates, some imprecise combinations may be included
-- Exclude clearly unrelated combinations
 - Output is a list of pairs of candidate {src_class_label} and {dest_class_label}
+{custom_rules}
 
-[[Definitions]]
+[Definitions]
 {src_class_label}:
 {src_class_definition}
 
@@ -20,16 +21,16 @@ The target relationship is {property_label}.
 {property_label}:
 {property_definition}
 
-[[Labels]]
-{src_class_label}:
-{src_list}
-
-{dest_class_label}:
-{dest_list}
-
-Output format (JSON):
+[Output Format (JSON only)]
 {{
   "properties": [
     {{ "src_id": "<{src_class_label}_id>", "dest_id": "<{dest_class_label}_id>" }}
   ]
 }}
+
+[Labels]
+{src_class_label}:
+{src_list}
+
+{dest_class_label}:
+{dest_list}
