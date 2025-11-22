@@ -1,0 +1,5 @@
+Evaluation Guidelines
+1. **Prioritize class definitions**: Refer to class definition statements, not just labels, to understand the essence of relationships
+2. **Reference instance labels**: Read specific context from each instance's label
+3. **Consider dependencies**: Evaluate the degree to which the source depends on the destination
+4. **Keep justification concise**: Clearly describe the basis for evaluation in 1-2 sentences

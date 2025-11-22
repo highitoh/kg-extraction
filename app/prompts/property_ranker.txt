@@ -1,68 +1,46 @@
-# Task: Relationship Strength Evaluation
+You are an expert knowledge engineer specializing in ontology design and relationship evaluation.
 
-Evaluate the strength of relationships between classes.
+[Task]
+Evaluate the strength of each of the following relationship candidates.
+For each relationship candidate, output a JSON object containing the following information.
 
-## Input Information
-
-### Class Definitions
-
-**Source Class:**
-- Label: {src_class_label}
-- Definition: {src_class_definition}
-
-**Destination Class:**
-- Label: {dest_class_label}
-- Definition: {dest_class_definition}
-
-### Property (Relationship) Definition
-- Property Name: {property_label}
-- Definition: {property_definition}
-
-### Relationship Candidates to Evaluate
-Evaluate the strength of each of the following relationship candidates:
-
-{property_candidates}
-
-## Strength Evaluation Criteria
-
+[Rules]
 Evaluate the strength of each relationship on the following 4-level scale:
+- 3 / Strong (Essential Dependency)
+  - Meaning: A cannot exist without B
+  - Examples:
+    - "Authentication System" and "User Database" (authentication system cannot function without user database)
+    - "Payment Function" and "Credit Card Information" (payment function cannot exist without credit card information)
+- 2 / Medium (Functional Dependency)
+  - Meaning: A's efficiency/performance improves when using B
+  - Examples:
+    - "Search Function" and "Index" (search becomes faster with an index)
+    - "Report Generation" and "Cache Mechanism" (processing becomes more efficient with cache)
+- 1 / Weak (Environmental Dependency)
+  - Meaning: B is desirable but alternative means exist without it
+  - Examples:
+    - "System" and "Monitoring Tool" (system operates without monitoring tool)
+    - "Application" and "Log Collection Service" (functions execute without logs)
+-  0 / None (No Relationship)
+  - Meaning: Logically independent or relationship is incorrect
+  - Examples:
+    - "User Registration Function" and "Weather Forecast Data" (logically independent)
+    - Clearly incorrect relationships
 
-### 3 / Strong (Essential Dependency)
-**Meaning:** A cannot exist without B
-**Examples:**
-- "Authentication System" and "User Database" (authentication system cannot function without user database)
-- "Payment Function" and "Credit Card Information" (payment function cannot exist without credit card information)
+{custom_rules}
 
-### 2 / Medium (Functional Dependency)
-**Meaning:** A's efficiency/performance improves when using B
-**Examples:**
-- "Search Function" and "Index" (search becomes faster with an index)
-- "Report Generation" and "Cache Mechanism" (processing becomes more efficient with cache)
+[Definitions]
+- Source Class
+  - Label: {src_class_label}
+  - Definition: {src_class_definition}
+- Destination Class
+  - Label: {dest_class_label}
+  - Definition: {dest_class_definition}
+- Property (Relationship)
+  - Property Name: {property_label}
+  - Definition: {property_definition}
 
-### 1 / Weak (Environmental Dependency)
-**Meaning:** B is desirable but alternative means exist without it
-**Examples:**
-- "System" and "Monitoring Tool" (system operates without monitoring tool)
-- "Application" and "Log Collection Service" (functions execute without logs)
-
-### 0 / None (No Relationship)
-**Meaning:** Logically independent or relationship is incorrect
-**Examples:**
-- "User Registration Function" and "Weather Forecast Data" (logically independent)
-- Clearly incorrect relationships
-
-## Class Instance Information
-
-### Source Class Instances:
-{src_instances}
-
-### Destination Class Instances:
-{dest_instances}
-
-## Output Format
-
-For each relationship candidate, output a JSON object containing the following information:
-
+[Output Format (JSON only)]
 ```json
 {{
   "relations": [
@@ -76,11 +54,15 @@ For each relationship candidate, output a JSON object containing the following i
 }}
 ```
 
-## Evaluation Guidelines
+[Class Instances]
+Source Class Instances:
+{src_instances}
 
-1. **Prioritize class definitions**: Refer to class definition statements, not just labels, to understand the essence of relationships
-2. **Reference instance labels**: Read specific context from each instance's label
-3. **Consider dependencies**: Evaluate the degree to which the source depends on the destination
-4. **Keep justification concise**: Clearly describe the basis for evaluation in 1-2 sentences
+Destination Class Instances:
+{dest_instances}
 
+
+[Property Candidates]
 Evaluate and output all relationship candidates.
+
+{property_candidates}
