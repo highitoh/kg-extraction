@@ -47,6 +47,8 @@ class PropertyEditor(Runnable):
         self.metamodel = self._load_metamodel()
         # Load prompt template
         self.prompt_template = self._load_prompt_template()
+        # Load custom strength rules
+        self.custom_strength_rules = self._load_custom_strength_rules()
 
     def _build_schema(self, n: int) -> dict:
         """Load LLM schema file and set number of elements
@@ -80,29 +82,55 @@ class PropertyEditor(Runnable):
         with open(metamodel_path, "r", encoding="utf-8") as f:
             return json.load(f)
 
-    def _build_property_rules_section(self, target_property_iri: str) -> str:
-        """Dynamically generate rules section for specified property
+    def _get_extract_rules(self, target_property_iri: str) -> str:
+        """Get extract_rules for specified property from metamodel
 
         Args:
             target_property_iri: Target property IRI
-        """
-        rules_lines = []
 
+        Returns:
+            Formatted extract_rules string, or empty string if not found
+        """
         for prop in self.metamodel.get("properties", []):
             if prop.get("iri", "") == target_property_iri:
-                # Use property_rules if available
-                if "property_rules" in prop and prop.get("property_rules"):
-                    for rule in prop["property_rules"]:
-                        rules_lines.append(f"- {rule}")
-                # Include prohibit_rules as well
-                if "prohibit_rules" in prop and prop.get("prohibit_rules"):
-                    rules_lines.append("\n[Exclusion Rules]")
-                    for rule in prop["prohibit_rules"]:
-                        rules_lines.append(f"- {rule}")
+                rules = prop.get("extract_rules", [])
+                if rules:
+                    return "\n".join(f"- {rule}" for rule in rules)
                 break
+        return ""
 
-        result = "\n".join(rules_lines)
-        return result if result else "(No property rules)"
+    def _get_prohibit_rules(self, target_property_iri: str) -> str:
+        """Get prohibit_rules for specified property from metamodel
+
+        Args:
+            target_property_iri: Target property IRI
+
+        Returns:
+            Formatted prohibit_rules string, or empty string if not found
+        """
+        for prop in self.metamodel.get("properties", []):
+            if prop.get("iri", "") == target_property_iri:
+                rules = prop.get("prohibit_rules", [])
+                if rules:
+                    return "\n".join(f"- {rule}" for rule in rules)
+                break
+        return ""
+
+    def _load_custom_strength_rules(self) -> str:
+        """Load custom strength rules from external file
+
+        Returns:
+            Content of custom rules file, or empty string if not found/empty
+        """
+        app_dir = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+        custom_path = os.path.join(app_dir, "prompts", "custom", "property_editor_custom.txt")
+
+        if not os.path.exists(custom_path):
+            return ""
+
+        with open(custom_path, "r", encoding="utf-8") as f:
+            content = f.read().strip()
+            return "\n" + content if content else ""
 
     def _load_prompt_template(self) -> str:
         """Load prompt template file"""
@@ -268,12 +296,15 @@ class PropertyEditor(Runnable):
 
         input_json = json.dumps(input_data, ensure_ascii=False, indent=2)
 
-        # Get only property_rules of the target property
-        property_rules = self._build_property_rules_section(property_iri)
+        # Get rules for the target property
+        extract_rules = self._get_extract_rules(property_iri)
+        prohibit_rules = self._get_prohibit_rules(property_iri)
 
-        # Build prompt (embed rules specific to target property)
-        prompt_with_rules = self.prompt_template.replace("{PROPERTY_RULES}", property_rules)
-        prompt = f"{prompt_with_rules}\n{input_json}"
+        # Build prompt with three rule sections and input data
+        prompt = self.prompt_template.replace("{extract_rules}", extract_rules)
+        prompt = prompt.replace("{prohibit_rules}", prohibit_rules)
+        prompt = prompt.replace("{custom_strength_rules}", self.custom_strength_rules)
+        prompt = prompt.replace("{input_data}", input_json)
 
         # Execute strength correction with LLM (with retry)
         response = await self._invoke_with_retry(llm_json, prompt)
