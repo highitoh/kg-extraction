@@ -42,6 +42,8 @@ class ClassConsolidator(Runnable):
         self.metamodel = self._load_metamodel()
         # Load prompt template
         self.prompt_template = self._load_prompt_template()
+        # Load custom rules
+        self.custom_rules = self._load_custom_rules()
 
     def _load_metamodel(self) -> dict:
         """Load metamodel file"""
@@ -58,6 +60,20 @@ class ClassConsolidator(Runnable):
         prompt_path = os.path.join(app_dir, "prompts", "class_consolidator.txt")
         with open(prompt_path, "r", encoding="utf-8") as f:
             return f.read()
+
+    def _load_custom_rules(self) -> str:
+        """Load custom rules file if it exists"""
+        # Go up 2 levels from src/class/ to /workspace/app/
+        app_dir = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+        custom_path = os.path.join(app_dir, "prompts", "custom", "class_consolidator_custom.txt")
+
+        # Return empty string if file doesn't exist
+        if not os.path.exists(custom_path):
+            return ""
+
+        with open(custom_path, "r", encoding="utf-8") as f:
+            content = f.read().strip()
+            return "\n" + content if content else ""
 
     def _build_schema(self) -> dict:
         """Load JSON schema for LLM"""
@@ -194,13 +210,14 @@ class ClassConsolidator(Runnable):
 
         # Get class name and consolidation rules
         class_name = self._get_class_name_from_iri(class_iri)
-        consolidation_rules = self._build_consolidation_rules(class_iri)
+        extraction_rules = self._build_extraction_rules(class_iri)
 
         # Build prompt
         prompt = self.prompt_template.format(
             class_name=class_name,
-            consolidation_rules=consolidation_rules,
-            label_list=label_list_text
+            extraction_rules=extraction_rules,
+            label_list=label_list_text,
+            custom_rules=self.custom_rules
         )
 
         # Execute consolidation with LLM (with retry)
@@ -239,7 +256,7 @@ class ClassConsolidator(Runnable):
 
         return consolidated_classes
 
-    def _build_consolidation_rules(self, class_iri: str) -> str:
+    def _build_extraction_rules(self, class_iri: str) -> str:
         """
         Get extract_rules for corresponding class from metamodel and
         generate text of rules related to normalization
@@ -254,13 +271,13 @@ class ClassConsolidator(Runnable):
         str
             Consolidation rules string
         """
-        consolidation_rules = []
+        extraction_rules = []
         for cls in self.metamodel.get("classes", []):
             if cls.get("iri") == class_iri:
-                consolidation_rules = cls.get("extract_rules", [])
+                extraction_rules = cls.get("extract_rules", [])
                 break
 
-        return "\n".join(consolidation_rules) if consolidation_rules else []
+        return "\n".join(extraction_rules) if extraction_rules else []
 
     def _merge_classes(self, group_classes: List[Dict[str, Any]], canonical_label: str, reason: str = "") -> Dict[str, Any]:
         """

@@ -1,0 +1,9 @@
+[Canonical Label Selection Criteria] (in priority order)
+1. Prefer official names over abbreviations (formal name over abbreviation, English terminology over casual terms)
+   Example: "Ministry of Health, Labour and Welfare" over "MoH", "user" over "app user"
+2. Prefer terms defined in specifications or glossaries
+3. Prefer more concise and general notation
+   Example: "user" over "application user"
+4. Prefer general forms without attributes or modifiers
+   Example: "user" over "Japanese-speaking user"
+5. Prefer shorter character count (when equivalent)
