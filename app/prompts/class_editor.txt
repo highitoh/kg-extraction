@@ -4,6 +4,7 @@ For class labels judged as REVIEW, correct the labels to resolve the issues poin
 [Correction Policy]
 Refer to the following [Extraction Rules] to correct labels to resolve the justification issues.
 However, corrections that deviate from the meaning of the [Original Sentence (source)] are prohibited.
+Corrections must preserve the original language of the source text. Do not translate labels to another language.
 
 [Judgment Criteria]
 - Label correction possible: Set revised_label to the corrected label, should_reject=false

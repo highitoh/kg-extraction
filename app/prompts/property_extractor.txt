@@ -4,6 +4,7 @@ and extract primary candidates for relationships corresponding to the target rel
 The target relationship is {property_label}.
 
 [[Rules]]
+- Preserve the original language of the class labels as provided
 - Compare labels of {src_class_label} and {dest_class_label}, and consider combinations that are semantically related as candidates
 - Since extracting as primary candidates, some imprecise combinations may be included
 - Exclude clearly unrelated combinations

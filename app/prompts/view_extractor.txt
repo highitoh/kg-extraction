@@ -1,6 +1,7 @@
 Extract [Sentences] that describe each <<View>> from the following text.
 A single sentence may be assigned to multiple <<Views>>.
 However, only extract from the original text; rephrasing is prohibited.
+Extract sentences in their original language without translation.
 Do not extract ambiguous, general, or insufficiently specific sentences.
 Output must be JSON only.
 

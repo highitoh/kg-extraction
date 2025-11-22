@@ -1,5 +1,5 @@
 Extract information corresponding to the knowledge graph [Classes] from the following [Text], adhering to the [Policies].
-Minor rephrasing within the same meaning is allowed. However, altering the meaning is prohibited.
+Extract labels in the original language from the source text. Minor rephrasing within the same meaning is allowed. However, altering the meaning or translating to another language is prohibited.
 
 [Classes]
 {class_definitions}
