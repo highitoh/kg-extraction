@@ -574,15 +574,31 @@ if __name__ == "__main__":
         print(f"  ClassConsolidator logs: {len(class_log_files)}")
         exit(1)
 
-    # Get latest log files
-    latest_extractor_log = max(extractor_log_files, key=os.path.getmtime)
+    # Sort PropertyExtractor logs by modification time (newest first)
+    sorted_extractor_logs = sorted(extractor_log_files, key=os.path.getmtime, reverse=True)
+
+    # Get latest and second latest PropertyExtractor logs
+    latest_extractor_log = sorted_extractor_logs[0]
+    second_latest_extractor_log = sorted_extractor_logs[1] if len(sorted_extractor_logs) >= 2 else None
+
+    # Get latest ClassConsolidator log
     latest_class_log = max(class_log_files, key=os.path.getmtime)
 
-    print(f"Loading PropertyExtractor output from: {latest_extractor_log}")
+    print(f"Loading new properties from: {latest_extractor_log}")
+    if second_latest_extractor_log:
+        print(f"Loading existing properties from: {second_latest_extractor_log}")
+    else:
+        print("No second PropertyExtractor log found - using empty existing_properties")
     print(f"Loading ClassConsolidator output from: {latest_class_log}")
 
     with open(latest_extractor_log, "r", encoding="utf-8") as f:
         property_data = json.load(f)
+
+    # Load existing properties from second latest log if available
+    existing_property_data = {}
+    if second_latest_extractor_log:
+        with open(second_latest_extractor_log, "r", encoding="utf-8") as f:
+            existing_property_data = json.load(f)
 
     with open(latest_class_log, "r", encoding="utf-8") as f:
         class_data = json.load(f)
@@ -591,7 +607,7 @@ if __name__ == "__main__":
     sample_input = {
         "id": property_data.get("id", "test-id"),
         "properties": property_data.get("properties", []),
-        "existing_properties": [],  # Test without existing properties
+        "existing_properties": existing_property_data.get("properties", []),
         "class_info": class_data
     }
 
