@@ -344,11 +344,11 @@ class ClassExtractor(Runnable):
             name = cls.get("name", "")
             policy_items = []
 
-            # Character count constraints
+            # Token count constraints
             min_len = cls.get("min_length")
             max_len = cls.get("max_length")
             if min_len is not None and max_len is not None:
-                policy_items.append(f"  - 文字数: {min_len}～{max_len}字")
+                policy_items.append(f"  - Token count: {min_len}-{max_len} tokens")
 
             # Format guidelines (array support)
             extract_rules = cls.get("extract_rules", [])
