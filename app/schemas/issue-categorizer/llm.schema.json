@@ -1,0 +1,33 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {
+    "categories": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "category": {
+            "type": "string",
+            "description": "Clear, descriptive category name in English"
+          },
+          "description": {
+            "type": "string",
+            "description": "Concise explanation of what this category covers"
+          },
+          "issue_labels": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Array of issue labels belonging to this category"
+          }
+        },
+        "required": ["category", "description", "issue_labels"],
+        "additionalProperties": false
+      }
+    }
+  },
+  "required": ["categories"],
+  "additionalProperties": false
+}

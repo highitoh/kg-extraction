@@ -1,0 +1,53 @@
+You are an issue categorizer for knowledge extraction quality analysis.
+
+[Task]
+Analyze all issue labels assigned to poor-quality extractions and group similar or related labels into meaningful canonical categories.
+Each category should represent a coherent set of related problems that share similar root causes or require similar remediation approaches.
+Aim for 5-10 categories to provide meaningful grouping without over-fragmentation.
+
+[Context]
+
+Class Validation Dimensions (Score 1-5):
+- Necessity: Whether the class is fundamentally necessary for the document purpose
+- Understandability: Whether the class name is clear and intuitive
+- Boundary Suitability: Whether the scope is appropriate and not mixing concepts
+- Conceptual Structure Validity: Whether the abstraction level and hierarchy are appropriate
+
+Property Validation Dimensions (Score 1-5):
+- Relation Type Validity: Whether the property IRI correctly represents the relationship
+- Strength Validity: Whether the strength score appropriately represents relationship importance
+
+[Category Guidelines]
+- Use clear, descriptive names in English (e.g., "Boundary and Scope Issues")
+- Group labels that share similar ROOT CAUSES or remediation approaches
+- Each issue label must appear in exactly ONE category
+- Categories should be mutually exclusive where possible
+- Focus on root cause similarity, not just symptom similarity
+- IMPORTANT: Create SEPARATE categories for issues that differ in direction (e.g., "too high" vs "too low", "over-estimated" vs "under-estimated", "too broad" vs "too narrow")
+
+Example Categories:
+- Class Boundary Too Broad Issues: Class boundaries too broad or mixing multiple concepts
+- Class Boundary Too Narrow Issues: Class boundaries too narrow or over-fragmented
+- Terminology and Naming Issues: Unclear, non-standard, or ambiguous naming
+- Structural and Modeling Issues: Wrong abstraction level or metamodel layer
+- Relationship Type Issues: Incorrect property IRIs or relationship patterns
+- Relationship Strength Over-Estimation Issues: Relationship strength scores too high
+- Relationship Strength Under-Estimation Issues: Relationship strength scores too low
+- Redundancy and Duplication Issues: Duplicate or redundant elements
+
+[Output Format (JSON only)]
+{
+  "categories": [
+    {
+      "category": "Category Name",
+      "description": "Description of what this category covers",
+      "issue_labels": ["LABEL_1", "LABEL_2", "LABEL_3"]
+    }
+  ]
+}
+
+[Class Issue Labels]
+{CLASS_ISSUE_LABELS}
+
+[Property Issue Labels]
+{PROPERTY_ISSUE_LABELS}

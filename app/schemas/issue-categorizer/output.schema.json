@@ -1,0 +1,132 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Issue Categorization Output",
+  "description": "Output schema for issue categorization results",
+  "type": "object",
+  "properties": {
+    "timestamp": {
+      "type": "string",
+      "description": "Timestamp in YYYYMMDD_HHMMSS format"
+    },
+    "issue_classification_file": {
+      "type": "string",
+      "description": "Path to the issue classification file used as input"
+    },
+    "categories": {
+      "type": "array",
+      "description": "Categorized issues with their validations",
+      "items": {
+        "type": "object",
+        "properties": {
+          "category": {
+            "type": "string",
+            "description": "Category name"
+          },
+          "description": {
+            "type": "string",
+            "description": "Category description"
+          },
+          "issue_labels": {
+            "type": "array",
+            "description": "Issue labels in this category",
+            "items": {"type": "string"}
+          },
+          "validations": {
+            "type": "object",
+            "description": "Validation entries for this category",
+            "properties": {
+              "class_validations": {
+                "type": "array",
+                "description": "Class validations with these issue labels",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "class_id": {"type": "string"},
+                    "class_label": {"type": "string"},
+                    "necessity": {
+                      "type": "object",
+                      "properties": {
+                        "score": {"type": "integer", "minimum": 1, "maximum": 5},
+                        "justification": {"type": "string"}
+                      },
+                      "required": ["score", "justification"]
+                    },
+                    "understandability": {
+                      "type": "object",
+                      "properties": {
+                        "score": {"type": "integer", "minimum": 1, "maximum": 5},
+                        "justification": {"type": "string"}
+                      },
+                      "required": ["score", "justification"]
+                    },
+                    "boundary_suitability": {
+                      "type": "object",
+                      "properties": {
+                        "score": {"type": "integer", "minimum": 1, "maximum": 5},
+                        "justification": {"type": "string"}
+                      },
+                      "required": ["score", "justification"]
+                    },
+                    "conceptual_structure_validity": {
+                      "type": "object",
+                      "properties": {
+                        "score": {"type": "integer", "minimum": 1, "maximum": 5},
+                        "justification": {"type": "string"}
+                      },
+                      "required": ["score", "justification"]
+                    },
+                    "issue_labels": {
+                      "type": "array",
+                      "description": "Issue labels for this class",
+                      "items": {"type": "string"}
+                    }
+                  },
+                  "required": ["class_id", "class_label", "necessity", "understandability", "boundary_suitability", "conceptual_structure_validity", "issue_labels"]
+                }
+              },
+              "property_validations": {
+                "type": "array",
+                "description": "Property validations with these issue labels",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "property_id": {"type": "string"},
+                    "src_label": {"type": "string"},
+                    "property_iri": {"type": "string"},
+                    "dest_label": {"type": "string"},
+                    "relation_type_validity": {
+                      "type": "object",
+                      "properties": {
+                        "score": {"type": "integer", "minimum": 1, "maximum": 5},
+                        "justification": {"type": "string"}
+                      },
+                      "required": ["score", "justification"]
+                    },
+                    "strength_validity": {
+                      "type": "object",
+                      "properties": {
+                        "score": {"type": "integer", "minimum": 1, "maximum": 5},
+                        "justification": {"type": "string"}
+                      },
+                      "required": ["score", "justification"]
+                    },
+                    "issue_labels": {
+                      "type": "array",
+                      "description": "Issue labels for this property",
+                      "items": {"type": "string"}
+                    }
+                  },
+                  "required": ["property_id", "src_label", "property_iri", "dest_label", "relation_type_validity", "strength_validity", "issue_labels"]
+                }
+              }
+            },
+            "required": ["class_validations", "property_validations"]
+          }
+        },
+        "required": ["category", "description", "issue_labels", "validations"]
+      }
+    }
+  },
+  "required": ["timestamp", "issue_classification_file", "categories"],
+  "additionalProperties": false
+}
