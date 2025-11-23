@@ -92,11 +92,11 @@ class ViewExtractor(Runnable):
 
     async def _extract_spans_for_chunk(self, chunk: str) -> Dict[str, List[str]]:
         """Extract view-specific spans for one chunk"""
+        # Format the prompt with the target text
+        prompt_text = self.prompt.format(target_text=chunk)
+
         msg = HumanMessage(
-            content=[
-                {"type": "text", "text": self.prompt},
-                {"type": "text", "text": f"# Target Text\n{chunk}"},
-            ]
+            content=[{"type": "text", "text": prompt_text}]
         )
         ai = await self._invoke_with_retry(msg)
         raw = self._to_text(ai.content)
