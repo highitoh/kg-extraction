@@ -1,5 +1,6 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://github.com/highitoh/kg-extraction/schemas/issue-categorizer/output.schema.json",
   "title": "Issue Categorization Output",
   "description": "Output schema for issue categorization results",
   "type": "object",

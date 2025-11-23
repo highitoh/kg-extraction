@@ -1,5 +1,8 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://github.com/highitoh/kg-extraction/schemas/issue-categorizer/llm.schema.json",
+  "title": "Issue Categorizer - LLM Response",
+  "description": "LLM response schema for issue categorization",
   "type": "object",
   "properties": {
     "categories": {
