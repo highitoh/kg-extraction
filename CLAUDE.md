@@ -3,6 +3,9 @@
 ## Project Overview
 A LangChain-based application that extracts knowledge from PDF files and generates Turtle files and CSV files for Neo4j
 
+## General Guidelines
+- **Language**: All code comments, commit messages, documentation, and Claude Code outputs must be in English
+
 ## Development Environment
 - **Language**: Python
 - **Framework**: LangChain
