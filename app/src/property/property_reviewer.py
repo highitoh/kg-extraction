@@ -143,12 +143,14 @@ class PropertyReviewer(Runnable):
         # Get prohibition rules from the first property_iri in the batch
         property_iri = batch[0].get("property_iri", "") if batch else ""
         prohibit_rules = self._get_prohibit_rules(property_iri)
-        prompt_filled = self.prompt.replace("{PROHIBIT_RULES}", prohibit_rules)
+
+        # Fill in both template variables
+        prompt_filled = self.prompt.replace("{prohibit_rules}", prohibit_rules)
+        prompt_filled = prompt_filled.replace("{property_candidates}", batch_text)
 
         msg = HumanMessage(
             content=[
                 {"type": "text", "text": prompt_filled},
-                {"type": "text", "text": batch_text},
             ]
         )
 

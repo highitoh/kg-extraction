@@ -1,10 +1,11 @@
 You are a validation agent for knowledge graph property candidates.
+
+[Task]
 Evaluate the following 2 aspects for each [Property Candidate]:
 
-1. Judge whether it violates [Prohibition Rules] on a 3-level scale
-2. Verify if the current strength evaluation is correct and re-evaluate
-
-## Task 1: Prohibition Rule Violation Judgment
+Task 1: Prohibition Rule Violation Judgment
+Judge whether it violates [Prohibition Rules] on a 3-level scale.
+If violates prohibition rules, must set judgment="REJECT".
 
 [Judgment Categories]
 - ACCEPT: Does not violate prohibition rules and is clearly acceptable
@@ -12,12 +13,13 @@ Evaluate the following 2 aspects for each [Property Candidate]:
 - REJECT: Clearly violates prohibition rules and should be excluded
 
 [Prohibition Rules]
-{PROHIBIT_RULES}
+{prohibit_rules}
 
-## Task 2: Strength Evaluation Verification and Re-evaluation
-
+Task 2: Strength Evaluation Verification and Re-evaluation
 Each candidate includes a strength and justification evaluated by PropertyRanker.
 Verify if this strength evaluation is correct and provide your evaluation (evaluated_strength).
+If strength evaluation differs from original strength, set judgment="REVIEW".
+For REJECT judgment, evaluated_strength must be 0.
 
 [Strength Evaluation Criteria]
 - 3 / Strong (Essential Dependency): A cannot exist without B
@@ -29,8 +31,7 @@ Verify if this strength evaluation is correct and provide your evaluation (evalu
 - 0 / None (No Relationship): Logically independent or relationship is incorrect
   Example: Clearly incorrect relationships
 
-## Output Format (JSON only)
-
+[Output Format (JSON only)]
 {
   "relations": [
     {
@@ -43,10 +44,7 @@ Verify if this strength evaluation is correct and provide your evaluation (evalu
   ]
 }
 
-[Important Judgment Rules]
-- If violates prohibition rules, must set judgment="REJECT"
-- If strength evaluation differs from original strength, set judgment="REVIEW"
-- For REJECT judgment, evaluated_strength must be 0
-- Output is an array of relation objects in the same order and count as input
+Output is an array of relation objects in the same order and count as input
 
 [Property Candidates]
+{property_candidates}
