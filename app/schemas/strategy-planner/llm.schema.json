@@ -1,0 +1,44 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/highitoh/kg-extraction/schemas/strategy-planner/llm.schema.json",
+  "title": "Strategy Planner - LLM Response",
+  "description": "LLM response schema for strategy planning",
+  "type": "object",
+  "properties": {
+    "recommended_actions": {
+      "type": "array",
+      "description": "Prioritized list of recommended edits",
+      "items": {
+        "type": "object",
+        "properties": {
+          "target_type": {
+            "type": "string",
+            "description": "Type of target to edit",
+            "enum": ["custom_prompt", "extract_rules", "prohibit_rules"]
+          },
+          "target": {
+            "type": "string",
+            "description": "Actual target name (e.g., 'property_extractor_custom.txt' for custom_prompt, 'Stakeholder' for extract_rules, 'hasValue' for prohibit_rules)"
+          },
+          "reason": {
+            "type": "string",
+            "description": "Why this edit will address the quality issues (reference specific issue categories/labels)"
+          },
+          "priority": {
+            "type": "string",
+            "description": "Priority level based on issue frequency and severity",
+            "enum": ["high", "medium", "low"]
+          },
+          "suggested_changes": {
+            "type": "string",
+            "description": "Specific rule additions or modifications"
+          }
+        },
+        "required": ["target_type", "target", "reason", "priority", "suggested_changes"],
+        "additionalProperties": false
+      }
+    }
+  },
+  "required": ["recommended_actions"],
+  "additionalProperties": false
+}

@@ -1,0 +1,7 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/highitoh/kg-extraction/schemas/strategy-planner/input.schema.json",
+  "title": "Strategy Planner Input",
+  "description": "Input schema for strategy planner - references issue categorizer output",
+  "$ref": "../issue-categorizer/output.schema.json"
+}

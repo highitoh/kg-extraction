@@ -1,0 +1,52 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/highitoh/kg-extraction/schemas/strategy-planner/output.schema.json",
+  "title": "Strategy Planning Output",
+  "description": "Output schema for strategy planning results",
+  "type": "object",
+  "properties": {
+    "timestamp": {
+      "type": "string",
+      "description": "Timestamp in YYYYMMDD_HHMMSS format"
+    },
+    "issue_category_file": {
+      "type": "string",
+      "description": "Path to the issue category file used as input"
+    },
+    "recommended_actions": {
+      "type": "array",
+      "description": "Prioritized list of recommended edits",
+      "items": {
+        "type": "object",
+        "properties": {
+          "target_type": {
+            "type": "string",
+            "description": "Type of target to edit",
+            "enum": ["custom_prompt", "extract_rules", "prohibit_rules"]
+          },
+          "target": {
+            "type": "string",
+            "description": "Actual target name"
+          },
+          "reason": {
+            "type": "string",
+            "description": "Why this edit will address the quality issues"
+          },
+          "priority": {
+            "type": "string",
+            "description": "Priority level",
+            "enum": ["high", "medium", "low"]
+          },
+          "suggested_changes": {
+            "type": "string",
+            "description": "Specific rule additions or modifications"
+          }
+        },
+        "required": ["target_type", "target", "reason", "priority", "suggested_changes"],
+        "additionalProperties": false
+      }
+    }
+  },
+  "required": ["timestamp", "issue_category_file", "recommended_actions"],
+  "additionalProperties": false
+}
