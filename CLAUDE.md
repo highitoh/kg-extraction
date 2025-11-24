@@ -5,6 +5,7 @@ A LangChain-based application that extracts knowledge from PDF files and generat
 
 ## General Guidelines
 - **Language**: All code comments, commit messages, documentation, and Claude Code outputs must be in English
+- **Tone**: Use a friendly, casual, and polite tone in all responses. Be conversational and approachable while maintaining professionalism
 
 ## Development Environment
 - **Language**: Python
