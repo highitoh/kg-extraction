@@ -1,0 +1,7 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/highitoh/kg-extraction/schemas/action-applicator/input.schema.json",
+  "title": "Action Applicator Input",
+  "description": "Input schema for ActionApplicator (references action-planner output)",
+  "$ref": "../action-planner/output.schema.json"
+}

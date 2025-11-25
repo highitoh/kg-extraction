@@ -1,0 +1,81 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/highitoh/kg-extraction/schemas/action-applicator/output.schema.json",
+  "title": "Action Applicator Output",
+  "description": "Output schema for ActionApplicator results",
+  "type": "object",
+  "properties": {
+    "timestamp": {
+      "type": "string",
+      "description": "Timestamp of the application (YYYYMMDD_HHMMSS format)"
+    },
+    "action_proposals_file": {
+      "type": "string",
+      "description": "Path to the action proposals file used as input"
+    },
+    "total_proposals": {
+      "type": "integer",
+      "description": "Total number of proposals in the input file"
+    },
+    "updates_applied": {
+      "type": "array",
+      "description": "List of successfully applied updates",
+      "items": {
+        "type": "object",
+        "properties": {
+          "target_type": {
+            "type": "string",
+            "enum": ["custom_prompt", "extract_rules", "prohibit_rules"],
+            "description": "Type of target that was modified"
+          },
+          "target": {
+            "type": "string",
+            "description": "Specific target (filename or class/property name)"
+          },
+          "status": {
+            "type": "string",
+            "enum": ["success"],
+            "description": "Status of the update"
+          },
+          "backup_file": {
+            "type": "string",
+            "description": "Path to the backup file created"
+          }
+        },
+        "required": ["target_type", "target", "status"]
+      }
+    },
+    "errors": {
+      "type": "array",
+      "description": "List of errors encountered during application",
+      "items": {
+        "type": "object",
+        "properties": {
+          "target_type": {
+            "type": "string",
+            "description": "Type of target that failed"
+          },
+          "target": {
+            "type": "string",
+            "description": "Specific target that failed"
+          },
+          "error": {
+            "type": "string",
+            "description": "Error message"
+          }
+        },
+        "required": ["error"]
+      }
+    },
+    "backups_created": {
+      "type": "array",
+      "description": "List of all backup files created",
+      "items": {
+        "type": "string",
+        "description": "Path to backup file"
+      }
+    }
+  },
+  "required": ["timestamp", "action_proposals_file", "total_proposals", "updates_applied", "errors", "backups_created"],
+  "additionalProperties": false
+}
