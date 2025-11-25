@@ -31,6 +31,9 @@ Below are the improvement recommendations from the strategy plan:
    - Note any sections, numbering, or bullet point conventions
 
 2. **Apply Suggested Changes**
+   - **IMPORTANT**: Keep existing rules/content unchanged if they are not causing extraction quality issues
+   - Only modify or add when the strategy plan identifies a specific problem with the current state
+   - If existing rules are working well and don't conflict with suggested changes, preserve them exactly as-is
    - Integrate each suggested change into the appropriate section
    - Add new rules where existing ones don't cover the suggestion
    - Clarify or strengthen existing rules if they partially address the suggestion
@@ -68,12 +71,13 @@ Note: Since this is a custom prompt file (text format), provide the content in `
 
 [Important Guidelines]
 
-1. **Complete Content**: Return the ENTIRE updated file content, not just the changes
-2. **Preserve Structure**: Maintain existing section headers, numbering, and formatting
-3. **Consistent Tone**: Match the formality and style of the original content
-4. **No Deletions**: Do not remove existing rules unless explicitly suggested
-5. **Clear Integration**: New rules should blend naturally with existing ones
-6. **Specificity**: Ensure added rules are concrete and actionable
-7. **English Only**: All content must be in English
+1. **Conservative Updates**: Only modify what needs fixing. Preserve all working rules/content unchanged.
+2. **Complete Content**: Return the ENTIRE updated file content, not just the changes
+3. **Preserve Structure**: Maintain existing section headers, numbering, and formatting
+4. **Consistent Tone**: Match the formality and style of the original content
+5. **No Deletions**: Do not remove existing rules unless explicitly suggested
+6. **Clear Integration**: New rules should blend naturally with existing ones
+7. **Specificity**: Ensure added rules are concrete and actionable
+8. **English Only**: All content must be in English
 
 Generate the updated custom prompt file now.

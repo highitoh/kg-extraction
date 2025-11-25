@@ -31,6 +31,9 @@ Below are the improvement recommendations from the strategy plan:
    - Note the style and level of detail in current rules
 
 2. **Apply Suggested Changes**
+   - **IMPORTANT**: Keep existing rules intact unless they directly conflict with suggested changes or cause documented issues
+   - Only modify or add when the strategy plan identifies a specific problem with the current rules
+   - If existing rules are working well and don't conflict with suggested changes, preserve them exactly as-is
    - Add new rules that address gaps identified in the strategy plan
    - Strengthen existing rules if they partially address the suggestion
    - Ensure each rule is a complete, standalone statement
@@ -73,14 +76,15 @@ Note: Since this is metamodel rules (array format), provide the rules in `update
 
 [Important Guidelines]
 
-1. **Complete Rule Set**: Return ALL rules (existing + new), not just the changes
-2. **Array Format**: Output must be a JSON array of strings
-3. **One Rule Per String**: Each array element is one complete rule
-4. **No Deletions**: Do not remove existing rules unless explicitly suggested
-5. **Consistency**: Match the style and specificity of existing rules
-6. **Specificity**: Ensure added rules are concrete and actionable
-7. **English Only**: All rules must be in English
-8. **For extract_rules**: Focus on criteria for inclusion (positive framing)
-9. **For prohibit_rules**: Focus on criteria for exclusion (negative framing)
+1. **Conservative Updates**: Only modify what needs fixing. Preserve all working rules unchanged.
+2. **Complete Rule Set**: Return ALL rules (existing + new), not just the changes
+3. **Array Format**: Output must be a JSON array of strings
+4. **One Rule Per String**: Each array element is one complete rule
+5. **No Deletions**: Do not remove existing rules unless explicitly suggested
+6. **Consistency**: Match the style and specificity of existing rules
+7. **Specificity**: Ensure added rules are concrete and actionable
+8. **English Only**: All rules must be in English
+9. **For extract_rules**: Focus on criteria for inclusion (positive framing)
+10. **For prohibit_rules**: Focus on criteria for exclusion (negative framing)
 
 Generate the updated {rule_type} rules now.
