@@ -41,7 +41,7 @@ class StrategyPlanner:
         self.model = model
         self.progress = progress
         self.max_retries = max_retries
-        self.output_base_dir = "/workspace/app/output"
+        self.output_base_dir = "/workspace/app/output/optimizer"
 
         # Resolve issue category file path from project name
         self.issue_category_file = self._resolve_issue_category_path(project)

@@ -36,7 +36,7 @@ class ActionApplicator:
         self.project = project
         self.progress = progress
         self.backup = backup
-        self.output_base_dir = "/workspace/app/output"
+        self.output_base_dir = "/workspace/app/output/optimizer"
 
         # Resolve action proposals file path from project name
         self.action_proposals_file = self._resolve_action_proposals_path(project)
