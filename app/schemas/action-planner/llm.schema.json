@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/highitoh/kg-extraction/schemas/action-planner/llm.schema.json",
+  "title": "Action Planner - LLM Response",
+  "description": "LLM response schema for action proposal generation",
+  "type": "object",
+  "properties": {
+    "updated_content_text": {
+      "type": "string",
+      "description": "Updated text content for custom prompt files (used when target_type is custom_prompt, empty string for other types)"
+    },
+    "updated_content_array": {
+      "type": "array",
+      "description": "Updated array of rules for metamodel (used when target_type is extract_rules or prohibit_rules, empty array for custom_prompt)",
+      "items": {
+        "type": "string"
+      }
+    },
+    "changes_summary": {
+      "type": "string",
+      "description": "Brief summary of changes made"
+    }
+  },
+  "required": ["updated_content_text", "updated_content_array", "changes_summary"],
+  "additionalProperties": false
+}

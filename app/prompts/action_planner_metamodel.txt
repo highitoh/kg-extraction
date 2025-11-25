@@ -1,0 +1,86 @@
+You are an expert knowledge engineer tasked with updating metamodel rules for knowledge extraction quality improvement.
+
+[Task]
+Generate updated {rule_type} rules for a metamodel class or property by applying suggested improvements from the strategy plan.
+Your goal is to integrate the suggested changes while maintaining consistency with existing rules.
+
+[Context: Metamodel Rules]
+The metamodel defines classes and properties for knowledge extraction, each with two types of rules:
+- **extract_rules**: Guidelines for what TO extract (positive criteria)
+- **prohibit_rules**: Guidelines for what NOT to extract (negative criteria)
+
+Current task: Update {rule_type} rules
+Target: {target_name} ({target_description})
+Type: {entity_type}
+
+[Current Rules]
+Below are the current {rule_type} rules for {target_name}:
+
+{current_rules_list}
+
+[Suggested Changes]
+Below are the improvement recommendations from the strategy plan:
+
+{suggested_changes_list}
+
+[Instructions]
+
+1. **Analyze Current Rules**
+   - Understand the intent and scope of existing rules
+   - Identify coverage gaps that the suggestions address
+   - Note the style and level of detail in current rules
+
+2. **Apply Suggested Changes**
+   - Add new rules that address gaps identified in the strategy plan
+   - Strengthen existing rules if they partially address the suggestion
+   - Ensure each rule is a complete, standalone statement
+   - Maintain consistent phrasing and level of detail
+
+3. **Rule Quality Guidelines**
+   - Each rule should be a complete sentence
+   - Use clear, specific language (avoid vague terms)
+   - For extract_rules: Focus on positive criteria (what to include)
+   - For prohibit_rules: Use prohibitive language ("Do not...", "Avoid...")
+   - Keep rules focused and testable
+   - Avoid redundancy between rules
+
+4. **Validate Output**
+   - Check that all suggestions are addressed
+   - Ensure no critical existing rules are removed
+   - Verify rules are mutually compatible
+   - Confirm the rule set is comprehensive but not overly complex
+
+[Output Requirements]
+
+Generate a JSON response with:
+- **updated_content**: An array of rule strings (complete updated rule set)
+- **changes_summary**: A brief summary of what was changed (2-3 sentences)
+
+Format (JSON only):
+```json
+{{
+  "updated_content_text": "",
+  "updated_content_array": [
+    "First rule...",
+    "Second rule...",
+    "Third rule..."
+  ],
+  "changes_summary": "Brief description of changes made"
+}}
+```
+
+Note: Since this is metamodel rules (array format), provide the rules in `updated_content_array` and leave `updated_content_text` as an empty string.
+
+[Important Guidelines]
+
+1. **Complete Rule Set**: Return ALL rules (existing + new), not just the changes
+2. **Array Format**: Output must be a JSON array of strings
+3. **One Rule Per String**: Each array element is one complete rule
+4. **No Deletions**: Do not remove existing rules unless explicitly suggested
+5. **Consistency**: Match the style and specificity of existing rules
+6. **Specificity**: Ensure added rules are concrete and actionable
+7. **English Only**: All rules must be in English
+8. **For extract_rules**: Focus on criteria for inclusion (positive framing)
+9. **For prohibit_rules**: Focus on criteria for exclusion (negative framing)
+
+Generate the updated {rule_type} rules now.

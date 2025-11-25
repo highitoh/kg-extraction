@@ -1,0 +1,7 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/highitoh/kg-extraction/schemas/action-planner/input.schema.json",
+  "title": "Action Planner Input",
+  "description": "Input schema for action planner - references strategy planner output",
+  "$ref": "../strategy-planner/output.schema.json"
+}

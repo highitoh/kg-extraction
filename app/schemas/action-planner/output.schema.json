@@ -1,0 +1,101 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/highitoh/kg-extraction/schemas/action-planner/output.schema.json",
+  "title": "Action Proposal Output",
+  "description": "Output schema for action proposal results",
+  "type": "object",
+  "properties": {
+    "timestamp": {
+      "type": "string",
+      "description": "Timestamp of the action proposals (YYYYMMDD_HHMMSS format)"
+    },
+    "strategy_plan_file": {
+      "type": "string",
+      "description": "Path to the strategy plan file used as input"
+    },
+    "total_actions": {
+      "type": "integer",
+      "description": "Total number of actions in the strategy plan"
+    },
+    "filtered_actions": {
+      "type": "integer",
+      "description": "Number of actions after filtering (high/medium priority with suggestions)"
+    },
+    "proposals": {
+      "type": "array",
+      "description": "List of proposed changes",
+      "items": {
+        "type": "object",
+        "properties": {
+          "target_type": {
+            "type": "string",
+            "enum": ["custom_prompt", "extract_rules", "prohibit_rules"],
+            "description": "Type of target being modified"
+          },
+          "target": {
+            "type": "string",
+            "description": "Specific target (filename or class/property name)"
+          },
+          "current_content": {
+            "description": "Current content before changes",
+            "oneOf": [
+              {
+                "type": "string",
+                "description": "Current text content for custom prompt files"
+              },
+              {
+                "type": "array",
+                "description": "Current array of rules for metamodel",
+                "items": {
+                  "type": "string"
+                }
+              }
+            ]
+          },
+          "updated_content": {
+            "description": "Proposed updated content",
+            "oneOf": [
+              {
+                "type": "string",
+                "description": "Updated text content for custom prompt files"
+              },
+              {
+                "type": "array",
+                "description": "Updated array of rules for metamodel",
+                "items": {
+                  "type": "string"
+                }
+              }
+            ]
+          },
+          "actions_addressed": {
+            "type": "array",
+            "description": "List of strategy plan actions addressed by this proposal",
+            "items": {
+              "type": "object",
+              "properties": {
+                "reason": {
+                  "type": "string",
+                  "description": "Reason for the action"
+                },
+                "suggested_changes": {
+                  "type": "string",
+                  "description": "Suggested changes from strategy plan"
+                },
+                "priority": {
+                  "type": "string",
+                  "enum": ["high", "medium", "low"],
+                  "description": "Priority of this action"
+                }
+              },
+              "required": ["reason", "suggested_changes", "priority"]
+            }
+          }
+        },
+        "required": ["target_type", "target", "current_content", "updated_content", "actions_addressed"]
+      }
+    }
+  },
+  "required": ["timestamp", "strategy_plan_file", "total_actions", "filtered_actions", "proposals"],
+  "additionalProperties": false
+}

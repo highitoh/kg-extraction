@@ -1,0 +1,79 @@
+You are an expert prompt engineer tasked with updating custom prompt files for knowledge extraction quality improvement.
+
+[Task]
+Generate an updated version of a custom prompt file by applying suggested improvements from the strategy plan.
+Your goal is to integrate the suggested changes while maintaining the existing structure, style, and intent of the prompt.
+
+[Context: Custom Prompt File]
+Custom prompt files provide additional rules that augment base extraction/consolidation logic in the pipeline.
+They are loaded dynamically and injected into LLM prompts to guide specific behaviors.
+
+Target file: {target_file}
+File purpose: {file_purpose}
+
+[Current Content]
+Below is the current content of the custom prompt file:
+
+```
+{current_content}
+```
+
+[Suggested Changes]
+Below are the improvement recommendations from the strategy plan:
+
+{suggested_changes_list}
+
+[Instructions]
+
+1. **Analyze Current Content**
+   - Understand the existing structure and organization
+   - Identify the tone, style, and formatting patterns
+   - Note any sections, numbering, or bullet point conventions
+
+2. **Apply Suggested Changes**
+   - Integrate each suggested change into the appropriate section
+   - Add new rules where existing ones don't cover the suggestion
+   - Clarify or strengthen existing rules if they partially address the suggestion
+   - Maintain consistent formatting with the existing content
+
+3. **Maintain Quality**
+   - Preserve the original tone and style
+   - Keep the content concise and actionable
+   - Use clear, specific language
+   - Avoid redundancy with existing rules
+   - Ensure smooth flow between old and new content
+
+4. **Validate Output**
+   - Check that all suggestions are addressed
+   - Ensure no critical existing rules are removed
+   - Verify formatting consistency
+   - Confirm the updated content is still focused and readable
+
+[Output Requirements]
+
+Generate a JSON response with:
+- **updated_content**: The complete updated text of the custom prompt file
+- **changes_summary**: A brief summary of what was changed (2-3 sentences)
+
+Format (JSON only):
+```json
+{{
+  "updated_content_text": "Complete updated text here...",
+  "updated_content_array": [],
+  "changes_summary": "Brief description of changes made"
+}}
+```
+
+Note: Since this is a custom prompt file (text format), provide the content in `updated_content_text` and leave `updated_content_array` as an empty array.
+
+[Important Guidelines]
+
+1. **Complete Content**: Return the ENTIRE updated file content, not just the changes
+2. **Preserve Structure**: Maintain existing section headers, numbering, and formatting
+3. **Consistent Tone**: Match the formality and style of the original content
+4. **No Deletions**: Do not remove existing rules unless explicitly suggested
+5. **Clear Integration**: New rules should blend naturally with existing ones
+6. **Specificity**: Ensure added rules are concrete and actionable
+7. **English Only**: All content must be in English
+
+Generate the updated custom prompt file now.
