@@ -37,7 +37,7 @@ def run_evaluation(project: str = "default", model: str = "gpt-5-mini") -> Dict[
 
     results = {
         "project": project,
-        "timestamp": datetime.now().strftime("%Y%m%d_%H%M%S"),
+        "timestamp": datetime.now().strftime("%Y%m%d%H%M%S"),
         "stages_completed": [],
         "errors": []
     }

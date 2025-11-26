@@ -179,7 +179,7 @@ class StrategyPlanner:
             if self.progress:
                 print("[StrategyPlanner] No issue categories found. Nothing to plan.")
             return {
-                "timestamp": datetime.now().strftime("%Y%m%d_%H%M%S"),
+                "timestamp": datetime.now().strftime("%Y%m%d%H%M%S"),
                 "issue_category_file": self.issue_category_file,
                 "recommended_actions": []
             }
@@ -219,7 +219,7 @@ class StrategyPlanner:
                     print(f"  {i}. [{priority.upper()}] {target_type}:{target}")
 
             # Build output
-            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
             output = {
                 "timestamp": timestamp,
                 "issue_category_file": self.issue_category_file,

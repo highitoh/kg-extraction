@@ -437,7 +437,7 @@ class ActionPlanner:
             if self.progress:
                 print("[ActionPlanner] No valid actions to process. Exiting.")
             return {
-                "timestamp": datetime.now().strftime("%Y%m%d_%H%M%S"),
+                "timestamp": datetime.now().strftime("%Y%m%d%H%M%S"),
                 "strategy_plan_file": self.strategy_plan_file,
                 "total_actions": total_actions,
                 "filtered_actions": 0,
@@ -462,7 +462,7 @@ class ActionPlanner:
         proposals = await asyncio.gather(*tasks)
 
         # Build output
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
         output = {
             "timestamp": timestamp,
             "strategy_plan_file": self.strategy_plan_file,

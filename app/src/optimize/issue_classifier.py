@@ -576,7 +576,7 @@ class IssueClassifier:
             merged_property_validations.append(merged_prop)
 
         # Create classification report
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
         report = {
             "classification_id": str(uuid.uuid4()),
             "timestamp": timestamp,

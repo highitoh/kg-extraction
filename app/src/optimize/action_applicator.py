@@ -238,7 +238,7 @@ class ActionApplicator:
         proposals = self.action_proposals_data.get("proposals", [])
 
         results = {
-            "timestamp": datetime.now().strftime("%Y%m%d_%H%M%S"),
+            "timestamp": datetime.now().strftime("%Y%m%d%H%M%S"),
             "action_proposals_file": self.action_proposals_file,
             "total_proposals": len(proposals),
             "updates_applied": [],

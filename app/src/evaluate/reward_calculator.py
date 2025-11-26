@@ -212,7 +212,7 @@ class RewardCalculator:
 
         # Build report
         report = {
-            "timestamp": datetime.now().strftime("%Y%m%d_%H%M%S"),
+            "timestamp": datetime.now().strftime("%Y%m%d%H%M%S"),
             "class_scores": class_scores,
             "property_scores": property_scores,
             "summary": summary
@@ -231,7 +231,7 @@ class RewardCalculator:
             Path to the saved file
         """
         # Generate output filename with timestamp
-        timestamp = report.get("timestamp", datetime.now().strftime("%Y%m%d_%H%M%S"))
+        timestamp = report.get("timestamp", datetime.now().strftime("%Y%m%d%H%M%S"))
         output_filename = f"reward_calculation_{timestamp}.json"
 
         # Determine output path

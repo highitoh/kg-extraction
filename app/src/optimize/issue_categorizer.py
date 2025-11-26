@@ -221,7 +221,7 @@ class IssueCategorizer:
         if total_labels == 0:
             print("[IssueCategorizer] No issue labels found. Nothing to categorize.")
             return {
-                "timestamp": datetime.now().strftime("%Y%m%d_%H%M%S"),
+                "timestamp": datetime.now().strftime("%Y%m%d%H%M%S"),
                 "issue_classification_file": self.issue_classification_file,
                 "categories": []
             }
@@ -310,7 +310,7 @@ class IssueCategorizer:
                 }
             })
 
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
         return {
             "timestamp": timestamp,
             "issue_classification_file": self.issue_classification_file,
