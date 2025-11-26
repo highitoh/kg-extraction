@@ -26,7 +26,7 @@ class IssueCategorizer:
         project: str = "default",
         model: str = "gpt-5-mini",
         temperature: float = 0.3,
-        output_base_dir: str = "/workspace/app/output/optimizer",
+        output_base_dir: str = "/workspace/app/output/optimize",
         max_retries: int = 3,
     ):
         """

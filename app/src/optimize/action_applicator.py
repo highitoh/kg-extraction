@@ -36,7 +36,7 @@ class ActionApplicator:
         self.project = project
         self.progress = progress
         self.backup = backup
-        self.output_base_dir = "/workspace/app/output/optimizer"
+        self.output_base_dir = "/workspace/app/output/optimize"
 
         # Resolve action proposals file path from project name
         self.action_proposals_file = self._resolve_action_proposals_path(project)
@@ -48,7 +48,7 @@ class ActionApplicator:
         self.app_dir = Path(__file__).parent.parent.parent
         self.custom_prompts_dir = self.app_dir / "prompts" / "custom"
         self.metamodel_path = self.app_dir / "metamodel" / "metamodel.json"
-        self.backup_dir = self.app_dir / "log" / "optimizer"
+        self.backup_dir = self.app_dir / "log" / "optimize"
 
         # Ensure backup directory exists
         self.backup_dir.mkdir(parents=True, exist_ok=True)
@@ -104,7 +104,7 @@ class ActionApplicator:
 
     def _create_backup(self, file_path: Path) -> Optional[str]:
         """
-        Create timestamped backup of a file in /app/log/optimizer/.
+        Create timestamped backup of a file in /app/log/optimize/.
 
         Args:
             file_path: Path to the file to backup

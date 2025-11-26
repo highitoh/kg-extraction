@@ -48,7 +48,7 @@ class ActionPlanner:
         self.max_concurrency = max_concurrency
         self.progress = progress
         self.max_retries = max_retries
-        self.output_base_dir = "/workspace/app/output/optimizer"
+        self.output_base_dir = "/workspace/app/output/optimize"
 
         # Resolve strategy plan file path from project name
         self.strategy_plan_file = self._resolve_strategy_plan_path(project)
