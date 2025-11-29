@@ -18,7 +18,7 @@ A LangChain-based application that extracts knowledge from PDF files and generat
 /workspace/
 ├── app/                    # Main application
 │   ├── src/               # Source code (stage-based architecture)
-│   │   ├── extract.py     # Entry point
+│   │   ├── extract_workflow.py     # Entry point
 │   │   ├── core/          # Application core (graph.py, nodes.py, state.py)
 │   │   ├── utils/         # Common utilities (logger.py, llm_factory.py, chunk_creator.py)
 │   │   ├── classification/  # File classification stage
@@ -58,13 +58,13 @@ A LangChain-based application that extracts knowledge from PDF files and generat
 cd app && pip install -r requirements.txt
 
 # Run main application
-cd app && python src/extract.py [PDF_PATH]
+cd app && python src/extract_workflow.py [PDF_PATH]
 
 # Manage output files by project
-cd app && python src/extract.py [PDF_PATH] --project [PROJECT_NAME]
+cd app && python src/extract_workflow.py [PDF_PATH] --project [PROJECT_NAME]
 
 # All options
-cd app && python src/extract.py [PDF_PATH] --project [PROJECT_NAME] --model [MODEL_NAME] --output-dir [OUTPUT_DIR]
+cd app && python src/extract_workflow.py [PDF_PATH] --project [PROJECT_NAME] --model [MODEL_NAME] --output-dir [OUTPUT_DIR]
 
 # Run specific chain (for development/debugging)
 cd app && python -c "import sys; sys.path.insert(0, '.'); from src.text.doc_text_chain import *"
@@ -91,16 +91,16 @@ Use **gpt-5-nano** when testing the entire process to reduce costs
 ### Single file extraction
 ```bash
 # Default project
-python src/extract.py ../doc/sample.pdf --model gpt-5-nano
+python src/extract_workflow.py ../doc/sample.pdf --model gpt-5-nano
 
 # Specific project
-python src/extract.py ../doc/sample.pdf --project test-project --model gpt-5-nano
+python src/extract_workflow.py ../doc/sample.pdf --project test-project --model gpt-5-nano
 ```
 
 ### Multiple files extraction
 ```bash
-python src/extract.py ../doc/sample.pdf --project test-project --model gpt-5-nano
-python src/extract.py ../doc/sample2.pdf --project test-project --model gpt-5-nano
+python src/extract_workflow.py ../doc/sample.pdf --project test-project --model gpt-5-nano
+python src/extract_workflow.py ../doc/sample2.pdf --project test-project --model gpt-5-nano
 ```
 
 ## Environment Variables
@@ -154,7 +154,7 @@ Output files are managed by project, specified with the `--project` parameter.
 
 ## Command Line Arguments
 ```bash
-python src/extract.py [PDF_PATH] [OPTIONS]
+python src/extract_workflow.py [PDF_PATH] [OPTIONS]
 
 Arguments:
   PDF_PATH              Target PDF file path (default: ../doc/sample.pdf)

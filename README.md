@@ -62,7 +62,7 @@ Credentials: neo4j / neo4jpassword (described in docker-compose.yml)
 
 ```bash
 cd app
-python src/extract.py ../doc/sample.pdf
+python src/extract_workflow.py ../doc/sample.pdf
 ```
 
 ### With Project Organization
@@ -70,7 +70,7 @@ python src/extract.py ../doc/sample.pdf
 Organize output files by project:
 
 ```bash
-python src/extract.py ../doc/sample.pdf --project my-project
+python src/extract_workflow.py ../doc/sample.pdf --project my-project
 ```
 
 ### With Custom Model
@@ -78,13 +78,13 @@ python src/extract.py ../doc/sample.pdf --project my-project
 For development, use `gpt-5-nano` to reduce costs:
 
 ```bash
-python src/extract.py ../doc/sample.pdf --project test --model gpt-5-nano
+python src/extract_workflow.py ../doc/sample.pdf --project test --model gpt-5-nano
 ```
 
 ### All Options
 
 ```bash
-python src/extract.py ../doc/sample.pdf \
+python src/extract_workflow.py ../doc/sample.pdf \
   --project healthcare \
   --model gpt-5-nano \
   --output-dir ./custom_output
@@ -96,7 +96,7 @@ python src/extract.py ../doc/sample.pdf \
 /workspace/
 ├── app/                         # Main application
 │   ├── src/                     # Source code (stage-based organization)
-│   │   ├── extract.py           # Entry point
+│   │   ├── extract_workflow.py  # Entry point
 │   │   ├── core/                # Application core (graph.py, nodes.py, state.py)
 │   │   ├── utils/               # Shared utilities (logger.py, llm_factory.py, chunk_creator.py)
 │   │   ├── classification/      # Stage 0: File type classification
@@ -206,7 +206,7 @@ docker-compose up -d neo4j
 ## Command Line Arguments
 
 ```bash
-python src/extract.py [PDF_PATH] [OPTIONS]
+python src/extract_workflow.py [PDF_PATH] [OPTIONS]
 ```
 
 ### Arguments
@@ -223,16 +223,16 @@ python src/extract.py [PDF_PATH] [OPTIONS]
 
 ```bash
 # Use default settings
-python src/extract.py
+python src/extract_workflow.py
 
 # Specify project name
-python src/extract.py ../doc/sample.pdf --project test
+python src/extract_workflow.py ../doc/sample.pdf --project test
 
 # Development testing with cost-effective model
-python src/extract.py ../doc/sample.pdf --project test --model gpt-5-nano
+python src/extract_workflow.py ../doc/sample.pdf --project test --model gpt-5-nano
 
 # All options
-python src/extract.py ../doc/sample.pdf --project test --model gpt-5-nano --output-dir /custom/output
+python src/extract_workflow.py ../doc/sample.pdf --project test --model gpt-5-nano --output-dir /custom/output
 ```
 
 ## Tips

@@ -4,4 +4,4 @@
 # Usage: ./extract.sh <pdf_path> [--project PROJECT] [--model MODEL] [--output-dir DIR]
 
 cd /workspace/app
-python src/extract.py "$@"
+python src/extract_workflow.py "$@"

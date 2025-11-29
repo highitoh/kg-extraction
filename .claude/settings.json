@@ -38,7 +38,7 @@
     "languages": ["Python"],
     "frameworks": ["LangChain", "Neo4j"],
     "keyPaths": {
-      "main": "app/src/extract.py",
+      "main": "app/src/extract_workflow.py",
       "schemas": "app/schemas/",
       "prompts": "app/prompts/",
       "chains": "app/*_chain.py",
@@ -52,7 +52,7 @@
     "afterBash": null
   },
   "shortcuts": {
-    "test": "cd app && python src/extract.py ../doc/sample.pdf --model gpt-5-nano",
+    "test": "cd app && python src/extract_workflow.py ../doc/sample.pdf --model gpt-5-nano",
     "install": "cd app && pip install -r requirements.txt",
     "docker-up": "docker-compose up -d",
     "docker-down": "docker-compose down",
