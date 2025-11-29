@@ -24,7 +24,6 @@ class IssueClassifier:
 
     def __init__(
         self,
-        project: str = "default",
         model: str = "gpt-5-mini",
         temperature: float = 0.5,
         output_base_dir: str = "/workspace/app/output/optimize",
@@ -34,20 +33,18 @@ class IssueClassifier:
         Initialize the IssueClassifier.
 
         Args:
-            project: Project name (resolves to /workspace/app/output/{project}/)
             model: LLM model name
             temperature: LLM temperature setting (higher for creative label generation)
-            output_base_dir: Base directory for project outputs
+            output_base_dir: Base directory for optimize outputs
             max_retries: Maximum number of retries for LLM API calls
         """
-        self.project = project
         self.model = model
         self.temperature = temperature
         self.output_base_dir = output_base_dir
         self.max_retries = max_retries
 
-        # Resolve validator result file path from project name
-        self.validator_result_file = self._resolve_validator_result_path(project, output_base_dir)
+        # Resolve validator result file path
+        self.validator_result_file = self._resolve_validator_result_path(output_base_dir)
 
         # Load validator result data
         self.validator_result_data = self._load_json(self.validator_result_file)
@@ -119,13 +116,12 @@ class IssueClassifier:
         with open(file_path, 'r', encoding='utf-8') as f:
             return json.load(f)
 
-    def _resolve_validator_result_path(self, project: str, output_base_dir: str) -> str:
+    def _resolve_validator_result_path(self, output_base_dir: str) -> str:
         """
-        Resolve validator_result file path from project name.
+        Resolve validator_result file path.
 
         Args:
-            project: Project name
-            output_base_dir: Base directory for project outputs
+            output_base_dir: Base directory for optimize outputs
 
         Returns:
             Path to the most recent validator_result_*.json file
@@ -133,22 +129,21 @@ class IssueClassifier:
         Raises:
             FileNotFoundError: If required files don't exist
         """
-        project_dir = Path(output_base_dir) / project
+        optimize_dir = Path(output_base_dir)
 
-        # Check if project directory exists
-        if not project_dir.exists():
+        # Check if optimize directory exists
+        if not optimize_dir.exists():
             raise FileNotFoundError(
-                f"Project directory not found: {project_dir}\n"
-                f"Available projects: {', '.join([d.name for d in Path(output_base_dir).iterdir() if d.is_dir()])}"
+                f"Optimize directory not found: {optimize_dir}"
             )
 
         # Find most recent validator_result file
-        validator_result_pattern = str(project_dir / "validator_result_*.json")
+        validator_result_pattern = str(optimize_dir / "validator_result_*.json")
         validator_result_files = sorted(glob.glob(validator_result_pattern), reverse=True)
 
         if not validator_result_files:
             raise FileNotFoundError(
-                f"No validator_result_*.json files found in project directory: {project_dir}\n"
+                f"No validator_result_*.json files found in optimize directory: {optimize_dir}\n"
                 f"Pattern searched: {validator_result_pattern}\n"
                 f"Please run KnowledgeValidator first."
             )
@@ -598,8 +593,8 @@ class IssueClassifier:
     def save_report(self, report: Dict[str, Any], output_dir: Optional[str] = None) -> str:
         """Save classification report to file."""
         if output_dir is None:
-            # Default: save to project directory
-            output_dir = Path(self.output_base_dir) / self.project
+            # Default: save to optimize directory
+            output_dir = Path(self.output_base_dir)
         else:
             output_dir = Path(output_dir)
 
@@ -617,11 +612,6 @@ class IssueClassifier:
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Issue Classifier - Classifies issues in poor extractions using LLM")
     parser.add_argument(
-        "--project",
-        required=True,
-        help="Project name (resolves to /workspace/app/output/{project}/)"
-    )
-    parser.add_argument(
         "--model",
         default="gpt-5-mini",
         help="LLM model name (default: gpt-5-mini)"
@@ -633,7 +623,6 @@ if __name__ == "__main__":
         # Create classifier
         print(f"[IssueClassifier] Initializing IssueClassifier with model: {args.model}")
         classifier = IssueClassifier(
-            project=args.project,
             model=args.model
         )
 

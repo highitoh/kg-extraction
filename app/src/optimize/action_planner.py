@@ -24,7 +24,6 @@ class ActionPlanner:
 
     def __init__(
         self,
-        project: str = "default",
         model: str = "gpt-5-mini",
         temperature: float = 0.3,
         max_concurrency: int = 8,
@@ -35,14 +34,12 @@ class ActionPlanner:
         Initialize the ActionPlanner.
 
         Args:
-            project: Project name (resolves to /workspace/app/output/{project}/)
             model: LLM model name
             temperature: LLM temperature for consistency
             max_concurrency: Maximum concurrent LLM calls
             progress: Whether to show progress messages
             max_retries: Maximum number of retries for LLM API calls
         """
-        self.project = project
         self.model = model
         self.temperature = temperature
         self.max_concurrency = max_concurrency
@@ -50,8 +47,8 @@ class ActionPlanner:
         self.max_retries = max_retries
         self.output_base_dir = "/workspace/app/output/optimize"
 
-        # Resolve strategy plan file path from project name
-        self.strategy_plan_file = self._resolve_strategy_plan_path(project)
+        # Resolve strategy plan file path
+        self.strategy_plan_file = self._resolve_strategy_plan_path()
 
         # Load strategy plan data
         self.strategy_plan_data = self._load_json(self.strategy_plan_file)
@@ -109,12 +106,9 @@ class ActionPlanner:
         with open(metamodel_path, 'r', encoding='utf-8') as f:
             return json.load(f)
 
-    def _resolve_strategy_plan_path(self, project: str) -> str:
+    def _resolve_strategy_plan_path(self) -> str:
         """
-        Resolve strategy_plan file path from project name.
-
-        Args:
-            project: Project name
+        Resolve strategy_plan file path.
 
         Returns:
             Path to the most recent strategy_plan_*.json file
@@ -122,22 +116,21 @@ class ActionPlanner:
         Raises:
             FileNotFoundError: If required files don't exist
         """
-        project_dir = Path(self.output_base_dir) / project
+        optimize_dir = Path(self.output_base_dir)
 
-        # Check if project directory exists
-        if not project_dir.exists():
+        # Check if optimize directory exists
+        if not optimize_dir.exists():
             raise FileNotFoundError(
-                f"Project directory not found: {project_dir}\n"
-                f"Available projects: {', '.join([d.name for d in Path(self.output_base_dir).iterdir() if d.is_dir()])}"
+                f"Optimize directory not found: {optimize_dir}"
             )
 
         # Find most recent strategy_plan file
-        strategy_plan_pattern = str(project_dir / "strategy_plan_*.json")
+        strategy_plan_pattern = str(optimize_dir / "strategy_plan_*.json")
         strategy_plan_files = sorted(glob.glob(strategy_plan_pattern), reverse=True)
 
         if not strategy_plan_files:
             raise FileNotFoundError(
-                f"No strategy_plan_*.json files found in project directory: {project_dir}\n"
+                f"No strategy_plan_*.json files found in optimize directory: {optimize_dir}\n"
                 f"Pattern searched: {strategy_plan_pattern}\n"
                 f"Please run StrategyPlanner first."
             )
@@ -483,8 +476,8 @@ class ActionPlanner:
     def save_result(self, result: Dict[str, Any], output_dir: Optional[str] = None) -> str:
         """Save action proposals to file."""
         if output_dir is None:
-            # Default: save to project directory
-            output_dir = Path(self.output_base_dir) / self.project
+            # Default: save to optimize directory
+            output_dir = Path(self.output_base_dir)
         else:
             output_dir = Path(output_dir)
 
@@ -501,11 +494,6 @@ class ActionPlanner:
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Action Planner - Generates concrete fix proposals from strategy plans")
-    parser.add_argument(
-        "--project",
-        required=True,
-        help="Project name (resolves to /workspace/app/output/{project}/)"
-    )
     parser.add_argument(
         "--model",
         default="gpt-5-mini",
@@ -535,7 +523,6 @@ if __name__ == "__main__":
         # Create planner
         print(f"[ActionPlanner] Initializing ActionPlanner with model: {args.model}")
         planner = ActionPlanner(
-            project=args.project,
             model=args.model,
             temperature=args.temperature,
             max_concurrency=args.max_concurrency,

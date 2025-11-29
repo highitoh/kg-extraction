@@ -23,7 +23,6 @@ class StrategyPlanner:
 
     def __init__(
         self,
-        project: str = "default",
         model: str = "gpt-5-mini",
         progress: bool = True,
         max_retries: int = 3,
@@ -32,19 +31,17 @@ class StrategyPlanner:
         Initialize the StrategyPlanner.
 
         Args:
-            project: Project name (resolves to /workspace/app/output/{project}/)
             model: LLM model name
             progress: Whether to show progress messages
             max_retries: Maximum number of retries for LLM API calls
         """
-        self.project = project
         self.model = model
         self.progress = progress
         self.max_retries = max_retries
         self.output_base_dir = "/workspace/app/output/optimize"
 
-        # Resolve issue category file path from project name
-        self.issue_category_file = self._resolve_issue_category_path(project)
+        # Resolve issue category file path
+        self.issue_category_file = self._resolve_issue_category_path()
 
         # Load issue category data
         self.issue_category_data = self._load_json(self.issue_category_file)
@@ -92,12 +89,9 @@ class StrategyPlanner:
         with open(file_path, 'r', encoding='utf-8') as f:
             return json.load(f)
 
-    def _resolve_issue_category_path(self, project: str) -> str:
+    def _resolve_issue_category_path(self) -> str:
         """
-        Resolve issue_category file path from project name.
-
-        Args:
-            project: Project name
+        Resolve issue_category file path.
 
         Returns:
             Path to the most recent issue_category_*.json file
@@ -105,22 +99,21 @@ class StrategyPlanner:
         Raises:
             FileNotFoundError: If required files don't exist
         """
-        project_dir = Path(self.output_base_dir) / project
+        optimize_dir = Path(self.output_base_dir)
 
-        # Check if project directory exists
-        if not project_dir.exists():
+        # Check if optimize directory exists
+        if not optimize_dir.exists():
             raise FileNotFoundError(
-                f"Project directory not found: {project_dir}\n"
-                f"Available projects: {', '.join([d.name for d in Path(self.output_base_dir).iterdir() if d.is_dir()])}"
+                f"Optimize directory not found: {optimize_dir}"
             )
 
         # Find most recent issue_category file
-        issue_category_pattern = str(project_dir / "issue_category_*.json")
+        issue_category_pattern = str(optimize_dir / "issue_category_*.json")
         issue_category_files = sorted(glob.glob(issue_category_pattern), reverse=True)
 
         if not issue_category_files:
             raise FileNotFoundError(
-                f"No issue_category_*.json files found in project directory: {project_dir}\n"
+                f"No issue_category_*.json files found in optimize directory: {optimize_dir}\n"
                 f"Pattern searched: {issue_category_pattern}\n"
                 f"Please run IssueCategorizer first."
             )
@@ -243,8 +236,8 @@ class StrategyPlanner:
     def save_result(self, result: Dict[str, Any], output_dir: Optional[str] = None) -> str:
         """Save strategy plan to file."""
         if output_dir is None:
-            # Default: save to project directory
-            output_dir = Path(self.output_base_dir) / self.project
+            # Default: save to optimize directory
+            output_dir = Path(self.output_base_dir)
         else:
             output_dir = Path(output_dir)
 
@@ -262,11 +255,6 @@ class StrategyPlanner:
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Strategy Planner - Creates improvement plans by analyzing categorized issues")
     parser.add_argument(
-        "--project",
-        required=True,
-        help="Project name (resolves to /workspace/app/output/{project}/)"
-    )
-    parser.add_argument(
         "--model",
         default="gpt-5-mini",
         help="LLM model name (default: gpt-5-mini)"
@@ -283,7 +271,6 @@ if __name__ == "__main__":
         # Create planner
         print(f"[StrategyPlanner] Initializing StrategyPlanner with model: {args.model}")
         planner = StrategyPlanner(
-            project=args.project,
             model=args.model,
             progress=not args.no_progress
         )

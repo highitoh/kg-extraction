@@ -23,7 +23,6 @@ class IssueCategorizer:
 
     def __init__(
         self,
-        project: str = "default",
         model: str = "gpt-5-mini",
         temperature: float = 0.3,
         output_base_dir: str = "/workspace/app/output/optimize",
@@ -33,20 +32,18 @@ class IssueCategorizer:
         Initialize the IssueCategorizer.
 
         Args:
-            project: Project name (resolves to /workspace/app/output/{project}/)
             model: LLM model name
             temperature: LLM temperature setting (lower for consistent categorization)
-            output_base_dir: Base directory for project outputs
+            output_base_dir: Base directory for optimize outputs
             max_retries: Maximum number of retries for LLM API calls
         """
-        self.project = project
         self.model = model
         self.temperature = temperature
         self.output_base_dir = output_base_dir
         self.max_retries = max_retries
 
-        # Resolve issue classification file path from project name
-        self.issue_classification_file = self._resolve_issue_classification_path(project, output_base_dir)
+        # Resolve issue classification file path
+        self.issue_classification_file = self._resolve_issue_classification_path(output_base_dir)
 
         # Load issue classification data
         self.issue_classification_data = self._load_json(self.issue_classification_file)
@@ -99,13 +96,12 @@ class IssueCategorizer:
         with open(file_path, 'r', encoding='utf-8') as f:
             return json.load(f)
 
-    def _resolve_issue_classification_path(self, project: str, output_base_dir: str) -> str:
+    def _resolve_issue_classification_path(self, output_base_dir: str) -> str:
         """
-        Resolve issue_classification file path from project name.
+        Resolve issue_classification file path.
 
         Args:
-            project: Project name
-            output_base_dir: Base directory for project outputs
+            output_base_dir: Base directory for optimize outputs
 
         Returns:
             Path to the most recent issue_classification_*.json file
@@ -113,22 +109,21 @@ class IssueCategorizer:
         Raises:
             FileNotFoundError: If required files don't exist
         """
-        project_dir = Path(output_base_dir) / project
+        optimize_dir = Path(output_base_dir)
 
-        # Check if project directory exists
-        if not project_dir.exists():
+        # Check if optimize directory exists
+        if not optimize_dir.exists():
             raise FileNotFoundError(
-                f"Project directory not found: {project_dir}\n"
-                f"Available projects: {', '.join([d.name for d in Path(output_base_dir).iterdir() if d.is_dir()])}"
+                f"Optimize directory not found: {optimize_dir}"
             )
 
         # Find most recent issue_classification file
-        issue_classification_pattern = str(project_dir / "issue_classification_*.json")
+        issue_classification_pattern = str(optimize_dir / "issue_classification_*.json")
         issue_classification_files = sorted(glob.glob(issue_classification_pattern), reverse=True)
 
         if not issue_classification_files:
             raise FileNotFoundError(
-                f"No issue_classification_*.json files found in project directory: {project_dir}\n"
+                f"No issue_classification_*.json files found in optimize directory: {optimize_dir}\n"
                 f"Pattern searched: {issue_classification_pattern}\n"
                 f"Please run IssueClassifier first."
             )
@@ -324,8 +319,8 @@ class IssueCategorizer:
     def save_report(self, report: Dict[str, Any], output_dir: Optional[str] = None) -> str:
         """Save categorization report to file."""
         if output_dir is None:
-            # Default: save to project directory
-            output_dir = Path(self.output_base_dir) / self.project
+            # Default: save to optimize directory
+            output_dir = Path(self.output_base_dir)
         else:
             output_dir = Path(output_dir)
 
@@ -343,11 +338,6 @@ class IssueCategorizer:
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Issue Categorizer - Categorizes similar issue labels into canonical categories")
     parser.add_argument(
-        "--project",
-        required=True,
-        help="Project name (resolves to /workspace/app/output/{project}/)"
-    )
-    parser.add_argument(
         "--model",
         default="gpt-5-mini",
         help="LLM model name (default: gpt-5-mini)"
@@ -359,7 +349,6 @@ if __name__ == "__main__":
         # Create categorizer
         print(f"[IssueCategorizer] Initializing IssueCategorizer with model: {args.model}")
         categorizer = IssueCategorizer(
-            project=args.project,
             model=args.model
         )
 
