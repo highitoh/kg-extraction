@@ -75,7 +75,7 @@ def aggregate_validator_results(projects: List[str], output_dir: str) -> str:
         if not files:
             raise FileNotFoundError(
                 f"No validator results found for project: {project}\n"
-                f"Please run: python src/evaluate.py --project {project}"
+                f"Please run: python src/evaluate_workflow.py --project {project}"
             )
 
         validator_file = files[0]
