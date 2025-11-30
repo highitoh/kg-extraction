@@ -11,7 +11,10 @@
             "program": "${file}",
             "console": "integratedTerminal",
             "args": ["--model", "gpt-5-nano"],
-            "cwd": "${workspaceFolder}/app"
+            "cwd": "${workspaceFolder}/app",
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}/app"
+            }
         }
     ]
 }
