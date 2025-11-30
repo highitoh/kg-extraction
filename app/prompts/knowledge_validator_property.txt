@@ -5,7 +5,7 @@ You are a knowledge quality validator. Your task is to evaluate the quality of e
 ## Context Information
 
 ### Document Purpose and Domain
-{DOCUMENT_CONTEXT}
+<<DOCUMENT_CONTEXT>>
 
 ---
 
@@ -13,12 +13,12 @@ You are a knowledge quality validator. Your task is to evaluate the quality of e
 
 ### PROPERTY VALIDATION (Batch)
 
-**Property IRI:** {PROPERTY_IRI}
+**Property IRI:** <<PROPERTY_IRI>>
 
-{PROPERTY_DEF}
+<<PROPERTY_DEF>>
 
 **Properties to Validate:**
-{PROPERTY_INSTANCES}
+<<PROPERTY_INSTANCES>>
 
 **Validation Perspectives:**
 

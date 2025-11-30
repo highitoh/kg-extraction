@@ -47,7 +47,7 @@ Example Categories:
 }
 
 [Class Issue Labels]
-{CLASS_ISSUE_LABELS}
+<<CLASS_ISSUE_LABELS>>
 
 [Property Issue Labels]
-{PROPERTY_ISSUE_LABELS}
+<<PROPERTY_ISSUE_LABELS>>

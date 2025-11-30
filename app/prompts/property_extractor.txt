@@ -1,36 +1,36 @@
 You are an assistant that extracts relationship candidates between classes based on the metamodel.
 
 [Task]
-Review the [Labels] of {src_class_label} and {dest_class_label},
+Review the [Labels] of <<SRC_CLASS_LABEL>> and <<DEST_CLASS_LABEL>>,
 and extract primary candidates for relationships corresponding to the target relation according to the [Rules].
-The target relationship is {property_label}.
+The target relationship is <<PROPERTY_LABEL>>.
 
 [Rules]
 - Preserve the original language of the class labels as provided
-- Compare labels of {src_class_label} and {dest_class_label}, and consider combinations that are semantically related as candidates
-- Output is a list of pairs of candidate {src_class_label} and {dest_class_label}
-{custom_rules}
+- Compare labels of <<SRC_CLASS_LABEL>> and <<DEST_CLASS_LABEL>>, and consider combinations that are semantically related as candidates
+- Output is a list of pairs of candidate <<SRC_CLASS_LABEL>> and <<DEST_CLASS_LABEL>>
+<<CUSTOM_RULES>>
 
 [Definitions]
-{src_class_label}:
-{src_class_definition}
+<<SRC_CLASS_LABEL>>:
+<<SRC_CLASS_DEFINITION>>
 
-{dest_class_label}:
-{dest_class_definition}
+<<DEST_CLASS_LABEL>>:
+<<DEST_CLASS_DEFINITION>>
 
-{property_label}:
-{property_definition}
+<<PROPERTY_LABEL>>:
+<<PROPERTY_DEFINITION>>
 
 [Output Format (JSON only)]
 {{
   "properties": [
-    {{ "src_id": "<{src_class_label}_id>", "dest_id": "<{dest_class_label}_id>" }}
+    {{ "src_id": "<<SRC_CLASS_LABEL>>_id>", "dest_id": "<<DEST_CLASS_LABEL>>_id>" }}
   ]
 }}
 
 [Labels]
-{src_class_label}:
-{src_list}
+<<SRC_CLASS_LABEL>>:
+<<SRC_LIST>>
 
-{dest_class_label}:
-{dest_list}
+<<DEST_CLASS_LABEL>>:
+<<DEST_LIST>>

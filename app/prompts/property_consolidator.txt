@@ -7,13 +7,13 @@ Properties represent relationships through combinations of source (originating e
 Properties with the same or similar source→destination relationships should be grouped together.
 
 [Target Property]
-{property_name}
+<<PROPERTY_NAME>>
 
 [Property Extraction Rules]
-{extraction_rules}
+<<EXTRACTION_RULES>>
 
 [Consolidation Rules]
-{custom_rules}
+<<CUSTOM_RULES>>
 
 [Output Format]
 - Group indices of similar properties
@@ -22,5 +22,5 @@ Properties with the same or similar source→destination relationships should be
 - Describe the grouping reason briefly in the reason field
 
 [Input Properties]
-{property_list}
+<<PROPERTY_LIST>>
 

@@ -17,6 +17,7 @@ from openai import APIConnectionError, RateLimitError, APIError
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from utils.llm_factory import LLMFactory
+from utils.prompt_utils import fill_prompt_template
 
 
 class IssueClassifier:
@@ -303,9 +304,12 @@ class IssueClassifier:
 
         class_instances = "\n".join(class_instances_parts)
 
-        prompt = self.class_prompt_template.replace("{METAMODEL_CONTEXT}", self.metamodel_context)
-        prompt = prompt.replace("{CLASS_IRI}", class_iri)
-        prompt = prompt.replace("{CLASS_INSTANCES}", class_instances)
+        prompt = fill_prompt_template(
+            self.class_prompt_template,
+            metamodel_context=self.metamodel_context,
+            class_iri=class_iri,
+            class_instances=class_instances
+        )
 
         return prompt
 
@@ -339,9 +343,12 @@ class IssueClassifier:
 
         property_instances = "\n".join(property_instances_parts)
 
-        prompt = self.property_prompt_template.replace("{METAMODEL_CONTEXT}", self.metamodel_context)
-        prompt = prompt.replace("{CLASS_IRI}", class_iri)
-        prompt = prompt.replace("{PROPERTY_INSTANCES}", property_instances)
+        prompt = fill_prompt_template(
+            self.property_prompt_template,
+            metamodel_context=self.metamodel_context,
+            class_iri=class_iri,
+            property_instances=property_instances
+        )
 
         return prompt
 

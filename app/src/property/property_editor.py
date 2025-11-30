@@ -10,6 +10,7 @@ from openai import APIConnectionError, RateLimitError, APIError
 
 from src.utils.logger import Logger
 from src.utils.llm_factory import LLMFactory
+from src.utils.prompt_utils import fill_prompt_template
 
 
 class PropertyEditor(Runnable):
@@ -301,10 +302,13 @@ class PropertyEditor(Runnable):
         prohibit_rules = self._get_prohibit_rules(property_iri)
 
         # Build prompt with three rule sections and input data
-        prompt = self.prompt_template.replace("{extract_rules}", extract_rules)
-        prompt = prompt.replace("{prohibit_rules}", prohibit_rules)
-        prompt = prompt.replace("{custom_strength_rules}", self.custom_strength_rules)
-        prompt = prompt.replace("{input_data}", input_json)
+        prompt = fill_prompt_template(
+            self.prompt_template,
+            extract_rules=extract_rules,
+            prohibit_rules=prohibit_rules,
+            custom_strength_rules=self.custom_strength_rules,
+            input_data=input_json
+        )
 
         # Execute strength correction with LLM (with retry)
         response = await self._invoke_with_retry(llm_json, prompt)

@@ -12,6 +12,7 @@ from openai import APIConnectionError, RateLimitError, APIError
 
 from src.utils.logger import Logger
 from src.utils.llm_factory import LLMFactory
+from src.utils.prompt_utils import fill_prompt_template
 
 
 class PropertyReviewer(Runnable):
@@ -145,8 +146,11 @@ class PropertyReviewer(Runnable):
         prohibit_rules = self._get_prohibit_rules(property_iri)
 
         # Fill in both template variables
-        prompt_filled = self.prompt.replace("{prohibit_rules}", prohibit_rules)
-        prompt_filled = prompt_filled.replace("{property_candidates}", batch_text)
+        prompt_filled = fill_prompt_template(
+            self.prompt,
+            prohibit_rules=prohibit_rules,
+            property_candidates=batch_text
+        )
 
         msg = HumanMessage(
             content=[

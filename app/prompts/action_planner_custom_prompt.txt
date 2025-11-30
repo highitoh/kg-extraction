@@ -8,20 +8,20 @@ Your goal is to integrate the suggested changes while maintaining the existing s
 Custom prompt files provide additional rules that augment base extraction/consolidation logic in the pipeline.
 They are loaded dynamically and injected into LLM prompts to guide specific behaviors.
 
-Target file: {target_file}
-File purpose: {file_purpose}
+Target file: <<TARGET_FILE>>
+File purpose: <<FILE_PURPOSE>>
 
 [Current Content]
 Below is the current content of the custom prompt file:
 
 ```
-{current_content}
+<<CURRENT_CONTENT>>
 ```
 
 [Suggested Changes]
 Below are the improvement recommendations from the strategy plan:
 
-{suggested_changes_list}
+<<SUGGESTED_CHANGES_LIST>>
 
 [Instructions]
 

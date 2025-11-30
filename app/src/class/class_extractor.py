@@ -13,6 +13,7 @@ from openai import APIConnectionError, RateLimitError, APIError
 
 from src.utils.logger import Logger
 from src.utils.llm_factory import LLMFactory
+from src.utils.prompt_utils import fill_prompt_template
 
 VIEW_TYPES = [
     "value_analysis",
@@ -228,7 +229,8 @@ class ClassExtractor(Runnable):
         class_policies = self._get_class_policies(metamodel, view_type)
 
         # Embed values into prompt template
-        prompt = self.prompt_template.format(
+        prompt = fill_prompt_template(
+            self.prompt_template,
             class_definitions=class_definitions,
             class_policies=class_policies
         )

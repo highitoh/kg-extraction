@@ -11,6 +11,7 @@ from openai import APIConnectionError, RateLimitError, APIError
 
 from src.utils.logger import Logger
 from src.utils.llm_factory import LLMFactory
+from src.utils.prompt_utils import fill_prompt_template
 
 
 class PropertyConsolidator(Runnable):
@@ -408,7 +409,8 @@ class PropertyConsolidator(Runnable):
         # Build prompt
         property_name = self._get_property_name_from_iri(property_iri)
         extraction_rules = self._build_extraction_rules(property_iri)
-        prompt = self.prompt_template.format(
+        prompt = fill_prompt_template(
+            self.prompt_template,
             property_name=property_name,
             extraction_rules=extraction_rules,
             custom_rules=self.custom_rules,

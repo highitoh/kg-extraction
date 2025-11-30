@@ -11,6 +11,7 @@ from openai import APIConnectionError, RateLimitError, APIError
 
 from src.utils.logger import Logger
 from src.utils.llm_factory import LLMFactory
+from src.utils.prompt_utils import fill_prompt_template
 
 class ViewExtractor(Runnable):
     """
@@ -93,7 +94,7 @@ class ViewExtractor(Runnable):
     async def _extract_spans_for_chunk(self, chunk: str) -> Dict[str, List[str]]:
         """Extract view-specific spans for one chunk"""
         # Format the prompt with the target text
-        prompt_text = self.prompt.format(target_text=chunk)
+        prompt_text = fill_prompt_template(self.prompt, target_text=chunk)
 
         msg = HumanMessage(
             content=[{"type": "text", "text": prompt_text}]

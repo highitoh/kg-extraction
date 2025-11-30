@@ -13,10 +13,10 @@ However, corrections that deviate from the meaning of the [Original Sentence (so
 - Correction not possible and should be excluded: revised_strength=0 (meaning REJECT)
 
 [Extract Rules]
-{extract_rules}
+<<EXTRACT_RULES>>
 
 [Prohibit Rules]
-{prohibit_rules}
+<<PROHIBIT_RULES>>
 
 [Strength Definitions]
 - 0: No relationship (None) → REJECT
@@ -24,7 +24,7 @@ However, corrections that deviate from the meaning of the [Original Sentence (so
 - 2: Functional dependency (Medium)
 - 3: Essential dependency (Strong)
 
-{custom_strength_rules}
+<<CUSTOM_STRENGTH_RULES>>
 
 [Output Format (JSON only)]
 {
@@ -37,4 +37,4 @@ However, corrections that deviate from the meaning of the [Original Sentence (so
 }
 
 [Input Data]
-{input_data}
+<<INPUT_DATA>>

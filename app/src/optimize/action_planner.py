@@ -17,6 +17,7 @@ from openai import APIConnectionError, RateLimitError, APIError
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from utils.llm_factory import LLMFactory
+from utils.prompt_utils import fill_prompt_template
 
 
 class ActionPlanner:
@@ -262,10 +263,13 @@ class ActionPlanner:
         ])
 
         # Replace placeholders
-        prompt = self.custom_prompt_template.replace("{target_file}", target)
-        prompt = prompt.replace("{file_purpose}", file_purpose)
-        prompt = prompt.replace("{current_content}", current_content if current_content else "(empty file)")
-        prompt = prompt.replace("{suggested_changes_list}", suggested_changes_list)
+        prompt = fill_prompt_template(
+            self.custom_prompt_template,
+            target_file=target,
+            file_purpose=file_purpose,
+            current_content=current_content if current_content else "(empty file)",
+            suggested_changes_list=suggested_changes_list
+        )
 
         return prompt
 
@@ -298,12 +302,15 @@ class ActionPlanner:
         ])
 
         # Replace placeholders
-        prompt = self.metamodel_template.replace("{rule_type}", rule_type)
-        prompt = prompt.replace("{target_name}", target)
-        prompt = prompt.replace("{target_description}", description)
-        prompt = prompt.replace("{entity_type}", entity_type)
-        prompt = prompt.replace("{current_rules_list}", current_rules_list)
-        prompt = prompt.replace("{suggested_changes_list}", suggested_changes_list)
+        prompt = fill_prompt_template(
+            self.metamodel_template,
+            rule_type=rule_type,
+            target_name=target,
+            target_description=description,
+            entity_type=entity_type,
+            current_rules_list=current_rules_list,
+            suggested_changes_list=suggested_changes_list
+        )
 
         return prompt
 

@@ -27,4 +27,4 @@ Do not extract ambiguous, general, or insufficiently specific sentences.
 }
 
 [Target Text]
-{target_text}
+<<TARGET_TEXT>>

@@ -11,7 +11,7 @@ Output is an array of judgment objects in the same order and count as the input.
 - REJECT: Clearly violates prohibition rules and should be excluded
 
 [Prohibition Rules]
-{prohibit_rules}
+<<PROHIBIT_RULES>>
 
 [Output Format (JSON only)]
 {
@@ -23,4 +23,4 @@ Output is an array of judgment objects in the same order and count as the input.
 }
 
 [Class Labels]
-{class_labels}
+<<CLASS_LABELS>>

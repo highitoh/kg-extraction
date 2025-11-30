@@ -16,6 +16,7 @@ from openai import APIConnectionError, RateLimitError, APIError
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from utils.llm_factory import LLMFactory
+from utils.prompt_utils import fill_prompt_template
 
 
 class IssueCategorizer:
@@ -173,8 +174,11 @@ class IssueCategorizer:
         property_labels_text = "\n".join([f"- {label}" for label in property_issue_labels]) if property_issue_labels else "(None)"
 
         # Replace placeholders in template
-        prompt = self.prompt_template.replace("{CLASS_ISSUE_LABELS}", class_labels_text)
-        prompt = prompt.replace("{PROPERTY_ISSUE_LABELS}", property_labels_text)
+        prompt = fill_prompt_template(
+            self.prompt_template,
+            class_issue_labels=class_labels_text,
+            property_issue_labels=property_labels_text
+        )
 
         return prompt
 

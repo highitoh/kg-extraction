@@ -10,6 +10,7 @@ from openai import APIConnectionError, RateLimitError, APIError
 
 from src.utils.logger import Logger
 from src.utils.llm_factory import LLMFactory
+from src.utils.prompt_utils import fill_prompt_template
 
 
 class ClassEditor(Runnable):
@@ -318,7 +319,10 @@ class ClassEditor(Runnable):
 
         # Build prompt
         prompt_template = self._load_duplicate_fix_prompt_template()
-        prompt = prompt_template.replace("{duplicate_groups_json}", duplicate_groups_json)
+        prompt = fill_prompt_template(
+            prompt_template,
+            duplicate_groups_json=duplicate_groups_json
+        )
 
         # Execute duplicate fixing with LLM (with retry)
         try:
@@ -560,8 +564,11 @@ class ClassEditor(Runnable):
         extract_rules = self._build_extract_rules_section(class_iri)
 
         # Build prompt (embed extract rules specific to target class and input data)
-        prompt = self.prompt_template.replace("{extract_rules}", extract_rules)
-        prompt = prompt.replace("{input_data}", input_json)
+        prompt = fill_prompt_template(
+            self.prompt_template,
+            extract_rules=extract_rules,
+            input_data=input_json
+        )
 
         # Execute label correction with LLM (with retry)
         response = await self._invoke_with_retry(llm_json, prompt)

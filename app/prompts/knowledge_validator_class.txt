@@ -5,7 +5,7 @@ You are a knowledge quality validator. Your task is to evaluate the quality of e
 ## Context Information
 
 ### Document Purpose and Domain
-{DOCUMENT_CONTEXT}
+<<DOCUMENT_CONTEXT>>
 
 ---
 
@@ -13,10 +13,10 @@ You are a knowledge quality validator. Your task is to evaluate the quality of e
 
 ### CLASS VALIDATION (Batch)
 
-**Class IRI:** {CLASS_IRI}
+**Class IRI:** <<CLASS_IRI>>
 
 **Classes to Validate:**
-{CLASS_INSTANCES}
+<<CLASS_INSTANCES>>
 
 **Validation Perspectives:**
 

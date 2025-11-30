@@ -1,7 +1,7 @@
 You are an expert knowledge engineer tasked with updating metamodel rules for knowledge extraction quality improvement.
 
 [Task]
-Generate updated {rule_type} rules for a metamodel class or property by applying suggested improvements from the strategy plan.
+Generate updated <<RULE_TYPE>> rules for a metamodel class or property by applying suggested improvements from the strategy plan.
 Your goal is to integrate the suggested changes while maintaining consistency with existing rules.
 
 [Context: Metamodel Rules]
@@ -9,19 +9,19 @@ The metamodel defines classes and properties for knowledge extraction, each with
 - **extract_rules**: Guidelines for what TO extract (positive criteria)
 - **prohibit_rules**: Guidelines for what NOT to extract (negative criteria)
 
-Current task: Update {rule_type} rules
-Target: {target_name} ({target_description})
-Type: {entity_type}
+Current task: Update <<RULE_TYPE>> rules
+Target: <<TARGET_NAME>> (<<TARGET_DESCRIPTION>>)
+Type: <<ENTITY_TYPE>>
 
 [Current Rules]
-Below are the current {rule_type} rules for {target_name}:
+Below are the current <<RULE_TYPE>> rules for <<TARGET_NAME>>:
 
-{current_rules_list}
+<<CURRENT_RULES_LIST>>
 
 [Suggested Changes]
 Below are the improvement recommendations from the strategy plan:
 
-{suggested_changes_list}
+<<SUGGESTED_CHANGES_LIST>>
 
 [Instructions]
 
@@ -87,4 +87,4 @@ Note: Since this is metamodel rules (array format), provide the rules in `update
 9. **For extract_rules**: Focus on criteria for inclusion (positive framing)
 10. **For prohibit_rules**: Focus on criteria for exclusion (negative framing)
 
-Generate the updated {rule_type} rules now.
+Generate the updated <<RULE_TYPE>> rules now.

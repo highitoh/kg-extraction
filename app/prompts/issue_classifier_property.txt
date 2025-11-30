@@ -5,7 +5,7 @@ You are an issue classifier for knowledge extraction quality analysis. Your task
 ## Context Information
 
 ### Metamodel Definition
-{METAMODEL_CONTEXT}
+<<METAMODEL_CONTEXT>>
 
 ---
 
@@ -13,10 +13,10 @@ You are an issue classifier for knowledge extraction quality analysis. Your task
 
 ### PROPERTY ISSUE CLASSIFICATION (Batch)
 
-**Related Class IRI:** {CLASS_IRI}
+**Related Class IRI:** <<CLASS_IRI>>
 
 **Properties with Poor Validation Scores (Score ≤ 3):**
-{PROPERTY_INSTANCES}
+<<PROPERTY_INSTANCES>>
 
 **Your Task:**
 For each property listed above that has at least one validation dimension scored ≤ 3, analyze the validation scores and justifications to identify the root causes of poor quality. Assign 1-3 appropriate issue labels to each property.

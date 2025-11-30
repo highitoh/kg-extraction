@@ -2,10 +2,10 @@ Extract information corresponding to the knowledge graph [Classes] from the foll
 Extract labels in the original language from the source text. Minor rephrasing within the same meaning is allowed. However, altering the meaning or translating to another language is prohibited.
 
 [Classes]
-{class_definitions}
+<<CLASS_DEFINITIONS>>
 
 [Policies]
-{class_policies}
+<<CLASS_POLICIES>>
 
 [Extraction Items]
 - class: Type of class

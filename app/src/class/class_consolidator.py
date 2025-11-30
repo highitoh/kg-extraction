@@ -10,6 +10,7 @@ from openai import APIConnectionError, RateLimitError, APIError
 
 from src.utils.logger import Logger
 from src.utils.llm_factory import LLMFactory
+from src.utils.prompt_utils import fill_prompt_template
 
 
 class ClassConsolidator(Runnable):
@@ -213,7 +214,8 @@ class ClassConsolidator(Runnable):
         extraction_rules = self._build_extraction_rules(class_iri)
 
         # Build prompt
-        prompt = self.prompt_template.format(
+        prompt = fill_prompt_template(
+            self.prompt_template,
             class_name=class_name,
             extraction_rules=extraction_rules,
             label_list=label_list_text,

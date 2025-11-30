@@ -75,7 +75,7 @@ Prohibit rules are defined in the metamodel for classes and properties, guiding 
 
 Below are the categorized quality issues identified from validation:
 
-{issue_categories_json}
+<<ISSUE_CATEGORIES_JSON>>
 
 Each category includes:
 - Category name and description

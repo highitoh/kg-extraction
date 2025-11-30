@@ -5,16 +5,16 @@ You are a knowledge quality validator. Your task is to evaluate the quality of e
 ## Context Information
 
 ### Document Purpose and Domain
-{DOCUMENT_CONTEXT}
+<<DOCUMENT_CONTEXT>>
 
 ### Metamodel Information
-{METAMODEL_INFO}
+<<METAMODEL_INFO>>
 
 ---
 
 ## Validation Task
 
-{VALIDATION_TYPE}
+<<VALIDATION_TYPE>>
 
 ---
 
@@ -22,7 +22,7 @@ You are a knowledge quality validator. Your task is to evaluate the quality of e
 
 Provide your validation result in the following JSON format:
 
-{OUTPUT_FORMAT}
+<<OUTPUT_FORMAT>>
 
 ---
 

@@ -15,7 +15,7 @@ Corrections must preserve the original language of the source text. Do not trans
 - Correction not possible and should be excluded: should_reject=true, revised_label is an empty string
 
 [Extraction Rules]
-{extract_rules}
+<<EXTRACT_RULES>>
 
 [Output Format (JSON only)]
 {
@@ -29,4 +29,4 @@ Corrections must preserve the original language of the source text. Do not trans
 }
 
 [Input Data]
-{input_data}
+<<INPUT_DATA>>

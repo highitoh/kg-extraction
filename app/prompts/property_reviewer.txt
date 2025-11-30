@@ -13,7 +13,7 @@ If violates prohibition rules, must set judgment="REJECT".
 - REJECT: Clearly violates prohibition rules and should be excluded
 
 [Prohibition Rules]
-{prohibit_rules}
+<<PROHIBIT_RULES>>
 
 Task 2: Strength Evaluation Verification and Re-evaluation
 Each candidate includes a strength and justification evaluated by PropertyRanker.
@@ -47,4 +47,4 @@ For REJECT judgment, evaluated_strength must be 0.
 Output is an array of relation objects in the same order and count as input
 
 [Property Candidates]
-{property_candidates}
+<<PROPERTY_CANDIDATES>>

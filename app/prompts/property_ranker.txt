@@ -27,18 +27,18 @@ Evaluate the strength of each relationship on the following 4-level scale:
     - "User Registration Function" and "Weather Forecast Data" (logically independent)
     - Clearly incorrect relationships
 
-{custom_rules}
+<<CUSTOM_RULES>>
 
 [Definitions]
 - Source Class
-  - Label: {src_class_label}
-  - Definition: {src_class_definition}
+  - Label: <<SRC_CLASS_LABEL>>
+  - Definition: <<SRC_CLASS_DEFINITION>>
 - Destination Class
-  - Label: {dest_class_label}
-  - Definition: {dest_class_definition}
+  - Label: <<DEST_CLASS_LABEL>>
+  - Definition: <<DEST_CLASS_DEFINITION>>
 - Property (Relationship)
-  - Property Name: {property_label}
-  - Definition: {property_definition}
+  - Property Name: <<PROPERTY_LABEL>>
+  - Definition: <<PROPERTY_DEFINITION>>
 
 [Output Format (JSON only)]
 ```json
@@ -56,13 +56,13 @@ Evaluate the strength of each relationship on the following 4-level scale:
 
 [Class Instances]
 Source Class Instances:
-{src_instances}
+<<SRC_INSTANCES>>
 
 Destination Class Instances:
-{dest_instances}
+<<DEST_INSTANCES>>
 
 
 [Property Candidates]
 Evaluate and output all relationship candidates.
 
-{property_candidates}
+<<PROPERTY_CANDIDATES>>

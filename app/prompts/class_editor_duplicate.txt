@@ -26,7 +26,7 @@ When merging, select which class_id to use as the representative.
 (Normally choose the ID of the class with the selected canonical label)
 
 [Input Data]
-{duplicate_groups_json}
+<<DUPLICATE_GROUPS_JSON>>
 
 Format of each group:
 {

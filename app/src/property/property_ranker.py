@@ -11,6 +11,7 @@ from openai import APIConnectionError, RateLimitError, APIError
 
 from src.utils.logger import Logger
 from src.utils.llm_factory import LLMFactory
+from src.utils.prompt_utils import fill_prompt_template
 
 
 class PropertyRanker(Runnable):
@@ -188,7 +189,8 @@ class PropertyRanker(Runnable):
         src_instances_text = self._format_instances(src_instances)
         dest_instances_text = self._format_instances(dest_instances)
 
-        prompt_filled = self.prompt.format(
+        prompt_filled = fill_prompt_template(
+            self.prompt,
             src_class_label=src_class_label,
             src_class_definition=src_class_definition,
             dest_class_label=dest_class_label,

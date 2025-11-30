@@ -11,6 +11,7 @@ from openai import APIConnectionError, RateLimitError, APIError
 
 from src.utils.logger import Logger
 from src.utils.llm_factory import LLMFactory
+from src.utils.prompt_utils import fill_prompt_template
 
 
 def async_retry_with_backoff(max_retries: int = 5, initial_delay: float = 1.0, max_delay: float = 60.0):
@@ -436,9 +437,11 @@ class ClassReviewer(Runnable):
         prohibit_rules = self._build_prohibit_rules_section(class_iri)
 
         # Build prompt (embed prohibit rules and class labels specific to target class)
-        prompt = (self.prompt_template
-                  .replace("{prohibit_rules}", prohibit_rules)
-                  .replace("{class_labels}", labels_json))
+        prompt = fill_prompt_template(
+            self.prompt_template,
+            prohibit_rules=prohibit_rules,
+            class_labels=labels_json
+        )
 
         # Execute filtering with LLM (with retry)
         response = await self._invoke_with_retry(llm_json, prompt)

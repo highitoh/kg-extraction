@@ -6,17 +6,17 @@ Analyze the following label list and group those representing the same concept.
 Assign each group a canonical label selected based on the above criteria.
 
 [Target Class]
-{class_name}
+<<CLASS_NAME>>
 
 [Class Extraction Rules]
-{extraction_rules}
+<<EXTRACTION_RULES>>
 
 [Consolidation Rules]
 - Clearly different concepts should be in separate groups
 - Single labels should also be output as groups
 - canonical_label must exactly match one of the input labels (no new creation allowed)
 - Describe the selection reason briefly in the reason field
-{custom_rules}
+<<CUSTOM_RULES>>
 
 [Input Labels]
-{label_list}
+<<LABEL_LIST>>

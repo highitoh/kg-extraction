@@ -11,6 +11,7 @@ from openai import APIConnectionError, RateLimitError, APIError
 
 from src.utils.logger import Logger
 from src.utils.llm_factory import LLMFactory
+from src.utils.prompt_utils import fill_prompt_template
 
 class PropertyExtractor(Runnable):
     """
@@ -131,7 +132,8 @@ class PropertyExtractor(Runnable):
         dest_texts = [f"- ID: {c['id']}, Label: {c['label']}" for c in dest_batch]
 
         # Embed data into prompt template
-        prompt_text = self.prompt.format(
+        prompt_text = fill_prompt_template(
+            self.prompt,
             src_class_label=src_class_label,
             dest_class_label=dest_class_label,
             property_label=property_label,

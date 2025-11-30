@@ -16,6 +16,7 @@ from openai import APIConnectionError, RateLimitError, APIError
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from utils.llm_factory import LLMFactory
+from utils.prompt_utils import fill_prompt_template
 
 
 class StrategyPlanner:
@@ -133,7 +134,10 @@ class StrategyPlanner:
         issue_categories_json = json.dumps(categories, indent=2, ensure_ascii=False)
 
         # Replace placeholder in template
-        prompt = self.prompt_template.replace("{issue_categories_json}", issue_categories_json)
+        prompt = fill_prompt_template(
+            self.prompt_template,
+            issue_categories_json=issue_categories_json
+        )
 
         return prompt
 
