@@ -22,6 +22,21 @@ The extraction pipeline uses a two-stage architecture:
 
 This division of labor allows extractors to maximize recall while reviewers ensure precision.
 
+[Available Metamodel Targets]
+
+When recommending edits to extract_rules or prohibit_rules, you MUST use the exact class/property names from the lists below.
+
+**Valid Class Names (for extract_rules and prohibit_rules):**
+<<METAMODEL_CLASSES_LIST>>
+
+**Valid Property Names (for prohibit_rules):**
+<<METAMODEL_PROPERTIES_LIST>>
+
+**CRITICAL**: Use these names EXACTLY as shown - preserve spaces, capitalization, and punctuation.
+Examples:
+  ✓ Correct: "Analysis Result" (with space)
+  ✗ Wrong: "AnalysisResult", "analysis-result", "analysis_result"
+
 [Editable Targets]
 
 You can recommend edits to three types of targets:
@@ -59,17 +74,9 @@ Custom prompts provide additional rules that augment base extraction/consolidati
 
 Extract rules are defined in the metamodel for each class and guide what TO extract:
 
-- Available classes: Stakeholder, Value, Vision, Concept, BusinessRequirement, SystemRequirement, SystemComponent, Dataset
-- These rules control the extractor's behavior at the fundamental level
-- Example target values: "Stakeholder", "Value", "SystemRequirement"
-
 **3. Prohibit Rules** (target_type: "prohibit_rules")
 
 Prohibit rules are defined in the metamodel for classes and properties, guiding what NOT to extract/accept:
-
-- For classes: Control what should NOT be extracted as instances of that class
-- For properties: Control what relationships should NOT be created
-- Example target values: "Stakeholder", "hasValue", "hasVision", "allocatedToComponent"
 
 [Input: Issue Categories]
 
@@ -98,7 +105,10 @@ Each category includes:
 Generate a prioritized list of recommended edits.
 For each recommendation, specify:
 - **target_type**: One of ["custom_prompt", "extract_rules", "prohibit_rules"]
-- **target**: The specific target name (e.g., "property_ranker_custom.txt", "Stakeholder", "hasValue")
+- **target**: The specific target name
+  - For custom_prompt: filename (e.g., "property_ranker_custom.txt")
+  - For extract_rules/prohibit_rules: EXACT class or property name from [Available Metamodel Targets] section
+    (e.g., "Analysis Result" with space, NOT "AnalysisResult")
 - **reason**: Why this edit will address the quality issues (reference specific issue categories/labels)
 - **priority**: high / medium / low (based on issue frequency and severity)
 - **suggested_changes**: Specific rule additions or modifications
@@ -140,6 +150,6 @@ Output format (JSON only):
 4. **Prioritize**: Order recommendations by expected impact (high priority first)
 5. **Actionable**: Each suggestion should be implementable without further clarification
 6. **Use All Target Types**: Consider custom_prompt, extract_rules, and prohibit_rules targets
-7. **Target Validation**: Ensure target names match actual custom prompt files or metamodel class/property names
+7. **Target Validation**: For extract_rules/prohibit_rules, use ONLY the exact names from [Available Metamodel Targets]. For custom_prompt, use exact filenames from the editable targets list.
 
 Generate the improvement strategy now.

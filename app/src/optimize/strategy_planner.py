@@ -73,6 +73,9 @@ class StrategyPlanner:
         # Load prompt template (path: /workspace/app/prompts/)
         self.prompt_template = self._load_prompt("strategy_planner.txt")
 
+        # Load metamodel for dynamic prompt injection
+        self.metamodel = self._load_metamodel()
+
     def _load_schema(self, schema_name: str) -> Dict[str, Any]:
         """Load a JSON schema file."""
         schema_path = self.schemas_dir / schema_name
@@ -84,6 +87,32 @@ class StrategyPlanner:
         prompt_path = Path(__file__).parent.parent.parent / "prompts" / prompt_filename
         with open(prompt_path, 'r', encoding='utf-8') as f:
             return f.read()
+
+    def _load_metamodel(self) -> Dict[str, Any]:
+        """Load metamodel from metamodel.json."""
+        metamodel_path = Path(__file__).parent.parent.parent / "metamodel" / "metamodel.json"
+        with open(metamodel_path, 'r', encoding='utf-8') as f:
+            return json.load(f)
+
+    def _create_classes_list(self) -> str:
+        """Create a simple list of metamodel class names."""
+        classes = self.metamodel.get('classes', [])
+
+        # Extract class names and format as comma-separated list
+        class_names = [cls.get('name', '') for cls in classes]
+
+        # Format as a readable list
+        return ', '.join(f'"{name}"' for name in class_names)
+
+    def _create_properties_list(self) -> str:
+        """Create a simple list of metamodel property names."""
+        properties = self.metamodel.get('properties', [])
+
+        # Extract property names and format as comma-separated list
+        property_names = [prop.get('name', '') for prop in properties]
+
+        # Format as a readable list
+        return ', '.join(f'"{name}"' for name in property_names)
 
     def _load_json(self, file_path: str) -> Dict[str, Any]:
         """Load a JSON file."""
@@ -128,15 +157,21 @@ class StrategyPlanner:
         return str(issue_category_file)
 
     def _create_planning_prompt(self) -> str:
-        """Create planning prompt with issue categories context."""
+        """Create planning prompt with issue categories and metamodel context."""
         # Format issue categories as JSON
         categories = self.issue_category_data.get('categories', [])
         issue_categories_json = json.dumps(categories, indent=2, ensure_ascii=False)
 
-        # Replace placeholder in template
+        # Generate metamodel name lists
+        classes_list = self._create_classes_list()
+        properties_list = self._create_properties_list()
+
+        # Replace all placeholders in template
         prompt = fill_prompt_template(
             self.prompt_template,
-            issue_categories_json=issue_categories_json
+            issue_categories_json=issue_categories_json,
+            metamodel_classes_list=classes_list,
+            metamodel_properties_list=properties_list
         )
 
         return prompt
