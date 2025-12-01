@@ -19,14 +19,17 @@ A LangChain-based application that extracts knowledge from PDF files and generat
 ├── app/                    # Main application
 │   ├── src/               # Source code (stage-based architecture)
 │   │   ├── extract_workflow.py     # Entry point
-│   │   ├── core/          # Application core (graph.py, nodes.py, state.py)
-│   │   ├── utils/         # Common utilities (logger.py, llm_factory.py, chunk_creator.py)
-│   │   ├── classification/  # File classification stage
-│   │   ├── text/          # Text extraction stage (document/presentation)
-│   │   ├── view/          # View extraction stage
-│   │   ├── class/         # Class extraction stage
-│   │   ├── property/      # Property extraction stage
-│   │   └── output/        # Output generation stage (turtle_generator.py, neo4j_csv_generator.py)
+│   │   ├── extract/       # Extract workflow modules
+│   │   │   ├── core/      # Application core (graph.py, nodes.py, state.py)
+│   │   │   ├── classification/  # File classification stage
+│   │   │   ├── text/      # Text extraction stage (document/presentation)
+│   │   │   ├── view/      # View extraction stage
+│   │   │   ├── class/     # Class extraction stage
+│   │   │   ├── property/  # Property extraction stage
+│   │   │   └── output/    # Output generation stage (turtle_generator.py, neo4j_csv_generator.py)
+│   │   ├── evaluate/      # Evaluation workflow modules
+│   │   ├── optimize/      # Optimization workflow modules
+│   │   └── utils/         # Common utilities (logger.py, llm_factory.py, chunk_creator.py)
 │   ├── schemas/           # Input/output schema definitions
 │   │   ├── *-chain/
 │   │   └── common/        # Common schemas
@@ -67,10 +70,10 @@ cd app && python src/extract_workflow.py [PDF_PATH] --project [PROJECT_NAME]
 cd app && python src/extract_workflow.py [PDF_PATH] --project [PROJECT_NAME] --model [MODEL_NAME] --output-dir [OUTPUT_DIR]
 
 # Run specific chain (for development/debugging)
-cd app && python -c "import sys; sys.path.insert(0, '.'); from src.text.doc_text_chain import *"
-cd app && python -c "import sys; sys.path.insert(0, '.'); from src.view.view_chain import *"
-cd app && python -c "import sys; sys.path.insert(0, '.'); from src.class.class_chain import *"
-cd app && python -c "import sys; sys.path.insert(0, '.'); from src.property.property_chain import *"
+cd app && python -c "import sys; sys.path.insert(0, '.'); from src.extract.text.doc_text_chain import *"
+cd app && python -c "import sys; sys.path.insert(0, '.'); from src.extract.view.view_chain import *"
+cd app && python -c "import sys; sys.path.insert(0, '.'); from src.extract.class.class_chain import *"
+cd app && python -c "import sys; sys.path.insert(0, '.'); from src.extract.property.property_chain import *"
 ```
 
 ### Docker Environment

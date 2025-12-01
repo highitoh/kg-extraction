@@ -52,9 +52,9 @@ class PropertyRanker(Runnable):
     # ===== Utilities =====
     def _load_llm_schema(self) -> Dict[str, Any]:
         """Load LLM output schema"""
-        # Go up 2 levels from src/XXX/ to /workspace/app/
+        # Go up 3 levels from src/extract/XXX/ to /workspace/app/
 
-        app_dir = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+        app_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
 
         schema_path = os.path.join(app_dir, "schemas", "property-ranker", "llm.schema.json")
         with open(schema_path, "r", encoding="utf-8") as f:
@@ -62,9 +62,9 @@ class PropertyRanker(Runnable):
 
     def _load_prompt(self) -> str:
         """Load prompt file"""
-        # Go up 2 levels from src/XXX/ to /workspace/app/
+        # Go up 3 levels from src/extract/XXX/ to /workspace/app/
 
-        app_dir = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+        app_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
 
         prompt_path = os.path.join(app_dir, "prompts", "property_ranker.txt")
         with open(prompt_path, "r", encoding="utf-8") as f:
@@ -72,9 +72,9 @@ class PropertyRanker(Runnable):
 
     def _load_custom_rules(self) -> str:
         """Load custom rules file if it exists"""
-        # Go up 2 levels from src/XXX/ to /workspace/app/
+        # Go up 3 levels from src/extract/XXX/ to /workspace/app/
 
-        app_dir = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+        app_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
 
         custom_path = os.path.join(app_dir, "prompts", "custom", "property_ranker_custom.txt")
 
@@ -88,9 +88,9 @@ class PropertyRanker(Runnable):
 
     def _load_metamodel(self) -> Dict[str, Any]:
         """Load metamodel"""
-        # Go up 2 levels from src/XXX/ to /workspace/app/
+        # Go up 3 levels from src/extract/XXX/ to /workspace/app/
 
-        app_dir = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+        app_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
 
         metamodel_path = os.path.join(app_dir, "metamodel", "metamodel.json")
         with open(metamodel_path, "r", encoding="utf-8") as f:

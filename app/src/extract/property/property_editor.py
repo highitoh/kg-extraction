@@ -57,9 +57,9 @@ class PropertyEditor(Runnable):
         Args:
             n: Number of properties to be judged
         """
-        # Go up 2 levels from src/XXX/ to /workspace/app/
+        # Go up 3 levels from src/extract/XXX/ to /workspace/app/
 
-        app_dir = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+        app_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
 
         schema_path = os.path.join(app_dir, "schemas",
                                    "property-editor", "llm.schema.json")
@@ -74,9 +74,9 @@ class PropertyEditor(Runnable):
 
     def _load_metamodel(self) -> dict:
         """Load metamodel file"""
-        # Go up 2 levels from src/XXX/ to /workspace/app/
+        # Go up 3 levels from src/extract/XXX/ to /workspace/app/
 
-        app_dir = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+        app_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
 
         metamodel_path = os.path.join(app_dir, "metamodel",
                                       "metamodel.json")
@@ -123,7 +123,7 @@ class PropertyEditor(Runnable):
         Returns:
             Content of custom rules file, or empty string if not found/empty
         """
-        app_dir = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+        app_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
         custom_path = os.path.join(app_dir, "prompts", "custom", "property_editor_custom.txt")
 
         if not os.path.exists(custom_path):
@@ -135,9 +135,9 @@ class PropertyEditor(Runnable):
 
     def _load_prompt_template(self) -> str:
         """Load prompt template file"""
-        # Go up 2 levels from src/XXX/ to /workspace/app/
+        # Go up 3 levels from src/extract/XXX/ to /workspace/app/
 
-        app_dir = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+        app_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
 
         prompt_path = os.path.join(app_dir, "prompts",
                                    "property_editor.txt")

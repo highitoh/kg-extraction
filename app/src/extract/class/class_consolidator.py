@@ -48,24 +48,24 @@ class ClassConsolidator(Runnable):
 
     def _load_metamodel(self) -> dict:
         """Load metamodel file"""
-        # Go up 2 levels from src/class/ to /workspace/app/
-        app_dir = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+        # Go up 3 levels from src/extract/class/ to /workspace/app/
+        app_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
         metamodel_path = os.path.join(app_dir, "metamodel", "metamodel.json")
         with open(metamodel_path, "r", encoding="utf-8") as f:
             return json.load(f)
 
     def _load_prompt_template(self) -> str:
         """Load prompt template file"""
-        # Go up 2 levels from src/class/ to /workspace/app/
-        app_dir = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+        # Go up 3 levels from src/extract/class/ to /workspace/app/
+        app_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
         prompt_path = os.path.join(app_dir, "prompts", "class_consolidator.txt")
         with open(prompt_path, "r", encoding="utf-8") as f:
             return f.read()
 
     def _load_custom_rules(self) -> str:
         """Load custom rules file if it exists"""
-        # Go up 2 levels from src/class/ to /workspace/app/
-        app_dir = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+        # Go up 3 levels from src/extract/class/ to /workspace/app/
+        app_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
         custom_path = os.path.join(app_dir, "prompts", "custom", "class_consolidator_custom.txt")
 
         # Return empty string if file doesn't exist
@@ -78,8 +78,8 @@ class ClassConsolidator(Runnable):
 
     def _build_schema(self) -> dict:
         """Load JSON schema for LLM"""
-        # Go up 2 levels from src/class/ to /workspace/app/
-        app_dir = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+        # Go up 3 levels from src/extract/class/ to /workspace/app/
+        app_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
         schema_path = os.path.join(app_dir, "schemas", "class-consolidator", "llm.schema.json")
         with open(schema_path, "r", encoding="utf-8") as f:
             return json.load(f)

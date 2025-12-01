@@ -87,8 +87,8 @@ class ClassReviewer(Runnable):
         Args:
             n: Number of classes to judge
         """
-        # Go up 2 levels from src/class/ to /workspace/app/
-        app_dir = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+        # Go up 3 levels from src/extract/class/ to /workspace/app/
+        app_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
         schema_path = os.path.join(app_dir, "schemas",
                                    "class-reviewer", "llm.schema.json")
         with open(schema_path, "r", encoding="utf-8") as f:
@@ -106,8 +106,8 @@ class ClassReviewer(Runnable):
         Returns:
             dict: JSON schema for duplicate detection
         """
-        # Go up 2 levels from src/class/ to /workspace/app/
-        app_dir = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+        # Go up 3 levels from src/extract/class/ to /workspace/app/
+        app_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
         schema_path = os.path.join(app_dir, "schemas",
                                    "class-reviewer", "llm-duplicate.schema.json")
         with open(schema_path, "r", encoding="utf-8") as f:
@@ -115,8 +115,8 @@ class ClassReviewer(Runnable):
 
     def _load_metamodel(self) -> dict:
         """Load metamodel file"""
-        # Go up 2 levels from src/class/ to /workspace/app/
-        app_dir = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+        # Go up 3 levels from src/extract/class/ to /workspace/app/
+        app_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
         metamodel_path = os.path.join(app_dir, "metamodel",
                                       "metamodel.json")
         with open(metamodel_path, "r", encoding="utf-8") as f:
@@ -142,8 +142,8 @@ class ClassReviewer(Runnable):
 
     def _load_prompt_template(self) -> str:
         """Load prompt template file and dynamically generate prohibit rules"""
-        # Go up 2 levels from src/class/ to /workspace/app/
-        app_dir = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+        # Go up 3 levels from src/extract/class/ to /workspace/app/
+        app_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
         prompt_path = os.path.join(app_dir, "prompts",
                                    "class_reviewer.txt")
         with open(prompt_path, "r", encoding="utf-8") as f:
@@ -153,8 +153,8 @@ class ClassReviewer(Runnable):
 
     def _load_duplicate_prompt_template(self) -> str:
         """Load prompt template file for duplicate detection"""
-        # Go up 2 levels from src/class/ to /workspace/app/
-        app_dir = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+        # Go up 3 levels from src/extract/class/ to /workspace/app/
+        app_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
         prompt_path = os.path.join(app_dir, "prompts",
                                    "class_reviewer_duplicate.txt")
         with open(prompt_path, "r", encoding="utf-8") as f:

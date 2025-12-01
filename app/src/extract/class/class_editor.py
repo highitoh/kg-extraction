@@ -55,8 +55,8 @@ class ClassEditor(Runnable):
         Args:
             n: Number of classes to judge
         """
-        # Go up 2 levels from src/class/ to /workspace/app/
-        app_dir = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+        # Go up 3 levels from src/extract/class/ to /workspace/app/
+        app_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
         schema_path = os.path.join(app_dir, "schemas",
                                    "class-editor", "llm.schema.json")
         with open(schema_path, "r", encoding="utf-8") as f:
@@ -70,8 +70,8 @@ class ClassEditor(Runnable):
 
     def _load_metamodel(self) -> dict:
         """Load metamodel file"""
-        # Go up 2 levels from src/class/ to /workspace/app/
-        app_dir = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+        # Go up 3 levels from src/extract/class/ to /workspace/app/
+        app_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
         metamodel_path = os.path.join(app_dir, "metamodel",
                                       "metamodel.json")
         with open(metamodel_path, "r", encoding="utf-8") as f:
@@ -97,8 +97,8 @@ class ClassEditor(Runnable):
 
     def _load_prompt_template(self) -> str:
         """Load prompt template file"""
-        # Go up 2 levels from src/class/ to /workspace/app/
-        app_dir = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+        # Go up 3 levels from src/extract/class/ to /workspace/app/
+        app_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
         prompt_path = os.path.join(app_dir, "prompts",
                                    "class_editor.txt")
         with open(prompt_path, "r", encoding="utf-8") as f:
@@ -110,8 +110,8 @@ class ClassEditor(Runnable):
         Returns:
             dict: JSON schema for duplicate fixing
         """
-        # Go up 2 levels from src/class/ to /workspace/app/
-        app_dir = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+        # Go up 3 levels from src/extract/class/ to /workspace/app/
+        app_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
         schema_path = os.path.join(app_dir, "schemas",
                                    "class-editor", "llm-duplicate.schema.json")
         with open(schema_path, "r", encoding="utf-8") as f:
@@ -119,8 +119,8 @@ class ClassEditor(Runnable):
 
     def _load_duplicate_fix_prompt_template(self) -> str:
         """Load prompt template file for duplicate fixing"""
-        # Go up 2 levels from src/class/ to /workspace/app/
-        app_dir = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+        # Go up 3 levels from src/extract/class/ to /workspace/app/
+        app_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
         prompt_path = os.path.join(app_dir, "prompts",
                                    "class_editor_duplicate.txt")
         with open(prompt_path, "r", encoding="utf-8") as f:

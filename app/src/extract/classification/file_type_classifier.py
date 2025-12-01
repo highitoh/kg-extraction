@@ -35,8 +35,8 @@ class FileTypeClassifier(Runnable):
 
     def _load_prompt(self) -> str:
         """Load prompt file"""
-        # Go up 2 levels from src/classification/ to /workspace/app/
-        app_dir = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+        # Go up 3 levels from src/extract/classification/ to /workspace/app/
+        app_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
         prompt_path = os.path.join(app_dir, "prompts", "file_type_classifier.txt")
         with open(prompt_path, "r", encoding="utf-8") as f:
             return f.read()

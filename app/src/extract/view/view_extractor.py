@@ -63,9 +63,9 @@ class ViewExtractor(Runnable):
 
     def _load_schema(self) -> dict:
         """Load JSON schema file"""
-        # Go up 2 levels from src/XXX/ to /workspace/app/
+        # Go up 3 levels from src/extract/XXX/ to /workspace/app/
 
-        app_dir = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+        app_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
 
         schema_path = os.path.join(app_dir, "schemas", "view-extractor", "llm.schema.json")
         with open(schema_path, "r", encoding="utf-8") as f:
@@ -73,9 +73,9 @@ class ViewExtractor(Runnable):
 
     def _load_prompt(self) -> str:
         """Load prompt file"""
-        # Go up 2 levels from src/XXX/ to /workspace/app/
+        # Go up 3 levels from src/extract/XXX/ to /workspace/app/
 
-        app_dir = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+        app_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
 
         prompt_path = os.path.join(app_dir, "prompts", "view_extractor.txt")
         with open(prompt_path, "r", encoding="utf-8") as f:

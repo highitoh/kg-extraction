@@ -72,16 +72,16 @@ class ClassExtractor(Runnable):
 
     def _load_schema(self) -> dict:
         """Load JSON schema file"""
-        # Go up 2 levels from src/class/ to /workspace/app/
-        app_dir = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+        # Go up 3 levels from src/extract/class/ to /workspace/app/
+        app_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
         schema_path = os.path.join(app_dir, "schemas", "class-extractor", "llm.schema.json")
         with open(schema_path, "r", encoding="utf-8") as f:
             return json.load(f)
 
     def _load_prompt_template(self) -> str:
         """Load prompt template file"""
-        # Go up 2 levels from src/class/ to /workspace/app/
-        app_dir = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+        # Go up 3 levels from src/extract/class/ to /workspace/app/
+        app_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
         prompt_path = os.path.join(app_dir, "prompts", "class_extractor.txt")
         with open(prompt_path, "r", encoding="utf-8") as f:
             return f.read()
@@ -411,9 +411,9 @@ if __name__ == "__main__":
         view_info = json.load(f)
 
     # Get metamodel
-    # Go up 2 levels from src/XXX/ to /workspace/app/
+    # Go up 3 levels from src/extract/XXX/ to /workspace/app/
 
-    app_dir = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+    app_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
 
     metamodel_path = os.path.join(app_dir, "metamodel", "metamodel.json")
     with open(metamodel_path, "r", encoding="utf-8") as f:

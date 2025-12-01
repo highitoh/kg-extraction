@@ -47,9 +47,9 @@ class PropertyReviewer(Runnable):
     # ===== Utilities =====
     def _load_llm_schema(self) -> Dict[str, Any]:
         """Load LLM output schema"""
-        # Go up 2 levels from src/XXX/ to /workspace/app/
+        # Go up 3 levels from src/extract/XXX/ to /workspace/app/
 
-        app_dir = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+        app_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
 
         schema_path = os.path.join(app_dir, "schemas", "property-reviewer", "llm.schema.json")
         with open(schema_path, "r", encoding="utf-8") as f:
@@ -57,9 +57,9 @@ class PropertyReviewer(Runnable):
 
     def _load_prompt(self) -> str:
         """Load prompt file"""
-        # Go up 2 levels from src/XXX/ to /workspace/app/
+        # Go up 3 levels from src/extract/XXX/ to /workspace/app/
 
-        app_dir = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+        app_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
 
         prompt_path = os.path.join(app_dir, "prompts", "property_reviewer.txt")
         with open(prompt_path, "r", encoding="utf-8") as f:
@@ -67,9 +67,9 @@ class PropertyReviewer(Runnable):
 
     def _load_metamodel(self) -> Dict[str, Any]:
         """Load metamodel"""
-        # Go up 2 levels from src/XXX/ to /workspace/app/
+        # Go up 3 levels from src/extract/XXX/ to /workspace/app/
 
-        app_dir = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+        app_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
 
         metamodel_path = os.path.join(app_dir, "metamodel", "metamodel.json")
         with open(metamodel_path, "r", encoding="utf-8") as f:

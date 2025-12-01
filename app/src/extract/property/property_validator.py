@@ -203,9 +203,9 @@ if __name__ == "__main__":
         class_info = json.load(f)
 
     # Load metamodel
-    # Go up 2 levels from src/XXX/ to /workspace/app/
+    # Go up 3 levels from src/extract/XXX/ to /workspace/app/
 
-    app_dir = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+    app_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
 
     metamodel_path = os.path.join(app_dir, "metamodel", "metamodel.json")
     with open(metamodel_path, "r", encoding="utf-8") as f:

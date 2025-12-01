@@ -19,8 +19,8 @@ if app_dir not in sys.path:
 # Load environment variables from .env file
 load_dotenv()
 
-from src.core.graph import create_knowledge_extraction_graph
-from src.core.state import KnowledgeExtractionState
+from src.extract.core.graph import create_knowledge_extraction_graph
+from src.extract.core.state import KnowledgeExtractionState
 
 
 def run_knowledge_extraction(pdf_path: str, output_dir: str = "/workspace/app/output", model: str = None, project: str = "default") -> Dict[str, Any]:
