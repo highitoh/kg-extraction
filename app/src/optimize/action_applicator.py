@@ -21,7 +21,6 @@ class ActionApplicator:
 
     def __init__(
         self,
-        project: str = "default",
         progress: bool = True,
         backup: bool = True,
     ):
@@ -29,17 +28,15 @@ class ActionApplicator:
         Initialize the ActionApplicator.
 
         Args:
-            project: Project name (resolves to /workspace/app/output/{project}/)
             progress: Whether to show progress messages
             backup: Whether to create backups before modifying files
         """
-        self.project = project
         self.progress = progress
         self.backup = backup
-        self.output_base_dir = "/workspace/app/output/optimize"
+        self.output_dir = "/workspace/app/output/optimize"
 
-        # Resolve action proposals file path from project name
-        self.action_proposals_file = self._resolve_action_proposals_path(project)
+        # Resolve action proposals file path
+        self.action_proposals_file = self._resolve_action_proposals_path()
 
         # Load action proposals data
         self.action_proposals_data = self._load_json(self.action_proposals_file)
@@ -61,12 +58,9 @@ class ActionApplicator:
         with open(file_path, 'r', encoding='utf-8') as f:
             return json.load(f)
 
-    def _resolve_action_proposals_path(self, project: str) -> str:
+    def _resolve_action_proposals_path(self) -> str:
         """
-        Resolve action_proposals file path from project name.
-
-        Args:
-            project: Project name
+        Resolve action_proposals file path.
 
         Returns:
             Path to the most recent action_proposals_*.json file
@@ -74,24 +68,24 @@ class ActionApplicator:
         Raises:
             FileNotFoundError: If required files don't exist
         """
-        project_dir = Path(self.output_base_dir) / project
+        output_dir = Path(self.output_dir)
 
-        # Check if project directory exists
-        if not project_dir.exists():
+        # Check if output directory exists
+        if not output_dir.exists():
             raise FileNotFoundError(
-                f"Project directory not found: {project_dir}\n"
-                f"Available projects: {', '.join([d.name for d in Path(self.output_base_dir).iterdir() if d.is_dir()])}"
+                f"Output directory not found: {output_dir}\n"
+                f"Please run optimize workflow first."
             )
 
         # Find most recent action_proposals file
-        action_proposals_pattern = str(project_dir / "action_proposals_*.json")
+        action_proposals_pattern = str(output_dir / "action_proposals_*.json")
         action_proposals_files = sorted(glob.glob(action_proposals_pattern), reverse=True)
 
         if not action_proposals_files:
             raise FileNotFoundError(
-                f"No action_proposals_*.json files found in project directory: {project_dir}\n"
+                f"No action_proposals_*.json files found in: {output_dir}\n"
                 f"Pattern searched: {action_proposals_pattern}\n"
-                f"Please run ActionPlanner first."
+                f"Please run optimize workflow first."
             )
 
         # Use the most recent action proposals
@@ -293,14 +287,14 @@ class ActionApplicator:
 
         Args:
             result: Results dictionary
-            output_dir: Optional output directory (defaults to project directory)
+            output_dir: Optional output directory (defaults to optimize output directory)
 
         Returns:
             Path to saved file
         """
         if output_dir is None:
-            # Default: save to project directory
-            output_dir = Path(self.output_base_dir) / self.project
+            # Default: save to optimize output directory
+            output_dir = Path(self.output_dir)
         else:
             output_dir = Path(output_dir)
 
@@ -318,11 +312,6 @@ class ActionApplicator:
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Action Applicator - Applies action proposals to target files")
     parser.add_argument(
-        "--project",
-        required=True,
-        help="Project name (resolves to /workspace/app/output/{project}/)"
-    )
-    parser.add_argument(
         "--no-backup",
         action="store_true",
         help="Disable backup creation before modifying files"
@@ -337,9 +326,8 @@ if __name__ == "__main__":
 
     try:
         # Create applicator
-        print(f"[ActionApplicator] Initializing ActionApplicator for project: {args.project}")
+        print(f"[ActionApplicator] Initializing ActionApplicator...")
         applicator = ActionApplicator(
-            project=args.project,
             progress=not args.no_progress,
             backup=not args.no_backup
         )

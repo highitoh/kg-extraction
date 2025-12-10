@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Action Applicator Wrapper Script
-# Usage: ./apply.sh --project PROJECT [--no-backup] [--no-progress]
+# Usage: ./apply.sh [--no-backup] [--no-progress]
 
 cd /workspace/app
 python src/optimize/action_applicator.py "$@"
