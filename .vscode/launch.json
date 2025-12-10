@@ -15,6 +15,21 @@
             "env": {
                 "PYTHONPATH": "${workspaceFolder}/app"
             }
+        },
+        {
+            "name": "Extract Workflow: Full Chain",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "src/extract_workflow.py",
+            "console": "integratedTerminal",
+            "args": [
+                "../doc/sample.pdf",
+                "--project", "debug"
+            ],
+            "cwd": "${workspaceFolder}/app",
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}/app"
+            }
         }
     ]
 }
