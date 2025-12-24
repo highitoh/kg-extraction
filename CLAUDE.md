@@ -63,8 +63,8 @@ cd app && pip install -r requirements.txt
 # Run main application
 cd app && python src/extract_workflow.py [PDF_PATH]
 
-# Manage output files by project
-cd app && python src/extract_workflow.py [PDF_PATH] --project [PROJECT_NAME]
+# Using the wrapper script (recommended)
+cd app && ./extract.sh [PDF_PATH] --project [PROJECT_NAME]
 
 # All options
 cd app && python src/extract_workflow.py [PDF_PATH] --project [PROJECT_NAME] --model [MODEL_NAME] --output-dir [OUTPUT_DIR]
@@ -74,6 +74,46 @@ cd app && python -c "import sys; sys.path.insert(0, '.'); from src.extract.text.
 cd app && python -c "import sys; sys.path.insert(0, '.'); from src.extract.view.view_chain import *"
 cd app && python -c "import sys; sys.path.insert(0, '.'); from src.extract.class.class_chain import *"
 cd app && python -c "import sys; sys.path.insert(0, '.'); from src.extract.property.property_chain import *"
+```
+
+### Batch Extraction
+Extract knowledge from multiple PDF files using a batch file:
+
+```bash
+# Basic batch extraction
+cd app && ./extract.sh --batch ../doc/batch-sample.txt --project myproject
+
+# With model override
+cd app && ./extract.sh --batch ../doc/batch-sample.txt --project myproject --model gpt-5-nano
+
+# With retry configuration (retry failed files up to 2 times)
+cd app && ./extract.sh --batch ../doc/batch-sample.txt --project myproject --max-retries 2
+
+# Full example with all options
+cd app && ./extract.sh --batch ../doc/batch-sample.txt --project myproject --model gpt-5-nano --max-retries 2
+```
+
+**Batch file format** (plain text, one PDF path per line):
+- Lines starting with `#` are comments
+- Blank lines are ignored
+- File paths are relative to batch file location (or use absolute paths)
+- Example batch file (`/workspace/doc/batch-sample.txt`):
+  ```
+  # My documents
+  sample.pdf
+  csample1.pdf
+
+  # You can also use absolute paths
+  /workspace/doc/psample1.pdf
+  ```
+
+**Batch processing behavior**:
+- Files are processed sequentially (one after another)
+- Failed files can be automatically retried (configure with `--max-retries`)
+- Non-existent files are skipped with a warning
+- Processing continues even if some files fail
+- All successfully extracted knowledge is accumulated into the project's `knowledge.json`
+- Summary report shows total files, successful count, and failed count
 ```
 
 ### Docker Environment
