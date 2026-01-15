@@ -53,6 +53,23 @@
             "required": ["score", "justification"],
             "additionalProperties": false
           },
+          "unity": {
+            "type": "object",
+            "properties": {
+              "score": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 5,
+                "description": "Unity score - evaluates whether the class does not semantically overlap with other classes"
+              },
+              "justification": {
+                "type": "string",
+                "description": "Detailed explanation for the score"
+              }
+            },
+            "required": ["score", "justification"],
+            "additionalProperties": false
+          },
           "boundary_suitability": {
             "type": "object",
             "properties": {
@@ -70,14 +87,31 @@
             "required": ["score", "justification"],
             "additionalProperties": false
           },
-          "conceptual_structure_validity": {
+          "structural_validity": {
             "type": "object",
             "properties": {
               "score": {
                 "type": "integer",
                 "minimum": 1,
                 "maximum": 5,
-                "description": "Score from 1 (lowest) to 5 (highest)"
+                "description": "Structural validity score - evaluates whether the class is properly defined as a metamodel element and hierarchical structure is consistent"
+              },
+              "justification": {
+                "type": "string",
+                "description": "Detailed explanation for the score"
+              }
+            },
+            "required": ["score", "justification"],
+            "additionalProperties": false
+          },
+          "text_grounding": {
+            "type": "object",
+            "properties": {
+              "score": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 5,
+                "description": "Text grounding score - evaluates whether the class is extracted based on the document description"
               },
               "justification": {
                 "type": "string",
@@ -88,7 +122,7 @@
             "additionalProperties": false
           }
         },
-        "required": ["class_id", "class_iri", "class_label", "necessity", "understandability", "boundary_suitability", "conceptual_structure_validity"],
+        "required": ["class_id", "class_iri", "class_label", "necessity", "understandability", "unity", "boundary_suitability", "structural_validity", "text_grounding"],
         "additionalProperties": false
       }
     }

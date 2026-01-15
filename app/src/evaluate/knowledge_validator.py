@@ -324,8 +324,10 @@ class KnowledgeValidator:
                     "class_label": cls.get('label', 'Unknown'),
                     "necessity": {"score": 0, "justification": f"Error: {str(e)}"},
                     "understandability": {"score": 0, "justification": f"Error: {str(e)}"},
+                    "unity": {"score": 0, "justification": f"Error: {str(e)}"},
                     "boundary_suitability": {"score": 0, "justification": f"Error: {str(e)}"},
-                    "conceptual_structure_validity": {"score": 0, "justification": f"Error: {str(e)}"}
+                    "structural_validity": {"score": 0, "justification": f"Error: {str(e)}"},
+                    "text_grounding": {"score": 0, "justification": f"Error: {str(e)}"}
                 }
                 for cls in class_group
             ]
@@ -368,8 +370,10 @@ class KnowledgeValidator:
                     "src_label": prop.get('src_label', 'Unknown'),
                     "property_iri": prop.get('property_iri', 'Unknown'),
                     "dest_label": prop.get('dest_label', 'Unknown'),
-                    "relation_type_validity": {"score": 0, "justification": f"Error: {str(e)}"},
-                    "strength_validity": {"score": 0, "justification": f"Error: {str(e)}"}
+                    "relation_applicability": {"score": 0, "justification": f"Error: {str(e)}"},
+                    "relation_unity": {"score": 0, "justification": f"Error: {str(e)}"},
+                    "strength_validity": {"score": 0, "justification": f"Error: {str(e)}"},
+                    "contextual_grounding": {"score": 0, "justification": f"Error: {str(e)}"}
                 }
                 for prop in property_group
             ]

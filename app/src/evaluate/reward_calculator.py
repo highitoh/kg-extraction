@@ -90,7 +90,8 @@ class RewardCalculator:
 
         Formula:
         quality_score = 1 + ((necessity - 4) * 2) + (understandability - 4) +
-                        (boundary_suitability - 4) + (conceptual_structure_validity - 4)
+                        (unity - 4) + (boundary_suitability - 4) +
+                        (structural_validity - 4) + (text_grounding - 4)
 
         Args:
             validation: Class validation dictionary with dimension scores
@@ -100,15 +101,19 @@ class RewardCalculator:
         """
         necessity = validation.get("necessity", {}).get("score", 4)
         understandability = validation.get("understandability", {}).get("score", 4)
+        unity = validation.get("unity", {}).get("score", 4)
         boundary_suitability = validation.get("boundary_suitability", {}).get("score", 4)
-        conceptual_structure_validity = validation.get("conceptual_structure_validity", {}).get("score", 4)
+        structural_validity = validation.get("structural_validity", {}).get("score", 4)
+        text_grounding = validation.get("text_grounding", {}).get("score", 4)
 
         quality_score = (
             1 +
             ((necessity - 4) * 2) +
             (understandability - 4) +
+            (unity - 4) +
             (boundary_suitability - 4) +
-            (conceptual_structure_validity - 4)
+            (structural_validity - 4) +
+            (text_grounding - 4)
         )
 
         return float(quality_score)
@@ -118,7 +123,8 @@ class RewardCalculator:
         Calculate quality score for a single property.
 
         Formula:
-        quality_score = 1 + ((relation_type_validity - 4) * 2) + (strength_validity - 4)
+        quality_score = 1 + ((relation_applicability - 4) * 2) + (relation_unity - 4) +
+                        (strength_validity - 4) + (contextual_grounding - 4)
 
         Args:
             validation: Property validation dictionary with dimension scores
@@ -126,13 +132,17 @@ class RewardCalculator:
         Returns:
             Quality score as a float
         """
-        relation_type_validity = validation.get("relation_type_validity", {}).get("score", 4)
+        relation_applicability = validation.get("relation_applicability", {}).get("score", 4)
+        relation_unity = validation.get("relation_unity", {}).get("score", 4)
         strength_validity = validation.get("strength_validity", {}).get("score", 4)
+        contextual_grounding = validation.get("contextual_grounding", {}).get("score", 4)
 
         quality_score = (
             1 +
-            ((relation_type_validity - 4) * 2) +
-            (strength_validity - 4)
+            ((relation_applicability - 4) * 2) +
+            (relation_unity - 4) +
+            (strength_validity - 4) +
+            (contextual_grounding - 4)
         )
 
         return float(quality_score)
@@ -162,8 +172,10 @@ class RewardCalculator:
                 "dimension_scores": {
                     "necessity": validation.get("necessity", {}).get("score", 4),
                     "understandability": validation.get("understandability", {}).get("score", 4),
+                    "unity": validation.get("unity", {}).get("score", 4),
                     "boundary_suitability": validation.get("boundary_suitability", {}).get("score", 4),
-                    "conceptual_structure_validity": validation.get("conceptual_structure_validity", {}).get("score", 4)
+                    "structural_validity": validation.get("structural_validity", {}).get("score", 4),
+                    "text_grounding": validation.get("text_grounding", {}).get("score", 4)
                 },
                 "quality_score": quality_score
             }
@@ -183,8 +195,10 @@ class RewardCalculator:
                 "property_iri": validation.get("property_iri", ""),
                 "dest_label": validation.get("dest_label", ""),
                 "dimension_scores": {
-                    "relation_type_validity": validation.get("relation_type_validity", {}).get("score", 4),
-                    "strength_validity": validation.get("strength_validity", {}).get("score", 4)
+                    "relation_applicability": validation.get("relation_applicability", {}).get("score", 4),
+                    "relation_unity": validation.get("relation_unity", {}).get("score", 4),
+                    "strength_validity": validation.get("strength_validity", {}).get("score", 4),
+                    "contextual_grounding": validation.get("contextual_grounding", {}).get("score", 4)
                 },
                 "quality_score": quality_score
             }

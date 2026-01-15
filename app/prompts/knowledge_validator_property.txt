@@ -22,14 +22,22 @@ You are a knowledge quality validator. Your task is to evaluate the quality of e
 
 **Validation Perspectives:**
 
-1. **Relation Type Validity** (Score 1-5)
-   - Evaluates whether the extracted property is correctly classified according to the relationship types defined in the metamodel.
-   - Consider: Does this relationship match the expected property type? Are source and destination classes correct?
+1. **Relation Applicability (適用性)** (Score 1-5)
+   - Evaluates whether a relationship should be defined between the two connected classes.
+   - Consider: Is this relationship meaningful and necessary? Should these two classes be connected in this way?
 
-2. **Strength Validity** (Score 1-5)
-   - Evaluates whether the strength of the relationship expressed by the property aligns with the actual strength of the conceptual relationship within the domain.
+2. **Relation Unity (単一性)** (Score 1-5)
+   - Evaluates whether the property does not semantically overlap with other relationships.
+   - Consider: Is this relationship distinct from other properties? Does it represent a unique connection without duplicating other relationships?
+
+3. **Relation Strength Validity (強度妥当性)** (Score 1-5)
+   - Evaluates whether the determination of the property's relationship strength is appropriate.
    - Strength scale: 0 (invalid), 1 (weak), 2 (moderate), 3 (strong)
-   - Consider: Is the assigned strength appropriate for this relationship? Does it reflect the actual importance/strength in the domain?
+   - Consider: Is the assigned strength appropriate for this relationship? Does it accurately reflect the importance and strength of the connection in the domain?
+
+4. **Contextual Grounding (文脈根拠性)** (Score 1-5)
+   - Evaluates whether the property can be recognized as having a relationship from the context within the document.
+   - Consider: Is there clear evidence in the document for this relationship? Can the connection be traced back to specific document content?
 
 Evaluate ALL properties listed above and provide scores with detailed justifications for each perspective FOR EACH PROPERTY.
 
@@ -47,11 +55,19 @@ Provide your validation result in the following JSON format (array of validation
       "src_label": "<src_label_1>",
       "property_iri": "<property_iri>",
       "dest_label": "<dest_label_1>",
-      "relation_type_validity": {
+      "relation_applicability": {
+        "score": <1-5>,
+        "justification": "<detailed explanation>"
+      },
+      "relation_unity": {
         "score": <1-5>,
         "justification": "<detailed explanation>"
       },
       "strength_validity": {
+        "score": <1-5>,
+        "justification": "<detailed explanation>"
+      },
+      "contextual_grounding": {
         "score": <1-5>,
         "justification": "<detailed explanation>"
       }

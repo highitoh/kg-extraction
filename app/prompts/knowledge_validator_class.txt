@@ -20,21 +20,29 @@ You are a knowledge quality validator. Your task is to evaluate the quality of e
 
 **Validation Perspectives:**
 
-1. **Necessity** (Score 1-5)
-   - Evaluates whether the extracted class represents a concept that is fundamentally necessary within the purpose of the document and the domain.
-   - Consider: Is this class essential to the domain? Does it represent a core concept?
+1. **Necessity (必要性)** (Score 1-5)
+   - Evaluates whether the class is an element that should be extracted as knowledge.
+   - Consider: Is this class essential to the domain knowledge? Does it represent a concept worth capturing?
 
-2. **Understandability** (Score 1-5)
-   - Evaluates whether the class name is intuitive and whether the meaning of the concept can be clearly understood.
-   - Consider: Is the name clear and self-explanatory? Would domain experts understand this class immediately?
+2. **Understandability (理解容易性)** (Score 1-5)
+   - Evaluates whether the meaning can be clearly understood from the class name.
+   - Consider: Is the class name intuitive and self-explanatory? Can domain experts immediately understand what it represents?
 
-3. **Boundary Suitability** (Score 1-5)
-   - Evaluates whether the scope of information included in the class is appropriate and checks whether it incorrectly contains elements that should be extracted as separate classes.
-   - Consider: Is the scope well-defined? Are there concepts mixed in that should be separate?
+3. **Unity (単一性)** (Score 1-5)
+   - Evaluates whether the class does not semantically overlap with other classes.
+   - Consider: Is this class distinct from other classes? Does it have unique meaning without duplicating other concepts?
 
-4. **Conceptual Structure Validity** (Score 1-5)
-   - Evaluates whether the level of abstraction and the hierarchical relationships of the class are appropriate within the domain.
-   - Consider: Is the abstraction level appropriate? Does it fit well in the domain hierarchy?
+4. **Boundary Suitability (境界適合性)** (Score 1-5)
+   - Evaluates whether the class does not include multiple concepts, and whether the boundary with other classes is appropriate.
+   - Consider: Does the class represent a single cohesive concept? Are the boundaries with other classes clear and appropriate?
+
+5. **Structural Validity (構造妥当性)** (Score 1-5)
+   - Evaluates whether the class is properly defined as a metamodel element, and whether the hierarchical structure is consistent with the metamodel assumptions.
+   - Consider: Is the class correctly positioned in the metamodel? Does the hierarchical structure align with domain expectations?
+
+6. **Text Grounding (文章根拠性)** (Score 1-5)
+   - Evaluates whether the class is extracted based on the document description.
+   - Consider: Is there clear evidence in the document for this class? Is it grounded in the actual text rather than inferred?
 
 Evaluate ALL classes listed above and provide scores with detailed justifications for each perspective FOR EACH CLASS.
 
@@ -59,11 +67,19 @@ Provide your validation result in the following JSON format (array of validation
         "score": <1-5>,
         "justification": "<detailed explanation>"
       },
+      "unity": {
+        "score": <1-5>,
+        "justification": "<detailed explanation>"
+      },
       "boundary_suitability": {
         "score": <1-5>,
         "justification": "<detailed explanation>"
       },
-      "conceptual_structure_validity": {
+      "structural_validity": {
+        "score": <1-5>,
+        "justification": "<detailed explanation>"
+      },
+      "text_grounding": {
         "score": <1-5>,
         "justification": "<detailed explanation>"
       }

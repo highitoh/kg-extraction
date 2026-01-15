@@ -27,29 +27,47 @@
               "necessity": {
                 "type": "integer",
                 "minimum": 1,
-                "maximum": 5
+                "maximum": 5,
+                "description": "Necessity score - whether the class should be extracted as knowledge"
               },
               "understandability": {
                 "type": "integer",
                 "minimum": 1,
-                "maximum": 5
+                "maximum": 5,
+                "description": "Understandability score - whether the meaning can be clearly understood from the class name"
+              },
+              "unity": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 5,
+                "description": "Unity score - whether the class does not semantically overlap with other classes"
               },
               "boundary_suitability": {
                 "type": "integer",
                 "minimum": 1,
-                "maximum": 5
+                "maximum": 5,
+                "description": "Boundary suitability score - whether the class does not include multiple concepts"
               },
-              "conceptual_structure_validity": {
+              "structural_validity": {
                 "type": "integer",
                 "minimum": 1,
-                "maximum": 5
+                "maximum": 5,
+                "description": "Structural validity score - whether the class is properly defined as a metamodel element"
+              },
+              "text_grounding": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 5,
+                "description": "Text grounding score - whether the class is extracted based on the document description"
               }
             },
             "required": [
               "necessity",
               "understandability",
+              "unity",
               "boundary_suitability",
-              "conceptual_structure_validity"
+              "structural_validity",
+              "text_grounding"
             ]
           },
           "quality_score": {
@@ -85,20 +103,36 @@
           "dimension_scores": {
             "type": "object",
             "properties": {
-              "relation_type_validity": {
+              "relation_applicability": {
                 "type": "integer",
                 "minimum": 1,
-                "maximum": 5
+                "maximum": 5,
+                "description": "Relation applicability score - whether a relationship should be defined between the two connected classes"
+              },
+              "relation_unity": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 5,
+                "description": "Relation unity score - whether the property does not semantically overlap with other relationships"
               },
               "strength_validity": {
                 "type": "integer",
                 "minimum": 1,
-                "maximum": 5
+                "maximum": 5,
+                "description": "Strength validity score - whether the determination of the property's relationship strength is appropriate"
+              },
+              "contextual_grounding": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 5,
+                "description": "Contextual grounding score - whether the property can be recognized from the document context"
               }
             },
             "required": [
-              "relation_type_validity",
-              "strength_validity"
+              "relation_applicability",
+              "relation_unity",
+              "strength_validity",
+              "contextual_grounding"
             ]
           },
           "quality_score": {

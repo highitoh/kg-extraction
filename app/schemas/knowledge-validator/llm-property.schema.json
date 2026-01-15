@@ -22,14 +22,31 @@
           "dest_label": {
             "type": "string"
           },
-          "relation_type_validity": {
+          "relation_applicability": {
             "type": "object",
             "properties": {
               "score": {
                 "type": "integer",
                 "minimum": 1,
                 "maximum": 5,
-                "description": "Score from 1 (lowest) to 5 (highest)"
+                "description": "Relation applicability score - evaluates whether a relationship should be defined between the two connected classes"
+              },
+              "justification": {
+                "type": "string",
+                "description": "Detailed explanation for the score"
+              }
+            },
+            "required": ["score", "justification"],
+            "additionalProperties": false
+          },
+          "relation_unity": {
+            "type": "object",
+            "properties": {
+              "score": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 5,
+                "description": "Relation unity score - evaluates whether the property does not semantically overlap with other relationships"
               },
               "justification": {
                 "type": "string",
@@ -46,7 +63,24 @@
                 "type": "integer",
                 "minimum": 1,
                 "maximum": 5,
-                "description": "Score from 1 (lowest) to 5 (highest)"
+                "description": "Strength validity score - evaluates whether the determination of the property's relationship strength is appropriate"
+              },
+              "justification": {
+                "type": "string",
+                "description": "Detailed explanation for the score"
+              }
+            },
+            "required": ["score", "justification"],
+            "additionalProperties": false
+          },
+          "contextual_grounding": {
+            "type": "object",
+            "properties": {
+              "score": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 5,
+                "description": "Contextual grounding score - evaluates whether the property can be recognized as having a relationship from the context within the document"
               },
               "justification": {
                 "type": "string",
@@ -57,7 +91,7 @@
             "additionalProperties": false
           }
         },
-        "required": ["property_id", "src_label", "property_iri", "dest_label", "relation_type_validity", "strength_validity"],
+        "required": ["property_id", "src_label", "property_iri", "dest_label", "relation_applicability", "relation_unity", "strength_validity", "contextual_grounding"],
         "additionalProperties": false
       }
     }
