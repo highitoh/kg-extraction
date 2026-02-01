@@ -30,6 +30,7 @@ class IssueClassifier:
         temperature: float = 0.5,
         output_base_dir: str = "/workspace/app/output/optimize",
         max_retries: int = 3,
+        progress: bool = True,
     ):
         """
         Initialize the IssueClassifier.
@@ -39,11 +40,13 @@ class IssueClassifier:
             temperature: LLM temperature setting (higher for creative label generation)
             output_base_dir: Base directory for optimize outputs
             max_retries: Maximum number of retries for LLM API calls
+            progress: Whether to show progress messages
         """
         self.model = model
         self.temperature = temperature
         self.output_base_dir = output_base_dir
         self.max_retries = max_retries
+        self.progress = progress
 
         # Resolve validator result file path
         self.validator_result_file = self._resolve_validator_result_path(output_base_dir)

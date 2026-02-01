@@ -29,6 +29,7 @@ class IssueCategorizer:
         temperature: float = 0.3,
         output_base_dir: str = "/workspace/app/output/optimize",
         max_retries: int = 3,
+        progress: bool = True,
     ):
         """
         Initialize the IssueCategorizer.
@@ -38,11 +39,13 @@ class IssueCategorizer:
             temperature: LLM temperature setting (lower for consistent categorization)
             output_base_dir: Base directory for optimize outputs
             max_retries: Maximum number of retries for LLM API calls
+            progress: Whether to show progress messages
         """
         self.model = model
         self.temperature = temperature
         self.output_base_dir = output_base_dir
         self.max_retries = max_retries
+        self.progress = progress
 
         # Resolve issue classification file path
         self.issue_classification_file = self._resolve_issue_classification_path(output_base_dir)
