@@ -14,6 +14,7 @@ from openai import APIConnectionError, RateLimitError, APIError
 from src.utils.logger import Logger
 from src.utils.llm_factory import LLMFactory
 from src.utils.prompt_utils import fill_prompt_template
+from src.utils.llm_retry import call_with_retry
 
 VIEW_TYPES = [
     "value_analysis",
@@ -236,7 +237,13 @@ class ClassExtractor(Runnable):
         )
         prompt = f"{prompt}\n\n[Text]\n{chunks_text}\n"
 
-        response = await self._invoke_with_retry(HumanMessage(content=prompt))
+        response = await call_with_retry(
+            lambda: self.llm_json.ainvoke([HumanMessage(content=prompt)]),
+            retries=self.max_retries,
+            timeout=90.0,
+            progress=self.progress,
+            label="ClassExtractor",
+        )
 
         # Extract text from response.content
         result_text = self._to_text(response.content)
@@ -263,29 +270,6 @@ class ClassExtractor(Runnable):
 
         return labels
 
-    async def _invoke_with_retry(self, msg: HumanMessage):
-        """LLM invocation with retry functionality"""
-        delay = 1.0
-        max_delay = 60.0
-        last_exception = None
-
-        for attempt in range(self.max_retries + 1):
-            try:
-                return await self.llm_json.ainvoke([msg])
-            except (APIConnectionError, RateLimitError, APIError) as e:
-                last_exception = e
-
-                if attempt == self.max_retries:
-                    raise
-
-                wait_time = min(delay, max_delay)
-                if self.progress:
-                    print(f"[ClassExtractor Retry {attempt + 1}/{self.max_retries}] API error: {type(e).__name__}. Retrying in {wait_time:.1f}s...")
-                await asyncio.sleep(wait_time)
-                delay *= 2
-
-        if last_exception:
-            raise last_exception
 
     def _get_class_definitions(self, metamodel: Dict[str, Any], view_type: str) -> str:
         """

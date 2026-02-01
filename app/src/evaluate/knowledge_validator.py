@@ -17,6 +17,7 @@ from openai import APIConnectionError, RateLimitError, APIError
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from utils.llm_factory import LLMFactory
+from utils.llm_retry import call_with_retry
 from utils.prompt_utils import fill_prompt_template
 
 
@@ -262,29 +263,6 @@ class KnowledgeValidator:
 
         return prompt
 
-    async def _invoke_with_retry(self, llm_bound, prompt: str):
-        """Invoke LLM with retry logic and exponential backoff."""
-        delay = 1.0
-        max_delay = 60.0
-        last_exception = None
-
-        for attempt in range(self.max_retries + 1):
-            try:
-                return await llm_bound.ainvoke(prompt)
-            except (APIConnectionError, RateLimitError, APIError) as e:
-                last_exception = e
-
-                if attempt == self.max_retries:
-                    raise
-
-                wait_time = min(delay, max_delay)
-                print(f"[KnowledgeValidator Retry {attempt + 1}/{self.max_retries}] API error: {type(e).__name__}. Retrying in {wait_time:.1f}s...")
-                await asyncio.sleep(wait_time)
-                delay *= 2
-
-        if last_exception:
-            raise last_exception
-
     async def _validate_class_async(self, class_group: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         """Validate a group of classes with the same class_iri asynchronously."""
         if not class_group:
@@ -296,7 +274,13 @@ class KnowledgeValidator:
         try:
             # Invoke LLM with class schema
             print(f"[KnowledgeValidator] Invoking LLM for class validation: {class_iri} ({len(class_group)} instances)")
-            response = await self._invoke_with_retry(self.llm_class, prompt)
+            response = await call_with_retry(
+                lambda: self.llm_class.ainvoke(prompt),
+                retries=self.max_retries,
+                timeout=90.0,
+                progress=True,
+                label="KnowledgeValidator-Class",
+            )
             # Handle response content (can be string or structured content)
             if isinstance(response.content, str):
                 result = json.loads(response.content)
@@ -343,7 +327,13 @@ class KnowledgeValidator:
         try:
             # Invoke LLM with property schema
             print(f"[KnowledgeValidator] Invoking LLM for property validation: {property_iri} ({len(property_group)} instances)")
-            response = await self._invoke_with_retry(self.llm_property, prompt)
+            response = await call_with_retry(
+                lambda: self.llm_property.ainvoke(prompt),
+                retries=self.max_retries,
+                timeout=90.0,
+                progress=True,
+                label="KnowledgeValidator-Property",
+            )
             # Handle response content (can be string or structured content)
             if isinstance(response.content, str):
                 result = json.loads(response.content)

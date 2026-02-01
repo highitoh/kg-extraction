@@ -1,0 +1,48 @@
+Property Editor Custom Prompt: Guidelines for Refining Property Instances
+
+Purpose
+This custom prompt defines editing rules to refine property instances used in knowledge extraction. It focuses on label clarity, readability, and decomposing complex properties into simpler components under a single concept.
+
+Guiding Principles
+- Conciseness: Prefer short, descriptive labels for core concepts.
+- Decomposition: When a label encodes multiple attributes, split into a short concept label plus a set of discrete properties for detailed attributes.
+- Consistency: Apply consistent capitalization, spacing, and naming conventions.
+- Readability: Avoid numeric-heavy labels; prefer numeric details as property values.
+
+Labeling and Decomposition Rules
+1) Short label first: For any concept that would be described by a long or composite label, create a concise short label (for example, Close Contact).
+2) Property set: Under the short label, define discrete properties such as Count, Most Recent Contact Date, Location, and Context as separate attributes.
+3) Complex concepts: If a single label implies multiple attributes, decompose into:
+   - Short label: Close Contact
+   - Properties: Count (numeric), Most Recent Contact Date (date)
+4) Date and numeric properties: Represent dates and numbers as separate properties; do not encode them in the label.
+
+Capitalization and Style
+- Use Title Case for all labels and property names, e.g., Most Recent Contact Date.
+- Avoid underscores, hyphens, or excessive punctuation in labels.
+- Do not include numerals in labels; numerals belong in property values (for example, Count: 5).
+
+Consistency and Scope
+- Maintain a single cohesive concept name across related properties, such as Close Contact.
+- Do not repeat attribute information in the label; expose details via properties instead.
+
+Validation and Review
+- After applying changes, verify:
+  a) No long or composite labels remain; they are split into a short label plus properties.
+  b) All labels use Title Case and contain no numerals.
+  c) Properties are discrete and non-overlapping with clear meanings.
+  d) No existing working rules are removed.
+
+Examples
+- Before: Label Close Contact Overview with multiple attributes
+  After:
+  Concept: Close Contact
+  Properties: Count = 3; Most Recent Contact Date = 2023-12-15
+
+- Before: Label Dense Japanese long label that needs refinement
+  After:
+  Concept: Close Contact
+  Properties: Count (numeric), Most Recent Contact Date (date)
+
+Notes
+These rules are designed to be minimally invasive. If existing rules are already effective, keep them unchanged; only adjust where a strategy plan identifies issues.

@@ -11,6 +11,7 @@ from openai import APIConnectionError, RateLimitError, APIError
 from src.utils.logger import Logger
 from src.utils.llm_factory import LLMFactory
 from src.utils.prompt_utils import fill_prompt_template
+from src.utils.llm_retry import call_with_retry
 
 
 class PropertyEditor(Runnable):
@@ -311,7 +312,13 @@ class PropertyEditor(Runnable):
         )
 
         # Execute strength correction with LLM (with retry)
-        response = await self._invoke_with_retry(llm_json, prompt)
+        response = await call_with_retry(
+            lambda: llm_json.ainvoke([HumanMessage(content=prompt)]),
+            retries=self.max_retries,
+            timeout=90.0,
+            progress=self.progress,
+            label="PropertyEditor",
+        )
 
         # Extract text from response
         result_text = self._to_text(response.content)
@@ -355,30 +362,6 @@ class PropertyEditor(Runnable):
                 corrected_properties.append(p_rejected)
 
         return corrected_properties
-
-    async def _invoke_with_retry(self, llm_json, prompt: str):
-        """LLM invocation with retry functionality"""
-        delay = 1.0
-        max_delay = 60.0
-        last_exception = None
-
-        for attempt in range(self.max_retries + 1):
-            try:
-                return await llm_json.ainvoke([HumanMessage(content=prompt)])
-            except (APIConnectionError, RateLimitError, APIError) as e:
-                last_exception = e
-
-                if attempt == self.max_retries:
-                    raise
-
-                wait_time = min(delay, max_delay)
-                if self.progress:
-                    print(f"[PropertyEditor Retry {attempt + 1}/{self.max_retries}] API error: {type(e).__name__}. Retrying in {wait_time:.1f}s...")
-                await asyncio.sleep(wait_time)
-                delay *= 2
-
-        if last_exception:
-            raise last_exception
 
     @staticmethod
     def _to_text(content: Any) -> str:

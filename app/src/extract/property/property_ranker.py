@@ -12,6 +12,7 @@ from openai import APIConnectionError, RateLimitError, APIError
 from src.utils.logger import Logger
 from src.utils.llm_factory import LLMFactory
 from src.utils.prompt_utils import fill_prompt_template
+from src.utils.llm_retry import call_with_retry
 
 
 class PropertyRanker(Runnable):
@@ -206,7 +207,13 @@ class PropertyRanker(Runnable):
         msg = HumanMessage(content=[{"type": "text", "text": prompt_filled}])
 
         # LLM invocation with retry functionality
-        ai = await self._invoke_with_retry(msg)
+        ai = await call_with_retry(
+            lambda: self.llm_json.ainvoke([msg]),
+            retries=self.max_retries,
+            timeout=90.0,
+            progress=self.progress,
+            label="PropertyRanker",
+        )
         raw = self._to_text(ai.content)
         try:
             data = json.loads(raw)
@@ -223,30 +230,6 @@ class PropertyRanker(Runnable):
             })
 
         return results
-
-    async def _invoke_with_retry(self, msg: HumanMessage):
-        """LLM invocation with retry functionality"""
-        delay = 1.0
-        max_delay = 60.0
-        last_exception = None
-
-        for attempt in range(self.max_retries + 1):
-            try:
-                return await self.llm_json.ainvoke([msg])
-            except (APIConnectionError, RateLimitError, APIError) as e:
-                last_exception = e
-
-                if attempt == self.max_retries:
-                    raise
-
-                wait_time = min(delay, max_delay)
-                if self.progress:
-                    print(f"[PropertyRanker Retry {attempt + 1}/{self.max_retries}] API error: {type(e).__name__}. Retrying in {wait_time:.1f}s...")
-                await asyncio.sleep(wait_time)
-                delay *= 2
-
-        if last_exception:
-            raise last_exception
 
     async def _rank_properties_async(
         self,

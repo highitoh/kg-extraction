@@ -14,6 +14,8 @@ class LLMFactory:
         model: str = "gpt-5-mini",
         temperature: float = 0.0,
         reasoning_effort: str = "low",
+        timeout: float = 60.0,
+        max_retries: int = 0,
     ) -> Union[ChatOpenAI, AzureChatOpenAI]:
         """
         Create a ChatOpenAI or AzureChatOpenAI instance based on environment variables.
@@ -38,6 +40,9 @@ class LLMFactory:
                 - AZURE_OPENAI_API_KEY: Your Azure OpenAI API key
                 - AZURE_OPENAI_DEPLOYMENT: Deployment name (optional, defaults to model parameter)
                 - AZURE_OPENAI_API_VERSION: API version (optional, defaults to "2024-10-21")
+            Other behavior:
+                - timeout: client-side request timeout in seconds (default: 60)
+                - max_retries: SDK-level retries for transient failures (default: 0; retries handled in call_with_retry)
         """
         # Check if Azure OpenAI configuration exists
         azure_endpoint = os.getenv("AZURE_OPENAI_ENDPOINT")
@@ -49,6 +54,8 @@ class LLMFactory:
                 api_version=os.getenv("AZURE_OPENAI_API_VERSION", "2024-10-21"),
                 temperature=temperature,
                 reasoning_effort=reasoning_effort,
+                timeout=timeout,
+                max_retries=max_retries,
             )
         else:
             # Use standard OpenAI API
@@ -57,4 +64,6 @@ class LLMFactory:
                 temperature=temperature,
                 reasoning={"effort": reasoning_effort},
                 output_version="responses/v1",
+                timeout=timeout,
+                max_retries=max_retries,
             )

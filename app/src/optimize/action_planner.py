@@ -17,6 +17,7 @@ from openai import APIConnectionError, RateLimitError, APIError
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from utils.llm_factory import LLMFactory
+from utils.llm_retry import call_with_retry
 from utils.prompt_utils import fill_prompt_template
 
 
@@ -314,30 +315,6 @@ class ActionPlanner:
 
         return prompt
 
-    async def _invoke_with_retry(self, prompt: str) -> Any:
-        """Invoke LLM with retry logic and exponential backoff."""
-        delay = 1.0
-        max_delay = 60.0
-        last_exception = None
-
-        for attempt in range(self.max_retries + 1):
-            try:
-                return await self.llm_bound.ainvoke(prompt)
-            except (APIConnectionError, RateLimitError, APIError) as e:
-                last_exception = e
-
-                if attempt == self.max_retries:
-                    raise
-
-                wait_time = min(delay, max_delay)
-                if self.progress:
-                    print(f"[ActionPlanner Retry {attempt + 1}/{self.max_retries}] API error: {type(e).__name__}. Retrying in {wait_time:.1f}s...")
-                await asyncio.sleep(wait_time)
-                delay *= 2
-
-        if last_exception:
-            raise last_exception
-
     async def _generate_proposal_async(
         self,
         target_type: str,
@@ -374,7 +351,13 @@ class ActionPlanner:
                     raise ValueError(f"Unknown target_type: {target_type}")
 
                 # Invoke LLM
-                response = await self._invoke_with_retry(prompt)
+                response = await call_with_retry(
+                    lambda: self.llm_bound.ainvoke(prompt),
+                    retries=self.max_retries,
+                    timeout=90.0,
+                    progress=self.progress,
+                    label="ActionPlanner",
+                )
 
                 # Parse response
                 if isinstance(response.content, str):

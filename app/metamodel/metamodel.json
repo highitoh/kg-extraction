@@ -21,7 +21,8 @@
                 "Do not extract product, device, or general software terms (e.g., smartphone, app, server, cloud) as stakeholders",
                 "Do not misidentify procedures, obligations, or operational descriptions (inquiry response, FAQ preparation, consent UI, etc.) as entities. Exclude if the entity is not clearly an organization or role",
                 "Prohibit splitting by attribute differences (e.g., treating 'users who use languages other than Japanese' as a separate stakeholder). Express attributes as properties when necessary",
-                "Do not extract names from project structure or deliberative bodies if their role or responsibility is not confirmed in the specification (prohibit extraction from lists of names, greetings, references, etc.)"
+                "Do not extract names from project structure or deliberative bodies if their role or responsibility is not confirmed in the specification (prohibit extraction from lists of names, greetings, references, etc.)",
+                "Do not extract Stakeholder entries that are exact synonyms or variants of an existing canonical Stakeholder. When a variant is detected (e.g., Apple社 vs Apple), map to the canonical label and avoid creating a separate class. Prefer consolidation via class_consolidator rules"
             ]
         },
         {
@@ -32,10 +33,11 @@
             "min_length": 4,
             "max_length": 30,
             "extract_rules": [
-                "Express benefits, outcomes, and achieved states concisely as noun phrases (e.g., privacy protection / promotion of behavior change / rapid information transmission)",
-                "Prioritize extraction from locations in the original text that contain predicates indicating benefits such as 'become able to', 'lead to', 'prevent', 'support', etc.",
-                "Maintain associated metadata about the anticipated stakeholder (user / Ministry of Health, Labour and Welfare / society as a whole, etc.) so that the benefit recipient can be linked in later stages",
-                "The extraction unit is the benefit itself. For sentences where benefit and means are mixed, extract only the benefit portion"
+                "1. Express benefits, outcomes, and achieved states concisely as noun phrases (e.g., privacy protection / promotion of behavior change / rapid information transmission)",
+                "2. Prioritize extraction from locations in the original text that contain predicates indicating benefits such as 'become able to', 'lead to', 'prevent', 'support', etc.",
+                "3. Maintain associated metadata about the anticipated stakeholder (user / Ministry of Health, Labour and Welfare / society as a whole, etc.) so that the benefit recipient can be linked in later stages",
+                "4. The extraction unit is the benefit itself. For sentences where benefit and means are mixed, extract only the benefit portion",
+                "5. Extract values only as end-state outcomes or stakeholder-desired benefits; ensure values encoding means, procedures, or capabilities are allocated to System Component or Business Requirement instead of Value"
             ],
             "prohibit_rules": [
                 "Do not extract functions, means, components, or technologies (e.g., notification function, Bluetooth usage, diagnosis key, server, OS/API, RPI/TEK) as values",
@@ -144,9 +146,11 @@
             "min_length": 5,
             "max_length": 40,
             "extract_rules": [
-                "Extract only basic design level components (e.g., hardware configuration, OS/runtime, cloud services, external SaaS, library groups, packaged software)",
-                "Express labels as noun phrases (singular, concise)",
-                "If a product name or version is included, extract it as-is (e.g., PostgreSQL, Red Hat Enterprise Linux)"
+                "Extract System Component items within a hierarchical taxonomy that has System Component as the root and explicit subtypes: Operating System, API/EN API, Device/端末, and Cloud Server; assign every extracted item to one of these subtypes.",
+                "Express all System Component labels as noun phrases and ensure each item is categorized under one of the defined subtypes (Operating System, API/EN API, Device/端末, Cloud Server).",
+                "If a product name or version is included, extract it as-is and attach it to the appropriate subtype rather than creating a standalone top-level entry.",
+                "Normalize labels by mapping synonyms to canonical subtype terms: map 'OS' to 'Operating System', map 'EN API' to 'API/EN API', and map '端末' and 'スマートフォン端末' to the canonical '端末' label under the Device/端末 subtype.",
+                "Consolidate synonymous system-layer duplicates under a single canonical node by merging entries such as '端末' and 'スマートフォン端末' under the canonical '端末' label within the Device/端末 subtype."
             ],
             "prohibit_rules": [
                 "Functional design level elements (e.g., XX function)",
@@ -214,7 +218,10 @@
             "min_length": 5,
             "max_length": 40,
             "extract_rules": [
-                "Concisely describe the overview and characteristics of the dataset"
+                "Concisely describe the overview and characteristics of the dataset.",
+                "Dataset class names must be free of explicit numeric values.",
+                "Numeric details such as counts or measurements must be represented as properties of a Dataset instance rather than in the class name.",
+                "Dataset class names must not imply table-like aggregations; information that resembles a table should be represented as properties or separate descriptive items rather than in the class label."
             ],
             "prohibit_rules": [
                 "The source text is a description unrelated to data analysis",

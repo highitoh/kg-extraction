@@ -3,3 +3,7 @@ Evaluation Guidelines
 2. **Reference instance labels**: Read specific context from each instance's label
 3. **Consider dependencies**: Evaluate the degree to which the source depends on the destination
 4. **Keep justification concise**: Clearly describe the basis for evaluation in 1-2 sentences
+5. **Risk-pattern to strength mapping**: If the relation_type is in {AMBIGUOUS_RELATIONSHIP, INSUFFICIENT_EVIDENCE, MISSING_INTERMEDIATE_CLASS, DUPLICATE_RELATIONSHIP, FORBIDDEN_RELATION_PATTERN} then set strength = 1. Ensure this mapping is anchored to issue_labels to preserve recall while improving precision on high-risk edges.
+6. **Strong core-domain justification**: If the relation clearly supports a core domain outcome (e.g., Stakeholder -> Value where the Value anchors a major preventive outcome), set strength = 3. Ensure anchored to issue_labels for recall.
+7. **Cross-layer evidence rule**: If the relation crosses conceptual layers with weak evidence (e.g., OS/API vs. device/edge components), set strength = 2.
+8. **Default partial-evidence fallback**: Provide a fallback default strength = 2 for relations with partial but non-critical evidence.

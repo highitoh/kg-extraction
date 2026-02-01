@@ -12,6 +12,7 @@ from openai import APIConnectionError, RateLimitError, APIError
 from src.utils.logger import Logger
 from src.utils.llm_factory import LLMFactory
 from src.utils.prompt_utils import fill_prompt_template
+from src.utils.llm_retry import call_with_retry
 
 
 def async_retry_with_backoff(max_retries: int = 5, initial_delay: float = 1.0, max_delay: float = 60.0):
@@ -237,7 +238,13 @@ class ClassReviewer(Runnable):
 
         # Execute duplicate detection with LLM (with retry)
         try:
-            response = await self._invoke_with_retry(llm_json, prompt)
+            response = await call_with_retry(
+                lambda: llm_json.ainvoke([HumanMessage(content=prompt)]),
+                retries=self.max_retries,
+                timeout=90.0,
+                progress=self.progress,
+                label="ClassReviewer-Duplicate",
+            )
 
             # Extract text from response
             result_text = self._to_text(response.content)
@@ -443,47 +450,37 @@ class ClassReviewer(Runnable):
             class_labels=labels_json
         )
 
-        # Execute filtering with LLM (with retry)
-        response = await self._invoke_with_retry(llm_json, prompt)
-
-        # Extract text from response
-        result_text = self._to_text(response.content)
-
-        # Parse JSON
         try:
+            # Execute filtering with LLM (with retry + timeout)
+            response = await call_with_retry(
+                lambda: llm_json.ainvoke([HumanMessage(content=prompt)]),
+                retries=self.max_retries,
+                timeout=90.0,
+                progress=self.progress,
+                label="ClassReviewer-Prohibit",
+            )
+
+            # Extract text from response
+            result_text = self._to_text(response.content)
+
+            # Parse JSON
             parsed = json.loads(result_text)
             judgments = parsed["judgments"]
             return judgments
 
+        except asyncio.TimeoutError:
+            if self.progress:
+                print(f"[ClassReviewer] Prohibit rules review timeout for class_iri={class_iri}")
+            return [{"judgment": "REJECT", "justification": "LLM call timed out"} for _ in classes]
         except (json.JSONDecodeError, KeyError) as e:
             if self.progress:
                 print(f"[ClassReviewer] Prohibit rules review JSON parse error: {e}, response: {result_text}")
             # Treat all as REJECT on error
             return [{"judgment": "REJECT", "justification": "Parse error"} for _ in classes]
-
-    async def _invoke_with_retry(self, llm_json, prompt: str):
-        """LLM invocation with retry functionality"""
-        delay = 1.0
-        max_delay = 60.0
-        last_exception = None
-
-        for attempt in range(self.max_retries + 1):
-            try:
-                return await llm_json.ainvoke([HumanMessage(content=prompt)])
-            except (APIConnectionError, RateLimitError, APIError) as e:
-                last_exception = e
-
-                if attempt == self.max_retries:
-                    raise
-
-                wait_time = min(delay, max_delay)
-                if self.progress:
-                    print(f"[ClassReviewer Retry {attempt + 1}/{self.max_retries}] API error: {type(e).__name__}. Retrying in {wait_time:.1f}s...")
-                await asyncio.sleep(wait_time)
-                delay *= 2
-
-        if last_exception:
-            raise last_exception
+        except Exception as e:
+            if self.progress:
+                print(f"[ClassReviewer] Prohibit rules review error: {e}")
+            return [{"judgment": "REJECT", "justification": "LLM call failed"} for _ in classes]
 
     @staticmethod
     def _to_text(content: Any) -> str:

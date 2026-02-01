@@ -1,2 +1,5 @@
 - Since extracting as primary candidates, some imprecise combinations may be included
 - Exclude clearly unrelated combinations
+- Normalize synonyms during extraction: map synonyms (e.g., Apple, Apple Inc., Apple Corporation) to a single canonical Stakeholder
+- Do not extract properties that are merely identifiers, counts, or placeholders (e.g., tokens that look like dummy entries)
+- For any extracted property, check if a more appropriate parent class exists (e.g., convert an overly specific 'Device' to a 'System Component' with Parent 'Device')
