@@ -29,7 +29,6 @@ class IssueClassifier:
         model: str = "gpt-5-mini",
         temperature: float = 0.5,
         output_base_dir: str = "/workspace/app/output/optimize",
-        max_retries: int = 3,
         progress: bool = True,
     ):
         """
@@ -39,13 +38,11 @@ class IssueClassifier:
             model: LLM model name
             temperature: LLM temperature setting (higher for creative label generation)
             output_base_dir: Base directory for optimize outputs
-            max_retries: Maximum number of retries for LLM API calls
             progress: Whether to show progress messages
         """
         self.model = model
         self.temperature = temperature
         self.output_base_dir = output_base_dir
-        self.max_retries = max_retries
         self.progress = progress
 
         # Resolve validator result file path
@@ -372,7 +369,6 @@ class IssueClassifier:
             print(f"[IssueClassifier] Invoking LLM for class issue classification: {class_iri} ({len(class_group)} instances)")
             response = await call_with_retry(
                 lambda: self.llm_class.ainvoke(prompt),
-                retries=self.max_retries,
                 timeout=90.0,
                 progress=self.progress,
                 label="IssueClassifier-Class",
@@ -421,7 +417,6 @@ class IssueClassifier:
             print(f"[IssueClassifier] Invoking LLM for property issue classification: {class_iri} ({len(property_group)} instances)")
             response = await call_with_retry(
                 lambda: self.llm_property.ainvoke(prompt),
-                retries=self.max_retries,
                 timeout=90.0,
                 progress=self.progress,
                 label="IssueClassifier-Property",

@@ -30,7 +30,6 @@ class KnowledgeValidator:
         model: str = "gpt-5-mini",
         temperature: float = 0.0,
         output_base_dir: str = "/workspace/app/output",
-        max_retries: int = 3,
     ):
         """
         Initialize the KnowledgeValidator.
@@ -40,13 +39,11 @@ class KnowledgeValidator:
             model: LLM model name
             temperature: LLM temperature setting
             output_base_dir: Base directory for project outputs
-            max_retries: Maximum number of retries for LLM API calls
         """
         self.project = project
         self.model = model
         self.temperature = temperature
         self.output_base_dir = output_base_dir
-        self.max_retries = max_retries
 
         # Resolve file paths from project name (do this FIRST before LLM initialization)
         self.knowledge_file, self.extraction_result_file = self._resolve_project_paths(project, output_base_dir)
@@ -276,7 +273,6 @@ class KnowledgeValidator:
             print(f"[KnowledgeValidator] Invoking LLM for class validation: {class_iri} ({len(class_group)} instances)")
             response = await call_with_retry(
                 lambda: self.llm_class.ainvoke(prompt),
-                retries=self.max_retries,
                 timeout=90.0,
                 progress=True,
                 label="KnowledgeValidator-Class",
@@ -329,7 +325,6 @@ class KnowledgeValidator:
             print(f"[KnowledgeValidator] Invoking LLM for property validation: {property_iri} ({len(property_group)} instances)")
             response = await call_with_retry(
                 lambda: self.llm_property.ainvoke(prompt),
-                retries=self.max_retries,
                 timeout=90.0,
                 progress=True,
                 label="KnowledgeValidator-Property",

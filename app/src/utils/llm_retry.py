@@ -12,7 +12,7 @@ from openai import APIConnectionError, RateLimitError, APIError
 async def call_with_retry(
     coro_factory: Callable[[], Awaitable],
     *,
-    retries: int = 3,
+    retries: int = 5,
     initial_delay: float = 1.0,
     max_delay: float = 60.0,
     timeout: float = 90.0,

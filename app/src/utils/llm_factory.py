@@ -15,7 +15,6 @@ class LLMFactory:
         temperature: float = 0.0,
         reasoning_effort: str = "low",
         timeout: float = 60.0,
-        max_retries: int = 0,
     ) -> Union[ChatOpenAI, AzureChatOpenAI]:
         """
         Create a ChatOpenAI or AzureChatOpenAI instance based on environment variables.
@@ -42,7 +41,7 @@ class LLMFactory:
                 - AZURE_OPENAI_API_VERSION: API version (optional, defaults to "2024-10-21")
             Other behavior:
                 - timeout: client-side request timeout in seconds (default: 60)
-                - max_retries: SDK-level retries for transient failures (default: 0; retries handled in call_with_retry)
+                - max_retries: SDK-level retries are disabled (0); all retries handled by call_with_retry
         """
         # Check if Azure OpenAI configuration exists
         azure_endpoint = os.getenv("AZURE_OPENAI_ENDPOINT")
@@ -55,7 +54,7 @@ class LLMFactory:
                 temperature=temperature,
                 reasoning_effort=reasoning_effort,
                 timeout=timeout,
-                max_retries=max_retries,
+                max_retries=0,  # Disable SDK retries; handled by call_with_retry
             )
         else:
             # Use standard OpenAI API
@@ -65,5 +64,5 @@ class LLMFactory:
                 reasoning={"effort": reasoning_effort},
                 output_version="responses/v1",
                 timeout=timeout,
-                max_retries=max_retries,
+                max_retries=0,  # Disable SDK retries; handled by call_with_retry
             )

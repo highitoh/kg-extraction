@@ -33,7 +33,6 @@ class PropertyEditor(Runnable):
                  temperature: float = 0.0,
                  progress: bool = True,
                  max_concurrency: int = 8,
-                 max_retries: int = 5,
                  log_dir: str = "/workspace/app/log/property_editor"):
         self.llm = llm or LLMFactory.create_llm(
             model=model,
@@ -42,7 +41,6 @@ class PropertyEditor(Runnable):
         )
         self.progress = progress
         self.max_concurrency = max_concurrency
-        self.max_retries = max_retries
         self.logger = Logger(log_dir)
 
         # Load metamodel
@@ -314,7 +312,6 @@ class PropertyEditor(Runnable):
         # Execute strength correction with LLM (with retry)
         response = await call_with_retry(
             lambda: llm_json.ainvoke([HumanMessage(content=prompt)]),
-            retries=self.max_retries,
             timeout=90.0,
             progress=self.progress,
             label="PropertyEditor",

@@ -27,7 +27,6 @@ class PropertyExtractor(Runnable):
         model: str = "gpt-5-mini",
         temperature: float = 0.0,
         max_concurrency: int = 8,
-        max_retries: int = 5,
         progress: bool = True,
         log_dir: str = "/workspace/app/log/property_extractor",
         batch_size: int = 20,
@@ -42,7 +41,6 @@ class PropertyExtractor(Runnable):
         schema = self._load_schema()
         self.llm_json = self.llm.bind(response_format={"type": "json_schema", "json_schema": {"name": "property_extractor", "schema": schema}})
         self.max_concurrency = max_concurrency
-        self.max_retries = max_retries
         self.progress = progress
         self.batch_size = batch_size
 
@@ -150,7 +148,6 @@ class PropertyExtractor(Runnable):
 
         ai = await call_with_retry(
             lambda: self.llm_json.ainvoke([msg]),
-            retries=self.max_retries,
             timeout=90.0,
             progress=self.progress,
             label="PropertyExtractor",

@@ -51,7 +51,6 @@ class ClassExtractor(Runnable):
         temperature: float = 0.0,
         progress: bool = True,
         max_concurrency: int = 8,
-        max_retries: int = 5,
         log_dir: str = "/workspace/app/log/class_extractor"
     ):
         self.llm = llm or LLMFactory.create_llm(
@@ -61,7 +60,6 @@ class ClassExtractor(Runnable):
         )
         self.progress = progress
         self.max_concurrency = max_concurrency
-        self.max_retries = max_retries
         self.logger = Logger(log_dir)
 
         # Load JSON schema
@@ -239,7 +237,6 @@ class ClassExtractor(Runnable):
 
         response = await call_with_retry(
             lambda: self.llm_json.ainvoke([HumanMessage(content=prompt)]),
-            retries=self.max_retries,
             timeout=90.0,
             progress=self.progress,
             label="ClassExtractor",

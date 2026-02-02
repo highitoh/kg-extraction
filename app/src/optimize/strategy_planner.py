@@ -27,7 +27,6 @@ class StrategyPlanner:
         self,
         model: str = "gpt-5-mini",
         progress: bool = True,
-        max_retries: int = 3,
     ):
         """
         Initialize the StrategyPlanner.
@@ -35,11 +34,9 @@ class StrategyPlanner:
         Args:
             model: LLM model name
             progress: Whether to show progress messages
-            max_retries: Maximum number of retries for LLM API calls
         """
         self.model = model
         self.progress = progress
-        self.max_retries = max_retries
         self.output_base_dir = "/workspace/app/output/optimize"
 
         # Resolve issue category file path
@@ -203,7 +200,6 @@ class StrategyPlanner:
             # Invoke LLM
             response = await call_with_retry(
                 lambda: self.llm_bound.ainvoke(prompt),
-                retries=self.max_retries,
                 timeout=90.0,
                 progress=self.progress,
                 label="StrategyPlanner",

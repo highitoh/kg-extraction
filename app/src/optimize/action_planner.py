@@ -30,7 +30,6 @@ class ActionPlanner:
         temperature: float = 0.3,
         max_concurrency: int = 8,
         progress: bool = True,
-        max_retries: int = 3,
     ):
         """
         Initialize the ActionPlanner.
@@ -40,13 +39,11 @@ class ActionPlanner:
             temperature: LLM temperature for consistency
             max_concurrency: Maximum concurrent LLM calls
             progress: Whether to show progress messages
-            max_retries: Maximum number of retries for LLM API calls
         """
         self.model = model
         self.temperature = temperature
         self.max_concurrency = max_concurrency
         self.progress = progress
-        self.max_retries = max_retries
         self.output_base_dir = "/workspace/app/output/optimize"
 
         # Resolve strategy plan file path
@@ -353,7 +350,6 @@ class ActionPlanner:
                 # Invoke LLM
                 response = await call_with_retry(
                     lambda: self.llm_bound.ainvoke(prompt),
-                    retries=self.max_retries,
                     timeout=90.0,
                     progress=self.progress,
                     label="ActionPlanner",

@@ -15,45 +15,6 @@ from src.utils.prompt_utils import fill_prompt_template
 from src.utils.llm_retry import call_with_retry
 
 
-def async_retry_with_backoff(max_retries: int = 5, initial_delay: float = 1.0, max_delay: float = 60.0):
-    """
-    Retry decorator for async functions (with exponential backoff)
-
-    Args:
-        max_retries: Maximum number of retries
-        initial_delay: Wait time before first retry (seconds)
-        max_delay: Maximum wait time (seconds)
-    """
-    def decorator(func):
-        @wraps(func)
-        async def wrapper(*args, **kwargs):
-            delay = initial_delay
-            last_exception = None
-
-            for attempt in range(max_retries + 1):
-                try:
-                    return await func(*args, **kwargs)
-                except (APIConnectionError, RateLimitError, APIError) as e:
-                    last_exception = e
-
-                    if attempt == max_retries:
-                        raise
-
-                    # Wait before retrying
-                    wait_time = min(delay, max_delay)
-                    print(f"[Retry {attempt + 1}/{max_retries}] API error: {type(e).__name__}. Retrying in {wait_time:.1f}s...")
-                    await asyncio.sleep(wait_time)
-
-                    # Exponential backoff
-                    delay *= 2
-
-            if last_exception:
-                raise last_exception
-
-        return wrapper
-    return decorator
-
-
 class ClassReviewer(Runnable):
     """
     Filter and process extracted classes using LLM
@@ -65,7 +26,6 @@ class ClassReviewer(Runnable):
                  temperature: float = 0.0,
                  progress: bool = True,
                  max_concurrency: int = 8,
-                 max_retries: int = 5,
                  log_dir: str = "/workspace/app/log/class_reviewer"):
         self.llm = llm or LLMFactory.create_llm(
             model=model,
@@ -74,7 +34,6 @@ class ClassReviewer(Runnable):
         )
         self.progress = progress
         self.max_concurrency = max_concurrency
-        self.max_retries = max_retries
         self.logger = Logger(log_dir)
 
         # Load metamodel
@@ -240,7 +199,6 @@ class ClassReviewer(Runnable):
         try:
             response = await call_with_retry(
                 lambda: llm_json.ainvoke([HumanMessage(content=prompt)]),
-                retries=self.max_retries,
                 timeout=90.0,
                 progress=self.progress,
                 label="ClassReviewer-Duplicate",
@@ -454,7 +412,6 @@ class ClassReviewer(Runnable):
             # Execute filtering with LLM (with retry + timeout)
             response = await call_with_retry(
                 lambda: llm_json.ainvoke([HumanMessage(content=prompt)]),
-                retries=self.max_retries,
                 timeout=90.0,
                 progress=self.progress,
                 label="ClassReviewer-Prohibit",

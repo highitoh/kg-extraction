@@ -34,7 +34,6 @@ class PropertyConsolidator(Runnable):
         model: str = "gpt-5-mini",
         temperature: float = 0.0,
         max_concurrency: int = 8,
-        max_retries: int = 5,
         progress: bool = True,
         log_dir: str = "/workspace/app/log/property_consolidator"
     ):
@@ -45,7 +44,6 @@ class PropertyConsolidator(Runnable):
         )
         self.progress = progress
         self.max_concurrency = max_concurrency
-        self.max_retries = max_retries
         self.logger = Logger(log_dir)
 
         # Load metamodel
@@ -435,7 +433,6 @@ class PropertyConsolidator(Runnable):
         # Execute grouping with LLM (with retry)
         response = await call_with_retry(
             lambda: llm_json.ainvoke([msg]),
-            retries=self.max_retries,
             timeout=90.0,
             progress=self.progress,
             label="PropertyConsolidator",

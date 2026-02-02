@@ -28,7 +28,6 @@ class IssueCategorizer:
         model: str = "gpt-5-mini",
         temperature: float = 0.3,
         output_base_dir: str = "/workspace/app/output/optimize",
-        max_retries: int = 3,
         progress: bool = True,
     ):
         """
@@ -38,13 +37,11 @@ class IssueCategorizer:
             model: LLM model name
             temperature: LLM temperature setting (lower for consistent categorization)
             output_base_dir: Base directory for optimize outputs
-            max_retries: Maximum number of retries for LLM API calls
             progress: Whether to show progress messages
         """
         self.model = model
         self.temperature = temperature
         self.output_base_dir = output_base_dir
-        self.max_retries = max_retries
         self.progress = progress
 
         # Resolve issue classification file path
@@ -215,7 +212,6 @@ class IssueCategorizer:
             # Invoke LLM
             response = await call_with_retry(
                 lambda: self.llm_bound.ainvoke(prompt),
-                retries=self.max_retries,
                 timeout=90.0,
                 progress=self.progress,
                 label="IssueCategorizer",

@@ -24,7 +24,6 @@ class PropertyReviewer(Runnable):
         model: str = "gpt-5-mini",
         temperature: float = 0.0,
         max_concurrency: int = 8,
-        max_retries: int = 5,
         progress: bool = True,
         log_dir: str = "/workspace/app/log/property_reviewer",
         batch_size: int = 24,
@@ -37,7 +36,6 @@ class PropertyReviewer(Runnable):
         self.llm_schema = self._load_llm_schema()
         self.llm_json = self.llm.bind(response_format={"type": "json_schema", "json_schema": {"name": "property_reviewer", "schema": self.llm_schema}})
         self.max_concurrency = max_concurrency
-        self.max_retries = max_retries
         self.progress = progress
         self.batch_size = batch_size
 
@@ -162,7 +160,6 @@ class PropertyReviewer(Runnable):
         # Call LLM with retry functionality
         ai = await call_with_retry(
             lambda: self.llm_json.ainvoke([msg]),
-            retries=self.max_retries,
             timeout=90.0,
             progress=self.progress,
             label="PropertyReviewer",
