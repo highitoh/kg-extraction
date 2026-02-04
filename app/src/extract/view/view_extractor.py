@@ -1,8 +1,10 @@
-from typing import Dict, Any, List, Union
+from typing import Dict, Any, List, Union, Tuple
 import asyncio
 import json
 import os
 import uuid
+import csv
+import io
 
 from langchain_core.runnables import Runnable
 from langchain_core.messages import HumanMessage
@@ -13,6 +15,7 @@ from src.utils.logger import Logger
 from src.utils.llm_factory import LLMFactory
 from src.utils.prompt_utils import fill_prompt_template
 from src.utils.llm_retry import call_with_retry
+from src.utils.chunk_creator import ChunkCreator
 
 class ViewExtractor(Runnable):
     """
@@ -57,6 +60,16 @@ class ViewExtractor(Runnable):
             "data_analysis",
         ]
 
+        # Label code mapping
+        self.label_codes = {
+            "VA": "value_analysis",
+            "BC": "business_concept",
+            "BR": "business_requirement",
+            "SR": "system_requirement",
+            "SC": "system_component",
+            "DA": "data_analysis",
+        }
+
         # Initialize Logger
         self.logger = Logger(log_dir)
 
@@ -90,10 +103,49 @@ class ViewExtractor(Runnable):
                 return part.get("text", "")
         return ""
 
-    async def _extract_spans_for_chunk(self, chunk: str) -> Dict[str, List[str]]:
-        """Extract view-specific spans for one chunk"""
-        # Format the prompt with the target text
-        prompt_text = fill_prompt_template(self.prompt, target_text=chunk)
+    def _segment_sentences(self, text: str) -> List[str]:
+        """Split text into sentences using ChunkCreator utility"""
+        cc = ChunkCreator()
+        return cc._split_into_sentences(text)
+
+    def _format_as_csv(self, sentences: List[str], chunk_index: int) -> Tuple[str, Dict[str, str]]:
+        """
+        Format sentences as CSV with id,text structure
+
+        Returns:
+            Tuple of (csv_string, sentence_map) where sentence_map is {id: text}
+        """
+        output = io.StringIO()
+        writer = csv.writer(output, quoting=csv.QUOTE_MINIMAL)
+
+        # Write header
+        writer.writerow(['id', 'text'])
+
+        # Track sentence ID to text mapping
+        sentence_map = {}
+
+        # Write sentences with IDs like c{chunk_idx}_s{sent_idx}
+        for sent_idx, sentence in enumerate(sentences):
+            sentence_id = f"c{chunk_index}_s{sent_idx}"
+            writer.writerow([sentence_id, sentence])
+            sentence_map[sentence_id] = sentence
+
+        return output.getvalue(), sentence_map
+
+    async def _extract_spans_for_chunk(self, chunk: str, chunk_index: int) -> Dict[str, List[str]]:
+        """Extract view-specific spans for one chunk using CSV classification"""
+        # Segment chunk into sentences
+        sentences = self._segment_sentences(chunk)
+
+        # Handle empty chunks
+        if not sentences:
+            return {k: [] for k in self.views}
+
+        # Format as CSV and get sentence mapping
+        csv_input, sentence_map = self._format_as_csv(sentences, chunk_index)
+
+        # Format the prompt with the CSV input
+        prompt_text = fill_prompt_template(self.prompt, csv_input=csv_input)
 
         msg = HumanMessage(
             content=[{"type": "text", "text": prompt_text}]
@@ -105,30 +157,54 @@ class ViewExtractor(Runnable):
             label="ViewExtractor",
         )
         raw = self._to_text(ai.content)
+        classification_results: List[Dict[str, Any]] = []
         try:
             data = json.loads(raw)
+            if isinstance(data, dict):
+                classification_results = data.get("classifications", [])
+            elif isinstance(data, list):
+                # Backward compatibility if the model returns a bare array
+                classification_results = data
         except Exception:
-            data = {}
+            classification_results = []
 
-        # Normalize (only known keys, remove duplicates, limit maximum count)
+        if not isinstance(classification_results, list):
+            classification_results = []
+
+        # Parse classification results and reconstruct spans by view type
         spans: Dict[str, List[str]] = {k: [] for k in self.views}
-        for k in self.views:
-            v = data.get(k, [])
-            if not isinstance(v, list):
+
+        for item in classification_results:
+            if not isinstance(item, dict):
                 continue
-            seen = set()
-            out = []
-            for s in v:
-                if not isinstance(s, str):
-                    continue
-                s2 = s.strip()
-                if not s2 or s2 in seen:
-                    continue
-                seen.add(s2)
-                out.append(s2)
-                if len(out) >= self.max_spans_per_label:
-                    break
-            spans[k] = out
+
+            sentence_id = item.get("id", "")
+            labels_str = item.get("labels", "")
+
+            # Skip if sentence ID not found or labels invalid
+            if sentence_id not in sentence_map or not labels_str:
+                continue
+
+            # Skip "NO" (none_of_the_above)
+            if labels_str == "NO":
+                continue
+
+            # Split pipe-delimited labels
+            label_codes = labels_str.split("|")
+
+            # Get original sentence text
+            sentence_text = sentence_map[sentence_id]
+
+            # Map label codes to full view names and add sentence
+            for code in label_codes:
+                code = code.strip()
+                if code in self.label_codes:
+                    view_name = self.label_codes[code]
+                    # Add sentence if not already present and within limit
+                    if sentence_text not in spans[view_name]:
+                        if len(spans[view_name]) < self.max_spans_per_label:
+                            spans[view_name].append(sentence_text)
+
         return spans
 
     async def _process_chunks_parallel(self, chunks: List[str]) -> List[Dict[str, Any]]:
@@ -147,7 +223,7 @@ class ViewExtractor(Runnable):
                 spans = {k: [] for k in self.views}
                 for attempt in range(5):
                     try:
-                        spans = await self._extract_spans_for_chunk(c)
+                        spans = await self._extract_spans_for_chunk(c, i)
                         break
                     except Exception:
                         await asyncio.sleep(min(2 ** attempt, 10))

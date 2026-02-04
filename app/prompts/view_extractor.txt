@@ -1,30 +1,26 @@
-You are an expert business analyst specializing in requirements engineering and domain modeling.
-Your task is to carefully analyze documentation and categorize sentences according to predefined viewpoints with high accuracy and consistency.
+You are a requirements classifier. Classify each sentence in the CSV by assigning one or more view labels.
 
-[Task]
-Extract Sentences that describe each <<View>> from the following text.
-A single sentence may be assigned to multiple <<Views>>.
-However, only extract from the original text; rephrasing is prohibited.
-Extract sentences in their original language without translation.
-Do not extract ambiguous, general, or insufficiently specific sentences.
+[Label Codes]
+VA = value_analysis (stakeholder value, pain points removed)
+BC = business_concept (vision, policy, business direction)
+BR = business_requirement (business functions, services, operational rules)
+SR = system_requirement (technical specs, performance, security)
+SC = system_component (modules, libraries, services, hardware)
+DA = data_analysis (analysis objectives, methods, targets, results)
+NO = none_of_the_above (unclassifiable)
 
-[View Definitions]
-- value_analysis: Sentences that identify project stakeholders. Also, sentences that explain the value stakeholders receive or pain points removed, such as "peace of mind," "trust," "convenience," or "cost reduction."
-- business_concept: Sentences that explain the project's vision, policy, or concept. Include all philosophical expressions or statements of business direction. However, do not include specific functionality, performance, or operational conditions.
-- business_requirement: Sentences that explain functions or services necessary for business execution. Also, sentences that explain business procedures or operational rules. Targets business-perspective requirements.
-- system_requirement: Sentences that explain specific technical specifications or non-functional requirements that the system must realize. Includes implementation conditions, performance, and security.
-- system_component: Sentences that explain elements composing the system, such as modules, libraries, services, or hardware.
-- data_analysis: Sentences that explain analysis objectives, methods, targets, or results in data analysis for improving business, services, or systems. However, do not include explanations of data collection functions or report output functions.
+[Input Format]
+CSV with headers: id,text
 
 [Output Format (JSON only)]
 {
-  "value_analysis": ["..."],
-  "business_concept": ["..."],
-  "business_requirement": ["..."],
-  "system_requirement": ["..."],
-  "system_component": ["..."],
-  "data_analysis": ["..."]
+  "classifications": [
+    {"id": "...", "labels": "..."}
+  ]
 }
+- Maintain input order
+- labels: Use | separator for multiple labels (e.g., "VA|BC")
+- labels: Use "NO" for unclassifiable sentences
 
-[Target Text]
-<<TARGET_TEXT>>
+[Input CSV]
+<<CSV_INPUT>>

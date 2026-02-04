@@ -2,59 +2,28 @@
   "$id": "https://github.com/highitoh/kg-extraction/schemas/view-extractor/llm.schema.json",
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "ViewExtractorLLMOutput",
-  "description": "LLM output schema for ViewExtractor",
+  "description": "LLM output schema for ViewExtractor - CSV classification format",
   "type": "object",
   "properties": {
-    "value_analysis": {
+    "classifications": {
       "type": "array",
       "items": {
-        "type": "string"
-      },
-      "description": "Text related to value analysis"
-    },
-    "business_concept": {
-      "type": "array",
-      "items": {
-        "type": "string"
-      },
-      "description": "Text related to business concepts"
-    },
-    "business_requirement": {
-      "type": "array",
-      "items": {
-        "type": "string"
-      },
-      "description": "Text related to business requirements"
-    },
-    "system_requirement": {
-      "type": "array",
-      "items": {
-        "type": "string"
-      },
-      "description": "Text related to system requirements"
-    },
-    "system_component": {
-      "type": "array",
-      "items": {
-        "type": "string"
-      },
-      "description": "Text related to system components"
-    },
-    "data_analysis": {
-      "type": "array",
-      "items": {
-        "type": "string"
-      },
-      "description": "Text related to data analysis"
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Sentence ID from input CSV"
+          },
+          "labels": {
+            "type": "string",
+            "description": "Pipe-delimited label codes (e.g., VA|BC or NO)"
+          }
+        },
+        "required": ["id", "labels"],
+        "additionalProperties": false
+      }
     }
   },
-  "required": [
-    "value_analysis",
-    "business_concept",
-    "business_requirement",
-    "system_requirement",
-    "system_component",
-    "data_analysis"
-  ],
+  "required": ["classifications"],
   "additionalProperties": false
 }
