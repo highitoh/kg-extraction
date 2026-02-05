@@ -18,12 +18,12 @@
             "type": "string",
             "description": "Name of the extracted instance"
           },
-          "source": {
+          "source_id": {
             "type": "string",
-            "description": "Source text"
+            "description": "Text ID from input CSV (format: t0, t1, t2, etc.)"
           }
         },
-        "required": ["class", "label", "source"],
+        "required": ["class", "label", "source_id"],
         "additionalProperties": false
       },
       "description": "Extracted class information"

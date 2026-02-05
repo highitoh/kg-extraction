@@ -210,6 +210,43 @@ class ClassExtractor(Runnable):
         """
         return await self._extract_labels_async(view_type, texts, metamodel)
 
+    def _format_texts_with_ids(self, texts: List[Dict[str, Any]]) -> tuple[str, Dict[str, Dict[str, Any]]]:
+        """
+        Format texts with IDs for LLM prompt in CSV format.
+
+        Args:
+            texts: List of {text, file_id} dicts from ViewChainOutput
+
+        Returns:
+            Tuple of (csv_string, text_map)
+            - csv_string: CSV format with "ID,Text" header and rows
+            - text_map: {text_id: {"text": str, "file_id": str}}
+        """
+        import io
+        import csv
+
+        output = io.StringIO()
+        writer = csv.writer(output, quoting=csv.QUOTE_MINIMAL)
+
+        # Write CSV header
+        writer.writerow(['ID', 'Text'])
+
+        # Create text_map to store full text and file_id for each ID
+        text_map = {}
+
+        for idx, t in enumerate(texts):
+            text_id = f"t{idx}"
+            text_content = t.get('text', '')
+            file_id = t.get('file_id', 'unknown')
+
+            writer.writerow([text_id, text_content])
+            text_map[text_id] = {
+                "text": text_content,
+                "file_id": file_id
+            }
+
+        return output.getvalue(), text_map
+
     async def _extract_labels_async(self, view_type: str, texts: List[Dict[str, Any]], metamodel: Dict[str, Any] = None) -> List[Dict[str, str]]:
         """
         Extract class instances from specified view type using LLM (async version)
@@ -217,11 +254,8 @@ class ClassExtractor(Runnable):
         if not texts:
             return []
 
-        # Get text of view description
-        chunk_lines = []
-        for idx, t in enumerate(texts):
-            chunk_lines.append(f"{t.get('text', '')}")
-        chunks_text = "\n".join(chunk_lines)
+        # Format texts with IDs and create mapping
+        texts_csv, text_map = self._format_texts_with_ids(texts)
 
         # Generate class definition and policy strings from metamodel
         class_definitions = self._get_class_definitions(metamodel, view_type)
@@ -233,7 +267,7 @@ class ClassExtractor(Runnable):
             class_definitions=class_definitions,
             class_policies=class_policies
         )
-        prompt = f"{prompt}\n\n[Text]\n{chunks_text}\n"
+        prompt = f"{prompt}\n\n[Text]\n{texts_csv}\n"
 
         response = await call_with_retry(
             lambda: self.llm_json.ainvoke([HumanMessage(content=prompt)]),
@@ -257,13 +291,27 @@ class ClassExtractor(Runnable):
         labels = []
         value_items = result.get("classes", [])
         for item in value_items:
-            if "class" in item and "label" in item and "source" in item:
+            # Validate required fields (note: source_id replaces source)
+            if not all(k in item for k in ["class", "label", "source_id"]):
+                if self.progress:
+                    print(f"[ClassExtractor] Warning: Missing required field in response item: {item}")
+                continue
+
+            text_id = item["source_id"]
+
+            # Resolve text_id to full text and file_id
+            if text_id in text_map:
+                text_info = text_map[text_id]
                 labels.append({
                     "class": item["class"],
                     "label": item["label"],
-                    "source": item["source"],
-                    "file_id": texts[0].get("file_id", "unknown")  # Use first file ID for convenience
+                    "source": text_info["text"],      # Resolved full text (backward compatible)
+                    "file_id": text_info["file_id"],  # Correct file_id (fixes existing bug!)
                 })
+            else:
+                # Handle invalid text ID from LLM
+                if self.progress:
+                    print(f"[ClassExtractor] Warning: Invalid text ID '{text_id}' not found in text_map")
 
         return labels
 
