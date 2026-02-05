@@ -107,11 +107,12 @@ class PropertyReviewer(Runnable):
     def _format_batch_message(self, batch: List[Dict[str, Any]], class_index: Dict[str, Dict[str, Any]]) -> str:
         """Create batch text for LLM (including strength, ranker_justification)"""
         lines = []
-        lines.append("# Review Candidates (includes src/dest label, class_iri, source, strength, ranker evaluation justification)")
+        lines.append("# Review Candidates (includes property_id, src/dest label, class_iri, source, strength, ranker evaluation justification)")
         for i, p in enumerate(batch, 1):
             src = class_index.get(p.get("src_id", ""), {})
             dest = class_index.get(p.get("dest_id", ""), {})
             lines.append(f"Candidate {i}:")
+            lines.append(f"  property_id: {p.get('id', '')}")
             lines.append(f"  property_iri: {p.get('property_iri', '')}")
             lines.append(f"  src_id: {p.get('src_id','')}")
             lines.append(f"    - src_label: {src.get('label','')}")
@@ -175,21 +176,19 @@ class PropertyReviewer(Runnable):
             if not isinstance(r, dict):
                 continue
 
-            # Get evaluated_strength
-            evaluated_strength = r.get("evaluated_strength", 0)
+            # Get eval_str (renamed from evaluated_strength)
+            eval_str = r.get("eval_str", 0)
             judgment = r.get("judgment", "REJECT")
 
-            # Set evaluated_strength to 0 if REJECT
+            # Set eval_str to 0 if REJECT
             if judgment == "REJECT":
-                evaluated_strength = 0
+                eval_str = 0
 
             results.append(
                 {
-                    "src_id": r.get("src_id", ""),
-                    "property_iri": property_iri,  # Keep the property_iri from the batch
-                    "dest_id": r.get("dest_id", ""),
+                    "property_id": r.get("property_id", ""),
                     "judgment": judgment,
-                    "evaluated_strength": evaluated_strength,
+                    "eval_str": eval_str,
                     "justification": (r.get("justification") or "")[:500],
                 }
             )
@@ -240,13 +239,13 @@ class PropertyReviewer(Runnable):
 
         await asyncio.gather(*[sem_task(prop_iri, grp) for prop_iri, grp in groups.items()])
 
-        # Map review results
-        result_map = {(r["src_id"], r["property_iri"], r["dest_id"]): r for r in results_all}
+        # Map review results using property_id
+        result_map = {r["property_id"]: r for r in results_all}
 
         # Build all candidates
         all_properties_with_judgment: List[Dict[str, Any]] = []
         for c in candidates:
-            key = (c.get("src_id", ""), c.get("property_iri", ""), c.get("dest_id", ""))
+            property_id = c.get("id", "")
 
             # Get class labels
             src_class = class_index.get(c.get("src_id", ""), {})
@@ -254,28 +253,28 @@ class PropertyReviewer(Runnable):
             src_label = src_class.get("label", c.get("src_id", ""))
             dest_label = dest_class.get("label", c.get("dest_id", ""))
 
-            if key in result_map:
-                r = result_map[key]
+            if property_id in result_map:
+                r = result_map[property_id]
                 original_strength = c.get("strength", 0)
-                evaluated_strength = r.get("evaluated_strength", 0)
+                eval_str = r.get("eval_str", 0)
                 judgment = r["judgment"]
 
                 # Set judgment to REVIEW if strength evaluation differs
-                if judgment != "REJECT" and original_strength != evaluated_strength:
+                if judgment != "REJECT" and original_strength != eval_str:
                     judgment = "REVIEW"
 
-                # Final strength value (0 if REJECT, otherwise evaluated_strength)
-                final_strength = 0 if judgment == "REJECT" else evaluated_strength
+                # Final strength value (0 if REJECT, otherwise eval_str)
+                final_strength = 0 if judgment == "REJECT" else eval_str
 
                 all_properties_with_judgment.append({
-                    "id": str(uuid.uuid4()),
-                    "src_id": r["src_id"],
+                    "id": property_id,  # Preserve original property ID
+                    "src_id": c.get("src_id", ""),
                     "src_label": src_label,
-                    "property_iri": r["property_iri"],
-                    "dest_id": r["dest_id"],
+                    "property_iri": c.get("property_iri", ""),
+                    "dest_id": c.get("dest_id", ""),
                     "dest_label": dest_label,
                     "original_strength": original_strength,  # For logging: original strength
-                    "evaluated_strength": evaluated_strength,  # For logging: re-evaluated strength
+                    "eval_str": eval_str,  # For logging: re-evaluated strength
                     "strength": final_strength,  # Final strength
                     "judgment": judgment,
                     "justification": r["justification"],
@@ -284,14 +283,14 @@ class PropertyReviewer(Runnable):
                 # LLM review error or not reviewed
                 original_strength = c.get("strength", 0)
                 all_properties_with_judgment.append({
-                    "id": str(uuid.uuid4()),
+                    "id": property_id,  # Preserve original property ID
                     "src_id": c.get("src_id", ""),
                     "src_label": src_label,
                     "property_iri": c.get("property_iri", ""),
                     "dest_id": c.get("dest_id", ""),
                     "dest_label": dest_label,
                     "original_strength": original_strength,
-                    "evaluated_strength": 0,
+                    "eval_str": 0,
                     "strength": 0,  # 0 because REJECT
                     "judgment": "REJECT",
                     "justification": "LLM review error",
@@ -324,7 +323,7 @@ class PropertyReviewer(Runnable):
             # Statistics of strength changes
             strength_changed_count = sum(
                 1 for p in all_properties_with_judgment
-                if p.get("original_strength") != p.get("evaluated_strength")
+                if p.get("original_strength") != p.get("eval_str")
             )
 
             print(f"[PropertyReviewer] Completed: {len(filtered)} properties [ACCEPT: {accept_count}, REVIEW: {review_count}, REJECT: {reject_count}]")

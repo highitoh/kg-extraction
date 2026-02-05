@@ -10,20 +10,16 @@
       "items": {
         "type": "object",
         "properties": {
-          "src_id": {
+          "property_id": {
             "type": "string",
-            "description": "The ID of the source class"
-          },
-          "dest_id": {
-            "type": "string",
-            "description": "The ID of the destination class"
+            "description": "The unique ID of the property"
           },
           "judgment": {
             "type": "string",
             "enum": ["ACCEPT", "REVIEW", "REJECT"],
             "description": "The judgment category for the property relation"
           },
-          "evaluated_strength": {
+          "eval_str": {
             "type": "integer",
             "description": "Re-evaluated strength: 0=None, 1=Weak, 2=Medium, 3=Strong",
             "minimum": 0,
@@ -34,7 +30,7 @@
             "description": "Combined justification for prohibit_rule evaluation and strength assessment"
           }
         },
-        "required": ["src_id", "dest_id", "judgment", "evaluated_strength", "justification"],
+        "required": ["property_id", "judgment", "eval_str", "justification"],
         "additionalProperties": false
       },
       "description": "Array of property relation judgments with 3-tier judgment"
