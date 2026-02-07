@@ -49,6 +49,7 @@ class StrategyPlanner:
         self.llm = LLMFactory.create_llm(
             model=model,
             temperature=0.3,
+            timeout=300.0,
             reasoning_effort="high"
         )
 
@@ -200,7 +201,7 @@ class StrategyPlanner:
             # Invoke LLM
             response = await call_with_retry(
                 lambda: self.llm_bound.ainvoke(prompt),
-                timeout=90.0,
+                timeout=300.0,
                 progress=self.progress,
                 label="StrategyPlanner",
             )

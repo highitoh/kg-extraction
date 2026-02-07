@@ -59,6 +59,7 @@ class IssueCategorizer:
         self.llm = LLMFactory.create_llm(
             model=model,
             temperature=temperature,
+            timeout=180.0,
             reasoning_effort="medium"
         )
 
@@ -212,7 +213,7 @@ class IssueCategorizer:
             # Invoke LLM
             response = await call_with_retry(
                 lambda: self.llm_bound.ainvoke(prompt),
-                timeout=90.0,
+                timeout=180.0,
                 progress=self.progress,
                 label="IssueCategorizer",
             )
