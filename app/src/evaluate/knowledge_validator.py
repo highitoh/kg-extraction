@@ -64,6 +64,7 @@ class KnowledgeValidator:
         self.llm = LLMFactory.create_llm(
             model=model,
             temperature=temperature,
+            timeout=300.0,
             reasoning_effort="medium"
         )
 
@@ -273,7 +274,7 @@ class KnowledgeValidator:
             print(f"[KnowledgeValidator] Invoking LLM for class validation: {class_iri} ({len(class_group)} instances)")
             response = await call_with_retry(
                 lambda: self.llm_class.ainvoke(prompt),
-                timeout=90.0,
+                timeout=300.0,
                 progress=True,
                 label="KnowledgeValidator-Class",
             )
@@ -325,7 +326,7 @@ class KnowledgeValidator:
             print(f"[KnowledgeValidator] Invoking LLM for property validation: {property_iri} ({len(property_group)} instances)")
             response = await call_with_retry(
                 lambda: self.llm_property.ainvoke(prompt),
-                timeout=90.0,
+                timeout=300.0,
                 progress=True,
                 label="KnowledgeValidator-Property",
             )
