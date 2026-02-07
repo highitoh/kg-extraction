@@ -14,7 +14,7 @@ class LLMFactory:
         model: str = "gpt-5-mini",
         temperature: float = 0.0,
         reasoning_effort: str = "low",
-        timeout: float = 60.0,
+        timeout: float = 90.0,
     ) -> Union[ChatOpenAI, AzureChatOpenAI]:
         """
         Create a ChatOpenAI or AzureChatOpenAI instance based on environment variables.
