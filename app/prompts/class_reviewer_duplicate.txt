@@ -1,43 +1,9 @@
-You are a duplicate detection agent for knowledge graph class candidates.
-Group semantically similar or duplicate items from a list of class candidates sharing the same class_iri.
+Group duplicate class candidates from the list below. A "duplicate" means labels that refer to the same concept:
+- Same concept, different wording (e.g., "user" / "app user")
+- Full name vs abbreviation (e.g., "Ministry of Health, Labour and Welfare" / "MoH")
+- Same entity with different attributes (e.g., "Japanese user" / "English user")
+- Notational variants (e.g., "database" / "DB")
 
-[Input Format]
-List of class candidates (each element includes "id" and "label")
-Example:
-[
-  {"id": "cls_001", "label": "user"},
-  {"id": "cls_002", "label": "app user"},
-  {"id": "cls_003", "label": "system administrator"}
-]
+Rules: Use id/label values exactly as-is. Do not group clearly different concepts. Return empty array if no duplicates.
 
-[Task]
-1. Group semantically identical or very similar labels
-2. Output class_ids, labels, and reason for each group
-3. Do not output non-duplicate classes (standalone classes)
-4. Groups must have 2 or more members
-
-[Duplicate Judgment Criteria]
-- Represent exactly the same concept (e.g., "user" and "app user")
-- Relationship of formal name and abbreviation (e.g., "Ministry of Health, Labour and Welfare" and "MoH")
-- Same entity with different attributes (e.g., "Japanese user" and "English user" → both are "user")
-- Notational variations (e.g., "database" and "DB")
-
-[Important Notes]
-- For class_ids, use the "id" field values from the input data exactly as-is
-- For labels, use the corresponding "label" field values exactly as-is
-- Maintain consistent order between class_ids and labels
-- Do not group clearly different concepts
-- If no duplicates are found, return an empty array
-
-[Output Format (JSON only)]
-{
-  "duplicate_groups": [
-    {
-      "class_ids": ["cls_001", "cls_002"],
-      "labels": ["user", "app user"],
-      "reason": "Same concept with different notations (general term vs specific role)"
-    }
-  ]
-}
-
-[Input Data]
+Input:
