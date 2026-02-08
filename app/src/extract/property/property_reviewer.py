@@ -388,25 +388,25 @@ class PropertyReviewer(Runnable):
 
 if __name__ == "__main__":
     # Test execution:
-    # - Load latest PropertyExtractor output (log/property_extractor/property_extractor_output_*.json)
-    # - Load latest ClassConsolidator output (log/class_consolidator/class_consolidator_output_*.json)
+    # - Load latest PropertyRanker output (log/property_ranker/property_ranker_output_*.json)
+    # - Load latest ClassReviewer output (log/class_reviewer/class_reviewer_output_*.json)
     # - Display filtering results
     pf = PropertyReviewer()
 
-    prop_files = sorted(glob.glob("/workspace/app/log/property_extractor/property_extractor_output_*.json"), reverse=True)
-    cls_files = sorted(glob.glob("/workspace/app/log/class_consolidator/class_consolidator_output_*.json"), reverse=True)
+    prop_files = sorted(glob.glob("/workspace/app/log/property_ranker/property_ranker_output_*.json"), reverse=True)
+    cls_files = sorted(glob.glob("/workspace/app/log/class_reviewer/class_reviewer_output_*.json"), reverse=True)
 
     if not prop_files:
-        print("Error: No property_extractor_output files found in log/property_extractor/")
+        print("Error: No property_ranker_output files found in log/property_ranker/")
         exit(1)
     if not cls_files:
-        print("Error: No class_consolidator_output files found in log/class_consolidator/")
+        print("Error: No class_reviewer_output files found in log/class_reviewer/")
         exit(1)
 
     prop_path = prop_files[0]
     cls_path = cls_files[0]
-    print(f"Loading latest PropertyExtractor output: {prop_path}")
-    print(f"Loading latest ClassConsolidator output:    {cls_path}")
+    print(f"Loading latest PropertyRanker output:  {prop_path}")
+    print(f"Loading latest ClassReviewer output:    {cls_path}")
 
     with open(prop_path, "r", encoding="utf-8") as f:
         property_candidates = json.load(f)
