@@ -115,6 +115,16 @@ class PropertyRanker(Runnable):
                 idx[cid] = c
         return idx
 
+    @staticmethod
+    def _get_sources(cls: Dict[str, Any], max_sources: int = 3) -> List[str]:
+        """Get class sources (up to max_sources) with backward compatibility."""
+        sources = cls.get("sources", [])
+        if isinstance(sources, str):
+            sources = [sources]
+        if not sources and cls.get("source"):
+            sources = [cls.get("source", "")]
+        return [s for s in sources[:max_sources] if isinstance(s, str)]
+
     def _group_by_property_iri(self, props: List[Dict[str, Any]]) -> Dict[str, List[Dict[str, Any]]]:
         """Group candidate properties by property_iri"""
         groups: Dict[str, List[Dict[str, Any]]] = {}
@@ -148,7 +158,13 @@ class PropertyRanker(Runnable):
         """Format instance list to text format"""
         lines = []
         for inst in instances:
-            lines.append(f"- ID: {inst.get('id', '')}, Label: {inst.get('label', '')}, Source: {inst.get('source', '')}")
+            lines.append(f"- ID: {inst.get('id', '')}, Label: {inst.get('label', '')}")
+            sources = self._get_sources(inst)
+            if sources:
+                for i, source in enumerate(sources):
+                    lines.append(f"  - source[{i}]: {source}")
+            else:
+                lines.append("  - source[0]: ")
         return "\n".join(lines)
 
     def _format_property_candidates(self, batch: List[Dict[str, Any]], class_index: Dict[str, Dict[str, Any]]) -> str:
@@ -157,13 +173,23 @@ class PropertyRanker(Runnable):
         for i, p in enumerate(batch, 1):
             src = class_index.get(p.get("src_id", ""), {})
             dest = class_index.get(p.get("dest_id", ""), {})
+            src_sources = self._get_sources(src)
+            dest_sources = self._get_sources(dest)
             lines.append(f"Candidate {i}:")
             lines.append(f"  src_id: {p.get('src_id', '')}")
             lines.append(f"    - src_label: {src.get('label', '')}")
-            lines.append(f"    - src_source: {src.get('source', '')}")
+            if src_sources:
+                for j, source in enumerate(src_sources):
+                    lines.append(f"    - src_source[{j}]: {source}")
+            else:
+                lines.append("    - src_source[0]: ")
             lines.append(f"  dest_id: {p.get('dest_id', '')}")
             lines.append(f"    - dest_label: {dest.get('label', '')}")
-            lines.append(f"    - dest_source: {dest.get('source', '')}")
+            if dest_sources:
+                for j, source in enumerate(dest_sources):
+                    lines.append(f"    - dest_source[{j}]: {source}")
+            else:
+                lines.append("    - dest_source[0]: ")
         return "\n".join(lines)
 
     async def _rank_batch(

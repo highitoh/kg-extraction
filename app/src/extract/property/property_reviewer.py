@@ -94,6 +94,16 @@ class PropertyReviewer(Runnable):
                 idx[cid] = c
         return idx
 
+    @staticmethod
+    def _get_sources(cls: Dict[str, Any], max_sources: int = 3) -> List[str]:
+        """Get class sources (up to max_sources) with backward compatibility."""
+        sources = cls.get("sources", [])
+        if isinstance(sources, str):
+            sources = [sources]
+        if not sources and cls.get("source"):
+            sources = [cls.get("source", "")]
+        return [s for s in sources[:max_sources] if isinstance(s, str)]
+
     def _group_by_property_iri(self, props: List[Dict[str, Any]]) -> Dict[str, List[Dict[str, Any]]]:
         """Group candidate properties by property_iri"""
         groups: Dict[str, List[Dict[str, Any]]] = {}
@@ -111,17 +121,27 @@ class PropertyReviewer(Runnable):
         for i, p in enumerate(batch, 1):
             src = class_index.get(p.get("src_id", ""), {})
             dest = class_index.get(p.get("dest_id", ""), {})
+            src_sources = self._get_sources(src)
+            dest_sources = self._get_sources(dest)
             lines.append(f"Candidate {i}:")
             lines.append(f"  property_id: {p.get('id', '')}")
             lines.append(f"  property_iri: {p.get('property_iri', '')}")
             lines.append(f"  src_id: {p.get('src_id','')}")
             lines.append(f"    - src_label: {src.get('label','')}")
             lines.append(f"    - src_class_iri: {src.get('class_iri','')}")
-            lines.append(f"    - src_source: {src.get('source','')}")
+            if src_sources:
+                for j, source in enumerate(src_sources):
+                    lines.append(f"    - src_source[{j}]: {source}")
+            else:
+                lines.append("    - src_source[0]: ")
             lines.append(f"  dest_id: {p.get('dest_id','')}")
             lines.append(f"    - dest_label: {dest.get('label','')}")
             lines.append(f"    - dest_class_iri: {dest.get('class_iri','')}")
-            lines.append(f"    - dest_source: {dest.get('source','')}")
+            if dest_sources:
+                for j, source in enumerate(dest_sources):
+                    lines.append(f"    - dest_source[{j}]: {source}")
+            else:
+                lines.append("    - dest_source[0]: ")
             lines.append(f"  strength: {p.get('strength', 0)} (evaluated by PropertyRanker)")
             ranker_justification = p.get('ranker_justification', '')
             if ranker_justification:
@@ -443,5 +463,4 @@ if __name__ == "__main__":
         print(f"Error: {e}")
         import traceback
         traceback.print_exc()
-
 
