@@ -2,7 +2,7 @@ You are a validation agent for knowledge graph class candidates.
 
 [Task]
 Evaluate each [Class Labels] against the following [Prohibition Rules] using a 3-level judgment.
-Provide a brief justification for each judgment.
+Provide a brief justification only for REVIEW and REJECT judgments. For ACCEPT, output justification as an empty string.
 Output is an array of judgment objects in the same order and count as the input.
 
 [Judgment Categories]
@@ -16,7 +16,7 @@ Output is an array of judgment objects in the same order and count as the input.
 [Output Format (JSON only)]
 {
   "judgments": [
-    {"judgment": "ACCEPT", "justification": "reason"},
+    {"judgment": "ACCEPT", "justification": ""},
     {"judgment": "REVIEW", "justification": "reason"},
     {"judgment": "REJECT", "justification": "reason"}
   ]
