@@ -22,7 +22,7 @@ Perform 2 evaluations per [Property Candidate]:
 - 0/None: Logically independent or incorrect
 
 [Justification Guidelines]
-Be concise. Combine prohibition rule evaluation and strength reasoning in 1-2 sentences.
+Provide a brief justification only for REVIEW and REJECT judgments. For ACCEPT, output justification as an empty string.
 
 [Output Format (JSON only)]
 {
@@ -31,7 +31,7 @@ Be concise. Combine prohibition rule evaluation and strength reasoning in 1-2 se
       "property_id": "...",
       "judgment": "ACCEPT|REVIEW|REJECT",
       "eval_str": 0-3,
-      "justification": "concise combined reasoning"
+      "justification": "" or "concise combined reasoning"
     }
   ]
 }
