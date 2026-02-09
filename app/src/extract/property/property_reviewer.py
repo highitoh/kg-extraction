@@ -117,35 +117,34 @@ class PropertyReviewer(Runnable):
     def _format_batch_message(self, batch: List[Dict[str, Any]], class_index: Dict[str, Dict[str, Any]]) -> str:
         """Create batch text for LLM (including strength, ranker_justification)"""
         lines = []
-        lines.append("# Review Candidates (includes property_id, src/dest label, class_iri, source, strength, ranker evaluation justification)")
-        for i, p in enumerate(batch, 1):
+        for idx, p in enumerate(batch, 1):
             src = class_index.get(p.get("src_id", ""), {})
             dest = class_index.get(p.get("dest_id", ""), {})
             src_sources = self._get_sources(src)
             dest_sources = self._get_sources(dest)
-            lines.append(f"Candidate {i}:")
-            lines.append(f"  property_id: {p.get('id', '')}")
-            lines.append(f"  property_iri: {p.get('property_iri', '')}")
-            lines.append(f"  src_id: {p.get('src_id','')}")
-            lines.append(f"    - src_label: {src.get('label','')}")
-            lines.append(f"    - src_class_iri: {src.get('class_iri','')}")
-            if src_sources:
-                for j, source in enumerate(src_sources):
-                    lines.append(f"    - src_source[{j}]: {source}")
-            else:
-                lines.append("    - src_source[0]: ")
-            lines.append(f"  dest_id: {p.get('dest_id','')}")
-            lines.append(f"    - dest_label: {dest.get('label','')}")
-            lines.append(f"    - dest_class_iri: {dest.get('class_iri','')}")
-            if dest_sources:
-                for j, source in enumerate(dest_sources):
-                    lines.append(f"    - dest_source[{j}]: {source}")
-            else:
-                lines.append("    - dest_source[0]: ")
-            lines.append(f"  strength: {p.get('strength', 0)} (evaluated by PropertyRanker)")
+            src_label = src.get('label', '')
+            dest_label = dest.get('label', '')
+            strength = p.get('strength', 0)
             ranker_justification = p.get('ranker_justification', '')
+
+            lines.append(f"Candidate {idx}")
+            lines.append(f"property_id: {p.get('id', '')}")
+            lines.append(f"{src_label} -> {dest_label} [Strength:{strength}]")
+            lines.append("- Original Texts of Source")
+            if src_sources:
+                for source in src_sources:
+                    lines.append(f"  - {source}")
+            else:
+                lines.append("  - (none)")
+            lines.append("- Original Texts of Destination")
+            if dest_sources:
+                for source in dest_sources:
+                    lines.append(f"  - {source}")
+            else:
+                lines.append("  - (none)")
             if ranker_justification:
-                lines.append(f"  ranker_justification: {ranker_justification}")
+                lines.append(f"- Ranker Justification: {ranker_justification}")
+            lines.append("")
         return "\n".join(lines)
 
     def _get_prohibit_rules(self, property_iri: str) -> str:
