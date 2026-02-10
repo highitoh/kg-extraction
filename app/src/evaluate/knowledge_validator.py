@@ -75,7 +75,8 @@ class KnowledgeValidator:
         self.schemas_dir = Path(__file__).parent.parent.parent / "schemas" / "knowledge-validator"
         class_schema_file = "llm-class.schema.json" if verbose else "llm-class-compact.schema.json"
         self.class_schema = self._load_schema(class_schema_file)
-        self.property_schema = self._load_schema("llm-property.schema.json")
+        property_schema_file = "llm-property.schema.json" if verbose else "llm-property-compact.schema.json"
+        self.property_schema = self._load_schema(property_schema_file)
 
         # Bind LLM with JSON schemas (separate for class and property validation)
         self.llm_class = self.llm.bind(
@@ -361,15 +362,111 @@ Output ONLY the scores using the metrics IDs (S11-S16) as keys."""
 
         property_instances = "\n".join(property_instances_parts)
 
+        if self.verbose:
+            justification_instruction = """```json
+{
+  "property_validations": [
+    {
+      "property_id": "<property_id_1>",
+      "relation_applicability": {
+        "score": <1-5>,
+        "justification": "<detailed explanation>"
+      },
+      "relation_unity": {
+        "score": <1-5>,
+        "justification": "<detailed explanation>"
+      },
+      "strength_validity": {
+        "score": <1-5>,
+        "justification": "<detailed explanation>"
+      },
+      "contextual_grounding": {
+        "score": <1-5>,
+        "justification": "<detailed explanation>"
+      }
+    }
+  ]
+}
+```
+
+Provide clear, specific, and actionable justifications for each score. Reference specific aspects of the property and how they relate to the evaluation criteria."""
+        else:
+            justification_instruction = """```json
+{
+  "property_validations": [
+    {
+      "property_id": "<property_id_1>",
+      "S21": <1-5>,
+      "S22": <1-5>,
+      "S23": <1-5>,
+      "S24": <1-5>
+    }
+  ]
+}
+```
+
+Output ONLY the scores using the metrics IDs (S21-S24) as keys."""
+
         prompt = fill_prompt_template(
             self.property_prompt_template,
             document_context=self.document_context,
             property_iri=property_iri,
             property_def=property_def_str,
-            property_instances=property_instances
+            property_instances=property_instances,
+            justification_instruction=justification_instruction
         )
 
         return prompt
+
+    # Mapping from compact property metrics IDs to full dimension names
+    COMPACT_PROPERTY_METRICS_MAP = {
+        "S21": "relation_applicability",
+        "S22": "relation_unity",
+        "S23": "strength_validity",
+        "S24": "contextual_grounding",
+    }
+
+    def _enrich_property_validations(
+        self, validations: List[Dict[str, Any]], property_group: List[Dict[str, Any]]
+    ) -> List[Dict[str, Any]]:
+        """Enrich LLM validation results with src_label, property_iri, dest_label and normalize compact format.
+
+        In non-verbose (compact) mode, converts {"S21": 4, "S22": 3, ...} to
+        {"relation_applicability": {"score": 4, "justification": ""}, ...}.
+        In verbose mode, the nested format is already correct.
+
+        Args:
+            validations: LLM response validations
+            property_group: Original input property group with full metadata
+
+        Returns:
+            Enriched and normalized validations
+        """
+        # Build mapping: property_id -> {src_label, property_iri, dest_label}
+        property_map = {
+            prop.get('id', ''): {
+                'src_label': prop.get('src_label', 'Unknown'),
+                'property_iri': prop.get('property_iri', 'Unknown'),
+                'dest_label': prop.get('dest_label', 'Unknown'),
+            }
+            for prop in property_group
+        }
+
+        for validation in validations:
+            # Resolve src_label, property_iri, dest_label from input
+            property_id = validation.get('property_id', '')
+            property_info = property_map.get(property_id, {})
+            validation['src_label'] = property_info.get('src_label', 'Unknown')
+            validation['property_iri'] = property_info.get('property_iri', 'Unknown')
+            validation['dest_label'] = property_info.get('dest_label', 'Unknown')
+
+            # Normalize compact format (S21-S24) to standard nested format
+            if not self.verbose:
+                for metric_id, dimension_name in self.COMPACT_PROPERTY_METRICS_MAP.items():
+                    score = validation.pop(metric_id, 0)
+                    validation[dimension_name] = {"score": score, "justification": ""}
+
+        return validations
 
     async def _validate_class_async(self, class_group: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         """Validate a group of classes with the same class_iri asynchronously."""
@@ -457,9 +554,12 @@ Output ONLY the scores using the metrics IDs (S11-S16) as keys."""
 
             # Return the validations array
             if 'property_validations' in result:
-                return result['property_validations']
+                validations = result['property_validations']
             else:
                 raise ValueError(f"Expected 'property_validations' in response, got: {result.keys()}")
+
+            # Resolve src_label, property_iri, dest_label from input data
+            return self._enrich_property_validations(validations, property_group)
         except Exception as e:
             print(f"[KnowledgeValidator] Error validating property for IRI {property_iri}: {e}")
             # Return default validations for all properties in the group

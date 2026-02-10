@@ -13,15 +13,6 @@
           "property_id": {
             "type": "string"
           },
-          "src_label": {
-            "type": "string"
-          },
-          "property_iri": {
-            "type": "string"
-          },
-          "dest_label": {
-            "type": "string"
-          },
           "relation_applicability": {
             "type": "object",
             "properties": {
@@ -91,7 +82,7 @@
             "additionalProperties": false
           }
         },
-        "required": ["property_id", "src_label", "property_iri", "dest_label", "relation_applicability", "relation_unity", "strength_validity", "contextual_grounding"],
+        "required": ["property_id", "relation_applicability", "relation_unity", "strength_validity", "contextual_grounding"],
         "additionalProperties": false
       }
     }
