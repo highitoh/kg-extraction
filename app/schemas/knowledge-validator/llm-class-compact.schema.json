@@ -1,0 +1,60 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "ClassValidationBatchCompactResponse",
+  "description": "Compact LLM response schema for Batch Class Validation (scores only, no justifications)",
+  "type": "object",
+  "properties": {
+    "class_validations": {
+      "type": "array",
+      "description": "Validation results for multiple classes with the same class_iri",
+      "items": {
+        "type": "object",
+        "properties": {
+          "class_id": {
+            "type": "string"
+          },
+          "S11": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 5,
+            "description": "Necessity score"
+          },
+          "S12": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 5,
+            "description": "Understandability score"
+          },
+          "S13": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 5,
+            "description": "Unity score"
+          },
+          "S14": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 5,
+            "description": "Boundary Suitability score"
+          },
+          "S15": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 5,
+            "description": "Structural Validity score"
+          },
+          "S16": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 5,
+            "description": "Text Grounding score"
+          }
+        },
+        "required": ["class_id", "S11", "S12", "S13", "S14", "S15", "S16"],
+        "additionalProperties": false
+      }
+    }
+  },
+  "required": ["class_validations"],
+  "additionalProperties": false
+}

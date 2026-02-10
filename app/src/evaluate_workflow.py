@@ -22,7 +22,7 @@ from src.evaluate.knowledge_validator import KnowledgeValidator
 from src.evaluate.reward_calculator import RewardCalculator
 
 
-def run_evaluation(project: str = "default", model: str = "gpt-5-mini") -> Dict[str, Any]:
+def run_evaluation(project: str = "default", model: str = "gpt-5-mini", verbose: bool = False) -> Dict[str, Any]:
     """
     Execute knowledge quality evaluation
 
@@ -48,7 +48,8 @@ def run_evaluation(project: str = "default", model: str = "gpt-5-mini") -> Dict[
         validator = KnowledgeValidator(
             project=project,
             model=model,
-            output_base_dir=output_dir
+            output_base_dir=output_dir,
+            verbose=verbose
         )
         validation_report = validator.validate()
         validation_file = validator.save_report(validation_report)
@@ -116,6 +117,12 @@ if __name__ == "__main__":
         default="gpt-5-mini",
         help="LLM model for validation (default: gpt-5-mini)"
     )
+    parser.add_argument(
+        "--verbose",
+        action="store_true",
+        default=False,
+        help="Output detailed justifications for each validation score (default: scores only)"
+    )
 
     args = parser.parse_args()
 
@@ -126,7 +133,8 @@ if __name__ == "__main__":
     try:
         results = run_evaluation(
             project=args.project,
-            model=args.model
+            model=args.model,
+            verbose=args.verbose
         )
 
         # Final summary

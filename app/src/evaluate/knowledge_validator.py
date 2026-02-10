@@ -30,6 +30,7 @@ class KnowledgeValidator:
         model: str = "gpt-5-mini",
         temperature: float = 0.0,
         output_base_dir: str = "/workspace/app/output",
+        verbose: bool = False,
     ):
         """
         Initialize the KnowledgeValidator.
@@ -39,11 +40,13 @@ class KnowledgeValidator:
             model: LLM model name
             temperature: LLM temperature setting
             output_base_dir: Base directory for project outputs
+            verbose: If True, LLM outputs detailed justifications for each score
         """
         self.project = project
         self.model = model
         self.temperature = temperature
         self.output_base_dir = output_base_dir
+        self.verbose = verbose
 
         # Resolve file paths from project name (do this FIRST before LLM initialization)
         self.knowledge_file, self.extraction_result_file = self._resolve_project_paths(project, output_base_dir)
@@ -70,7 +73,8 @@ class KnowledgeValidator:
 
         # Load schemas (path: /workspace/app/schemas/knowledge-validator/)
         self.schemas_dir = Path(__file__).parent.parent.parent / "schemas" / "knowledge-validator"
-        self.class_schema = self._load_schema("llm-class.schema.json")
+        class_schema_file = "llm-class.schema.json" if verbose else "llm-class-compact.schema.json"
+        self.class_schema = self._load_schema(class_schema_file)
         self.property_schema = self._load_schema("llm-property.schema.json")
 
         # Bind LLM with JSON schemas (separate for class and property validation)
@@ -212,14 +216,120 @@ class KnowledgeValidator:
 
         class_instances = "\n".join(class_instances_parts)
 
+        if self.verbose:
+            justification_instruction = """```json
+{
+  "class_validations": [
+    {
+      "class_id": "<class_id_1>",
+      "necessity": {
+        "score": <1-5>,
+        "justification": "<detailed explanation>"
+      },
+      "understandability": {
+        "score": <1-5>,
+        "justification": "<detailed explanation>"
+      },
+      "unity": {
+        "score": <1-5>,
+        "justification": "<detailed explanation>"
+      },
+      "boundary_suitability": {
+        "score": <1-5>,
+        "justification": "<detailed explanation>"
+      },
+      "structural_validity": {
+        "score": <1-5>,
+        "justification": "<detailed explanation>"
+      },
+      "text_grounding": {
+        "score": <1-5>,
+        "justification": "<detailed explanation>"
+      }
+    }
+  ]
+}
+```
+
+Provide clear, specific, and actionable justifications for each score. Reference specific aspects of the class and how they relate to the evaluation criteria."""
+        else:
+            justification_instruction = """```json
+{
+  "class_validations": [
+    {
+      "class_id": "<class_id_1>",
+      "S11": <1-5>,
+      "S12": <1-5>,
+      "S13": <1-5>,
+      "S14": <1-5>,
+      "S15": <1-5>,
+      "S16": <1-5>
+    }
+  ]
+}
+```
+
+Output ONLY the scores using the metrics IDs (S11-S16) as keys."""
+
         prompt = fill_prompt_template(
             self.class_prompt_template,
             document_context=self.document_context,
             class_iri=class_iri,
-            class_instances=class_instances
+            class_instances=class_instances,
+            justification_instruction=justification_instruction
         )
 
         return prompt
+
+    # Mapping from compact metrics IDs to full dimension names
+    COMPACT_METRICS_MAP = {
+        "S11": "necessity",
+        "S12": "understandability",
+        "S13": "unity",
+        "S14": "boundary_suitability",
+        "S15": "structural_validity",
+        "S16": "text_grounding",
+    }
+
+    def _enrich_class_validations(
+        self, validations: List[Dict[str, Any]], class_group: List[Dict[str, Any]]
+    ) -> List[Dict[str, Any]]:
+        """Enrich LLM validation results with class_iri, class_label, and normalize compact format.
+
+        In non-verbose (compact) mode, converts {"S11": 4, "S12": 3, ...} to
+        {"necessity": {"score": 4, "justification": ""}, ...}.
+        In verbose mode, the nested format is already correct.
+
+        Args:
+            validations: LLM response validations
+            class_group: Original input class group with full metadata
+
+        Returns:
+            Enriched and normalized validations
+        """
+        # Build mapping: class_id -> {class_iri, label}
+        class_map = {
+            cls.get('id', ''): {
+                'class_iri': cls.get('class_iri', 'Unknown'),
+                'class_label': cls.get('label', 'Unknown'),
+            }
+            for cls in class_group
+        }
+
+        for validation in validations:
+            # Resolve class_iri and class_label from input
+            class_id = validation.get('class_id', '')
+            class_info = class_map.get(class_id, {})
+            validation['class_iri'] = class_info.get('class_iri', 'Unknown')
+            validation['class_label'] = class_info.get('class_label', 'Unknown')
+
+            # Normalize compact format (S11-S16) to standard nested format
+            if not self.verbose:
+                for metric_id, dimension_name in self.COMPACT_METRICS_MAP.items():
+                    score = validation.pop(metric_id, 0)
+                    validation[dimension_name] = {"score": score, "justification": ""}
+
+        return validations
 
     def _create_property_validation_prompt(self, property_group: List[Dict[str, Any]]) -> str:
         """Create validation prompt for a group of properties with the same property_iri."""
@@ -292,9 +402,12 @@ class KnowledgeValidator:
 
             # Return the validations array
             if 'class_validations' in result:
-                return result['class_validations']
+                validations = result['class_validations']
             else:
                 raise ValueError(f"Expected 'class_validations' in response, got: {result.keys()}")
+
+            # Resolve class_iri and class_label from input data
+            return self._enrich_class_validations(validations, class_group)
         except Exception as e:
             print(f"[KnowledgeValidator] Error validating class for IRI {class_iri}: {e}")
             # Return default validations for all classes in the group
@@ -495,15 +608,22 @@ if __name__ == "__main__":
         default="gpt-5-mini",
         help="LLM model name (default: gpt-5-mini)"
     )
+    parser.add_argument(
+        "--verbose",
+        action="store_true",
+        default=False,
+        help="Output detailed justifications for each score (default: scores only)"
+    )
 
     args = parser.parse_args()
 
     try:
         # Create validator
-        print(f"Initializing KnowledgeValidator with model: {args.model}")
+        print(f"Initializing KnowledgeValidator with model: {args.model} (verbose={args.verbose})")
         validator = KnowledgeValidator(
             project=args.project,
-            model=args.model
+            model=args.model,
+            verbose=args.verbose
         )
 
         # Run validation

@@ -13,12 +13,6 @@
           "class_id": {
             "type": "string"
           },
-          "class_iri": {
-            "type": "string"
-          },
-          "class_label": {
-            "type": "string"
-          },
           "necessity": {
             "type": "object",
             "properties": {
@@ -122,7 +116,7 @@
             "additionalProperties": false
           }
         },
-        "required": ["class_id", "class_iri", "class_label", "necessity", "understandability", "unity", "boundary_suitability", "structural_validity", "text_grounding"],
+        "required": ["class_id", "necessity", "understandability", "unity", "boundary_suitability", "structural_validity", "text_grounding"],
         "additionalProperties": false
       }
     }
