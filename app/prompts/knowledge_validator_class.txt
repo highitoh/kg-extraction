@@ -1,12 +1,5 @@
 You are a knowledge quality validator. Your task is to evaluate the quality of extracted classes from a knowledge extraction process.
 
-## Context Information
-
-### Document Purpose and Domain
-<<DOCUMENT_CONTEXT>>
-
----
-
 ## Validation Task
 
 ### CLASS VALIDATION (Batch)

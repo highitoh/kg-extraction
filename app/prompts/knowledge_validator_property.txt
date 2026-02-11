@@ -1,17 +1,8 @@
 You are a knowledge quality validator. Your task is to evaluate the quality of extracted properties from a knowledge extraction process.
 
-## Context Information
-
-### Document Purpose and Domain
-<<DOCUMENT_CONTEXT>>
-
----
-
 ## Validation Task
 
 ### PROPERTY VALIDATION (Batch)
-
-Property IRI: <<PROPERTY_IRI>>
 
 <<PROPERTY_DEF>>
 

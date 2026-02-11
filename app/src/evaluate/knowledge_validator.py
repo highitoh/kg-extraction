@@ -105,9 +105,6 @@ class KnowledgeValidator:
         self.class_prompt_template = self._load_prompt("knowledge_validator_class.txt")
         self.property_prompt_template = self._load_prompt("knowledge_validator_property.txt")
 
-        # Extract context
-        self.document_context = self._extract_document_context()
-
     def _load_schema(self, schema_name: str) -> Dict[str, Any]:
         """Load a JSON schema file."""
         schema_path = self.schemas_dir / schema_name
@@ -175,24 +172,6 @@ class KnowledgeValidator:
 
         return str(knowledge_file), str(extraction_result_file)
 
-    def _extract_document_context(self) -> str:
-        """Extract document context from extraction result."""
-        context_parts = []
-
-        # File information
-        file_path = self.extraction_result_data.get('file_path', 'Unknown')
-        file_type = self.extraction_result_data.get('file_type', 'Unknown')
-        context_parts.append(f"**File**: {file_path}")
-        context_parts.append(f"**File Type**: {file_type}")
-
-        # Summary if available
-        if 'summary' in self.extraction_result_data:
-            summary = self.extraction_result_data['summary']
-            if summary:
-                context_parts.append(f"\n**Document Summary**:\n{summary}")
-
-        return "\n".join(context_parts)
-
     def _create_class_validation_prompt(self, class_group: List[Dict[str, Any]]) -> str:
         """Create validation prompt for a group of classes with the same class_iri."""
         if not class_group:
@@ -205,7 +184,7 @@ class KnowledgeValidator:
         for idx, class_data in enumerate(class_group, 1):
             class_id = class_data.get('id', 'Unknown')
             class_label = class_data.get('label', 'Unknown')
-            sources = class_data.get('sources', [])
+            sources = class_data.get('sources', [])[:3]
 
             instance_info = f"""
 **Class {idx}:**
@@ -274,7 +253,6 @@ Output ONLY the scores using the metrics IDs (S11-S16) as keys."""
 
         prompt = fill_prompt_template(
             self.class_prompt_template,
-            document_context=self.document_context,
             class_iri=class_iri,
             class_instances=class_instances,
             justification_instruction=justification_instruction
@@ -339,9 +317,13 @@ Output ONLY the scores using the metrics IDs (S11-S16) as keys."""
 
         property_iri = property_group[0].get('property_iri', 'Unknown')
 
-        # Find property definition in metamodel
+        # Find property definition in metamodel (name, description, src_class, dest_class only)
         property_def = self.metamodel_property_map.get(property_iri)
-        property_def_str = f"**Property Definition:** {json.dumps(property_def, indent=2, ensure_ascii=False)}" if property_def else ""
+        if property_def:
+            filtered_def = {k: property_def[k] for k in ('name', 'description', 'src_class', 'dest_class') if k in property_def}
+            property_def_str = f"**Property Definition:** {json.dumps(filtered_def, indent=2, ensure_ascii=False)}"
+        else:
+            property_def_str = ""
 
         # Format property instances
         property_instances_parts = []
@@ -409,7 +391,6 @@ Output ONLY the scores using the metrics IDs (S21-S24) as keys."""
 
         prompt = fill_prompt_template(
             self.property_prompt_template,
-            document_context=self.document_context,
             property_iri=property_iri,
             property_def=property_def_str,
             property_instances=property_instances,
@@ -700,7 +681,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Knowledge Validator - Validates classes and properties using LLM")
     parser.add_argument(
         "--project",
-        default="default",
+        default="test",
         help="Project name (resolves to /workspace/app/output/{project}/) (default: default)"
     )
     parser.add_argument(
