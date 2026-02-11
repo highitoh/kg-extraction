@@ -68,7 +68,7 @@ class KnowledgeValidator:
             model=model,
             temperature=temperature,
             timeout=300.0,
-            reasoning_effort="medium"
+            reasoning_effort="low"
         )
 
         # Load schemas (path: /workspace/app/schemas/knowledge-validator/)
