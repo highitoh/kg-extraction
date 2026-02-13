@@ -131,7 +131,7 @@ For each recommendation, specify:
   - For custom_prompt: filename (e.g., "property_ranker_custom.txt")
   - For extract_rules/prohibit_rules: EXACT class or property name from [Available Metamodel Targets] section
     (e.g., "Analysis Result" with space, NOT "AnalysisResult")
-- **reason**: Why this edit will address the quality issues (reference specific issue categories/labels)
+<<REASON_INSTRUCTION>>
 - **priority**: high / medium / low (based on issue frequency and severity)
 - **suggested_changes**: Specific rule additions or modifications
 
@@ -141,22 +141,19 @@ Output format (JSON only):
   "recommended_actions": [
     {
       "target_type": "custom_prompt",
-      "target": "property_ranker_custom.txt",
-      "reason": "Multiple instances of RELATIONSHIP_STRENGTH_OVERESTIMATION suggest the ranker is assigning strength=3 to weak dependencies. Need clearer criteria for distinguishing strong vs weak relationships.",
+      "target": "property_ranker_custom.txt",<<REASON_EXAMPLE>>
       "priority": "high",
       "suggested_changes": "Add rule: 'Assign strength=1 (weak) when the relationship is optional or supplementary, not core to the source class purpose. Reserve strength=3 (strong) only for critical dependencies where the source cannot function without the destination.'"
     },
     {
       "target_type": "prohibit_rules",
-      "target": "Stakeholder",
-      "reason": "REDUNDANT_WITH_EXISTING_CLASS and boundary issues indicate Stakeholder prohibit rules need strengthening to prevent over-extraction of non-entities.",
+      "target": "Stakeholder",<<REASON_EXAMPLE>>
       "priority": "high",
       "suggested_changes": "Add rule: 'Do not extract concepts that represent actions, events, or states (e.g., \"infection prevention\", \"contact tracing activity\"). These should be modeled as Values or requirements, not Stakeholders.'"
     },
     {
       "target_type": "extract_rules",
-      "target": "Value",
-      "reason": "TOO_BROAD_CLASS_BOUNDARY issues suggest Value extract rules need clearer guidance on what constitutes a distinct value vs. a means to achieve it.",
+      "target": "Value",<<REASON_EXAMPLE>>
       "priority": "medium",
       "suggested_changes": "Add rule: 'Extract only end-state benefits or outcomes that stakeholders desire. Do not extract means, procedures, or capabilities (those belong to SystemComponent or BusinessRequirement).'"
     }

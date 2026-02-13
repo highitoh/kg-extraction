@@ -27,6 +27,7 @@ class StrategyPlanner:
         self,
         model: str = "gpt-5-mini",
         progress: bool = True,
+        verbose: bool = False,
         issue_statistics: Optional[List[Dict[str, Any]]] = None,
         previous_strategies: Optional[List[Dict[str, Any]]] = None,
         previous_rewards: Optional[List[float]] = None,
@@ -39,6 +40,8 @@ class StrategyPlanner:
         Args:
             model: LLM model name
             progress: Whether to show progress messages
+            verbose: If True, LLM outputs reason field for each action.
+                     If False (default), reason is omitted to reduce token consumption.
             issue_statistics: Issue category counts [{category, count}], ranked by frequency
             previous_strategies: Compact strategy history from recent iterations
             previous_rewards: Combined total quality scores from recent iterations
@@ -49,6 +52,7 @@ class StrategyPlanner:
         """
         self.model = model
         self.progress = progress
+        self.verbose = verbose
         self.output_base_dir = output_base_dir
         self.optimize_dir = str(Path(output_base_dir) / "optimize")
         self.run_id = run_id
@@ -75,7 +79,8 @@ class StrategyPlanner:
 
         # Load schema (path: /workspace/app/schemas/strategy-planner/)
         self.schemas_dir = Path(__file__).parent.parent.parent / "schemas" / "strategy-planner"
-        self.llm_schema = self._load_schema("llm.schema.json")
+        llm_schema_file = "llm.schema.json" if verbose else "llm-compact.schema.json"
+        self.llm_schema = self._load_schema(llm_schema_file)
 
         # Bind LLM with JSON schema
         self.llm_bound = self.llm.bind(
@@ -254,6 +259,14 @@ class StrategyPlanner:
         classes_list = self._create_classes_list()
         properties_list = self._create_properties_list()
 
+        # Generate reason instruction based on verbose flag
+        if self.verbose:
+            reason_instruction = '- **reason**: Why this edit will address the quality issues (reference specific issue categories/labels)'
+            reason_example = '\n      "reason": "Multiple instances of RELATIONSHIP_STRENGTH_OVERESTIMATION suggest the ranker is assigning strength=3 to weak dependencies. Need clearer criteria for distinguishing strong vs weak relationships.",'
+        else:
+            reason_instruction = ''
+            reason_example = ''
+
         # Replace all placeholders in template
         prompt = fill_prompt_template(
             self.prompt_template,
@@ -261,7 +274,9 @@ class StrategyPlanner:
             previous_strategies_json=previous_strategies_json,
             previous_rewards_json=previous_rewards_json,
             metamodel_classes_list=classes_list,
-            metamodel_properties_list=properties_list
+            metamodel_properties_list=properties_list,
+            reason_instruction=reason_instruction,
+            reason_example=reason_example,
         )
 
         return prompt
@@ -318,6 +333,12 @@ class StrategyPlanner:
                 raise ValueError(f"Expected 'recommended_actions' in response, got: {result.keys()}")
 
             recommended_actions = result['recommended_actions']
+
+            # Normalize compact format: inject empty reason for downstream compatibility
+            if not self.verbose:
+                for action in recommended_actions:
+                    if 'reason' not in action:
+                        action['reason'] = ''
 
             if self.progress:
                 print(f"[StrategyPlanner] LLM generated {len(recommended_actions)} recommended actions")
@@ -411,6 +432,12 @@ if __name__ == "__main__":
         action="store_true",
         help="Disable progress messages"
     )
+    parser.add_argument(
+        "--verbose",
+        action="store_true",
+        default=False,
+        help="Output reason field for each action (default: omit to reduce tokens)"
+    )
 
     args = parser.parse_args()
 
@@ -428,6 +455,7 @@ if __name__ == "__main__":
         planner = StrategyPlanner(
             model=args.model,
             progress=not args.no_progress,
+            verbose=args.verbose,
             issue_statistics=issue_stats,
             previous_strategies=[],
             previous_rewards=[],
