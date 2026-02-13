@@ -59,7 +59,7 @@ class ActionPlanner:
         self.llm = LLMFactory.create_llm(
             model=model,
             temperature=temperature,
-            reasoning_effort="medium"
+            reasoning_effort="low"
         )
 
         # Load schemas (path: /workspace/app/schemas/action-planner/)
