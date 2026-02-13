@@ -238,10 +238,15 @@ class IterationWorkflow:
         """
         print(f"\n--- Phase 4: Optimization ---")
         try:
+            # Gather reward history for strategy planner
+            recent_rewards = self.quality_tracker.get_recent_rewards(last_n=5)
+
             results = run_optimization_workflow(
                 projects=self.projects,
                 model=self.model,
-                output_dir=self.output_dir
+                output_dir=self.output_dir,
+                previous_rewards=recent_rewards,
+                run_id=self.run_id,
             )
             print(f"  Optimization complete: {len(results.get('stages_completed', []))} stages")
             return results

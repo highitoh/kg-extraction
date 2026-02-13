@@ -268,6 +268,32 @@ class QualityTracker:
 
         return (False, None)
 
+    def get_recent_rewards(self, last_n: int = 5) -> List[float]:
+        """
+        Get the most recent combined_total_quality_score values.
+
+        Sums combined_total_quality_score across all projects for each iteration.
+
+        Args:
+            last_n: Number of recent iterations to return
+
+        Returns:
+            List of combined total quality scores (most recent last)
+        """
+        history = self.get_history()
+        recent = history[-last_n:] if history else []
+
+        rewards = []
+        for entry in recent:
+            project_metrics = entry.get("project_metrics", {})
+            total = sum(
+                pm.get("combined_total_quality_score", 0)
+                for pm in project_metrics.values()
+            )
+            rewards.append(total)
+
+        return rewards
+
     def print_summary(self) -> None:
         """Print a human-readable summary of quality history."""
         history = self.get_history()

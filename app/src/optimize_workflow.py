@@ -10,7 +10,7 @@ import glob
 import argparse
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, List, Any
+from typing import Dict, List, Any, Optional
 from dotenv import load_dotenv
 
 # Path setup
@@ -121,10 +121,26 @@ def aggregate_validator_results(projects: List[str], output_dir: str) -> str:
     return str(output_file)
 
 
+def _compute_issue_stats_from_category(category_file: str) -> List[Dict[str, Any]]:
+    """Load issue_category file and compute statistics.
+
+    Args:
+        category_file: Path to issue_category_*.json file
+
+    Returns:
+        List of {category, count} dicts sorted by frequency
+    """
+    with open(category_file, 'r', encoding='utf-8') as f:
+        data = json.load(f)
+    return StrategyPlanner.compute_issue_statistics(data)
+
+
 def run_optimization_workflow(
     projects: List[str],
     model: str = "gpt-5-mini",
-    output_dir: str = "/workspace/app/output"
+    output_dir: str = "/workspace/app/output",
+    previous_rewards: Optional[List[float]] = None,
+    run_id: Optional[str] = None,
 ) -> Dict[str, Any]:
     """
     Execute the complete optimization workflow.
@@ -133,6 +149,8 @@ def run_optimization_workflow(
         projects: List of project names to optimize
         model: LLM model name
         output_dir: Base output directory
+        previous_rewards: Combined total quality scores from recent iterations
+        run_id: Iteration run ID for scoping strategy history
 
     Returns:
         Dictionary containing workflow results and file paths
@@ -174,7 +192,15 @@ def run_optimization_workflow(
 
         # Stage 3: Strategy Planning
         print("\n=== Stage 3: Strategy Planning ===")
-        planner = StrategyPlanner(model=model, progress=True)
+        issue_stats = _compute_issue_stats_from_category(category_file)
+        planner = StrategyPlanner(
+            model=model,
+            progress=True,
+            issue_statistics=issue_stats,
+            previous_rewards=previous_rewards or [],
+            run_id=run_id,
+            output_base_dir=output_dir,
+        )
         strategy_plan = planner.analyze_and_plan()
         strategy_file = planner.save_result(strategy_plan)
         results["strategy_file"] = strategy_file

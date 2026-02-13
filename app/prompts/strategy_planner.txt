@@ -1,8 +1,9 @@
 You are a strategy planner for knowledge extraction quality improvement.
 
 [Task]
-Analyze categorized quality issues from the knowledge extraction pipeline and create an actionable improvement plan.
+Analyze quality issue statistics and previous optimization history to create an actionable improvement plan.
 Your goal is to recommend specific edits to custom prompt rules that will address the root causes of extraction quality issues.
+Use the history of previous strategies and their resulting quality scores to avoid repeating ineffective strategies and to build on successful ones.
 
 [Background: Extractor vs Reviewer Architecture]
 
@@ -78,27 +79,48 @@ Extract rules are defined in the metamodel for each class and guide what TO extr
 
 Prohibit rules are defined in the metamodel for classes and properties, guiding what NOT to extract/accept:
 
-[Input: Issue Categories]
+[Input 1: Issue Category Statistics]
 
-Below are the categorized quality issues identified from validation:
+Below are the issue category labels and their frequency counts, ranked from most frequent to least:
 
-<<ISSUE_CATEGORIES_JSON>>
+<<ISSUE_STATISTICS_JSON>>
 
-Each category includes:
-- Category name and description
-- Related issue labels
-- Affected class/property validations with scores and justifications
+Higher counts indicate more widespread issues that may deserve higher priority.
+
+[Input 2: Previous Strategy History]
+
+Strategies selected in recent iterations (empty if this is the first iteration):
+
+<<PREVIOUS_STRATEGIES_JSON>>
+
+Use this to:
+- Avoid repeating the exact same strategy that did not improve quality
+- Build on strategies that showed improvement
+- Try different target_type or target combinations if previous attempts stalled
+
+[Input 3: Quality Score History]
+
+Combined total quality scores from recent iterations (most recent last; empty if first iteration):
+
+<<PREVIOUS_REWARDS_JSON>>
+
+- Increasing scores (toward 0) indicate improvement; decreasing scores (more negative) indicate degradation
+- If scores are stagnating or decreasing, consider trying fundamentally different strategies
+- If scores are improving, consider reinforcing the current direction with complementary changes
 
 [Analysis Instructions]
 
-1. **Identify Patterns**: Look for recurring issues across multiple extractions
-2. **Root Cause Analysis**: Determine if issues stem from:
+1. **Identify High-Impact Issues**: Focus on categories with the highest counts
+2. **Learn from History**: If previous strategies targeting the same issue did not improve scores, try a different approach (different target_type, different target, or different suggested_changes)
+3. **Avoid Repetition**: Do not recommend the same (target_type, target) combination that appeared in the most recent iteration unless you have substantially different suggested_changes
+4. **Diversify**: Spread recommendations across different target types and targets when possible
+5. **Root Cause Analysis**: Determine if issues stem from:
    - Extractor being too broad/narrow
    - Ranker misjudging strength
    - Consolidator being too aggressive/conservative
    - Missing or unclear custom rules
-3. **Map to Custom Prompts**: Connect each issue pattern to specific editable custom prompts
-4. **Prioritize Impact**: Focus on high-frequency issues or those with severe quality impact
+6. **Map to Targets**: Connect each issue pattern to specific editable targets
+7. **Prioritize Impact**: Focus on high-frequency issues or those with severe quality impact
 
 [Output Requirements]
 

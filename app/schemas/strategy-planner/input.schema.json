@@ -2,6 +2,69 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/highitoh/kg-extraction/schemas/strategy-planner/input.schema.json",
   "title": "Strategy Planner Input",
-  "description": "Input schema for strategy planner - references issue categorizer output",
-  "$ref": "../issue-categorizer/output.schema.json"
+  "description": "Input schema for strategy planner - issue statistics, previous strategies, and reward history",
+  "type": "object",
+  "properties": {
+    "issue_statistics": {
+      "type": "array",
+      "description": "Issue category counts ranked by frequency (most frequent first)",
+      "items": {
+        "type": "object",
+        "properties": {
+          "category": {
+            "type": "string",
+            "description": "Issue category name"
+          },
+          "count": {
+            "type": "integer",
+            "description": "Number of validations in this category"
+          }
+        },
+        "required": ["category", "count"]
+      }
+    },
+    "previous_strategies": {
+      "type": "array",
+      "description": "Strategies from recent iterations (most recent last, max 5)",
+      "items": {
+        "type": "object",
+        "properties": {
+          "timestamp": {
+            "type": "string",
+            "description": "Timestamp when the strategy was created"
+          },
+          "actions": {
+            "type": "array",
+            "description": "Compact action list from that iteration",
+            "items": {
+              "type": "object",
+              "properties": {
+                "target_type": {
+                  "type": "string",
+                  "enum": ["custom_prompt", "extract_rules", "prohibit_rules"]
+                },
+                "target": {
+                  "type": "string"
+                },
+                "priority": {
+                  "type": "string",
+                  "enum": ["high", "medium", "low"]
+                }
+              },
+              "required": ["target_type", "target", "priority"]
+            }
+          }
+        },
+        "required": ["timestamp", "actions"]
+      }
+    },
+    "previous_rewards": {
+      "type": "array",
+      "description": "Combined total quality scores from recent iterations (most recent last, max 5)",
+      "items": {
+        "type": "number"
+      }
+    }
+  },
+  "required": ["issue_statistics", "previous_strategies", "previous_rewards"]
 }

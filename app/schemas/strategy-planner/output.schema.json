@@ -9,9 +9,27 @@
       "type": "string",
       "description": "Timestamp in YYYYMMDD_HHMMSS format"
     },
-    "issue_category_file": {
-      "type": "string",
-      "description": "Path to the issue category file used as input"
+    "input_summary": {
+      "type": "object",
+      "description": "Summary of inputs used for strategy planning",
+      "properties": {
+        "issue_statistics_count": {
+          "type": "integer",
+          "description": "Number of issue categories provided"
+        },
+        "previous_strategies_count": {
+          "type": "integer",
+          "description": "Number of previous strategy iterations provided"
+        },
+        "previous_rewards": {
+          "type": "array",
+          "description": "Combined total quality scores from recent iterations",
+          "items": {
+            "type": "number"
+          }
+        }
+      },
+      "required": ["issue_statistics_count", "previous_strategies_count", "previous_rewards"]
     },
     "recommended_actions": {
       "type": "array",
@@ -47,6 +65,6 @@
       }
     }
   },
-  "required": ["timestamp", "issue_category_file", "recommended_actions"],
+  "required": ["timestamp", "input_summary", "recommended_actions"],
   "additionalProperties": false
 }

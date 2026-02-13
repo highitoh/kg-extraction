@@ -1,4 +1,4 @@
-"""Strategy Planner - Creates improvement plans by analyzing categorized issues using LLM."""
+"""Strategy Planner - Creates improvement plans using issue statistics, strategy history, and reward history."""
 
 import asyncio
 import json
@@ -21,12 +21,17 @@ from utils.prompt_utils import fill_prompt_template
 
 
 class StrategyPlanner:
-    """Creates improvement plans by analyzing categorized issues using LLM."""
+    """Creates improvement plans using issue statistics, strategy history, and reward history."""
 
     def __init__(
         self,
         model: str = "gpt-5-mini",
         progress: bool = True,
+        issue_statistics: Optional[List[Dict[str, Any]]] = None,
+        previous_strategies: Optional[List[Dict[str, Any]]] = None,
+        previous_rewards: Optional[List[float]] = None,
+        run_id: Optional[str] = None,
+        output_base_dir: str = "/workspace/app/output",
     ):
         """
         Initialize the StrategyPlanner.
@@ -34,23 +39,38 @@ class StrategyPlanner:
         Args:
             model: LLM model name
             progress: Whether to show progress messages
+            issue_statistics: Issue category counts [{category, count}], ranked by frequency
+            previous_strategies: Compact strategy history from recent iterations
+            previous_rewards: Combined total quality scores from recent iterations
+            run_id: Iteration run ID for scoping strategy history log.
+                    When set, auto-loads history and saves to iterations/{run_id}/strategy_planner.json.
+                    When None, history logging is disabled.
+            output_base_dir: Base output directory
         """
         self.model = model
         self.progress = progress
-        self.output_base_dir = "/workspace/app/output/optimize"
+        self.output_base_dir = output_base_dir
+        self.optimize_dir = str(Path(output_base_dir) / "optimize")
+        self.run_id = run_id
 
-        # Resolve issue category file path
-        self.issue_category_file = self._resolve_issue_category_path()
+        # Set input data
+        self.issue_statistics = issue_statistics or []
+        self.previous_rewards = previous_rewards or []
 
-        # Load issue category data
-        self.issue_category_data = self._load_json(self.issue_category_file)
+        # Load strategy history: use explicit param if provided, else auto-load from log
+        if previous_strategies is not None:
+            self.previous_strategies = previous_strategies
+        elif run_id is not None:
+            self.previous_strategies = self._load_strategy_history()
+        else:
+            self.previous_strategies = []
 
         # Create LLM instance with high reasoning effort for strategic planning
         self.llm = LLMFactory.create_llm(
             model=model,
             temperature=0.3,
             timeout=300.0,
-            reasoning_effort="high"
+            reasoning_effort="medium"
         )
 
         # Load schema (path: /workspace/app/schemas/strategy-planner/)
@@ -113,53 +133,122 @@ class StrategyPlanner:
         # Format as a readable list
         return ', '.join(f'"{name}"' for name in property_names)
 
-    def _load_json(self, file_path: str) -> Dict[str, Any]:
-        """Load a JSON file."""
-        with open(file_path, 'r', encoding='utf-8') as f:
-            return json.load(f)
+    # ---- Strategy history log (scoped by run_id) ----
 
-    def _resolve_issue_category_path(self) -> str:
-        """
-        Resolve issue_category file path.
+    def _get_strategy_history_path(self) -> Optional[Path]:
+        """Get the path to the strategy history log file. Returns None if run_id is not set."""
+        if self.run_id is None:
+            return None
+        return Path(self.output_base_dir) / "iterations" / self.run_id / "strategy_planner.json"
+
+    def _load_strategy_history(self) -> List[Dict[str, Any]]:
+        """Load strategy history from the run-scoped log file.
 
         Returns:
-            Path to the most recent issue_category_*.json file
-
-        Raises:
-            FileNotFoundError: If required files don't exist
+            List of strategy history entries, or [] if not found or run_id is None.
         """
-        optimize_dir = Path(self.output_base_dir)
+        history_path = self._get_strategy_history_path()
+        if history_path is None or not history_path.exists():
+            return []
 
-        # Check if optimize directory exists
-        if not optimize_dir.exists():
-            raise FileNotFoundError(
-                f"Optimize directory not found: {optimize_dir}"
-            )
+        try:
+            with open(history_path, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+            return data.get("history", [])
+        except (json.JSONDecodeError, IOError):
+            return []
 
-        # Find most recent issue_category file
-        issue_category_pattern = str(optimize_dir / "issue_category_*.json")
-        issue_category_files = sorted(glob.glob(issue_category_pattern), reverse=True)
+    def _save_strategy_history(self, recommended_actions: List[Dict[str, Any]]) -> None:
+        """Append a compact strategy entry to the run-scoped log file.
 
-        if not issue_category_files:
-            raise FileNotFoundError(
-                f"No issue_category_*.json files found in optimize directory: {optimize_dir}\n"
-                f"Pattern searched: {issue_category_pattern}\n"
-                f"Please run IssueCategorizer first."
-            )
+        No-op if run_id is None.
 
-        # Use the most recent issue category
-        issue_category_file = issue_category_files[0]
+        Args:
+            recommended_actions: The full recommended_actions list from the strategy plan
+        """
+        history_path = self._get_strategy_history_path()
+        if history_path is None:
+            return
+
+        # Ensure directory exists
+        history_path.parent.mkdir(parents=True, exist_ok=True)
+
+        # Load existing history
+        history = self._load_strategy_history()
+
+        # Create compact entry
+        compact_actions = [
+            {
+                "target_type": a.get("target_type", ""),
+                "target": a.get("target", ""),
+                "priority": a.get("priority", ""),
+            }
+            for a in recommended_actions
+        ]
+
+        entry = {
+            "timestamp": datetime.now().strftime("%Y%m%d%H%M%S"),
+            "actions": compact_actions,
+        }
+        history.append(entry)
+
+        # Save
+        data = {
+            "run_id": self.run_id,
+            "history": history,
+        }
+        with open(history_path, 'w', encoding='utf-8') as f:
+            json.dump(data, f, indent=2, ensure_ascii=False)
 
         if self.progress:
-            print(f"[StrategyPlanner] Resolved issue category file: {issue_category_file}")
+            print(f"[StrategyPlanner] Strategy history saved to: {history_path}")
 
-        return str(issue_category_file)
+    def get_recent_strategies(self, last_n: int = 5) -> List[Dict[str, Any]]:
+        """Return the last N strategy history entries.
+
+        Args:
+            last_n: Number of recent entries to return
+
+        Returns:
+            List of strategy history entries (most recent last)
+        """
+        history = self._load_strategy_history()
+        return history[-last_n:] if history else []
+
+    # ---- Issue statistics computation ----
+
+    @staticmethod
+    def compute_issue_statistics(issue_category_data: Dict[str, Any]) -> List[Dict[str, Any]]:
+        """Compute category counts from issue_category data, sorted by frequency.
+
+        Args:
+            issue_category_data: Loaded issue_category_*.json data
+
+        Returns:
+            List of {category, count} dicts, sorted by count descending
+        """
+        categories = issue_category_data.get('categories', [])
+        stats = []
+        for cat in categories:
+            validations = cat.get('validations', {})
+            count = (
+                len(validations.get('class_validations', []))
+                + len(validations.get('property_validations', []))
+            )
+            stats.append({
+                "category": cat.get("category", ""),
+                "count": count,
+            })
+        stats.sort(key=lambda x: x["count"], reverse=True)
+        return stats
+
+    # ---- Prompt construction ----
 
     def _create_planning_prompt(self) -> str:
-        """Create planning prompt with issue categories and metamodel context."""
-        # Format issue categories as JSON
-        categories = self.issue_category_data.get('categories', [])
-        issue_categories_json = json.dumps(categories, indent=2, ensure_ascii=False)
+        """Create planning prompt with issue statistics, strategy history, reward history, and metamodel context."""
+        issue_statistics_json = json.dumps(self.issue_statistics, indent=2, ensure_ascii=False)
+        previous_strategies_json = json.dumps(self.previous_strategies, indent=2, ensure_ascii=False)
+        previous_rewards_json = json.dumps(self.previous_rewards, ensure_ascii=False)
 
         # Generate metamodel name lists
         classes_list = self._create_classes_list()
@@ -168,26 +257,34 @@ class StrategyPlanner:
         # Replace all placeholders in template
         prompt = fill_prompt_template(
             self.prompt_template,
-            issue_categories_json=issue_categories_json,
+            issue_statistics_json=issue_statistics_json,
+            previous_strategies_json=previous_strategies_json,
+            previous_rewards_json=previous_rewards_json,
             metamodel_classes_list=classes_list,
             metamodel_properties_list=properties_list
         )
 
         return prompt
 
+    # ---- Main execution ----
+
     async def analyze_and_plan_async(self) -> Dict[str, Any]:
         """Analyze issues and create improvement plan (async)."""
-        categories = self.issue_category_data.get('categories', [])
-
         if self.progress:
-            print(f"[StrategyPlanner] Analyzing {len(categories)} issue categories...")
+            print(f"[StrategyPlanner] Analyzing {len(self.issue_statistics)} issue categories...")
+            print(f"[StrategyPlanner] Previous strategies: {len(self.previous_strategies)} iterations")
+            print(f"[StrategyPlanner] Previous rewards: {self.previous_rewards}")
 
-        if len(categories) == 0:
+        if len(self.issue_statistics) == 0:
             if self.progress:
-                print("[StrategyPlanner] No issue categories found. Nothing to plan.")
+                print("[StrategyPlanner] No issue statistics provided. Nothing to plan.")
             return {
                 "timestamp": datetime.now().strftime("%Y%m%d%H%M%S"),
-                "issue_category_file": self.issue_category_file,
+                "input_summary": {
+                    "issue_statistics_count": 0,
+                    "previous_strategies_count": len(self.previous_strategies),
+                    "previous_rewards": self.previous_rewards,
+                },
                 "recommended_actions": []
             }
 
@@ -234,7 +331,11 @@ class StrategyPlanner:
             timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
             output = {
                 "timestamp": timestamp,
-                "issue_category_file": self.issue_category_file,
+                "input_summary": {
+                    "issue_statistics_count": len(self.issue_statistics),
+                    "previous_strategies_count": len(self.previous_strategies),
+                    "previous_rewards": self.previous_rewards,
+                },
                 "recommended_actions": recommended_actions
             }
 
@@ -253,10 +354,10 @@ class StrategyPlanner:
         return asyncio.run(self.analyze_and_plan_async())
 
     def save_result(self, result: Dict[str, Any], output_dir: Optional[str] = None) -> str:
-        """Save strategy plan to file."""
+        """Save strategy plan to file and append to strategy history log."""
         if output_dir is None:
             # Default: save to optimize directory
-            output_dir = Path(self.output_base_dir)
+            output_dir = Path(self.optimize_dir)
         else:
             output_dir = Path(output_dir)
 
@@ -268,7 +369,34 @@ class StrategyPlanner:
         with open(output_file, 'w', encoding='utf-8') as f:
             json.dump(result, f, indent=2, ensure_ascii=False)
 
+        # Append to strategy history log (scoped by run_id)
+        self._save_strategy_history(result.get('recommended_actions', []))
+
         return str(output_file)
+
+
+def _find_latest_issue_category(optimize_dir: str = "/workspace/app/output/optimize") -> str:
+    """Find the most recent issue_category file for standalone CLI usage.
+
+    Args:
+        optimize_dir: Directory to search in
+
+    Returns:
+        Path to the most recent issue_category_*.json file
+
+    Raises:
+        FileNotFoundError: If no issue_category files exist
+    """
+    pattern = str(Path(optimize_dir) / "issue_category_*.json")
+    files = sorted(glob.glob(pattern), reverse=True)
+
+    if not files:
+        raise FileNotFoundError(
+            f"No issue_category_*.json files found in: {optimize_dir}\n"
+            f"Please run IssueCategorizer first."
+        )
+
+    return files[0]
 
 
 if __name__ == "__main__":
@@ -287,11 +415,22 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     try:
-        # Create planner
+        # Load issue_category file and compute statistics for standalone mode
+        issue_category_file = _find_latest_issue_category()
+        print(f"[StrategyPlanner] Loading issue categories from: {issue_category_file}")
+        with open(issue_category_file, 'r', encoding='utf-8') as f:
+            issue_category_data = json.load(f)
+        issue_stats = StrategyPlanner.compute_issue_statistics(issue_category_data)
+        print(f"[StrategyPlanner] Computed {len(issue_stats)} issue category statistics")
+
+        # Create planner (standalone mode: no run_id, no history)
         print(f"[StrategyPlanner] Initializing StrategyPlanner with model: {args.model}")
         planner = StrategyPlanner(
             model=args.model,
-            progress=not args.no_progress
+            progress=not args.no_progress,
+            issue_statistics=issue_stats,
+            previous_strategies=[],
+            previous_rewards=[],
         )
 
         # Run planning
