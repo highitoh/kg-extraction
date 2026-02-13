@@ -74,7 +74,7 @@ class StrategyPlanner:
             model=model,
             temperature=0.3,
             timeout=300.0,
-            reasoning_effort="medium"
+            reasoning_effort="low"
         )
 
         # Load schema (path: /workspace/app/schemas/strategy-planner/)
