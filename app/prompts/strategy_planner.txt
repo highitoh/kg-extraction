@@ -81,10 +81,15 @@ Prohibit rules are defined in the metamodel for classes and properties, guiding 
 
 [Input 1: Issue Category Statistics]
 
-Below are the issue category labels and their frequency counts, ranked from most frequent to least:
+Below are the issue category labels, their frequency counts, and breakdowns by affected metamodel class/property types, ranked from most frequent to least:
 
 <<ISSUE_STATISTICS_JSON>>
 
+- **count**: Total number of issues in this category
+- **class_breakdown**: Issue counts grouped by metamodel class type (e.g., "Concept": 20)
+- **property_breakdown**: Issue counts grouped by metamodel property type
+
+Use class_breakdown and property_breakdown to target your recommendations at specific metamodel classes or properties.
 Higher counts indicate more widespread issues that may deserve higher priority.
 
 [Input 2: Previous Strategy History]

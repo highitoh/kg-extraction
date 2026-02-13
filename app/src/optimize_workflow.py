@@ -121,18 +121,22 @@ def aggregate_validator_results(projects: List[str], output_dir: str) -> str:
     return str(output_file)
 
 
-def _compute_issue_stats_from_category(category_file: str) -> List[Dict[str, Any]]:
-    """Load issue_category file and compute statistics.
+def _compute_issue_stats_from_category(
+    category_file: str,
+    metamodel: Optional[Dict[str, Any]] = None,
+) -> List[Dict[str, Any]]:
+    """Load issue_category file and compute statistics with class/property breakdowns.
 
     Args:
         category_file: Path to issue_category_*.json file
+        metamodel: Optional metamodel dict for IRI-to-name mapping
 
     Returns:
-        List of {category, count} dicts sorted by frequency
+        List of {category, count, class_breakdown?, property_breakdown?} dicts sorted by frequency
     """
     with open(category_file, 'r', encoding='utf-8') as f:
         data = json.load(f)
-    return StrategyPlanner.compute_issue_statistics(data)
+    return StrategyPlanner.compute_issue_statistics(data, metamodel=metamodel)
 
 
 def run_optimization_workflow(
@@ -192,7 +196,10 @@ def run_optimization_workflow(
 
         # Stage 3: Strategy Planning
         print("\n=== Stage 3: Strategy Planning ===")
-        issue_stats = _compute_issue_stats_from_category(category_file)
+        metamodel_path = Path(__file__).parent.parent / "metamodel" / "metamodel.json"
+        with open(metamodel_path, 'r', encoding='utf-8') as f:
+            metamodel_data = json.load(f)
+        issue_stats = _compute_issue_stats_from_category(category_file, metamodel=metamodel_data)
         planner = StrategyPlanner(
             model=model,
             progress=True,

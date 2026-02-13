@@ -223,27 +223,74 @@ class StrategyPlanner:
     # ---- Issue statistics computation ----
 
     @staticmethod
-    def compute_issue_statistics(issue_category_data: Dict[str, Any]) -> List[Dict[str, Any]]:
-        """Compute category counts from issue_category data, sorted by frequency.
+    def compute_issue_statistics(
+        issue_category_data: Dict[str, Any],
+        metamodel: Optional[Dict[str, Any]] = None,
+    ) -> List[Dict[str, Any]]:
+        """Compute category counts with class/property breakdowns, sorted by frequency.
 
         Args:
             issue_category_data: Loaded issue_category_*.json data
+            metamodel: Optional metamodel dict for IRI-to-name mapping
 
         Returns:
-            List of {category, count} dicts, sorted by count descending
+            List of {category, count, class_breakdown?, property_breakdown?} dicts,
+            sorted by count descending
         """
+        # Build IRI -> name lookup from metamodel
+        class_iri_to_name: Dict[str, str] = {}
+        prop_iri_to_name: Dict[str, str] = {}
+        if metamodel:
+            for cls in metamodel.get('classes', []):
+                class_iri_to_name[cls.get('iri', '')] = cls.get('name', '')
+            for prop in metamodel.get('properties', []):
+                prop_iri_to_name[prop.get('iri', '')] = prop.get('name', '')
+
+        def _resolve_class_name(iri: str) -> str:
+            if iri in class_iri_to_name:
+                return class_iri_to_name[iri]
+            return iri.rsplit('#', 1)[-1] if '#' in iri else iri
+
+        def _resolve_prop_name(iri: str) -> str:
+            if iri in prop_iri_to_name:
+                return prop_iri_to_name[iri]
+            return iri.rsplit('#', 1)[-1] if '#' in iri else iri
+
         categories = issue_category_data.get('categories', [])
         stats = []
         for cat in categories:
             validations = cat.get('validations', {})
-            count = (
-                len(validations.get('class_validations', []))
-                + len(validations.get('property_validations', []))
-            )
-            stats.append({
+            class_vals = validations.get('class_validations', [])
+            prop_vals = validations.get('property_validations', [])
+            count = len(class_vals) + len(prop_vals)
+
+            entry: Dict[str, Any] = {
                 "category": cat.get("category", ""),
                 "count": count,
-            })
+            }
+
+            # Class breakdown by metamodel class type
+            if class_vals:
+                class_counts: Dict[str, int] = {}
+                for cv in class_vals:
+                    name = _resolve_class_name(cv.get('class_iri', ''))
+                    class_counts[name] = class_counts.get(name, 0) + 1
+                entry["class_breakdown"] = dict(
+                    sorted(class_counts.items(), key=lambda x: x[1], reverse=True)
+                )
+
+            # Property breakdown by metamodel property type
+            if prop_vals:
+                prop_counts: Dict[str, int] = {}
+                for pv in prop_vals:
+                    name = _resolve_prop_name(pv.get('property_iri', ''))
+                    prop_counts[name] = prop_counts.get(name, 0) + 1
+                entry["property_breakdown"] = dict(
+                    sorted(prop_counts.items(), key=lambda x: x[1], reverse=True)
+                )
+
+            stats.append(entry)
+
         stats.sort(key=lambda x: x["count"], reverse=True)
         return stats
 
@@ -447,7 +494,11 @@ if __name__ == "__main__":
         print(f"[StrategyPlanner] Loading issue categories from: {issue_category_file}")
         with open(issue_category_file, 'r', encoding='utf-8') as f:
             issue_category_data = json.load(f)
-        issue_stats = StrategyPlanner.compute_issue_statistics(issue_category_data)
+        # Load metamodel for IRI-to-name resolution in statistics
+        metamodel_path = Path(__file__).parent.parent.parent / "metamodel" / "metamodel.json"
+        with open(metamodel_path, 'r', encoding='utf-8') as f:
+            metamodel_data = json.load(f)
+        issue_stats = StrategyPlanner.compute_issue_statistics(issue_category_data, metamodel=metamodel_data)
         print(f"[StrategyPlanner] Computed {len(issue_stats)} issue category statistics")
 
         # Create planner (standalone mode: no run_id, no history)

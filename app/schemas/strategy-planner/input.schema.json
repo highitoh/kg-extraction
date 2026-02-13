@@ -18,6 +18,16 @@
           "count": {
             "type": "integer",
             "description": "Number of validations in this category"
+          },
+          "class_breakdown": {
+            "type": "object",
+            "description": "Count of class validations by metamodel class type",
+            "additionalProperties": { "type": "integer" }
+          },
+          "property_breakdown": {
+            "type": "object",
+            "description": "Count of property validations by metamodel property type",
+            "additionalProperties": { "type": "integer" }
           }
         },
         "required": ["category", "count"]
