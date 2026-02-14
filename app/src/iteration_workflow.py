@@ -454,8 +454,21 @@ class IterationWorkflow:
         self.state["status"] = "in_progress"
         self._save_state()
 
+        # Determine start iteration (skip already-completed iterations on resume)
+        completed_iterations = len(self.state.get("iterations", []))
+        start_iteration = completed_iterations + 1
+
+        if start_iteration > self.max_iterations:
+            print(f"\nAll {self.max_iterations} iterations already completed. Nothing to resume.")
+            self._save_state()
+            self._display_final_summary()
+            return self.state
+
+        if start_iteration > 1:
+            print(f"\nResuming from iteration {start_iteration} ({completed_iterations} already completed)")
+
         try:
-            for iteration in range(1, self.max_iterations + 1):
+            for iteration in range(start_iteration, self.max_iterations + 1):
                 self.state["current_iteration"] = iteration
 
                 # Run single iteration
