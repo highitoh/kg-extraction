@@ -37,6 +37,12 @@ class RewardCalculator:
         # Load validator result data
         self.validator_data = self._load_json(self.validator_result_file)
 
+        # Load metamodel to get class/property counts for reward weighting
+        metamodel_path = str(Path(__file__).parent.parent.parent / "metamodel" / "metamodel.json")
+        metamodel = self._load_json(metamodel_path)
+        self.metamodel_class_count = len(metamodel.get("classes", []))
+        self.metamodel_property_count = len(metamodel.get("properties", []))
+
     def _load_json(self, file_path: str) -> Dict[str, Any]:
         """Load a JSON file."""
         with open(file_path, 'r', encoding='utf-8') as f:
@@ -207,7 +213,8 @@ class RewardCalculator:
         # Calculate summary statistics
         total_classes = len(class_scores)
         total_properties = len(property_scores)
-        combined_total_quality_score = total_class_quality_score + total_property_quality_score
+        property_weight = self.metamodel_class_count / (2 * self.metamodel_property_count) if self.metamodel_property_count > 0 else 1.0
+        combined_total_quality_score = total_class_quality_score + (total_property_quality_score * property_weight)
 
         average_class_score = total_class_quality_score / total_classes if total_classes > 0 else 0.0
         average_property_score = total_property_quality_score / total_properties if total_properties > 0 else 0.0
@@ -218,6 +225,7 @@ class RewardCalculator:
             "total_properties": total_properties,
             "total_class_quality_score": round(total_class_quality_score, 2),
             "total_property_quality_score": round(total_property_quality_score, 2),
+            "property_weight": round(property_weight, 4),
             "combined_total_quality_score": round(combined_total_quality_score, 2),
             "average_class_score": round(average_class_score, 2),
             "average_property_score": round(average_property_score, 2),

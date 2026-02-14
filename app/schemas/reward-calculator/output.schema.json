@@ -164,6 +164,10 @@
         "total_property_quality_score": {
           "type": "number"
         },
+        "property_weight": {
+          "type": "number",
+          "description": "Weight applied to property scores: metamodel_classes / (2 * metamodel_properties)"
+        },
         "combined_total_quality_score": {
           "type": "number"
         },
