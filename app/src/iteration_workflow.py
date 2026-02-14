@@ -451,21 +451,20 @@ class IterationWorkflow:
         print(f"Model: {self.model}")
         print(f"Apply changes: {self.apply_changes}")
 
-        self.state["status"] = "in_progress"
-        self._save_state()
-
         # Determine start iteration (skip already-completed iterations on resume)
         completed_iterations = len(self.state.get("iterations", []))
         start_iteration = completed_iterations + 1
 
         if start_iteration > self.max_iterations:
             print(f"\nAll {self.max_iterations} iterations already completed. Nothing to resume.")
-            self._save_state()
             self._display_final_summary()
             return self.state
 
         if start_iteration > 1:
             print(f"\nResuming from iteration {start_iteration} ({completed_iterations} already completed)")
+
+        self.state["status"] = "in_progress"
+        self._save_state()
 
         try:
             for iteration in range(start_iteration, self.max_iterations + 1):
