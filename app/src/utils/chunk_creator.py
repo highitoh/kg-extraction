@@ -11,8 +11,8 @@ class ChunkCreator:
     def __init__(
         self,
         chunk_mode: Literal["char", "page"] = "char",
-        max_chars: int = 1600,
-        overlap_chars: int = 200
+        max_chars: int = 400,
+        overlap_chars: int = 50
     ):
         """
         Args:
