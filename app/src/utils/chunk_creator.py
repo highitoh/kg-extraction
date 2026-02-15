@@ -27,9 +27,20 @@ class ChunkCreator:
         self.overlap_chars = overlap_chars
 
     def _split_into_sentences(self, text: str) -> List[str]:
-        """Split text into sentences"""
+        """Split text into sentences (supports both Japanese and English)"""
         text = text.replace("\r\n", "\n")
-        parts = re.split(r'(?<=[。！？!?])\s*|\n{2,}', text)
+        # Split by:
+        #   - Japanese sentence-end markers (。！？!?)
+        #   - English sentence boundary: word of 2+ chars ending with period,
+        #     followed by whitespace and uppercase letter
+        #     (avoids splitting abbreviations like "Dr.", "Mr.", "U.")
+        #   - Double newlines (paragraph boundary)
+        parts = re.split(
+            r'(?<=[。！？!?])\s*'
+            r'|(?<=[a-z]{2}\.)\s+(?=[A-Z])'
+            r'|\n{2,}',
+            text
+        )
         sentences = [p.strip() for p in parts if p and p.strip()]
 
         # Split oversized sentences that exceed max_chars
