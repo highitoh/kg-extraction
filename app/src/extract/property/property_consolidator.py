@@ -485,9 +485,9 @@ class PropertyConsolidator(Runnable):
 
             lines.append(f"{i}:")
             lines.append(f"  source: {src_label}")
-            lines.append(f"    context: {src_source[:100]}" if src_source else "")
+            lines.append(f"    context: {src_source[:200]}" if src_source else "")
             lines.append(f"  destination: {dest_label}")
-            lines.append(f"    context: {dest_source[:100]}" if dest_source else "")
+            lines.append(f"    context: {dest_source[:200]}" if dest_source else "")
             lines.append(f"  strength: {prop.get('strength', 0)}")
             lines.append("")
 

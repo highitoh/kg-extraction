@@ -162,7 +162,7 @@ class PropertyRanker(Runnable):
             sources = self._get_sources(inst)
             if sources:
                 for i, source in enumerate(sources):
-                    lines.append(f"  - source[{i}]: {source}")
+                    lines.append(f"  - source[{i}]: {source[:200]}")
             else:
                 lines.append("  - source[0]: ")
         return "\n".join(lines)
@@ -180,14 +180,14 @@ class PropertyRanker(Runnable):
             lines.append(f"    - src_label: {src.get('label', '')}")
             if src_sources:
                 for j, source in enumerate(src_sources):
-                    lines.append(f"    - src_source[{j}]: {source}")
+                    lines.append(f"    - src_source[{j}]: {source[:200]}")
             else:
                 lines.append("    - src_source[0]: ")
             lines.append(f"  dest_id: {p.get('dest_id', '')}")
             lines.append(f"    - dest_label: {dest.get('label', '')}")
             if dest_sources:
                 for j, source in enumerate(dest_sources):
-                    lines.append(f"    - dest_source[{j}]: {source}")
+                    lines.append(f"    - dest_source[{j}]: {source[:200]}")
             else:
                 lines.append("    - dest_source[0]: ")
         return "\n".join(lines)

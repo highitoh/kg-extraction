@@ -133,13 +133,13 @@ class PropertyReviewer(Runnable):
             lines.append("- Original Texts of Source")
             if src_sources:
                 for source in src_sources:
-                    lines.append(f"  - {source}")
+                    lines.append(f"  - {source[:200]}")
             else:
                 lines.append("  - (none)")
             lines.append("- Original Texts of Destination")
             if dest_sources:
                 for source in dest_sources:
-                    lines.append(f"  - {source}")
+                    lines.append(f"  - {source[:200]}")
             else:
                 lines.append("  - (none)")
             if ranker_justification:
