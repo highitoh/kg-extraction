@@ -30,7 +30,56 @@ class ChunkCreator:
         """Split text into sentences"""
         text = text.replace("\r\n", "\n")
         parts = re.split(r'(?<=[。！？!?])\s*|\n{2,}', text)
-        return [p.strip() for p in parts if p and p.strip()]
+        sentences = [p.strip() for p in parts if p and p.strip()]
+
+        # Split oversized sentences that exceed max_chars
+        result = []
+        for s in sentences:
+            if len(s) <= self.max_chars:
+                result.append(s)
+            else:
+                result.extend(self._split_oversized(s))
+        return result
+
+    def _split_oversized(self, text: str) -> List[str]:
+        """Split an oversized sentence into pieces that fit within max_chars.
+        Tries splitting by newline first, then by space, then by hard cut."""
+        # Try splitting by single newline
+        parts = [p.strip() for p in text.split("\n") if p.strip()]
+        if len(parts) > 1:
+            result = []
+            for p in parts:
+                if len(p) <= self.max_chars:
+                    result.append(p)
+                else:
+                    result.extend(self._split_by_space_or_hard(p))
+            return result
+
+        return self._split_by_space_or_hard(text)
+
+    def _split_by_space_or_hard(self, text: str) -> List[str]:
+        """Split text by space boundaries, falling back to hard character cut."""
+        # Try splitting by spaces
+        tokens = re.split(r'(\s+)', text)
+        chunks, cur = [], ""
+        for token in tokens:
+            if len(cur) + len(token) <= self.max_chars:
+                cur += token
+            else:
+                if cur.strip():
+                    chunks.append(cur.strip())
+                if len(token.strip()) > self.max_chars:
+                    # Hard cut for tokens with no whitespace at all
+                    remaining = token.strip()
+                    while remaining:
+                        chunks.append(remaining[:self.max_chars])
+                        remaining = remaining[self.max_chars:]
+                    cur = ""
+                else:
+                    cur = token
+        if cur.strip():
+            chunks.append(cur.strip())
+        return chunks if chunks else [text]
 
     def create(self, text: str) -> List[str]:
         """
