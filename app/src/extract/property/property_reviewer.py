@@ -236,8 +236,10 @@ class PropertyReviewer(Runnable):
         async def worker(property_iri: str, group: List[Dict[str, Any]]):
             nonlocal completed_count
             try:
-                res = await self._judge_batch(group, class_index)
-                results_all.extend(res)
+                for i in range(0, len(group), self.batch_size):
+                    batch = group[i:i + self.batch_size]
+                    res = await self._judge_batch(batch, class_index)
+                    results_all.extend(res)
             except Exception as e:
                 # Record on group failure
                 failed_groups.append(property_iri)
