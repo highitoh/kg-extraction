@@ -38,5 +38,12 @@ Provide a brief justification only for REVIEW and REJECT judgments. For ACCEPT, 
 
 Return relations in same order and count as input.
 
+[Class Instances]
+Source Class Instances:
+<<SRC_INSTANCES>>
+
+Destination Class Instances:
+<<DEST_INSTANCES>>
+
 [Property Candidates]
 <<PROPERTY_CANDIDATES>>

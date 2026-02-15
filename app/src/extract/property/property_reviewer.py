@@ -104,6 +104,19 @@ class PropertyReviewer(Runnable):
             sources = [cls.get("source", "")]
         return [s for s in sources[:max_sources] if isinstance(s, str)]
 
+    def _format_instances(self, instances: List[Dict[str, Any]]) -> str:
+        """Format deduplicated class instance list with source texts"""
+        lines = []
+        for inst in instances:
+            lines.append(f"- ID: {inst.get('id', '')}, Label: {inst.get('label', '')}")
+            sources = self._get_sources(inst)
+            if sources:
+                for i, source in enumerate(sources):
+                    lines.append(f"  - source[{i}]: {source[:200]}")
+            else:
+                lines.append("  - source[0]: ")
+        return "\n".join(lines)
+
     def _group_by_property_iri(self, props: List[Dict[str, Any]]) -> Dict[str, List[Dict[str, Any]]]:
         """Group candidate properties by property_iri"""
         groups: Dict[str, List[Dict[str, Any]]] = {}
@@ -114,36 +127,25 @@ class PropertyReviewer(Runnable):
             groups[prop_iri].append(p)
         return groups
 
-    def _format_batch_message(self, batch: List[Dict[str, Any]], class_index: Dict[str, Dict[str, Any]]) -> str:
-        """Create batch text for LLM (including strength, ranker_justification)"""
+    def _format_property_candidates(self, batch: List[Dict[str, Any]], class_index: Dict[str, Dict[str, Any]]) -> str:
+        """Format property candidates for review.
+        Source texts are omitted here since they are already in [Class Instances] section."""
         lines = []
         for idx, p in enumerate(batch, 1):
             src = class_index.get(p.get("src_id", ""), {})
             dest = class_index.get(p.get("dest_id", ""), {})
-            src_sources = self._get_sources(src)
-            dest_sources = self._get_sources(dest)
-            src_label = src.get('label', '')
-            dest_label = dest.get('label', '')
             strength = p.get('strength', 0)
             ranker_justification = p.get('ranker_justification', '')
 
-            lines.append(f"Candidate {idx}")
-            lines.append(f"property_id: {p.get('id', '')}")
-            lines.append(f"{src_label} -> {dest_label} [Strength:{strength}]")
-            lines.append("- Original Texts of Source")
-            if src_sources:
-                for source in src_sources:
-                    lines.append(f"  - {source[:200]}")
-            else:
-                lines.append("  - (none)")
-            lines.append("- Original Texts of Destination")
-            if dest_sources:
-                for source in dest_sources:
-                    lines.append(f"  - {source[:200]}")
-            else:
-                lines.append("  - (none)")
+            lines.append(f"Candidate {idx}:")
+            lines.append(f"  property_id: {p.get('id', '')}")
+            lines.append(f"  src_id: {p.get('src_id', '')}")
+            lines.append(f"    - src_label: {src.get('label', '')}")
+            lines.append(f"  dest_id: {p.get('dest_id', '')}")
+            lines.append(f"    - dest_label: {dest.get('label', '')}")
+            lines.append(f"  strength: {strength}")
             if ranker_justification:
-                lines.append(f"- Ranker Justification: {ranker_justification}")
+                lines.append(f"  ranker_justification: {ranker_justification}")
             lines.append("")
         return "\n".join(lines)
 
@@ -158,17 +160,32 @@ class PropertyReviewer(Runnable):
 
     async def _judge_batch(self, batch: List[Dict[str, Any]], class_index: Dict[str, Dict[str, Any]]) -> List[Dict[str, Any]]:
         """Review one batch of candidates with LLM and return results (JSON)"""
-        batch_text = self._format_batch_message(batch, class_index)
+        # Build deduplicated instance lists
+        src_seen = {}
+        dest_seen = {}
+        for p in batch:
+            sid = p.get("src_id", "")
+            if sid in class_index and sid not in src_seen:
+                src_seen[sid] = class_index[sid]
+            did = p.get("dest_id", "")
+            if did in class_index and did not in dest_seen:
+                dest_seen[did] = class_index[did]
+
+        src_instances_text = self._format_instances(list(src_seen.values()))
+        dest_instances_text = self._format_instances(list(dest_seen.values()))
+        candidates_text = self._format_property_candidates(batch, class_index)
 
         # Get prohibition rules from the first property_iri in the batch
         property_iri = batch[0].get("property_iri", "") if batch else ""
         prohibit_rules = self._get_prohibit_rules(property_iri)
 
-        # Fill in both template variables
+        # Fill in template variables
         prompt_filled = fill_prompt_template(
             self.prompt,
             prohibit_rules=prohibit_rules,
-            property_candidates=batch_text
+            src_instances=src_instances_text,
+            dest_instances=dest_instances_text,
+            property_candidates=candidates_text
         )
 
         msg = HumanMessage(

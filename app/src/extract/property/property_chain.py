@@ -192,6 +192,8 @@ class PropertyChainWithReview(Runnable):
         result = self.property_reviewer.invoke(filter_input)
 
         # 5. Loop: PropertyEditor -> PropertyReviewer
+        accepted_properties = []  # Accumulate ACCEPT properties across iterations
+
         for iteration in range(self.max_review_iterations):
             # Check if REVIEW properties remain
             review_count = sum(1 for p in result.get("properties", []) if p.get("judgment") == "REVIEW")
@@ -207,17 +209,37 @@ class PropertyChainWithReview(Runnable):
                 print(f"\n=== Review Iteration {iteration + 1}/{self.max_review_iterations} ===")
                 print(f"REVIEW properties remaining: {review_count}")
 
+            # Extract and accumulate ACCEPT properties before editing
+            current_accept = [p for p in result.get("properties", []) if p.get("judgment") == "ACCEPT"]
+            accepted_properties.extend(current_accept)
+
             # Execute PropertyEditor
             if self.progress:
                 print(f"\n--- PropertyEditor (iteration {iteration + 1}) ---")
             result = self.editor.invoke(result)
 
+            # Extract only REVIEW properties for re-review
+            review_only = [p for p in result.get("properties", []) if p.get("judgment") == "REVIEW"]
+
+            if not review_only:
+                # All became ACCEPT or REJECT after editing
+                new_accept = [p for p in result.get("properties", []) if p.get("judgment") == "ACCEPT"]
+                accepted_properties.extend(new_accept)
+                result["properties"] = []
+                if self.progress:
+                    print("No REVIEW properties remaining after editing")
+                break
+
             # Re-execute PropertyReviewer
             if self.progress:
                 print(f"\n--- PropertyReviewer (iteration {iteration + 1}) ---")
+                print(f"Re-reviewing {len(review_only)} REVIEW properties (skipping {len(accepted_properties)} already accepted)")
             adapter_loop = EditorToFilterAdapter(self.original_input)
-            filter_input = adapter_loop.invoke(result)
+            filter_input = adapter_loop.invoke({"id": result.get("id"), "properties": review_only})
             result = self.property_reviewer.invoke(filter_input)
+
+        # Merge accumulated ACCEPT properties with final result
+        result["properties"] = accepted_properties + result.get("properties", [])
 
         # 6. If REVIEW properties remain after reaching max iterations, convert to ACCEPT
         final_properties = []
