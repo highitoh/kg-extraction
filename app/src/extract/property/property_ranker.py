@@ -168,28 +168,17 @@ class PropertyRanker(Runnable):
         return "\n".join(lines)
 
     def _format_property_candidates(self, batch: List[Dict[str, Any]], class_index: Dict[str, Dict[str, Any]]) -> str:
-        """Format property candidates for evaluation to text format"""
+        """Format property candidates for evaluation to text format.
+        Source texts are omitted here since they are already in [Class Instances] section."""
         lines = []
         for i, p in enumerate(batch, 1):
             src = class_index.get(p.get("src_id", ""), {})
             dest = class_index.get(p.get("dest_id", ""), {})
-            src_sources = self._get_sources(src)
-            dest_sources = self._get_sources(dest)
             lines.append(f"Candidate {i}:")
             lines.append(f"  src_id: {p.get('src_id', '')}")
             lines.append(f"    - src_label: {src.get('label', '')}")
-            if src_sources:
-                for j, source in enumerate(src_sources):
-                    lines.append(f"    - src_source[{j}]: {source[:200]}")
-            else:
-                lines.append("    - src_source[0]: ")
             lines.append(f"  dest_id: {p.get('dest_id', '')}")
             lines.append(f"    - dest_label: {dest.get('label', '')}")
-            if dest_sources:
-                for j, source in enumerate(dest_sources):
-                    lines.append(f"    - dest_source[{j}]: {source[:200]}")
-            else:
-                lines.append("    - dest_source[0]: ")
         return "\n".join(lines)
 
     async def _rank_batch(
@@ -205,9 +194,20 @@ class PropertyRanker(Runnable):
         src_class_label, src_class_definition = self._get_class_definition(src_class_iri)
         dest_class_label, dest_class_definition = self._get_class_definition(dest_class_iri)
 
-        # Get instance list
-        src_instances = [class_index[p.get("src_id", "")] for p in batch if p.get("src_id") in class_index]
-        dest_instances = [class_index[p.get("dest_id", "")] for p in batch if p.get("dest_id") in class_index]
+        # Get deduplicated instance list
+        src_seen = {}
+        for p in batch:
+            sid = p.get("src_id", "")
+            if sid in class_index and sid not in src_seen:
+                src_seen[sid] = class_index[sid]
+        src_instances = list(src_seen.values())
+
+        dest_seen = {}
+        for p in batch:
+            did = p.get("dest_id", "")
+            if did in class_index and did not in dest_seen:
+                dest_seen[did] = class_index[did]
+        dest_instances = list(dest_seen.values())
 
         # Format prompt
         property_candidates_text = self._format_property_candidates(batch, class_index)
