@@ -1,7 +1,9 @@
-from typing import Any, Dict
+from typing import Any, Dict, Optional
+import csv
 import os
 import json
 import tempfile
+from datetime import datetime
 from pypdf import PdfReader, PdfWriter
 
 from langchain_core.runnables import Runnable
@@ -52,6 +54,34 @@ class FileTypeClassifier(Runnable):
         with open(output_pdf, "wb") as f:
             writer.write(f)
 
+    @staticmethod
+    def _extract_usage(response) -> Optional[dict]:
+        usage = getattr(response, "usage", None)
+        if isinstance(usage, dict):
+            return usage
+        if usage is not None and hasattr(usage, "model_dump"):
+            dumped = usage.model_dump()
+            if isinstance(dumped, dict):
+                return dumped
+        return None
+
+    @staticmethod
+    def _log_usage(usage: dict) -> None:
+        log_dir = os.path.join("log", "tokens")
+        os.makedirs(log_dir, exist_ok=True)
+        date_stamp = datetime.now().strftime("%Y%m%d")
+        log_file = os.path.join(log_dir, f"tokens_{date_stamp}.log")
+        timestamp = datetime.now().isoformat(timespec="seconds")
+        input_tokens = usage.get("input_tokens", usage.get("prompt_tokens", ""))
+        output_tokens = usage.get("output_tokens", usage.get("completion_tokens", ""))
+        total_tokens = usage.get("total_tokens", "")
+        file_exists = os.path.exists(log_file)
+        with open(log_file, "a", encoding="utf-8", newline="") as f:
+            writer = csv.writer(f)
+            if not file_exists:
+                writer.writerow(["timestamp", "label", "input_tokens", "output_tokens", "total_tokens"])
+            writer.writerow([timestamp, "FileTypeClassifier", input_tokens, output_tokens, total_tokens])
+
     def invoke(self, input: Dict[str, Any], config=None) -> Dict[str, Any]:
         """
         Add file_type field to input data
@@ -74,10 +104,6 @@ class FileTypeClassifier(Runnable):
             # Extract first 2 pages
             self._extract_first_two_pages(file_path, temp_pdf_path)
 
-            # Execute prompt with Responses API
-            from openai import OpenAI
-            client = OpenAI()
-
             # Upload PDF
             pdf = self.client.files.create(
                 file=open(temp_pdf_path, "rb"),
@@ -96,6 +122,9 @@ class FileTypeClassifier(Runnable):
                 }],
                 text_format=FileTypeClassifierLLMSchema
             )
+            usage = self._extract_usage(response)
+            if usage:
+                self._log_usage(usage)
 
             # Parse response
             result_text = response.output_text
