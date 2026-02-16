@@ -97,8 +97,13 @@ async def call_with_retry(
             if attempt == retries:
                 raise
 
+            if isinstance(e, asyncio.TimeoutError):
+                timeout += 30
+                _log(f"[{label} Retry {attempt + 1}/{retries}] {type(e).__name__}. Extending timeout to {timeout:.0f}s. Retrying in {min(delay, max_delay):.1f}s...")
+            else:
+                _log(f"[{label} Retry {attempt + 1}/{retries}] {type(e).__name__}. Retrying in {min(delay, max_delay):.1f}s...")
+
             wait_time = min(delay, max_delay)
-            _log(f"[{label} Retry {attempt + 1}/{retries}] {type(e).__name__}. Retrying in {wait_time:.1f}s...")
             await asyncio.sleep(wait_time)
             delay *= 2
 
