@@ -214,7 +214,6 @@ class IssueCategorizer:
             response = await call_with_retry(
                 lambda: self.llm_bound.ainvoke(prompt),
                 timeout=180.0,
-                progress=self.progress,
                 label="IssueCategorizer",
             )
 

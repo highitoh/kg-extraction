@@ -463,7 +463,6 @@ Output ONLY the scores using the metrics IDs (S21-S24) as keys."""
             response = await call_with_retry(
                 lambda: self.llm_class.ainvoke(prompt),
                 timeout=300.0,
-                progress=True,
                 label="KnowledgeValidator-Class",
             )
             # Handle response content (can be string or structured content)
@@ -518,7 +517,6 @@ Output ONLY the scores using the metrics IDs (S21-S24) as keys."""
             response = await call_with_retry(
                 lambda: self.llm_property.ainvoke(prompt),
                 timeout=300.0,
-                progress=True,
                 label="KnowledgeValidator-Property",
             )
             # Handle response content (can be string or structured content)

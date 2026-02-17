@@ -370,7 +370,6 @@ class IssueClassifier:
             response = await call_with_retry(
                 lambda: self.llm_class.ainvoke(prompt),
                 timeout=90.0,
-                progress=self.progress,
                 label="IssueClassifier-Class",
             )
 
@@ -418,7 +417,6 @@ class IssueClassifier:
             response = await call_with_retry(
                 lambda: self.llm_property.ainvoke(prompt),
                 timeout=90.0,
-                progress=self.progress,
                 label="IssueClassifier-Property",
             )
 

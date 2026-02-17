@@ -153,7 +153,6 @@ class ViewExtractor(Runnable):
         ai = await call_with_retry(
             lambda: self.llm_json.ainvoke([msg]),
             timeout=90.0,
-            progress=self.progress,
             label="ViewExtractor",
         )
         raw = self._to_text(ai.content)
@@ -304,7 +303,6 @@ if __name__ == "__main__":
         model="gpt-5-nano",
         temperature=0.0,
         max_concurrency=2,  # Limit concurrency for testing
-        progress=True,
         max_spans_per_label=2  # Limit for testing
     )
 

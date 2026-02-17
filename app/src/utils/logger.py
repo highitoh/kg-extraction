@@ -1,3 +1,4 @@
+import csv
 import os
 import json
 from typing import Any, Dict
@@ -22,3 +23,18 @@ class Logger:
                 json.dump(data, f, ensure_ascii=False, indent=2)
         except Exception as e:
             print(f"Error occurred while saving log file: {e}")
+
+    def error_log(self, label: str, attempt: int, error_type: str, error_message: str) -> None:
+        """Append an error entry to a daily CSV log file"""
+        date_stamp = datetime.now().strftime("%Y%m%d")
+        log_file = os.path.join(self.log_dir, f"errors_{date_stamp}.log")
+        timestamp = datetime.now().isoformat(timespec="seconds")
+        try:
+            file_exists = os.path.exists(log_file)
+            with open(log_file, "a", encoding="utf-8", newline="") as f:
+                writer = csv.writer(f)
+                if not file_exists:
+                    writer.writerow(["timestamp", "label", "attempt", "error_type", "error_message"])
+                writer.writerow([timestamp, label, attempt, error_type, error_message])
+        except Exception as e:
+            print(f"Error occurred while saving error log: {e}")

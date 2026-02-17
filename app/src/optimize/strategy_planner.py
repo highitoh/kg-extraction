@@ -361,7 +361,6 @@ class StrategyPlanner:
             response = await call_with_retry(
                 lambda: self.llm_bound.ainvoke(prompt),
                 timeout=300.0,
-                progress=self.progress,
                 label="StrategyPlanner",
             )
 

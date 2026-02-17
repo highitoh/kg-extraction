@@ -8,6 +8,10 @@ from typing import Awaitable, Callable, Optional
 
 from openai import APIConnectionError, RateLimitError, APIError
 
+from src.utils.logger import Logger
+
+_error_logger = Logger(os.path.join("log", "errors"))
+
 
 async def call_with_retry(
     coro_factory: Callable[[], Awaitable],
@@ -16,9 +20,7 @@ async def call_with_retry(
     initial_delay: float = 1.0,
     max_delay: float = 60.0,
     timeout: float = 90.0,
-    progress: bool = False,
     label: str = "LLM",
-    logger: Optional[Callable[[str], None]] = None,
 ):
     """Execute an async call with timeout + exponential backoff retries.
 
@@ -28,9 +30,7 @@ async def call_with_retry(
         initial_delay: Seconds to wait before first retry.
         max_delay: Max backoff seconds between retries.
         timeout: Per-attempt timeout in seconds.
-        progress: Whether to print progress logs when logger is not provided.
         label: Component label for logs.
-        logger: Optional logging callable; defaults to print when progress is True.
 
     Raises:
         APIConnectionError, RateLimitError, APIError, asyncio.TimeoutError, or the last caught exception after retries.
@@ -79,10 +79,7 @@ async def call_with_retry(
     last_exception = None
 
     def _log(msg: str):
-        if logger:
-            logger(msg)
-        elif progress:
-            print(msg)
+        print(msg)
 
     for attempt in range(retries + 1):
         try:
@@ -93,6 +90,7 @@ async def call_with_retry(
             return response
         except (APIConnectionError, RateLimitError, APIError, asyncio.TimeoutError) as e:
             last_exception = e
+            _error_logger.error_log(label, attempt + 1, type(e).__name__, str(e))
 
             if attempt == retries:
                 raise

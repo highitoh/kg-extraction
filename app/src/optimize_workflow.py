@@ -202,7 +202,6 @@ def run_optimization_workflow(
         issue_stats = _compute_issue_stats_from_category(category_file, metamodel=metamodel_data)
         planner = StrategyPlanner(
             model=model,
-            progress=True,
             issue_statistics=issue_stats,
             previous_rewards=previous_rewards or [],
             run_id=run_id,

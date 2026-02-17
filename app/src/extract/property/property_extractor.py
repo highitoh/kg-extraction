@@ -149,7 +149,6 @@ class PropertyExtractor(Runnable):
         ai = await call_with_retry(
             lambda: self.llm_json.ainvoke([msg]),
             timeout=90.0,
-            progress=self.progress,
             label="PropertyExtractor",
         )
         raw = self._to_text(ai.content)

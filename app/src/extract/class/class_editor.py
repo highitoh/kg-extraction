@@ -328,7 +328,6 @@ class ClassEditor(Runnable):
             response = await call_with_retry(
                 lambda: llm_json.ainvoke([HumanMessage(content=prompt)]),
                 timeout=90.0,
-                progress=self.progress,
                 label="ClassEditor-Duplicate",
             )
 
@@ -578,7 +577,6 @@ class ClassEditor(Runnable):
         response = await call_with_retry(
             lambda: llm_json.ainvoke([HumanMessage(content=prompt)]),
             timeout=90.0,
-            progress=self.progress,
             label="ClassEditor",
         )
 

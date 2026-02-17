@@ -356,7 +356,6 @@ def create_property_chain(model: str = None, max_review_iterations: int = 2, ena
                 original_input=input,
                 existing_properties=self.existing_properties,
                 max_review_iterations=self.max_review_iterations,
-                progress=True
             )
 
             return chain.invoke(input, config)

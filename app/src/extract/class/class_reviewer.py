@@ -200,7 +200,6 @@ class ClassReviewer(Runnable):
             response = await call_with_retry(
                 lambda: llm_json.ainvoke([HumanMessage(content=prompt)]),
                 timeout=90.0,
-                progress=self.progress,
                 label="ClassReviewer-Duplicate",
             )
 
@@ -413,7 +412,6 @@ class ClassReviewer(Runnable):
             response = await call_with_retry(
                 lambda: llm_json.ainvoke([HumanMessage(content=prompt)]),
                 timeout=90.0,
-                progress=self.progress,
                 label="ClassReviewer-Prohibit",
             )
 

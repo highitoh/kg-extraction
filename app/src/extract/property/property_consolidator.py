@@ -434,7 +434,6 @@ class PropertyConsolidator(Runnable):
         response = await call_with_retry(
             lambda: llm_json.ainvoke([msg]),
             timeout=90.0,
-            progress=self.progress,
             label="PropertyConsolidator",
         )
 
