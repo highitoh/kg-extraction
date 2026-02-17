@@ -43,6 +43,61 @@ class ClassChainWithReview(Runnable):
         self.max_review_iterations = max_review_iterations
         self.progress = progress
 
+    @staticmethod
+    def _is_frozen_unchanged(cls: Dict[str, Any]) -> bool:
+        """Return True for carry-over ACCEPT classes with unchanged label."""
+        return bool(cls.get("_frozen_from_existing_accept")) and cls.get("label") == cls.get("_frozen_label")
+
+    @staticmethod
+    def _merge_reviewed_classes(
+        all_classes: list,
+        reviewed_classes: list,
+        should_replace,
+    ) -> list:
+        """Merge reviewer outputs back into the original class order.
+
+        Classes matched by should_replace are replaced from reviewed_classes.
+        If no reviewed match is found, the class is treated as rejected and dropped.
+        """
+        reviewed_by_id = {
+            c.get("id"): c
+            for c in reviewed_classes
+            if c.get("id")
+        }
+        reviewed_by_key = {}
+        for c in reviewed_classes:
+            if c.get("id"):
+                continue
+            key = (c.get("class_iri"), c.get("label"))
+            reviewed_by_key.setdefault(key, []).append(c)
+
+        merged_classes = []
+        for c in all_classes:
+            if not should_replace(c):
+                merged_classes.append(c)
+                continue
+
+            cid = c.get("id")
+            if cid and cid in reviewed_by_id:
+                merged_classes.append(reviewed_by_id.pop(cid))
+                continue
+
+            key = (c.get("class_iri"), c.get("label"))
+            bucket = reviewed_by_key.get(key, [])
+            if bucket:
+                merged_classes.append(bucket.pop(0))
+            # else: rejected -> drop
+
+        return merged_classes
+
+    @staticmethod
+    def _clear_internal_flags(classes: list) -> list:
+        """Remove internal control flags from output classes."""
+        for c in classes:
+            c.pop("_frozen_from_existing_accept", None)
+            c.pop("_frozen_label", None)
+        return classes
+
     def invoke(self, input: Dict[str, Any], config=None) -> Dict[str, Any]:
         """
         Main execution of class extraction chain
@@ -82,9 +137,28 @@ class ClassChainWithReview(Runnable):
         result = self.consolidator.invoke(result)
 
         # 4. Execute ClassReviewer (initial)
+        classes_before_review = result.get("classes", [])
+        frozen_classes = [c for c in classes_before_review if self._is_frozen_unchanged(c)]
+        review_targets = [c for c in classes_before_review if not self._is_frozen_unchanged(c)]
+
         if self.progress:
             print("\n=== ClassReviewer (Initial) ===")
-        result = self.class_reviewer.invoke(result)
+            if frozen_classes:
+                print(f"Skipping {len(frozen_classes)} frozen carry-over ACCEPT classes")
+            print(f"Review targets: {len(review_targets)}")
+
+        reviewed_classes = []
+        if review_targets:
+            review_input = result.copy()
+            review_input["classes"] = review_targets
+            reviewed_result = self.class_reviewer.invoke(review_input)
+            reviewed_classes = reviewed_result.get("classes", [])
+
+        result["classes"] = self._merge_reviewed_classes(
+            classes_before_review,
+            reviewed_classes,
+            should_replace=lambda c: not self._is_frozen_unchanged(c),
+        )
 
         # 5. Loop: ClassLabelCorrector -> ClassReviewer
         for iteration in range(self.max_review_iterations):
@@ -127,39 +201,11 @@ class ClassChainWithReview(Runnable):
             reviewed_result = self.class_reviewer.invoke(review_input)
             reviewed_classes = reviewed_result.get("classes", [])
 
-            # Preserve original order while replacing only reviewed items.
-            # Items absent from reviewed_classes are treated as rejected and dropped.
-            reviewed_by_id = {
-                c.get("id"): c
-                for c in reviewed_classes
-                if c.get("id")
-            }
-            reviewed_without_id = [
-                c for c in reviewed_classes
-                if not c.get("id")
-            ]
-            merged_classes = []
-            for c in all_classes:
-                if c.get("judgment") == "REVIEW":
-                    cid = c.get("id")
-                    if cid and cid in reviewed_by_id:
-                        merged_classes.append(reviewed_by_id[cid])
-                    elif not cid:
-                        # Fallback matching for items without id.
-                        iri = c.get("class_iri")
-                        label = c.get("label")
-                        match_idx = next(
-                            (
-                                i for i, rc in enumerate(reviewed_without_id)
-                                if rc.get("class_iri") == iri and rc.get("label") == label
-                            ),
-                            None,
-                        )
-                        if match_idx is not None:
-                            merged_classes.append(reviewed_without_id.pop(match_idx))
-                else:
-                    merged_classes.append(c)
-            result["classes"] = merged_classes
+            result["classes"] = self._merge_reviewed_classes(
+                all_classes,
+                reviewed_classes,
+                should_replace=lambda c: c.get("judgment") == "REVIEW",
+            )
 
         # 6. Convert remaining REVIEW to ACCEPT after reaching maximum iterations
         final_classes = []
@@ -177,7 +223,7 @@ class ClassChainWithReview(Runnable):
         if accepted_review_count > 0 and self.progress:
             print(f"\n=== Converting {accepted_review_count} remaining REVIEW classes to ACCEPT ===")
 
-        result["classes"] = final_classes
+        result["classes"] = self._clear_internal_flags(final_classes)
 
         return result
 

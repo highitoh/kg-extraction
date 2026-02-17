@@ -207,10 +207,16 @@ def extract_classes_node(state: KnowledgeExtractionState) -> KnowledgeExtraction
                     previous_result = json.load(f)
                     # Load only ACCEPT'ed classes
                     all_existing_classes = previous_result.get("classes", [])
-                    existing_classes = [
-                        c for c in all_existing_classes
-                        if c.get("judgment") == "ACCEPT"
-                    ]
+                    existing_classes = []
+                    for c in all_existing_classes:
+                        if c.get("judgment") != "ACCEPT":
+                            continue
+                        c_copy = c.copy()
+                        # Internal flags for ClassChain to skip re-review
+                        # when a carry-over ACCEPT class label remains unchanged.
+                        c_copy["_frozen_from_existing_accept"] = True
+                        c_copy["_frozen_label"] = c_copy.get("label", "")
+                        existing_classes.append(c_copy)
                     if existing_classes:
                         print(f"[ExtractClassesNode] Loaded {len(existing_classes)} existing ACCEPT'ed classes from previous extraction")
             except (json.JSONDecodeError, KeyError) as e:
