@@ -107,10 +107,59 @@ class ClassChainWithReview(Runnable):
                 print(f"\n--- ClassLabelCorrector (iteration {iteration + 1}) ---")
             result = self.corrector.invoke(result)
 
-            # Re-execute ClassReviewer
+            # Re-execute ClassReviewer only for classes still marked REVIEW.
+            # ACCEPT/REJECT classes are kept as-is to avoid repeated review cost.
+            all_classes = result.get("classes", [])
+            review_classes = [c for c in all_classes if c.get("judgment") == "REVIEW"]
+            non_review_classes = [c for c in all_classes if c.get("judgment") != "REVIEW"]
+
+            if not review_classes:
+                if self.progress:
+                    print(f"\n--- ClassReviewer (iteration {iteration + 1}) skipped: no REVIEW classes ---")
+                result["classes"] = non_review_classes
+                break
+
             if self.progress:
-                print(f"\n--- ClassReviewer (iteration {iteration + 1}) ---")
-            result = self.class_reviewer.invoke(result)
+                print(f"\n--- ClassReviewer (iteration {iteration + 1}, REVIEW-only) ---")
+
+            review_input = result.copy()
+            review_input["classes"] = review_classes
+            reviewed_result = self.class_reviewer.invoke(review_input)
+            reviewed_classes = reviewed_result.get("classes", [])
+
+            # Preserve original order while replacing only reviewed items.
+            # Items absent from reviewed_classes are treated as rejected and dropped.
+            reviewed_by_id = {
+                c.get("id"): c
+                for c in reviewed_classes
+                if c.get("id")
+            }
+            reviewed_without_id = [
+                c for c in reviewed_classes
+                if not c.get("id")
+            ]
+            merged_classes = []
+            for c in all_classes:
+                if c.get("judgment") == "REVIEW":
+                    cid = c.get("id")
+                    if cid and cid in reviewed_by_id:
+                        merged_classes.append(reviewed_by_id[cid])
+                    elif not cid:
+                        # Fallback matching for items without id.
+                        iri = c.get("class_iri")
+                        label = c.get("label")
+                        match_idx = next(
+                            (
+                                i for i, rc in enumerate(reviewed_without_id)
+                                if rc.get("class_iri") == iri and rc.get("label") == label
+                            ),
+                            None,
+                        )
+                        if match_idx is not None:
+                            merged_classes.append(reviewed_without_id.pop(match_idx))
+                else:
+                    merged_classes.append(c)
+            result["classes"] = merged_classes
 
         # 6. Convert remaining REVIEW to ACCEPT after reaching maximum iterations
         final_classes = []
