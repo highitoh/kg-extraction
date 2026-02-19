@@ -341,6 +341,11 @@ class PropertyRanker(Runnable):
                 "strength": strength,
                 "ranker_justification": ranking_result.get("justification", "")
             }
+            # Preserve internal freeze flags for PropertyChain optimization.
+            if "_frozen_from_existing_accept" in prop:
+                ranked_prop["_frozen_from_existing_accept"] = prop.get("_frozen_from_existing_accept")
+            if "_frozen_strength" in prop:
+                ranked_prop["_frozen_strength"] = prop.get("_frozen_strength")
             ranked_properties.append(ranked_prop)
 
             # Add label information and evaluation information for logging

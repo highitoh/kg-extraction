@@ -273,10 +273,17 @@ def extract_properties_node(state: KnowledgeExtractionState) -> KnowledgeExtract
                     previous_result = json.load(f)
                     # Load only properties with strength > 0
                     all_existing_properties = previous_result.get("properties", [])
-                    existing_properties = [
-                        p for p in all_existing_properties
-                        if p.get("strength", 0) > 0
-                    ]
+                    existing_properties = []
+                    for p in all_existing_properties:
+                        strength = p.get("strength", 0)
+                        if strength <= 0:
+                            continue
+                        p_copy = p.copy()
+                        # Internal flags for PropertyChain to skip re-review
+                        # when carry-over properties keep the same strength after ranking.
+                        p_copy["_frozen_from_existing_accept"] = True
+                        p_copy["_frozen_strength"] = strength
+                        existing_properties.append(p_copy)
                     if existing_properties:
                         print(f"[ExtractPropertiesNode] Loaded {len(existing_properties)} existing properties (strength > 0) from previous extraction")
             except (json.JSONDecodeError, KeyError) as e:

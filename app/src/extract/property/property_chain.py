@@ -145,6 +145,64 @@ class PropertyChainWithReview(Runnable):
         self.max_review_iterations = max_review_iterations
         self.progress = progress
 
+    @staticmethod
+    def _is_frozen_unchanged(prop: Dict[str, Any]) -> bool:
+        """Return True for carry-over properties with unchanged ranked strength."""
+        if not prop.get("_frozen_from_existing_accept"):
+            return False
+        frozen_strength = prop.get("_frozen_strength")
+        return frozen_strength is not None and prop.get("strength") == frozen_strength
+
+    @staticmethod
+    def _merge_reviewed_properties(
+        all_properties: list,
+        reviewed_properties: list,
+        should_replace,
+    ) -> list:
+        """Merge reviewer outputs back into original order.
+
+        Items matched by should_replace are replaced from reviewed_properties.
+        If no match is found, the item is treated as rejected and dropped.
+        """
+        reviewed_by_id = {
+            p.get("id"): p
+            for p in reviewed_properties
+            if p.get("id")
+        }
+        reviewed_by_key = {}
+        for p in reviewed_properties:
+            if p.get("id"):
+                continue
+            key = (p.get("src_id"), p.get("property_iri"), p.get("dest_id"))
+            reviewed_by_key.setdefault(key, []).append(p)
+
+        merged = []
+        for p in all_properties:
+            if not should_replace(p):
+                merged.append(p)
+                continue
+
+            pid = p.get("id")
+            if pid and pid in reviewed_by_id:
+                merged.append(reviewed_by_id.pop(pid))
+                continue
+
+            key = (p.get("src_id"), p.get("property_iri"), p.get("dest_id"))
+            bucket = reviewed_by_key.get(key, [])
+            if bucket:
+                merged.append(bucket.pop(0))
+            # else: rejected -> drop
+
+        return merged
+
+    @staticmethod
+    def _clear_internal_flags(properties: list) -> list:
+        """Remove internal control flags from output properties."""
+        for p in properties:
+            p.pop("_frozen_from_existing_accept", None)
+            p.pop("_frozen_strength", None)
+        return properties
+
     def invoke(self, input: Dict[str, Any], config=None) -> Dict[str, Any]:
         """
         Main execution of property extraction chain
@@ -188,8 +246,35 @@ class PropertyChainWithReview(Runnable):
         if self.progress:
             print("\n=== PropertyReviewer (Initial) ===")
         adapter2 = RankerToFilterAdapter(self.original_input)
-        filter_input = adapter2.invoke(result)
-        result = self.property_reviewer.invoke(filter_input)
+        all_properties = result.get("properties", [])
+        frozen_properties = [p for p in all_properties if self._is_frozen_unchanged(p)]
+        review_targets = [p for p in all_properties if not self._is_frozen_unchanged(p)]
+
+        if self.progress:
+            if frozen_properties:
+                print(f"Skipping {len(frozen_properties)} frozen carry-over properties")
+            print(f"Review targets: {len(review_targets)}")
+
+        reviewed_properties = []
+        if review_targets:
+            filter_input = adapter2.invoke({"id": result.get("id"), "properties": review_targets})
+            reviewed_result = self.property_reviewer.invoke(filter_input)
+            reviewed_properties = reviewed_result.get("properties", [])
+
+        # Preserve original order. For frozen unchanged properties, set ACCEPT directly.
+        merged_initial = self._merge_reviewed_properties(
+            all_properties,
+            reviewed_properties,
+            should_replace=lambda p: not self._is_frozen_unchanged(p),
+        )
+        result["properties"] = [
+            {
+                **p,
+                "judgment": "ACCEPT",
+                "justification": p.get("justification", ""),
+            } if self._is_frozen_unchanged(p) else p
+            for p in merged_initial
+        ]
 
         # 5. Loop: PropertyEditor -> PropertyReviewer
         accepted_properties = []  # Accumulate ACCEPT properties across iterations
@@ -257,7 +342,7 @@ class PropertyChainWithReview(Runnable):
         if accepted_review_count > 0 and self.progress:
             print(f"\n=== Converting {accepted_review_count} remaining REVIEW properties to ACCEPT ===")
 
-        result["properties"] = final_properties
+        result["properties"] = self._clear_internal_flags(final_properties)
 
         # 7. Execute PropertyValidator
         if self.progress:
