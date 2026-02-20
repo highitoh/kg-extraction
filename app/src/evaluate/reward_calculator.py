@@ -90,14 +90,26 @@ class RewardCalculator:
 
         return str(validator_result_file)
 
+    def _score_to_reward(self, score: int) -> int:
+        """Map validator score to reward contribution."""
+        if score == 5:
+            return 1
+        if score == 4:
+            return 0
+        return -1
+
     def _calculate_class_quality_score(self, validation: Dict[str, Any]) -> float:
         """
         Calculate quality score for a single class.
 
         Formula:
-        quality_score = 1 + ((necessity - 4) * 2) + (understandability - 4) +
-                        (unity - 4) + (boundary_suitability - 4) +
-                        (structural_validity - 4) + (text_grounding - 4)
+        Convert each dimension score using:
+        - 5 -> +1
+        - 4 -> 0
+        - 1,2,3 (and other values) -> -1
+
+        Then sum converted values across all class dimensions, with necessity
+        weighted by 2.
 
         Args:
             validation: Class validation dictionary with dimension scores
@@ -113,13 +125,12 @@ class RewardCalculator:
         text_grounding = validation.get("text_grounding", {}).get("score", 4)
 
         quality_score = (
-            1 +
-            ((necessity - 4) * 2) +
-            (understandability - 4) +
-            (unity - 4) +
-            (boundary_suitability - 4) +
-            (structural_validity - 4) +
-            (text_grounding - 4)
+            (self._score_to_reward(necessity) * 2) +
+            self._score_to_reward(understandability) +
+            self._score_to_reward(unity) +
+            self._score_to_reward(boundary_suitability) +
+            self._score_to_reward(structural_validity) +
+            self._score_to_reward(text_grounding)
         )
 
         return float(quality_score)
@@ -129,8 +140,13 @@ class RewardCalculator:
         Calculate quality score for a single property.
 
         Formula:
-        quality_score = 1 + ((relation_applicability - 4) * 2) + (relation_unity - 4) +
-                        (strength_validity - 4) + (contextual_grounding - 4)
+        Convert each dimension score using:
+        - 5 -> +1
+        - 4 -> 0
+        - 1,2,3 (and other values) -> -1
+
+        Then sum converted values across all property dimensions, with
+        relation_applicability weighted by 2.
 
         Args:
             validation: Property validation dictionary with dimension scores
@@ -144,11 +160,10 @@ class RewardCalculator:
         contextual_grounding = validation.get("contextual_grounding", {}).get("score", 4)
 
         quality_score = (
-            1 +
-            ((relation_applicability - 4) * 2) +
-            (relation_unity - 4) +
-            (strength_validity - 4) +
-            (contextual_grounding - 4)
+            (self._score_to_reward(relation_applicability) * 2) +
+            self._score_to_reward(relation_unity) +
+            self._score_to_reward(strength_validity) +
+            self._score_to_reward(contextual_grounding)
         )
 
         return float(quality_score)
