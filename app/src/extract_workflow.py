@@ -54,6 +54,17 @@ def run_knowledge_extraction(pdf_path: str, output_dir: str = "/workspace/app/ou
     # Execute graph
     result = app.invoke(initial_state)
 
+    # Persist extraction result for downstream evaluation/reward pipeline
+    project_output_dir = os.path.join(output_dir, project)
+    os.makedirs(project_output_dir, exist_ok=True)
+    timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
+    output_json = os.path.join(project_output_dir, f"extraction_result_{timestamp}.json")
+    with open(output_json, "w", encoding="utf-8") as f:
+        result_copy = result.copy()
+        # Exclude turtle content because it can be very large
+        result_copy.pop("turtle_content", None)
+        json.dump(result_copy, f, ensure_ascii=False, indent=2)
+
     return result
 
 
@@ -101,17 +112,7 @@ if __name__ == "__main__":
             print(f"  - Classes extracted: {result['summary']['classes_count']}")
             print(f"  - Properties extracted: {result['summary']['properties_count']}")
 
-            # Save results to JSON file
-            project_output_dir = os.path.join(args.output_dir, args.project)
-            timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
-            output_json = os.path.join(project_output_dir, f"extraction_result_{timestamp}.json")
-            with open(output_json, "w", encoding="utf-8") as f:
-                # Exclude turtle_content when saving as it's too large
-                result_copy = result.copy()
-                result_copy.pop("turtle_content", None)
-                json.dump(result_copy, f, ensure_ascii=False, indent=2)
-
-            print(f"  - Result saved to: {output_json}")
+            print("  - Result saved to project output as extraction_result_*.json")
 
         else:
             print("\n=== Extraction Failed ===")
