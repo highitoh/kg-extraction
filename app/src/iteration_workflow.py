@@ -57,6 +57,7 @@ class IterationWorkflow:
         self.model = model
         self.apply_changes = apply_changes
         self.output_dir = output_dir
+        self.is_resume_mode = False
 
         # Derive projects from batch file names
         self.state_manager = ProjectStateManager(output_dir)
@@ -467,6 +468,32 @@ class IterationWorkflow:
         self._save_state()
 
         try:
+            # Fresh run only: clear stale optimize artifacts to avoid cross-run contamination.
+            if start_iteration == 1 and not self.is_resume_mode:
+                print(f"\n--- Pre-run Cleanup: Optimize Artifacts ---")
+                cleanup_result = self.state_manager.cleanup_optimize_artifacts(keep_last_n=0)
+                removed_count = len(cleanup_result.get("files_removed", []))
+                kept_count = len(cleanup_result.get("files_kept", []))
+                errors = cleanup_result.get("errors", [])
+
+                print(f"  Removed: {removed_count}")
+                print(f"  Kept: {kept_count}")
+                if cleanup_result.get("no_op"):
+                    print("  No-op: no existing optimize artifacts to clean")
+
+                if errors:
+                    print(f"  Cleanup errors: {len(errors)}")
+
+                if not cleanup_result.get("success", False):
+                    error_details = "; ".join(
+                        f"{err.get('file', 'unknown')}: {err.get('error', 'unknown')}"
+                        for err in errors
+                    )
+                    raise RuntimeError(
+                        "Failed to clean optimize artifacts before fresh iteration run: "
+                        f"{error_details or 'unknown error'}"
+                    )
+
             for iteration in range(start_iteration, self.max_iterations + 1):
                 self.state["current_iteration"] = iteration
 
@@ -558,6 +585,7 @@ class IterationWorkflow:
             projects=instance.projects,
             output_dir=output_dir
         )
+        instance.is_resume_mode = True
 
         return instance
 

@@ -271,6 +271,79 @@ class ProjectStateManager:
         result["success"] = True
         return result
 
+    def cleanup_optimize_artifacts(
+        self,
+        keep_last_n: int = 0
+    ) -> Dict[str, Any]:
+        """
+        Remove old optimize workflow artifacts, keeping only the most recent ones.
+
+        Args:
+            keep_last_n: Number of most recent files to keep for each artifact type.
+                        Set to 0 to remove all matched files.
+
+        Returns:
+            Dictionary with cleanup results.
+        """
+        if keep_last_n < 0:
+            raise ValueError(f"keep_last_n must be >= 0, got {keep_last_n}")
+
+        optimize_dir = self.output_dir / "optimize"
+        result = {
+            "optimize_dir": str(optimize_dir),
+            "keep_last_n": keep_last_n,
+            "files_removed": [],
+            "files_kept": [],
+            "errors": [],
+            "no_op": False,
+            "success": False
+        }
+
+        # No optimize directory is a valid no-op state for fresh runs.
+        if not optimize_dir.exists():
+            result["no_op"] = True
+            result["success"] = True
+            result["message"] = f"Optimize directory does not exist: {optimize_dir}"
+            return result
+
+        patterns = [
+            "validator_result_*.json",
+            "issue_classification_*.json",
+            "issue_category_*.json",
+            "strategy_plan_*.json",
+            "action_proposals_*.json",
+            "action_application_*.json"
+        ]
+
+        for pattern in patterns:
+            files = sorted(glob.glob(str(optimize_dir / pattern)), reverse=True)
+            kept_files = files[:keep_last_n] if keep_last_n > 0 else []
+            removable_files = files[keep_last_n:] if keep_last_n > 0 else files
+
+            for file_path in kept_files:
+                result["files_kept"].append(Path(file_path).name)
+
+            for file_path in removable_files:
+                try:
+                    Path(file_path).unlink()
+                    result["files_removed"].append(Path(file_path).name)
+                except OSError as e:
+                    result["errors"].append({
+                        "file": Path(file_path).name,
+                        "error": str(e)
+                    })
+
+        if (
+            not result["files_removed"] and
+            not result["files_kept"] and
+            not result["errors"]
+        ):
+            result["no_op"] = True
+            result["message"] = "No optimize artifacts found to clean."
+
+        result["success"] = len(result["errors"]) == 0
+        return result
+
     def cleanup_old_artifacts(
         self,
         project: str,
