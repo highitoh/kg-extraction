@@ -289,7 +289,7 @@ class IssueClassifier:
             necessity = class_validation.get('necessity', {})
             understandability = class_validation.get('understandability', {})
             boundary = class_validation.get('boundary_suitability', {})
-            structure = class_validation.get('conceptual_structure_validity', {})
+            structure = class_validation.get('structural_validity', {})
 
             instance_info = f"""
 **Class {idx}:**
@@ -299,7 +299,7 @@ class IssueClassifier:
   - Necessity: {necessity.get('score', 'N/A')} - {necessity.get('justification', 'N/A')}
   - Understandability: {understandability.get('score', 'N/A')} - {understandability.get('justification', 'N/A')}
   - Boundary Suitability: {boundary.get('score', 'N/A')} - {boundary.get('justification', 'N/A')}
-  - Conceptual Structure Validity: {structure.get('score', 'N/A')} - {structure.get('justification', 'N/A')}
+  - Structural Validity: {structure.get('score', 'N/A')} - {structure.get('justification', 'N/A')}
 """
             class_instances_parts.append(instance_info)
 
@@ -328,7 +328,7 @@ class IssueClassifier:
             dest_label = property_validation.get('dest_label', 'Unknown')
 
             # Format validation scores and justifications
-            relation_type = property_validation.get('relation_type_validity', {})
+            relation_type = property_validation.get('relation_applicability', {})
             strength = property_validation.get('strength_validity', {})
 
             instance_info = f"""
@@ -337,7 +337,7 @@ class IssueClassifier:
 - Source → Destination: {src_label} → {dest_label}
 - Property IRI: {property_iri}
 - Validation Results:
-  - Relation Type Validity: {relation_type.get('score', 'N/A')} - {relation_type.get('justification', 'N/A')}
+  - Relation Applicability: {relation_type.get('score', 'N/A')} - {relation_type.get('justification', 'N/A')}
   - Strength Validity: {strength.get('score', 'N/A')} - {strength.get('justification', 'N/A')}
 """
             property_instances_parts.append(instance_info)
@@ -483,11 +483,11 @@ class IssueClassifier:
         # Filter poor extractions (score ≤ 3)
         poor_classes = self._filter_poor_extractions(
             class_validations,
-            ['necessity', 'understandability', 'boundary_suitability', 'conceptual_structure_validity']
+            ['necessity', 'understandability', 'boundary_suitability', 'structural_validity']
         )
         poor_properties = self._filter_poor_extractions(
             property_validations,
-            ['relation_type_validity', 'strength_validity']
+            ['relation_applicability', 'strength_validity']
         )
 
         print(f"[IssueClassifier] Poor extractions: {len(poor_classes)} classes, {len(poor_properties)} properties")
