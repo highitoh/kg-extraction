@@ -21,6 +21,30 @@
       "type": "integer",
       "description": "Number of actions after filtering (high/medium priority with suggestions)"
     },
+    "grouped_targets": {
+      "type": "integer",
+      "description": "Number of unique (target_type, target) groups before capped selection"
+    },
+    "selected_targets": {
+      "type": "integer",
+      "description": "Number of target groups selected for this iteration"
+    },
+    "dropped_targets": {
+      "type": "integer",
+      "description": "Number of target groups dropped due to fixed cap"
+    },
+    "processed_actions": {
+      "type": "integer",
+      "description": "Number of filtered actions actually processed"
+    },
+    "dropped_actions": {
+      "type": "integer",
+      "description": "Number of filtered actions dropped by capped target selection"
+    },
+    "max_targets_per_iter": {
+      "type": "integer",
+      "description": "Fixed per-iteration cap of processable targets"
+    },
     "proposals": {
       "type": "array",
       "description": "List of proposed changes",

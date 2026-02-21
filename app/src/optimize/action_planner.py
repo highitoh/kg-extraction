@@ -24,6 +24,9 @@ from utils.prompt_utils import fill_prompt_template
 class ActionPlanner:
     """Generates concrete fix proposals from strategy plans using LLM."""
 
+    # Change-volume cap per iteration (fixed).
+    MAX_TARGETS_PER_ITER = 3
+
     def __init__(
         self,
         model: str = "gpt-5-mini",
@@ -184,6 +187,38 @@ class ActionPlanner:
             print(f"[ActionPlanner] Grouped into {len(grouped)} unique targets")
 
         return dict(grouped)
+
+    @staticmethod
+    def _priority_rank(priority: str) -> int:
+        """Return a sortable rank for priority (lower means higher priority)."""
+        p = (priority or "").lower()
+        if p == "high":
+            return 0
+        if p == "medium":
+            return 1
+        return 2
+
+    def _select_target_keys(
+        self,
+        grouped_actions: Dict[Tuple[str, str], List[Dict[str, Any]]]
+    ) -> List[Tuple[str, str]]:
+        """
+        Select target keys under the fixed per-iteration cap.
+
+        Selection rule:
+        1) Priority order: high -> medium
+        2) Stable tie-break: first appearance order
+        """
+        if len(grouped_actions) <= self.MAX_TARGETS_PER_ITER:
+            return list(grouped_actions.keys())
+
+        ranked = []
+        for idx, (key, target_actions) in enumerate(grouped_actions.items()):
+            best_rank = min(self._priority_rank(a.get("priority", "")) for a in target_actions)
+            ranked.append((best_rank, idx, key))
+
+        ranked.sort(key=lambda x: (x[0], x[1]))
+        return [key for _, _, key in ranked[:self.MAX_TARGETS_PER_ITER]]
 
     def _load_custom_prompt_file(self, filename: str) -> str:
         """
@@ -424,6 +459,24 @@ class ActionPlanner:
 
         # Group by target
         grouped_actions = self._group_actions_by_target(valid_actions)
+        selected_target_keys = self._select_target_keys(grouped_actions)
+        selected_actions_by_target = {
+            key: grouped_actions[key]
+            for key in selected_target_keys
+        }
+
+        grouped_count = len(grouped_actions)
+        selected_count = len(selected_actions_by_target)
+        dropped_count = grouped_count - selected_count
+        processed_actions = sum(len(v) for v in selected_actions_by_target.values())
+        dropped_actions = filtered_count - processed_actions
+
+        if self.progress and dropped_count > 0:
+            print(
+                "[ActionPlanner] Change-volume cap applied: "
+                f"selected {selected_count}/{grouped_count} targets "
+                f"(max={self.MAX_TARGETS_PER_ITER}, dropped={dropped_count})"
+            )
 
         # Create semaphore for concurrency control
         semaphore = asyncio.Semaphore(self.max_concurrency)
@@ -434,7 +487,7 @@ class ActionPlanner:
 
         tasks = [
             self._generate_proposal_async(target_type, target, target_actions, semaphore)
-            for (target_type, target), target_actions in grouped_actions.items()
+            for (target_type, target), target_actions in selected_actions_by_target.items()
         ]
 
         proposals = await asyncio.gather(*tasks)
@@ -446,6 +499,12 @@ class ActionPlanner:
             "strategy_plan_file": self.strategy_plan_file,
             "total_actions": total_actions,
             "filtered_actions": filtered_count,
+            "grouped_targets": grouped_count,
+            "selected_targets": selected_count,
+            "dropped_targets": dropped_count,
+            "processed_actions": processed_actions,
+            "dropped_actions": dropped_actions,
+            "max_targets_per_iter": self.MAX_TARGETS_PER_ITER,
             "proposals": proposals
         }
 
