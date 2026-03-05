@@ -3,6 +3,7 @@ You are a requirements classifier. Classify each sentence in the CSV by assignin
 [Label Codes]
 VA = value_analysis (stakeholder value, pain points removed)
 BC = business_concept (vision, policy, business direction)
+BO = business_operation (activities containing surveys, research, and content addition)
 BR = business_requirement (business functions, services, operational rules)
 SR = system_requirement (technical specs, performance, security)
 SC = system_component (modules, libraries, services, hardware)

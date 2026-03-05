@@ -19,6 +19,7 @@ from src.utils.llm_retry import call_with_retry
 VIEW_TYPES = [
     "value_analysis",
     "business_concept",
+    "business_operation",
     "business_requirement",
     "system_requirement",
     "system_component",

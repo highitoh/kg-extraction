@@ -54,6 +54,7 @@ class ViewExtractor(Runnable):
         self.views = [
             "value_analysis",
             "business_concept",
+            "business_operation",
             "business_requirement",
             "system_requirement",
             "system_component",
@@ -64,6 +65,7 @@ class ViewExtractor(Runnable):
         self.label_codes = {
             "VA": "value_analysis",
             "BC": "business_concept",
+            "BO": "business_operation",
             "BR": "business_requirement",
             "SR": "system_requirement",
             "SC": "system_component",
