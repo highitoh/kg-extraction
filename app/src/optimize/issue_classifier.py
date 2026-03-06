@@ -53,6 +53,7 @@ class IssueClassifier:
 
         # Extract metadata
         self.knowledge_file = self.validator_result_data.get('knowledge_file', '')
+        self.knowledge_files = self._resolve_knowledge_files(self.validator_result_data)
         self.extraction_result_file = self.validator_result_data.get('extraction_result_file', '')
 
         # Load extraction result to get metamodel
@@ -117,6 +118,29 @@ class IssueClassifier:
         """Load a JSON file."""
         with open(file_path, 'r', encoding='utf-8') as f:
             return json.load(f)
+
+    def _resolve_knowledge_files(self, validator_result_data: Dict[str, Any]) -> List[str]:
+        """
+        Resolve all knowledge files referenced by an aggregated validator result.
+
+        Priority:
+        1. validator_result_data["aggregated_from"][*]["knowledge_file"]
+        2. validator_result_data["knowledge_file"] (fallback / backward compatibility)
+        """
+        knowledge_files: List[str] = []
+        seen = set()
+
+        for source in validator_result_data.get("aggregated_from", []):
+            path = source.get("knowledge_file")
+            if path and path not in seen:
+                knowledge_files.append(path)
+                seen.add(path)
+
+        fallback = validator_result_data.get("knowledge_file")
+        if fallback and fallback not in seen:
+            knowledge_files.append(fallback)
+
+        return knowledge_files
 
     def _resolve_validator_result_path(self, output_base_dir: str) -> str:
         """
@@ -238,24 +262,25 @@ class IssueClassifier:
         """
         from collections import defaultdict
 
-        # Load knowledge data to get class IRI mapping
-        knowledge_data = self._load_json(self.knowledge_file)
-
         # Create mapping: class_id -> class_iri
         class_id_to_iri = {}
-        for cls in knowledge_data.get('classes', []):
-            cls_id = cls.get('id')
-            cls_iri = cls.get('class_iri')
-            if cls_id and cls_iri:
-                class_id_to_iri[cls_id] = cls_iri
 
         # Create mapping: class_label -> class_iri (for properties)
         class_label_to_iri = {}
-        for cls in knowledge_data.get('classes', []):
-            cls_label = cls.get('label')
-            cls_iri = cls.get('class_iri')
-            if cls_label and cls_iri:
-                class_label_to_iri[cls_label] = cls_iri
+
+        # Load all available knowledge files to build unified mappings.
+        for knowledge_file in self.knowledge_files:
+            knowledge_data = self._load_json(knowledge_file)
+
+            for cls in knowledge_data.get('classes', []):
+                cls_id = cls.get('id')
+                cls_iri = cls.get('class_iri')
+                if cls_id and cls_iri:
+                    class_id_to_iri[cls_id] = cls_iri
+
+                cls_label = cls.get('label')
+                if cls_label and cls_iri:
+                    class_label_to_iri[cls_label] = cls_iri
 
         # Group classes by IRI
         groups = defaultdict(lambda: ([], []))
@@ -570,6 +595,7 @@ class IssueClassifier:
             "timestamp": timestamp,
             "validator_result_file": self.validator_result_file,
             "knowledge_file": self.knowledge_file,
+            "knowledge_files": self.knowledge_files,
             "extraction_result_file": self.extraction_result_file,
             "class_validations": merged_class_validations,
             "property_validations": merged_property_validations
