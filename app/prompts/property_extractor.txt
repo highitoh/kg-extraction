@@ -9,6 +9,10 @@ The target relationship is <<PROPERTY_LABEL>>.
 - Preserve the original language of the class labels as provided
 - Compare labels of <<SRC_CLASS_LABEL>> and <<DEST_CLASS_LABEL>>, and consider combinations that are semantically related as candidates
 - Output is a list of pairs of candidate <<SRC_CLASS_LABEL>> and <<DEST_CLASS_LABEL>>
+
+[Property Extract Rules]
+<<EXTRACT_RULES>>
+
 <<CUSTOM_RULES>>
 
 [Definitions]

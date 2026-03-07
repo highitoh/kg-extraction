@@ -117,6 +117,7 @@ class PropertyExtractor(Runnable):
         property_label: str,
         property_iri: str,
         property_definition: str,
+        property_extract_rules: str,
         src_class_label: str,
         dest_class_label: str,
         src_class_definition: str,
@@ -139,6 +140,7 @@ class PropertyExtractor(Runnable):
             src_class_definition=src_class_definition,
             dest_class_definition=dest_class_definition,
             property_definition=property_definition,
+            extract_rules=property_extract_rules,
             custom_rules=self.custom_rules,
             src_list=os.linesep.join(src_texts),
             dest_list=os.linesep.join(dest_texts)
@@ -185,6 +187,7 @@ class PropertyExtractor(Runnable):
         property_label = property_def.get("name", "")
         property_iri = property_def.get("iri", "")
         property_definition = property_def.get("description", "")
+        property_extract_rules = property_def.get("extract_rules", [])
         src_class_iri = property_def.get("src_class", "")
         dest_class_iri = property_def.get("dest_class", "")
 
@@ -228,6 +231,9 @@ class PropertyExtractor(Runnable):
                         property_label=property_label,
                         property_iri=property_iri,
                         property_definition=property_definition,
+                        property_extract_rules="\n".join(
+                            f"- {r}" for r in property_extract_rules if isinstance(r, str) and r.strip()
+                        ),
                         src_class_label=src_class_label,
                         dest_class_label=dest_class_label,
                         src_class_definition=src_class_definition,
