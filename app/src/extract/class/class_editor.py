@@ -76,8 +76,8 @@ class ClassEditor(Runnable):
         with open(metamodel_path, "r", encoding="utf-8") as f:
             return json.load(f)
 
-    def _build_extract_rules_section(self, target_class_iri: str) -> str:
-        """Dynamically generate extract rules section for specified class
+    def _build_prohibit_rules_section(self, target_class_iri: str) -> str:
+        """Dynamically generate prohibit rules section for specified class
 
         Args:
             target_class_iri: Target class IRI
@@ -86,13 +86,13 @@ class ClassEditor(Runnable):
 
         for cls in self.metamodel.get("classes", []):
             if cls.get("iri", "") == target_class_iri:
-                if "extract_rules" in cls and cls.get("extract_rules"):
-                    for rule in cls["extract_rules"]:
+                if "prohibit_rules" in cls and cls.get("prohibit_rules"):
+                    for rule in cls["prohibit_rules"]:
                         rules_lines.append(f"- {rule}")
                 break
 
         result = "\n".join(rules_lines)
-        return result if result else "(No extraction rules)"
+        return result if result else "(No prohibition rules)"
 
     def _load_prompt_template(self) -> str:
         """Load prompt template file"""
@@ -537,7 +537,7 @@ class ClassEditor(Runnable):
 
         Args:
             classes: List of class instances to correct (all are REVIEW judgments)
-            class_iri: Target class IRI (use only this class's extract_rules)
+            class_iri: Target class IRI (use only this class's prohibit_rules)
         """
         if not classes:
             return []
@@ -563,13 +563,13 @@ class ClassEditor(Runnable):
 
         input_json = json.dumps(input_data, ensure_ascii=False, indent=2)
 
-        # Get only the target class's extract_rules
-        extract_rules = self._build_extract_rules_section(class_iri)
+        # Get only the target class's prohibit_rules
+        prohibit_rules = self._build_prohibit_rules_section(class_iri)
 
-        # Build prompt (embed extract rules specific to target class and input data)
+        # Build prompt (embed prohibit rules specific to target class and input data)
         prompt = fill_prompt_template(
             self.prompt_template,
-            extract_rules=extract_rules,
+            prohibit_rules=prohibit_rules,
             input_data=input_json
         )
 

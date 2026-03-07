@@ -6,7 +6,7 @@ For class labels judged as REVIEW, correct the labels to resolve the issues poin
 Each input array element includes label (current label), source (source sentence), and justification (issue pointed out).
 
 [Correction Policy]
-Refer to the following [Extraction Rules] to correct labels to resolve the justification issues.
+Refer to the following [Prohibition Rules] to correct labels to resolve the justification issues.
 However, corrections that deviate from the meaning of the original sentence (source) are prohibited.
 Corrections must preserve the original language of the source text. Do not translate labels to another language.
 
@@ -14,8 +14,8 @@ Corrections must preserve the original language of the source text. Do not trans
 - Label correction possible: Set revised_label to the corrected label, should_reject=false
 - Correction not possible and should be excluded: should_reject=true, revised_label is an empty string
 
-[Extraction Rules]
-<<EXTRACT_RULES>>
+[Prohibition Rules]
+<<PROHIBIT_RULES>>
 
 [Output Format (JSON only)]
 {
