@@ -7,13 +7,10 @@ Each input array element includes src_label (source class), property_iri (proper
 strength (current strength), source (source sentence), and justification (issue pointed out).
 
 [Correction Policy]
-Refer to the following [Extract Rules] and [Prohibit Rules] to correct strength to resolve the justification issues.
+Refer to the following [Prohibit Rules] to correct strength to resolve the justification issues.
 However, corrections that deviate from the meaning of the [Original Sentence (source)] are prohibited.
 - Strength correction possible: Set revised_strength to the corrected strength (1-3)
 - Correction not possible and should be excluded: revised_strength=0 (meaning REJECT)
-
-[Extract Rules]
-<<EXTRACT_RULES>>
 
 [Prohibit Rules]
 <<PROHIBIT_RULES>>

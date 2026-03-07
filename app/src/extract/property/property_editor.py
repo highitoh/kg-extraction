@@ -82,23 +82,6 @@ class PropertyEditor(Runnable):
         with open(metamodel_path, "r", encoding="utf-8") as f:
             return json.load(f)
 
-    def _get_extract_rules(self, target_property_iri: str) -> str:
-        """Get extract_rules for specified property from metamodel
-
-        Args:
-            target_property_iri: Target property IRI
-
-        Returns:
-            Formatted extract_rules string, or empty string if not found
-        """
-        for prop in self.metamodel.get("properties", []):
-            if prop.get("iri", "") == target_property_iri:
-                rules = prop.get("extract_rules", [])
-                if rules:
-                    return "\n".join(f"- {rule}" for rule in rules)
-                break
-        return ""
-
     def _get_prohibit_rules(self, target_property_iri: str) -> str:
         """Get prohibit_rules for specified property from metamodel
 
@@ -297,13 +280,11 @@ class PropertyEditor(Runnable):
         input_json = json.dumps(input_data, ensure_ascii=False, indent=2)
 
         # Get rules for the target property
-        extract_rules = self._get_extract_rules(property_iri)
         prohibit_rules = self._get_prohibit_rules(property_iri)
 
-        # Build prompt with three rule sections and input data
+        # Build prompt with rule sections and input data
         prompt = fill_prompt_template(
             self.prompt_template,
-            extract_rules=extract_rules,
             prohibit_rules=prohibit_rules,
             custom_strength_rules=self.custom_strength_rules,
             input_data=input_json
