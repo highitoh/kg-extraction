@@ -47,8 +47,6 @@ class PropertyEditor(Runnable):
         self.metamodel = self._load_metamodel()
         # Load prompt template
         self.prompt_template = self._load_prompt_template()
-        # Load custom strength rules
-        self.custom_strength_rules = self._load_custom_strength_rules()
 
     def _build_schema(self, n: int) -> dict:
         """Load LLM schema file and set number of elements
@@ -98,22 +96,6 @@ class PropertyEditor(Runnable):
                     return "\n".join(f"- {rule}" for rule in rules)
                 break
         return ""
-
-    def _load_custom_strength_rules(self) -> str:
-        """Load custom strength rules from external file
-
-        Returns:
-            Content of custom rules file, or empty string if not found/empty
-        """
-        app_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
-        custom_path = os.path.join(app_dir, "prompts", "custom", "property_editor_custom.txt")
-
-        if not os.path.exists(custom_path):
-            return ""
-
-        with open(custom_path, "r", encoding="utf-8") as f:
-            content = f.read().strip()
-            return "\n" + content if content else ""
 
     def _load_prompt_template(self) -> str:
         """Load prompt template file"""
@@ -286,7 +268,6 @@ class PropertyEditor(Runnable):
         prompt = fill_prompt_template(
             self.prompt_template,
             prohibit_rules=prohibit_rules,
-            custom_strength_rules=self.custom_strength_rules,
             input_data=input_json
         )
 

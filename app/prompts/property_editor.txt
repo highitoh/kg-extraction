@@ -21,8 +21,6 @@ However, corrections that deviate from the meaning of the [Original Sentence (so
 - 2: Functional dependency (Medium)
 - 3: Essential dependency (Strong)
 
-<<CUSTOM_STRENGTH_RULES>>
-
 [Output Format (JSON only)]
 {
   "corrections": [
