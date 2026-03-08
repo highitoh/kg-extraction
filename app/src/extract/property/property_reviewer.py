@@ -40,6 +40,7 @@ class PropertyReviewer(Runnable):
         self.batch_size = batch_size
 
         self.prompt = self._load_prompt()
+        self.custom_rules = self._load_custom_rules()
         self.metamodel = self._load_metamodel()
         self.logger = Logger(log_dir)
 
@@ -63,6 +64,18 @@ class PropertyReviewer(Runnable):
         prompt_path = os.path.join(app_dir, "prompts", "property_reviewer.txt")
         with open(prompt_path, "r", encoding="utf-8") as f:
             return f.read()
+
+    def _load_custom_rules(self) -> str:
+        """Load custom rules file if it exists."""
+        app_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
+        custom_path = os.path.join(app_dir, "prompts", "custom", "property_reviewer_custom.txt")
+
+        if not os.path.exists(custom_path):
+            return ""
+
+        with open(custom_path, "r", encoding="utf-8") as f:
+            content = f.read().strip()
+            return "\n" + content if content else ""
 
     def _load_metamodel(self) -> Dict[str, Any]:
         """Load metamodel"""
@@ -185,7 +198,8 @@ class PropertyReviewer(Runnable):
             prohibit_rules=prohibit_rules,
             src_instances=src_instances_text,
             dest_instances=dest_instances_text,
-            property_candidates=candidates_text
+            property_candidates=candidates_text,
+            custom_rules=self.custom_rules,
         )
 
         msg = HumanMessage(
@@ -480,4 +494,3 @@ if __name__ == "__main__":
         print(f"Error: {e}")
         import traceback
         traceback.print_exc()
-

@@ -46,6 +46,21 @@ You can recommend edits to three types of targets:
 
 Custom prompts provide additional rules that augment base extraction/consolidation logic:
 
+- **class_extractor_custom.txt**
+  - Stage: Class Extraction
+  - Role: Extractor
+  - Purpose: Guidance for extracting class instances from text
+
+- **class_reviewer_custom.txt**
+  - Stage: Class Review
+  - Role: Reviewer
+  - Purpose: Validation criteria for class extraction decisions
+
+- **class_consolidator_custom.txt**
+  - Stage: Class Consolidation
+  - Role: Consolidator
+  - Purpose: Criteria for selecting canonical labels when merging duplicate classes
+
 - **property_extractor_custom.txt**
   - Stage: Property Extraction
   - Role: Extractor
@@ -56,20 +71,15 @@ Custom prompts provide additional rules that augment base extraction/consolidati
   - Role: Evaluator
   - Purpose: Guidelines for evaluating relationship strength (0-3 scale)
 
+- **property_reviewer_custom.txt**
+  - Stage: Property Review
+  - Role: Reviewer
+  - Purpose: Validation criteria for property extraction decisions
+
 - **property_consolidator_custom.txt**
   - Stage: Property Consolidation
   - Role: Consolidator
   - Purpose: Criteria for grouping duplicate/similar properties
-
-- **property_editor_custom.txt**
-  - Stage: Property Editing
-  - Role: Editor
-  - Purpose: Guidelines for refining property instances
-
-- **class_consolidator_custom.txt**
-  - Stage: Class Consolidation
-  - Role: Consolidator
-  - Purpose: Criteria for selecting canonical labels when merging duplicate classes
 
 **2. Extract Rules** (target_type: "extract_rules")
 

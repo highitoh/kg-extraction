@@ -1,0 +1,23 @@
+Class Extraction Rules (Compressed)
+
+General
+- Extract shortest meaningful span (typically 1-6 words).
+- Prefer single-concept labels; split composite phrases.
+
+Type rules
+- Business Activity: recurring actor-driven action/process.
+- Indicator: measurable metric (rate, score, %, count, KPI, metric).
+- Concept: abstract domain idea without explicit actor/action.
+- Stakeholder: person/role/group/organization.
+- Feature: system capability or provided function.
+- Operational Data: concrete artifact/log/record or one-off event output.
+
+Disambiguation
+- If phrase includes actor + action, split into Stakeholder + Business Activity.
+- Outcome/metric language prefers Indicator over Activity.
+- One-off event/result should not be Business Activity.
+- Implementation-heavy phrase should not be Concept.
+
+Fallback order (when ambiguous)
+- Indicator -> Business Activity -> Stakeholder -> Feature -> Operational Data -> Concept.
+- If still unclear, keep conservative (Concept or REVIEW).

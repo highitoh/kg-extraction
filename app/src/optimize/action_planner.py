@@ -279,11 +279,13 @@ class ActionPlanner:
 
         # Determine file purpose based on filename
         purpose_map = {
+            "class_extractor_custom.txt": "Guidance for extracting class instances from text",
+            "class_reviewer_custom.txt": "Validation criteria for class extraction decisions",
+            "class_consolidator_custom.txt": "Criteria for selecting canonical labels when merging duplicate classes",
             "property_extractor_custom.txt": "Guides which property (relationship) candidates to extract from class pairs",
             "property_ranker_custom.txt": "Guidelines for evaluating relationship strength (0-3 scale)",
+            "property_reviewer_custom.txt": "Validation criteria for property extraction decisions",
             "property_consolidator_custom.txt": "Criteria for grouping duplicate/similar properties",
-            "property_editor_custom.txt": "Guidelines for refining property instances",
-            "class_consolidator_custom.txt": "Criteria for selecting canonical labels when merging duplicate classes"
         }
         file_purpose = purpose_map.get(target, "Custom rules for the extraction pipeline")
 

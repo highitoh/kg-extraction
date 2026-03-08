@@ -21,6 +21,8 @@ Perform 2 evaluations per [Property Candidate]:
 - 1/Weak: B desirable but alternatives exist (e.g., System→Monitor)
 - 0/None: Logically independent or incorrect
 
+<<CUSTOM_RULES>>
+
 [Justification Guidelines]
 Provide a brief justification only for REVIEW and REJECT judgments. For ACCEPT, output justification as an empty string.
 

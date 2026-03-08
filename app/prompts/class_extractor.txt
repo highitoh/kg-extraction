@@ -7,6 +7,8 @@ Extract labels in the original language from the source text. Minor rephrasing w
 [Policies]
 <<CLASS_POLICIES>>
 
+<<CUSTOM_RULES>>
+
 [Text Format]
 The text is provided in CSV format with columns: ID, Text
 - ID: Unique identifier for each text segment (format: t0, t1, t2, etc.)

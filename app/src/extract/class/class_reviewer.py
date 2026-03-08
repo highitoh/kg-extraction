@@ -40,6 +40,8 @@ class ClassReviewer(Runnable):
         self.metamodel = self._load_metamodel()
         # Load prompt template
         self.prompt_template = self._load_prompt_template()
+        # Load custom rules
+        self.custom_rules = self._load_custom_rules()
 
     def _build_schema(self, n: int) -> dict:
         """Load LLM schema file and set element count
@@ -110,6 +112,18 @@ class ClassReviewer(Runnable):
             template = f.read()
 
         return template
+
+    def _load_custom_rules(self) -> str:
+        """Load custom rules file if it exists."""
+        app_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
+        custom_path = os.path.join(app_dir, "prompts", "custom", "class_reviewer_custom.txt")
+
+        if not os.path.exists(custom_path):
+            return ""
+
+        with open(custom_path, "r", encoding="utf-8") as f:
+            content = f.read().strip()
+            return "\n" + content if content else ""
 
     def _load_duplicate_prompt_template(self) -> str:
         """Load prompt template file for duplicate detection"""
@@ -404,7 +418,8 @@ class ClassReviewer(Runnable):
         prompt = fill_prompt_template(
             self.prompt_template,
             prohibit_rules=prohibit_rules,
-            class_labels=labels_json
+            class_labels=labels_json,
+            custom_rules=self.custom_rules,
         )
 
         try:

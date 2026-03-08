@@ -13,6 +13,8 @@ Output is an array of judgment objects in the same order and count as the input.
 [Prohibition Rules]
 <<PROHIBIT_RULES>>
 
+<<CUSTOM_RULES>>
+
 [Output Format (JSON only)]
 {
   "judgments": [

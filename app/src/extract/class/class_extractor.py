@@ -69,6 +69,8 @@ class ClassExtractor(Runnable):
 
         # Load prompt template
         self.prompt_template = self._load_prompt_template()
+        # Load custom rules
+        self.custom_rules = self._load_custom_rules()
 
     def _load_schema(self) -> dict:
         """Load JSON schema file"""
@@ -85,6 +87,18 @@ class ClassExtractor(Runnable):
         prompt_path = os.path.join(app_dir, "prompts", "class_extractor.txt")
         with open(prompt_path, "r", encoding="utf-8") as f:
             return f.read()
+
+    def _load_custom_rules(self) -> str:
+        """Load custom rules file if it exists"""
+        app_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
+        custom_path = os.path.join(app_dir, "prompts", "custom", "class_extractor_custom.txt")
+
+        if not os.path.exists(custom_path):
+            return ""
+
+        with open(custom_path, "r", encoding="utf-8") as f:
+            content = f.read().strip()
+            return "\n" + content if content else ""
 
     def invoke(self, input_data: Dict[str, Any], config: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         """
@@ -266,7 +280,8 @@ class ClassExtractor(Runnable):
         prompt = fill_prompt_template(
             self.prompt_template,
             class_definitions=class_definitions,
-            class_policies=class_policies
+            class_policies=class_policies,
+            custom_rules=self.custom_rules,
         )
         prompt = f"{prompt}\n\n[Text]\n{texts_csv}\n"
 

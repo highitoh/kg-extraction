@@ -1,0 +1,26 @@
+Class Reviewer Rules (Compressed)
+
+Goal
+- Reduce duplicates, mixed-type labels, and over-specific classes.
+
+Core policy
+- One label = one semantic type.
+- If uncertain, mark REVIEW.
+
+Normalization
+- Consolidate trivial variants (plural/singular, punctuation, casing).
+- Prefer concise canonical labels.
+
+Split rules
+- If label mixes role + action, split into:
+  - Business Activity (action)
+  - Stakeholder (role)
+- If label mixes activity + metric, split and keep metric as Indicator.
+
+Indicator check
+- Quantitative wording (rate, %, count, score, threshold, average) in an activity label => REVIEW for Indicator split.
+
+When to REVIEW
+- Ambiguous type assignment.
+- High lexical overlap but different probable types.
+- Multi-concept concatenated labels that cannot be safely auto-split.

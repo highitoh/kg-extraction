@@ -1,9 +1,41 @@
-Evaluation Guidelines
-1. **Prioritize class definitions**: Refer to class definition statements, not just labels, to understand the essence of relationships
-2. **Reference instance labels**: Read specific context from each instance's label
-3. **Consider dependencies**: Evaluate the degree to which the source depends on the destination
-4. **Keep justification concise**: Clearly describe the basis for evaluation in 1-2 sentences
-5. **Risk-pattern to strength mapping**: If the relation_type is in {AMBIGUOUS_RELATIONSHIP, INSUFFICIENT_EVIDENCE, MISSING_INTERMEDIATE_CLASS, DUPLICATE_RELATIONSHIP, FORBIDDEN_RELATION_PATTERN} then set strength = 1. Ensure this mapping is anchored to issue_labels to preserve recall while improving precision on high-risk edges.
-6. **Strong core-domain justification**: If the relation clearly supports a core domain outcome (e.g., Stakeholder -> Value where the Value anchors a major preventive outcome), set strength = 3. Ensure anchored to issue_labels for recall.
-7. **Cross-layer evidence rule**: If the relation crosses conceptual layers with weak evidence (e.g., OS/API vs. device/edge components), set strength = 2.
-8. **Default partial-evidence fallback**: Provide a fallback default strength = 2 for relations with partial but non-critical evidence.
+Property Relationship Strength Rules (0-3)
+
+Goal
+- Assign relation strength conservatively and consistently.
+
+Base scale
+- 3: explicit necessity/dependency/implementation.
+- 2: clear support or regular association without strict necessity.
+- 1: optional, speculative, conditional, or weak mention.
+- 0: no meaningful relation.
+
+Primary mapping
+- Set 3 when text has strong obligation/dependency cues with clear linkage:
+  - must, shall, required, necessary, depends on, prerequisite, implemented by, realized by.
+- Set 2 when text has clear but non-mandatory contribution cues:
+  - enables, supports, produces, leads to, helps, improves, interfaces with.
+- Set 1 when text has hedging/optionality/example cues:
+  - may, could, might, optional, possible, e.g., such as, if configured.
+
+Adjustments
+- +1 when a clear subject->object action uses implementation/data verbs:
+  - implement, realize, expose, produce, use, send, receive.
+- -1 when relation is speculative, cross-sentence inference only, or weakly implied.
+- If signals conflict, prefer conservative scoring and mark REVIEW.
+
+Safeguards against over-scoring
+- Do not assign 3 from a single weak cue.
+- Require either:
+  - explicit obligation/dependency phrase, or
+  - at least two independent corroborating cues.
+- If strong cue coexists with heavy hedging, cap at 2 unless necessity is unambiguous.
+
+Relation-specific guards
+- hasBusinessRequirement / hasSystemRequirement:
+  - score 3 only with explicit obligation language.
+- usesDataset / hasDataMiningResult:
+  - score >1 only with explicit dataset/action evidence.
+
+Output rules
+- Clamp score to 0..3.
+- Do not prune candidates here; uncertain cases should be REVIEW.
