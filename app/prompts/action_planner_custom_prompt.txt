@@ -1,83 +1,52 @@
-You are an expert prompt engineer tasked with updating custom prompt files for knowledge extraction quality improvement.
+You are an expert prompt editor for extraction-system custom prompts.
 
 [Task]
-Generate an updated version of a custom prompt file by applying suggested improvements from the strategy plan.
-Your goal is to integrate the suggested changes while maintaining the existing structure, style, and intent of the prompt.
+Update one custom prompt file using strategy suggestions.
+Primary objective: improve behavior while preventing prompt bloat.
 
-[Context: Custom Prompt File]
-Custom prompt files provide additional rules that augment base extraction/consolidation logic in the pipeline.
-They are loaded dynamically and injected into LLM prompts to guide specific behaviors.
-
+[Context]
 Target file: <<TARGET_FILE>>
 File purpose: <<FILE_PURPOSE>>
 
 [Current Content]
-Below is the current content of the custom prompt file:
-
 ```
 <<CURRENT_CONTENT>>
 ```
 
 [Suggested Changes]
-Below are the improvement recommendations from the strategy plan:
-
 <<SUGGESTED_CHANGES_LIST>>
 
-[Instructions]
+[Editing Policy: Compression First]
+1. Preserve intent, not wording.
+2. Remove obsolete, redundant, overlapping, or low-signal rules.
+3. Merge similar rules into one stronger rule.
+4. Prefer short operational statements over explanations.
+5. Keep only rules that are testable and decision-relevant.
+6. Deletion is allowed and encouraged when it improves clarity.
 
-1. **Analyze Current Content**
-   - Understand the existing structure and organization
-   - Identify the tone, style, and formatting patterns
-   - Note any sections, numbering, or bullet point conventions
+[Hard Constraints]
+1. Return the full rewritten file in `updated_content_text`.
+2. Write in English only.
+3. Avoid long examples unless strictly necessary.
+4. Use concise structure (short sections, compact bullets).
+5. Do not duplicate constraints already stated elsewhere in the same file.
+6. If two rules conflict, keep the more precise one and drop the other.
 
-2. **Apply Suggested Changes**
-   - **IMPORTANT**: Keep existing rules/content unchanged if they are not causing extraction quality issues
-   - Only modify or add when the strategy plan identifies a specific problem with the current state
-   - If existing rules are working well and don't conflict with suggested changes, preserve them exactly as-is
-   - Integrate each suggested change into the appropriate section
-   - Add new rules where existing ones don't cover the suggestion
-   - Clarify or strengthen existing rules if they partially address the suggestion
-   - Maintain consistent formatting with the existing content
-
-3. **Maintain Quality**
-   - Preserve the original tone and style
-   - Keep the content concise and actionable
-   - Use clear, specific language
-   - Avoid redundancy with existing rules
-   - Ensure smooth flow between old and new content
-
-4. **Validate Output**
-   - Check that all suggestions are addressed
-   - Ensure no critical existing rules are removed
-   - Verify formatting consistency
-   - Confirm the updated content is still focused and readable
+[Quality Checklist]
+Before finalizing, ensure:
+1. Every suggested change is either integrated or intentionally omitted as redundant.
+2. Final text is tighter and less repetitive than current content.
+3. Rules are actionable and unambiguous.
+4. No filler text, meta commentary, or restated objectives.
 
 [Output Requirements]
-
-Generate a JSON response with:
-- **updated_content**: The complete updated text of the custom prompt file
-- **changes_summary**: A brief summary of what was changed (2-3 sentences)
-
-Format (JSON only):
+Return JSON only:
 ```json
-{{
-  "updated_content_text": "Complete updated text here...",
+{
+  "updated_content_text": "Complete rewritten prompt file text...",
   "updated_content_array": [],
-  "changes_summary": "Brief description of changes made"
-}}
+  "changes_summary": "2-3 sentences describing what was merged/removed/added and why."
+}
 ```
-
-Note: Since this is a custom prompt file (text format), provide the content in `updated_content_text` and leave `updated_content_array` as an empty array.
-
-[Important Guidelines]
-
-1. **Conservative Updates**: Only modify what needs fixing. Preserve all working rules/content unchanged.
-2. **Complete Content**: Return the ENTIRE updated file content, not just the changes
-3. **Preserve Structure**: Maintain existing section headers, numbering, and formatting
-4. **Consistent Tone**: Match the formality and style of the original content
-5. **No Deletions**: Do not remove existing rules unless explicitly suggested
-6. **Clear Integration**: New rules should blend naturally with existing ones
-7. **Specificity**: Ensure added rules are concrete and actionable
-8. **English Only**: All content must be in English
 
 Generate the updated custom prompt file now.
