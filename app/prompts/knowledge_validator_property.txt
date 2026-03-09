@@ -21,8 +21,12 @@ S22: Relation Unity (Score 1-5)
 
 S23: Relation Strength Validity (Score 1-5)
    - Evaluates whether the determination of the property's relationship strength is appropriate.
-   - Strength scale: 0 (invalid), 1 (weak), 2 (moderate), 3 (strong)
-   - Consider: Is the assigned strength appropriate for this relationship? Does it accurately reflect the importance and strength of the connection in the domain?
+   - Validate the assigned strength against the PropertyRanker strength definition:
+     - 3 / Strong (Essential Dependency): A cannot exist without B
+     - 2 / Medium (Functional Dependency): A's efficiency/performance improves when using B
+     - 1 / Weak (Environmental Dependency): B is desirable but alternatives exist without it
+     - 0 / None (No Relationship): Logically independent or relationship is incorrect
+   - Consider: Does the assigned strength match the above definition based on explicit evidence in the text/context?
 
 S24: Contextual Grounding (Score 1-5)
    - Evaluates whether the property can be recognized as having a relationship from the context within the document.
