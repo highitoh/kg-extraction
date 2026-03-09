@@ -47,9 +47,11 @@ IMPORTANT: Return validations for ALL properties in the batch in the same order 
 1. Scoring Scale: Use a scale of 1-5 for all scores:
    - 1: Very Poor - Significant issues that require immediate attention
    - 2: Poor - Notable problems that should be addressed
-   - 3: Acceptable - Meets minimum requirements but has room for improvement
+   - 3: Needs Improvement - Below target quality; requires optimization
    - 4: Good - Well-designed with minor areas for refinement
    - 5: Excellent - Exemplary quality with no significant concerns
+
+   Downstream policy note: Scores 1-3 are treated as poor extraction candidates for optimization.
 
 2. Objectivity: Base your evaluation on the criteria provided, not on personal preferences or assumptions outside the given context.
 
