@@ -26,6 +26,9 @@ class ActionPlanner:
 
     # Change-volume cap per iteration (fixed).
     MAX_TARGETS_PER_ITER = 3
+    # Compression constraints for custom prompt proposals.
+    MAX_COMPRESSED_PROMPT_BYTES = 2000
+    MAX_COMPRESSION_ATTEMPTS = 3
 
     def __init__(
         self,
@@ -83,6 +86,7 @@ class ActionPlanner:
 
         # Load prompt templates (path: /workspace/app/prompts/)
         self.custom_prompt_template = self._load_prompt("action_planner_custom_prompt.txt")
+        self.compress_prompt_template = self._load_prompt("action_planner_compress_prompt.txt")
         self.metamodel_template = self._load_prompt("action_planner_metamodel.txt")
 
     def _load_schema(self, schema_name: str) -> Dict[str, Any]:
@@ -276,26 +280,8 @@ class ActionPlanner:
     ) -> str:
         """Create prompt for custom_prompt target."""
         current_content = self._load_custom_prompt_file(target)
-
-        # Determine file purpose based on filename
-        purpose_map = {
-            "class_extractor_custom.txt": "Guidance for extracting class instances from text",
-            "class_reviewer_custom.txt": "Validation criteria for class extraction decisions",
-            "class_consolidator_custom.txt": "Criteria for selecting canonical labels when merging duplicate classes",
-            "property_extractor_custom.txt": "Guides which property (relationship) candidates to extract from class pairs",
-            "property_ranker_custom.txt": "Guidelines for evaluating relationship strength (0-3 scale)",
-            "property_reviewer_custom.txt": "Validation criteria for property extraction decisions",
-            "property_consolidator_custom.txt": "Criteria for grouping duplicate/similar properties",
-        }
-        file_purpose = purpose_map.get(target, "Custom rules for the extraction pipeline")
-
-        # Format suggested changes
-        suggested_changes_list = "\n\n".join([
-            f"**Change {i+1}** (Priority: {action.get('priority', 'unknown')})\n"
-            f"Reason: {action.get('reason', '')}\n"
-            f"Suggested: {action.get('suggested_changes', '')}"
-            for i, action in enumerate(actions)
-        ])
+        file_purpose = self._get_custom_prompt_purpose(target)
+        suggested_changes_list = self._format_suggested_changes(actions)
 
         # Replace placeholders
         prompt = fill_prompt_template(
@@ -307,6 +293,182 @@ class ActionPlanner:
         )
 
         return prompt
+
+    def _create_custom_prompt_compress_prompt(
+        self,
+        target: str,
+        actions: List[Dict[str, Any]],
+        original_content: str,
+        proposed_content: str,
+        max_bytes: int,
+        current_bytes: int,
+        attempt: int
+    ) -> str:
+        """Create compression prompt for custom_prompt target."""
+        file_purpose = self._get_custom_prompt_purpose(target)
+        suggested_changes_list = self._format_suggested_changes(actions)
+
+        return fill_prompt_template(
+            self.compress_prompt_template,
+            target_file=target,
+            file_purpose=file_purpose,
+            original_content=original_content if original_content else "(empty file)",
+            proposed_content=proposed_content if proposed_content else "(empty content)",
+            suggested_changes_list=suggested_changes_list,
+            target_max_bytes=max_bytes,
+            current_proposed_bytes=current_bytes,
+            compression_attempt=attempt
+        )
+
+    @staticmethod
+    def _content_size_bytes(content: str) -> int:
+        """Return UTF-8 byte size for content."""
+        return len((content or "").encode("utf-8"))
+
+    @staticmethod
+    def _get_custom_prompt_purpose(target: str) -> str:
+        """Return human-readable purpose for custom prompt file."""
+        purpose_map = {
+            "class_extractor_custom.txt": "Guidance for extracting class instances from text",
+            "class_reviewer_custom.txt": "Validation criteria for class extraction decisions",
+            "class_consolidator_custom.txt": "Criteria for selecting canonical labels when merging duplicate classes",
+            "property_extractor_custom.txt": "Guides which property (relationship) candidates to extract from class pairs",
+            "property_ranker_custom.txt": "Guidelines for evaluating relationship strength (0-3 scale)",
+            "property_reviewer_custom.txt": "Validation criteria for property extraction decisions",
+            "property_consolidator_custom.txt": "Criteria for grouping duplicate/similar properties",
+        }
+        return purpose_map.get(target, "Custom rules for the extraction pipeline")
+
+    @staticmethod
+    def _format_suggested_changes(actions: List[Dict[str, Any]]) -> str:
+        """Format suggested changes for prompt templates."""
+        return "\n\n".join([
+            f"**Change {i+1}** (Priority: {action.get('priority', 'unknown')})\n"
+            f"Reason: {action.get('reason', '')}\n"
+            f"Suggested: {action.get('suggested_changes', '')}"
+            for i, action in enumerate(actions)
+        ])
+
+    @staticmethod
+    def _parse_llm_json_response(response: Any) -> Dict[str, Any]:
+        """Parse LLM JSON response content."""
+        if isinstance(response.content, str):
+            return json.loads(response.content)
+
+        if isinstance(response.content, list) and len(response.content) > 0:
+            text_record = next((item for item in response.content if item.get('type') == 'text'), None)
+            if text_record is None:
+                raise ValueError(f"No text record found in response.content: {response.content}")
+            return json.loads(text_record.get('text', '{}'))
+
+        raise ValueError(f"Unexpected response format: {type(response.content)}")
+
+    async def _compress_custom_prompt_async(
+        self,
+        target: str,
+        actions: List[Dict[str, Any]],
+        original_content: str,
+        proposed_content: str,
+        max_bytes: int,
+        current_bytes: int,
+        attempt: int
+    ) -> Tuple[str, str]:
+        """
+        Compress proposed custom prompt while preserving intent.
+
+        Returns:
+            Tuple of (compressed_content, compression_summary)
+        """
+        compress_prompt = self._create_custom_prompt_compress_prompt(
+            target=target,
+            actions=actions,
+            original_content=original_content,
+            proposed_content=proposed_content,
+            max_bytes=max_bytes,
+            current_bytes=current_bytes,
+            attempt=attempt
+        )
+
+        response = await call_with_retry(
+            lambda: self.llm_bound.ainvoke(compress_prompt),
+            timeout=90.0,
+            label="ActionPlanner-Compress",
+        )
+        compressed_result = self._parse_llm_json_response(response)
+        compressed_content = compressed_result.get("updated_content_text", "")
+        compression_summary = compressed_result.get("changes_summary", "")
+
+        return compressed_content, compression_summary
+
+    async def _compress_custom_prompt_until_limit_async(
+        self,
+        target: str,
+        actions: List[Dict[str, Any]],
+        original_content: str,
+        proposed_content: str
+    ) -> Tuple[str, str, int, bool]:
+        """
+        Compress content repeatedly until byte-size limit is satisfied or attempts are exhausted.
+
+        Returns:
+            Tuple of (final_content, merged_summary, attempts_used, within_limit)
+        """
+        candidate_content = proposed_content
+        summaries: List[str] = []
+        attempts_used = 0
+
+        for attempt in range(1, self.MAX_COMPRESSION_ATTEMPTS + 1):
+            current_bytes = self._content_size_bytes(candidate_content)
+            if current_bytes <= self.MAX_COMPRESSED_PROMPT_BYTES:
+                break
+
+            if self.progress:
+                print(
+                    f"[ActionPlanner] Compress attempt {attempt}/{self.MAX_COMPRESSION_ATTEMPTS} "
+                    f"for {target} ({current_bytes} bytes -> <= {self.MAX_COMPRESSED_PROMPT_BYTES} bytes)"
+                )
+
+            compressed_content, compression_summary = await self._compress_custom_prompt_async(
+                target=target,
+                actions=actions,
+                original_content=original_content,
+                proposed_content=candidate_content,
+                max_bytes=self.MAX_COMPRESSED_PROMPT_BYTES,
+                current_bytes=current_bytes,
+                attempt=attempt
+            )
+            attempts_used = attempt
+
+            if not compressed_content.strip():
+                if self.progress:
+                    print(
+                        f"[ActionPlanner] Compression attempt {attempt} returned empty content for {target}; "
+                        "stopping retries and keeping last non-empty content."
+                    )
+                break
+
+            candidate_content = compressed_content
+            if compression_summary:
+                summaries.append(f"attempt {attempt}: {compression_summary}")
+
+        final_bytes = self._content_size_bytes(candidate_content)
+        within_limit = final_bytes <= self.MAX_COMPRESSED_PROMPT_BYTES
+        merged_summary = " | ".join(summaries)
+
+        if self.progress:
+            if within_limit:
+                print(
+                    f"[ActionPlanner] Compression result for {target}: "
+                    f"{final_bytes} bytes (limit {self.MAX_COMPRESSED_PROMPT_BYTES})"
+                )
+            else:
+                print(
+                    f"[ActionPlanner] Compression limit not reached for {target}: "
+                    f"{final_bytes} bytes after {attempts_used} attempts "
+                    f"(limit {self.MAX_COMPRESSED_PROMPT_BYTES})"
+                )
+
+        return candidate_content, merged_summary, attempts_used, within_limit
 
     def _create_metamodel_rules_plan_prompt(
         self,
@@ -392,15 +554,7 @@ class ActionPlanner:
                 )
 
                 # Parse response
-                if isinstance(response.content, str):
-                    result = json.loads(response.content)
-                elif isinstance(response.content, list) and len(response.content) > 0:
-                    text_record = next((item for item in response.content if item.get('type') == 'text'), None)
-                    if text_record is None:
-                        raise ValueError(f"No text record found in response.content: {response.content}")
-                    result = json.loads(text_record.get('text', '{}'))
-                else:
-                    raise ValueError(f"Unexpected response format: {type(response.content)}")
+                result = self._parse_llm_json_response(response)
 
                 # Extract updated_content based on target_type
                 if target_type == "custom_prompt":
@@ -409,6 +563,35 @@ class ActionPlanner:
                     updated_content = result.get("updated_content_array", [])
 
                 changes_summary = result.get("changes_summary", "")
+
+                # Compression step for custom prompt proposals.
+                if target_type == "custom_prompt" and isinstance(updated_content, str) and updated_content.strip():
+                    if self.progress:
+                        initial_bytes = self._content_size_bytes(updated_content)
+                        print(
+                            f"[ActionPlanner] Compressing proposal for {target} "
+                            f"(initial {initial_bytes} bytes, limit {self.MAX_COMPRESSED_PROMPT_BYTES})..."
+                        )
+                    try:
+                        compressed_content, compression_summary, _, _ = await self._compress_custom_prompt_until_limit_async(
+                            target=target,
+                            actions=actions,
+                            original_content=current_content if isinstance(current_content, str) else "",
+                            proposed_content=updated_content
+                        )
+                        if compressed_content.strip():
+                            updated_content = compressed_content
+                        if compression_summary:
+                            if changes_summary:
+                                changes_summary = f"{changes_summary} | Compression: {compression_summary}"
+                            else:
+                                changes_summary = compression_summary
+                    except Exception as compress_error:
+                        if self.progress:
+                            print(
+                                f"[ActionPlanner] - Compression skipped for {target} "
+                                f"(using uncompressed proposal): {compress_error}"
+                            )
 
                 if self.progress:
                     print(f"[ActionPlanner] ✓ {target_type}:{target} - {changes_summary}")

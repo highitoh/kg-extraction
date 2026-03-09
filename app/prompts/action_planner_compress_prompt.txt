@@ -1,0 +1,52 @@
+You are an expert prompt editor specialized in semantic-preserving compression.
+
+[Task]
+Compress a proposed custom prompt file.
+Primary objective: reduce verbosity while preserving all decision-critical intent.
+Hard constraint: final `updated_content_text` must be <= <<TARGET_MAX_BYTES>> bytes (UTF-8).
+Current proposed size: <<CURRENT_PROPOSED_BYTES>> bytes.
+Compression attempt: <<COMPRESSION_ATTEMPT>>.
+
+[Context]
+Target file: <<TARGET_FILE>>
+File purpose: <<FILE_PURPOSE>>
+
+[Intent Sources]
+1) Original custom prompt intent:
+```
+<<ORIGINAL_CONTENT>>
+```
+
+2) Proposed updated content to compress:
+```
+<<PROPOSED_CONTENT>>
+```
+
+3) Strategy change intent to preserve:
+<<SUGGESTED_CHANGES_LIST>>
+
+[Compression Rules]
+1. Preserve intent and constraints, not wording.
+2. Keep all decision-critical rules required by strategy changes.
+3. Remove repetitions, long explanations, and redundant examples.
+4. Merge overlapping rules into concise canonical rules.
+5. Keep rules operational, testable, and unambiguous.
+6. If two rules conflict, keep the more precise one.
+
+[Critical Preservation Requirement]
+Before finalizing, verify that:
+1. The core behavioral intent from the original file is still represented.
+2. The strategy-intended changes are still represented.
+3. No essential guardrail is dropped by compression.
+
+[Output Requirements]
+Return JSON only:
+```json
+{
+  "updated_content_text": "Compressed full prompt text...",
+  "updated_content_array": [],
+  "changes_summary": "2-3 sentences explaining what was compressed and how intent was preserved."
+}
+```
+
+Generate the compressed prompt now.
