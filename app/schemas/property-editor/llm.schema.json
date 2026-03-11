@@ -12,9 +12,9 @@
         "properties": {
           "revised_strength": {
             "type": "integer",
-            "description": "Revised strength: 0=exclude (REJECT), 1=Weak, 2=Medium, 3=Strong",
+            "description": "Revised strength: 0=None (unsupported or invalid relationship), 1=Implicit (inferable from local context), 2=Explicit (directly stated in the text)",
             "minimum": 0,
-            "maximum": 3
+            "maximum": 2
           },
           "revision_reason": {
             "type": "string",

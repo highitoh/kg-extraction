@@ -22,7 +22,7 @@ class PropertyEditor(Runnable):
     1. Separate input into ACCEPT/REVIEW/REJECT
     2. Re-evaluate only REVIEW properties with LLM (parallel execution per property_iri)
     3. LLM output:
-       - If revised_strength is 1-3: Update strength and keep judgment="REVIEW"
+       - If revised_strength is 1-2: Update strength and keep judgment="REVIEW"
        - If revised_strength=0: Change judgment to "REJECT"
     4. Integrate ACCEPT/REJECT/corrected REVIEW and output
     """

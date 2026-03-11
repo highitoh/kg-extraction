@@ -9,7 +9,7 @@ strength (current strength), source (source sentence), and justification (issue 
 [Correction Policy]
 Refer to the following [Prohibit Rules] to correct strength to resolve the justification issues.
 However, corrections that deviate from the meaning of the [Original Sentence (source)] are prohibited.
-- Strength correction possible: Set revised_strength to the corrected strength (1-3)
+- Strength correction possible: Set revised_strength to the corrected strength (1-2)
 - Correction not possible and should be excluded: revised_strength=0 (meaning REJECT)
 
 [Prohibit Rules]
@@ -17,9 +17,8 @@ However, corrections that deviate from the meaning of the [Original Sentence (so
 
 [Strength Definitions]
 - 0: No relationship (None) → REJECT
-- 1: Environmental dependency (Weak)
-- 2: Functional dependency (Medium)
-- 3: Essential dependency (Strong)
+- 1: Implicit relationship (inferable from local context)
+- 2: Explicit relationship (directly stated in the text)
 
 [Output Format (JSON only)]
 {

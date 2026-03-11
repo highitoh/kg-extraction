@@ -19,7 +19,7 @@ class PropertyRanker(Runnable):
     """
     Property relationship strength evaluation (Ranking)
     Input: PropertyChainOutput (properties with strength=0)
-    Output: PropertyChainOutput (properties with strength=0-3)
+    Output: PropertyChainOutput (properties with strength=0-2)
     """
 
     def __init__(
@@ -366,11 +366,11 @@ class PropertyRanker(Runnable):
 
         if self.progress:
             # Display strength distribution
-            strength_counts = {0: 0, 1: 0, 2: 0, 3: 0}
+            strength_counts = {0: 0, 1: 0, 2: 0}
             for prop in ranked_properties:
                 strength_counts[prop["strength"]] += 1
             print(f"[PropertyRanker] Completed: ranked {len(ranked_properties)} properties")
-            print(f"[PropertyRanker] Strength distribution: 0={strength_counts[0]}, 1={strength_counts[1]}, 2={strength_counts[2]}, 3={strength_counts[3]}")
+            print(f"[PropertyRanker] Strength distribution: 0={strength_counts[0]}, 1={strength_counts[1]}, 2={strength_counts[2]}")
 
         # Log output (with label information and evaluation information)
         log_output = {
@@ -436,15 +436,14 @@ if __name__ == "__main__":
         print(f"- Total properties ranked: {len(result['properties'])}")
 
         # Display strength distribution
-        strength_counts = {0: 0, 1: 0, 2: 0, 3: 0}
+        strength_counts = {0: 0, 1: 0, 2: 0}
         for prop in result["properties"]:
             strength_counts[prop["strength"]] += 1
 
         print(f"\nStrength Distribution:")
         print(f"  0 (None): {strength_counts[0]}")
-        print(f"  1 (Weak): {strength_counts[1]}")
-        print(f"  2 (Medium): {strength_counts[2]}")
-        print(f"  3 (Strong): {strength_counts[3]}")
+        print(f"  1 (Implicit): {strength_counts[1]}")
+        print(f"  2 (Explicit): {strength_counts[2]}")
 
     except Exception as e:
         print(f"Error: {e}")

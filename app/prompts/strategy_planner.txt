@@ -69,7 +69,7 @@ Custom prompts provide additional rules that augment base extraction/consolidati
 - **property_ranker_custom.txt**
   - Stage: Property Ranking
   - Role: Evaluator
-  - Purpose: Guidelines for evaluating relationship strength (0-3 scale)
+  - Purpose: Guidelines for evaluating relationship strength (0-2 textual explicitness scale)
 
 - **property_reviewer_custom.txt**
   - Stage: Property Review

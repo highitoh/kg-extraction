@@ -9,6 +9,8 @@ You are a knowledge quality validator. Your task is to evaluate the quality of e
 Properties to Validate:
 <<PROPERTY_INSTANCES>>
 
+Use the provided source/destination class context snippets as primary evidence when judging S23 and S24.
+
 Validation Perspectives:
 
 S21: Relation Applicability (Score 1-5)
@@ -20,13 +22,13 @@ S22: Relation Unity (Score 1-5)
    - Consider: Is this relationship distinct from other properties? Does it represent a unique connection without duplicating other relationships?
 
 S23: Relation Strength Validity (Score 1-5)
-   - Evaluates whether the determination of the property's relationship strength is appropriate.
+   - Evaluates whether the assigned strength appropriately reflects how explicitly the relationship is supported by the text.
    - Validate the assigned strength against the PropertyRanker strength definition:
-     - 3 / Strong (Essential Dependency): A cannot exist without B
-     - 2 / Medium (Functional Dependency): A's efficiency/performance improves when using B
-     - 1 / Weak (Environmental Dependency): B is desirable but alternatives exist without it
-     - 0 / None (No Relationship): Logically independent or relationship is incorrect
-   - Consider: Does the assigned strength match the above definition based on explicit evidence in the text/context?
+     - 2 / Explicit: The relationship is explicitly stated in the text.
+     - 1 / Implicit: The relationship is not directly stated, but can be reasonably inferred from the local context.
+     - 0 / None: The relationship is not supported by the text, or the relation type / class pairing is incorrect.
+   - Consider: Does the assigned strength match the degree of explicit textual evidence?
+   - Do not evaluate strength based on importance, necessity, or dependency severity.
 
 S24: Contextual Grounding (Score 1-5)
    - Evaluates whether the property can be recognized as having a relationship from the context within the document.

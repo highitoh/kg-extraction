@@ -16,10 +16,16 @@ Perform 2 evaluations per [Property Candidate]:
 <<PROHIBIT_RULES>>
 
 [Strength Evaluation Criteria]
-- 3/Strong: A cannot exist without B (e.g., Auth System→User DB)
-- 2/Medium: A's efficiency improves with B (e.g., Search→Index)
-- 1/Weak: B desirable but alternatives exist (e.g., System→Monitor)
-- 0/None: Logically independent or incorrect
+- 2 / Explicit: The relationship is explicitly stated in the text.
+- 1 / Implicit: The relationship is not directly stated, but can be reasonably inferred from the local context.
+- 0 / None: The relationship is not supported by the text, or the relationship itself is invalid.
+
+When verifying strength:
+- Compare the assigned strength against the degree of textual explicitness.
+- Do not judge by business importance, dependency severity, or centrality.
+- If explicit wording exists, prefer 2.
+- If only contextual inference supports the relation, prefer 1.
+- If the relation lacks textual grounding or is structurally invalid, set 0.
 
 <<CUSTOM_RULES>>
 
@@ -32,7 +38,7 @@ Provide a brief justification only for REVIEW and REJECT judgments. For ACCEPT, 
     {
       "property_id": "...",
       "judgment": "ACCEPT|REVIEW|REJECT",
-      "eval_str": 0-3,
+      "eval_str": 0-2,
       "justification": "" or "concise combined reasoning"
     }
   ]

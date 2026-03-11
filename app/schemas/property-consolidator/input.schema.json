@@ -19,7 +19,7 @@
           "src_id": {"type": "string"},
           "property_iri": {"type": "string"},
           "dest_id": {"type": "string"},
-          "strength": {"type": "integer", "minimum": 0, "maximum": 3}
+          "strength": {"type": "integer", "minimum": 0, "maximum": 2}
         },
         "required": ["id", "src_id", "property_iri", "dest_id", "strength"]
       }
@@ -34,7 +34,7 @@
           "src_id": {"type": "string"},
           "property_iri": {"type": "string"},
           "dest_id": {"type": "string"},
-          "strength": {"type": "integer", "minimum": 0, "maximum": 3}
+          "strength": {"type": "integer", "minimum": 0, "maximum": 2}
         },
         "required": ["id", "src_id", "property_iri", "dest_id"]
       }

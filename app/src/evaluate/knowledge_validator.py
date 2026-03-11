@@ -23,6 +23,8 @@ from utils.prompt_utils import fill_prompt_template
 
 class KnowledgeValidator:
     """Validates knowledge quality using LLM with parallel execution."""
+    MAX_PROPERTY_CONTEXT_SOURCES = 3
+    MAX_SOURCE_CHARS = 200
 
     def __init__(
         self,
@@ -121,6 +123,30 @@ class KnowledgeValidator:
         """Load a JSON file."""
         with open(file_path, 'r', encoding='utf-8') as f:
             return json.load(f)
+
+    @staticmethod
+    def _build_class_index(classes: List[Dict[str, Any]]) -> Dict[str, Dict[str, Any]]:
+        """Create index: class_id -> class info."""
+        return {cls.get("id", ""): cls for cls in classes if cls.get("id")}
+
+    def _get_truncated_sources(self, class_data: Dict[str, Any]) -> List[str]:
+        """Get truncated class sources for property-context prompts."""
+        raw_sources = class_data.get("sources", [])
+        if isinstance(raw_sources, str):
+            raw_sources = [raw_sources]
+
+        cleaned = [
+            src.strip()
+            for src in raw_sources
+            if isinstance(src, str) and src.strip()
+        ]
+        limited = cleaned[:self.MAX_PROPERTY_CONTEXT_SOURCES]
+        truncated = [src[:self.MAX_SOURCE_CHARS] for src in limited]
+        return truncated if truncated else ["(no source available)"]
+
+    def _format_context_sources(self, sources: List[str]) -> str:
+        """Format source list for prompt."""
+        return "\n".join([f"    - {source}" for source in sources])
 
     def _resolve_project_paths(self, project: str, output_base_dir: str) -> Tuple[str, str]:
         """
@@ -310,7 +336,11 @@ Output ONLY the scores using the metrics IDs (S11-S16) as keys."""
 
         return validations
 
-    def _create_property_validation_prompt(self, property_group: List[Dict[str, Any]]) -> str:
+    def _create_property_validation_prompt(
+        self,
+        property_group: List[Dict[str, Any]],
+        class_index: Dict[str, Dict[str, Any]]
+    ) -> str:
         """Create validation prompt for a group of properties with the same property_iri."""
         if not property_group:
             raise ValueError("property_group cannot be empty")
@@ -331,7 +361,15 @@ Output ONLY the scores using the metrics IDs (S11-S16) as keys."""
             property_id = property_data.get('id', 'Unknown')
             src_label = property_data.get('src_label', 'Unknown')
             dest_label = property_data.get('dest_label', 'Unknown')
+            src_id = property_data.get('src_id', '')
+            dest_id = property_data.get('dest_id', '')
             strength = property_data.get('strength', 0)
+            src_class = class_index.get(src_id, {})
+            dest_class = class_index.get(dest_id, {})
+            src_sources = self._get_truncated_sources(src_class)
+            dest_sources = self._get_truncated_sources(dest_class)
+            src_context = self._format_context_sources(src_sources)
+            dest_context = self._format_context_sources(dest_sources)
 
             instance_info = f"""
 **Property {idx}:**
@@ -339,6 +377,10 @@ Output ONLY the scores using the metrics IDs (S11-S16) as keys."""
 - Source Class: {src_label}
 - Destination Class: {dest_label}
 - Current Strength: {strength}
+- Source Class Context (max {self.MAX_PROPERTY_CONTEXT_SOURCES}, each up to {self.MAX_SOURCE_CHARS} chars):
+{src_context}
+- Destination Class Context (max {self.MAX_PROPERTY_CONTEXT_SOURCES}, each up to {self.MAX_SOURCE_CHARS} chars):
+{dest_context}
 """
             property_instances_parts.append(instance_info)
 
@@ -503,13 +545,17 @@ Output ONLY the scores using the metrics IDs (S21-S24) as keys."""
                 for cls in class_group
             ]
 
-    async def _validate_property_async(self, property_group: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    async def _validate_property_async(
+        self,
+        property_group: List[Dict[str, Any]],
+        class_index: Dict[str, Dict[str, Any]]
+    ) -> List[Dict[str, Any]]:
         """Validate a group of properties with the same property_iri asynchronously."""
         if not property_group:
             return []
 
         property_iri = property_group[0].get('property_iri', 'Unknown')
-        prompt = self._create_property_validation_prompt(property_group)
+        prompt = self._create_property_validation_prompt(property_group, class_index)
 
         try:
             # Invoke LLM with property schema
@@ -602,6 +648,7 @@ Output ONLY the scores using the metrics IDs (S21-S24) as keys."""
 
         # Group properties by property_iri
         property_groups = defaultdict(list)
+        class_index = self._build_class_index(classes)
         for prop in properties:
             property_iri = prop.get('property_iri', 'Unknown')
             property_groups[property_iri].append(prop)
@@ -616,7 +663,7 @@ Output ONLY the scores using the metrics IDs (S21-S24) as keys."""
 
         async def _wrapped_property_validation(group: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
             nonlocal property_counter
-            result = await self._validate_property_async(group)
+            result = await self._validate_property_async(group, class_index)
 
             async with property_lock:
                 property_counter += 1

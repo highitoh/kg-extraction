@@ -5,27 +5,30 @@ Evaluate the strength of each of the following relationship candidates.
 For each relationship candidate, output a JSON object containing the following information.
 
 [Rules]
-Evaluate the strength of each relationship on the following 4-level scale:
-- 3 / Strong (Essential Dependency)
-  - Meaning: A cannot exist without B
+Evaluate the strength of each relationship on the following 3-level scale based on textual explicitness, not business importance or dependency severity:
+
+- 2 / Explicit
+  - Meaning: The relationship is explicitly stated in the text.
+  - The source text directly connects the source and destination through a clear relational expression.
+  - Examples of explicit cues: "uses", "implements", "produces", "stores", "sends", "receives", "defines", "results in", "leads to", "is realized by", "is implemented by".
+
+- 1 / Implicit
+  - Meaning: The relationship is not directly stated, but can be reasonably inferred from the local context.
+  - The source and destination appear in the same coherent context, and the relationship is plausible, but the text does not explicitly state the link.
+
+- 0 / None
+  - Meaning: The relationship is not supported by the text, or the relationship itself is invalid.
   - Examples:
-    - "Authentication System" and "User Database" (authentication system cannot function without user database)
-    - "Payment Function" and "Credit Card Information" (payment function cannot exist without credit card information)
-- 2 / Medium (Functional Dependency)
-  - Meaning: A's efficiency/performance improves when using B
-  - Examples:
-    - "Search Function" and "Index" (search becomes faster with an index)
-    - "Report Generation" and "Cache Mechanism" (processing becomes more efficient with cache)
-- 1 / Weak (Environmental Dependency)
-  - Meaning: B is desirable but alternative means exist without it
-  - Examples:
-    - "System" and "Monitoring Tool" (system operates without monitoring tool)
-    - "Application" and "Log Collection Service" (functions execute without logs)
--  0 / None (No Relationship)
-  - Meaning: Logically independent or relationship is incorrect
-  - Examples:
-    - "User Registration Function" and "Weather Forecast Data" (logically independent)
-    - Clearly incorrect relationships
+    - mere co-occurrence without a linking expression
+    - wrong relation type
+    - incorrect class pairing
+    - self-relation without distinct meaning
+
+Important:
+- Judge strength by explicitness of textual evidence, not by how essential or important the relationship is.
+- If the relation is explicitly described, assign 2.
+- If the relation is only inferable from context, assign 1.
+- If the relation is unsupported or invalid, assign 0.
 
 <<CUSTOM_RULES>>
 
@@ -47,7 +50,7 @@ Evaluate the strength of each relationship on the following 4-level scale:
     {{
       "src_id": "Source class ID",
       "dest_id": "Destination class ID",
-      "strength": integer value 0-3,
+      "strength": integer value 0-2,
       "justification": "Basis for strength evaluation (1-2 sentences)"
     }}
   ]
