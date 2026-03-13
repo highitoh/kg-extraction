@@ -12,7 +12,7 @@ from openai import APIConnectionError, RateLimitError, APIError
 from src.utils.logger import Logger
 from src.utils.llm_factory import LLMFactory
 from src.utils.prompt_utils import fill_prompt_template
-from src.utils.llm_retry import call_with_retry
+from src.utils.llm_retry import call_with_retry, ainvoke_with_seed
 
 class PropertyExtractor(Runnable):
     """
@@ -149,7 +149,7 @@ class PropertyExtractor(Runnable):
         msg = HumanMessage(content=[{"type": "text", "text": prompt_text}])
 
         ai = await call_with_retry(
-            lambda: self.llm_json.ainvoke([msg]),
+            lambda: ainvoke_with_seed(self.llm_json, [msg]),
             timeout=90.0,
             label="PropertyExtractor",
         )

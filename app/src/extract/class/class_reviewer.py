@@ -12,7 +12,7 @@ from openai import APIConnectionError, RateLimitError, APIError
 from src.utils.logger import Logger
 from src.utils.llm_factory import LLMFactory
 from src.utils.prompt_utils import fill_prompt_template
-from src.utils.llm_retry import call_with_retry
+from src.utils.llm_retry import call_with_retry, ainvoke_with_seed
 
 
 class ClassReviewer(Runnable):
@@ -212,7 +212,7 @@ class ClassReviewer(Runnable):
         # Execute duplicate detection with LLM (with retry)
         try:
             response = await call_with_retry(
-                lambda: llm_json.ainvoke([HumanMessage(content=prompt)]),
+                lambda: ainvoke_with_seed(llm_json, [HumanMessage(content=prompt)]),
                 timeout=90.0,
                 label="ClassReviewer-Duplicate",
             )
@@ -425,7 +425,7 @@ class ClassReviewer(Runnable):
         try:
             # Execute filtering with LLM (with retry + timeout)
             response = await call_with_retry(
-                lambda: llm_json.ainvoke([HumanMessage(content=prompt)]),
+                lambda: ainvoke_with_seed(llm_json, [HumanMessage(content=prompt)]),
                 timeout=90.0,
                 label="ClassReviewer-Prohibit",
             )

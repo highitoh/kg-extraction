@@ -16,7 +16,7 @@ from openai import APIConnectionError, RateLimitError, APIError
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from utils.llm_factory import LLMFactory
-from utils.llm_retry import call_with_retry
+from utils.llm_retry import call_with_retry, ainvoke_with_seed
 from utils.prompt_utils import fill_prompt_template
 
 
@@ -359,7 +359,7 @@ class StrategyPlanner:
         try:
             # Invoke LLM
             response = await call_with_retry(
-                lambda: self.llm_bound.ainvoke(prompt),
+                lambda: ainvoke_with_seed(self.llm_bound, prompt),
                 timeout=300.0,
                 label="StrategyPlanner",
             )

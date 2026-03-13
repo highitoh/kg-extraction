@@ -17,7 +17,7 @@ from openai import APIConnectionError, RateLimitError, APIError
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from utils.llm_factory import LLMFactory
-from utils.llm_retry import call_with_retry
+from utils.llm_retry import call_with_retry, ainvoke_with_seed
 from utils.prompt_utils import fill_prompt_template
 
 
@@ -503,7 +503,7 @@ Output ONLY the scores using the metrics IDs (S21-S24) as keys."""
             # Invoke LLM with class schema
             print(f"[KnowledgeValidator] Invoking LLM for class validation: {class_iri} ({len(class_group)} instances)")
             response = await call_with_retry(
-                lambda: self.llm_class.ainvoke(prompt),
+                lambda: ainvoke_with_seed(self.llm_class, prompt),
                 timeout=300.0,
                 label="KnowledgeValidator-Class",
             )
@@ -561,7 +561,7 @@ Output ONLY the scores using the metrics IDs (S21-S24) as keys."""
             # Invoke LLM with property schema
             print(f"[KnowledgeValidator] Invoking LLM for property validation: {property_iri} ({len(property_group)} instances)")
             response = await call_with_retry(
-                lambda: self.llm_property.ainvoke(prompt),
+                lambda: ainvoke_with_seed(self.llm_property, prompt),
                 timeout=300.0,
                 label="KnowledgeValidator-Property",
             )

@@ -17,7 +17,7 @@ from openai import APIConnectionError, RateLimitError, APIError
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from utils.llm_factory import LLMFactory
-from utils.llm_retry import call_with_retry
+from utils.llm_retry import call_with_retry, ainvoke_with_seed
 from utils.prompt_utils import fill_prompt_template
 
 
@@ -25,7 +25,7 @@ class ActionPlanner:
     """Generates concrete fix proposals from strategy plans using LLM."""
 
     # Change-volume cap per iteration (fixed).
-    MAX_TARGETS_PER_ITER = 3
+    MAX_TARGETS_PER_ITER = 8
     # Compression constraints for custom prompt proposals.
     MAX_COMPRESSED_PROMPT_BYTES = 2000
     MAX_COMPRESSION_ATTEMPTS = 3
@@ -333,7 +333,7 @@ class ActionPlanner:
             "class_reviewer_custom.txt": "Validation criteria for class extraction decisions",
             "class_consolidator_custom.txt": "Criteria for selecting canonical labels when merging duplicate classes",
             "property_extractor_custom.txt": "Guides which property (relationship) candidates to extract from class pairs",
-            "property_ranker_custom.txt": "Guidelines for evaluating relationship strength (0-3 scale)",
+            "property_ranker_custom.txt": "Guidelines for evaluating relationship strength (0-2 textual explicitness scale)",
             "property_reviewer_custom.txt": "Validation criteria for property extraction decisions",
             "property_consolidator_custom.txt": "Criteria for grouping duplicate/similar properties",
         }
@@ -390,7 +390,7 @@ class ActionPlanner:
         )
 
         response = await call_with_retry(
-            lambda: self.llm_bound.ainvoke(compress_prompt),
+            lambda: ainvoke_with_seed(self.llm_bound, compress_prompt),
             timeout=90.0,
             label="ActionPlanner-Compress",
         )
@@ -548,7 +548,7 @@ class ActionPlanner:
 
                 # Invoke LLM
                 response = await call_with_retry(
-                    lambda: self.llm_bound.ainvoke(prompt),
+                    lambda: ainvoke_with_seed(self.llm_bound, prompt),
                     timeout=90.0,
                     label="ActionPlanner",
                 )

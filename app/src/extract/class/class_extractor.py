@@ -14,7 +14,7 @@ from openai import APIConnectionError, RateLimitError, APIError
 from src.utils.logger import Logger
 from src.utils.llm_factory import LLMFactory
 from src.utils.prompt_utils import fill_prompt_template
-from src.utils.llm_retry import call_with_retry
+from src.utils.llm_retry import call_with_retry, ainvoke_with_seed
 
 VIEW_TYPES = [
     "value_analysis",
@@ -286,7 +286,7 @@ class ClassExtractor(Runnable):
         prompt = f"{prompt}\n\n[Text]\n{texts_csv}\n"
 
         response = await call_with_retry(
-            lambda: self.llm_json.ainvoke([HumanMessage(content=prompt)]),
+            lambda: ainvoke_with_seed(self.llm_json, [HumanMessage(content=prompt)]),
             timeout=90.0,
             label="ClassExtractor",
         )
