@@ -1,36 +1,81 @@
-"""Factory class for creating ChatOpenAI instances with consistent configuration."""
+"""Factory class for creating chat model instances with consistent configuration."""
 
 import os
-from typing import Union
+from typing import Optional
 
+from langchain_core.language_models.chat_models import BaseChatModel
 from langchain_openai import ChatOpenAI, AzureChatOpenAI
+
+DEFAULT_OPENAI_MODEL = "gpt-5-mini"
+_GEMINI_MODEL_PREFIXES = ("gemini", "models/gemini", "google/gemini")
+_GEMINI_API_KEY_ENV_NAMES = ("GEMINI_API_KEY", "GOOGLE_API_KEY")
+_GEMINI_SEED_ENV_NAMES = ("GEMINI_SEED", "GOOGLE_SEED", "LLM_SEED", "OPENAI_SEED")
+_GEMINI_THINKING_LEVELS = {"minimal", "low", "medium", "high"}
 
 
 class LLMFactory:
     """Factory class for creating LLM instances with standardized configuration."""
 
     @staticmethod
+    def _is_gemini_model(model: str) -> bool:
+        normalized_model = (model or "").strip().lower()
+        if not normalized_model:
+            return False
+
+        if normalized_model.startswith(_GEMINI_MODEL_PREFIXES):
+            return True
+
+        if "/" in normalized_model:
+            normalized_model = normalized_model.split("/", 1)[1]
+
+        return normalized_model.startswith("gemini")
+
+    @staticmethod
+    def _get_first_env(*env_names: str) -> Optional[str]:
+        for env_name in env_names:
+            value = os.getenv(env_name)
+            if value:
+                return value
+        return None
+
+    @staticmethod
+    def _get_optional_int_env(*env_names: str) -> Optional[int]:
+        value = LLMFactory._get_first_env(*env_names)
+        if value is None:
+            return None
+
+        try:
+            return int(value)
+        except (TypeError, ValueError):
+            return None
+
+    @staticmethod
     def create_llm(
-        model: str = "gpt-5-mini",
+        model: str = DEFAULT_OPENAI_MODEL,
         temperature: float = 0.0,
         reasoning_effort: str = "low",
         timeout: float = 90.0,
-    ) -> Union[ChatOpenAI, AzureChatOpenAI]:
+    ) -> BaseChatModel:
         """
-        Create a ChatOpenAI or AzureChatOpenAI instance based on environment variables.
+        Create a chat model instance based on the requested model and environment variables.
 
-        Automatically detects whether to use Azure OpenAI or standard OpenAI based on
-        the presence of AZURE_OPENAI_ENDPOINT environment variable.
+        Explicit Gemini model names take precedence. Otherwise Azure OpenAI is selected
+        when AZURE_OPENAI_ENDPOINT is configured, falling back to standard OpenAI.
 
         Args:
-            model: The model name or deployment name to use (default: "gpt-5-mini")
+            model: The model or deployment name to use (default: "gpt-5-mini")
             temperature: The temperature setting for the model (default: 0.0)
             reasoning_effort: The reasoning effort level - "low", "minimal", etc. (default: "low")
+            timeout: The client-side request timeout in seconds (default: 90)
 
         Returns:
-            A configured ChatOpenAI or AzureChatOpenAI instance
+            A configured chat model instance
 
         Environment Variables:
+            For Gemini Developer API:
+                - GEMINI_API_KEY or GOOGLE_API_KEY: Gemini API key
+                - GEMINI_SEED / GOOGLE_SEED / LLM_SEED / OPENAI_SEED: Optional seed
+
             For standard OpenAI:
                 - OPENAI_API_KEY: Your OpenAI API key
 
@@ -43,13 +88,38 @@ class LLMFactory:
                 - timeout: client-side request timeout in seconds (default: 60)
                 - max_retries: SDK-level retries are disabled (0); all retries handled by call_with_retry
         """
+        resolved_model = model or DEFAULT_OPENAI_MODEL
+
+        if LLMFactory._is_gemini_model(resolved_model):
+            from langchain_google_genai import ChatGoogleGenerativeAI
+
+            gemini_kwargs = {
+                "model": resolved_model,
+                "temperature": temperature,
+                "timeout": timeout,
+                "max_retries": 0,  # Disable SDK retries; handled by call_with_retry
+            }
+
+            api_key = LLMFactory._get_first_env(*_GEMINI_API_KEY_ENV_NAMES)
+            if api_key:
+                gemini_kwargs["api_key"] = api_key
+
+            seed = LLMFactory._get_optional_int_env(*_GEMINI_SEED_ENV_NAMES)
+            if seed is not None:
+                gemini_kwargs["seed"] = seed
+
+            if reasoning_effort in _GEMINI_THINKING_LEVELS:
+                gemini_kwargs["thinking_level"] = reasoning_effort
+
+            return ChatGoogleGenerativeAI(**gemini_kwargs)
+
         # Check if Azure OpenAI configuration exists
         azure_endpoint = os.getenv("AZURE_OPENAI_ENDPOINT")
 
         if azure_endpoint:
             # Use Azure OpenAI Service
             return AzureChatOpenAI(
-                azure_deployment=os.getenv("AZURE_OPENAI_DEPLOYMENT", model),
+                azure_deployment=os.getenv("AZURE_OPENAI_DEPLOYMENT", resolved_model),
                 api_version=os.getenv("AZURE_OPENAI_API_VERSION", "2024-10-21"),
                 temperature=temperature,
                 reasoning_effort=reasoning_effort,
@@ -59,7 +129,7 @@ class LLMFactory:
         else:
             # Use standard OpenAI API
             return ChatOpenAI(
-                model=model,
+                model=resolved_model,
                 temperature=temperature,
                 reasoning={"effort": reasoning_effort},
                 output_version="responses/v1",
