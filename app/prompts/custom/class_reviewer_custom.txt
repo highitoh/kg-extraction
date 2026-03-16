@@ -1,26 +1,8 @@
-Class Reviewer Rules (Compressed)
+### Class Validation Rules
 
-Goal
-- Reduce duplicates, mixed-type labels, and over-specific classes.
-
-Core policy
-- One label = one semantic type.
-- If uncertain, mark REVIEW.
-
-Normalization
-- Consolidate trivial variants (plural/singular, punctuation, casing).
-- Prefer concise canonical labels.
-
-Split rules
-- If label mixes role + action, split into:
-  - Business Activity (action)
-  - Stakeholder (role)
-- If label mixes activity + metric, split and keep metric as Indicator.
-
-Indicator check
-- Quantitative wording (rate, %, count, score, threshold, average) in an activity label => REVIEW for Indicator split.
-
-When to REVIEW
-- Ambiguous type assignment.
-- High lexical overlap but different probable types.
-- Multi-concept concatenated labels that cannot be safely auto-split.
+- Business Activity: Must be a specific, repeatable verb-noun process. Reject broad or multi-process descriptions.
+- Business Requirement: Must be a specific, testable need. Classify outcomes as Value.
+- System Requirement: Must mandate a specific capability or constraint. Flag broad goals as Activity or Value.
+- Value: Must be an outcome, benefit, or end-state. Reject functional needs.
+- Analytical Insight: Must be a derived conclusion. Classify raw data as Operational Data.
+- Vision vs. Feature: A Vision is a long-term strategic goal. A Feature is a specific, implementable capability. Reject specific functions as Visions.

@@ -1,41 +1,7 @@
-Property Relationship Strength Rules (0-3)
+Relationship Strength Guidelines (Scale 0-2):
 
-Goal
-- Assign relation strength conservatively and consistently.
-
-Base scale
-- 3: explicit necessity/dependency/implementation.
-- 2: clear support or regular association without strict necessity.
-- 1: optional, speculative, conditional, or weak mention.
-- 0: no meaningful relation.
-
-Primary mapping
-- Set 3 when text has strong obligation/dependency cues with clear linkage:
-  - must, shall, required, necessary, depends on, prerequisite, implemented by, realized by.
-- Set 2 when text has clear but non-mandatory contribution cues:
-  - enables, supports, produces, leads to, helps, improves, interfaces with.
-- Set 1 when text has hedging/optionality/example cues:
-  - may, could, might, optional, possible, e.g., such as, if configured.
-
-Adjustments
-- +1 when a clear subject->object action uses implementation/data verbs:
-  - implement, realize, expose, produce, use, send, receive.
-- -1 when relation is speculative, cross-sentence inference only, or weakly implied.
-- If signals conflict, prefer conservative scoring and mark REVIEW.
-
-Safeguards against over-scoring
-- Do not assign 3 from a single weak cue.
-- Require either:
-  - explicit obligation/dependency phrase, or
-  - at least two independent corroborating cues.
-- If strong cue coexists with heavy hedging, cap at 2 unless necessity is unambiguous.
-
-Relation-specific guards
-- hasBusinessRequirement / hasSystemRequirement:
-  - score 3 only with explicit obligation language.
-- usesDataset / hasDataMiningResult:
-  - score >1 only with explicit dataset/action evidence.
-
-Output rules
-- Clamp score to 0..3.
-- Do not prune candidates here; uncertain cases should be REVIEW.
+- 'participates': 1 (contextual); 2 (active, necessary).
+- 'hasSystemRequirement': 1 (optional); 2 (explicit/current).
+- 'realizedBy': 1 (inferred); 2 (direct implementation).
+- 'realizedByFeature': 2 (default); 3 (primary mechanism).
+- 'exposes': 0 (incidental/indirect); 2 (explicit access/visibility).

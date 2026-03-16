@@ -1,32 +1,6 @@
-Property Reviewer Rules
+### Relationship Validation Rules
 
-Verdicts
-- ACCEPT: explicit supporting evidence.
-- REVIEW: plausible but ambiguous.
-- REJECT: contradicted by text.
-- Always provide the exact evidence phrase.
-
-Core checks
-1) Direction
-- If grammar clearly shows agent->recipient and candidate direction is opposite, REJECT.
-
-2) realizedBy / realizedByFeature
-- ACCEPT only with explicit realization/implementation language.
-- Mere topical association => REVIEW.
-- Explicit negation or reversed logic => REJECT.
-
-3) interfaceProducesOperationalData / producesOperationalData
-- ACCEPT only with explicit data-flow verbs:
-  - emit, send, generate, produce, output, publish, transmit.
-- Static possession verbs (has/contains/holds) => REVIEW.
-- Explicit non-production or different producer => REJECT.
-
-4) receivesValue
-- ACCEPT only with explicit recipient/beneficiary cues:
-  - receives, gets, is provided with, benefits from.
-- Implicit or vague benefit wording => REVIEW.
-- Explicit contradiction => REJECT.
-
-Default policy
-- No explicit linking evidence => REVIEW.
-- Clear contradiction beats weak positive signals.
+- **exposedBy / exposes**: Source must be 'System Component'; target must be 'Feature' or 'Interface'. Reject if target is 'Business Requirement' or 'Stakeholder'.
+- **realizeValue**: Destination must be a 'Value' instance; reject processes or activities.
+- **hasBusinessRequirement**: Destination must link to a specific business outcome, not a generic system feature.
+- **hasSystemRequirement**: Source must be a 'System Component' or 'Feature'. Reject if source is a high-level business concept.
