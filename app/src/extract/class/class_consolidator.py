@@ -11,7 +11,7 @@ from openai import APIConnectionError, RateLimitError, APIError
 from src.utils.logger import Logger
 from src.utils.llm_factory import LLMFactory
 from src.utils.prompt_utils import fill_prompt_template
-from src.utils.llm_retry import call_with_retry, ainvoke_with_seed
+from src.utils.llm_retry import call_with_retry
 
 
 class ClassConsolidator(Runnable):
@@ -223,7 +223,7 @@ class ClassConsolidator(Runnable):
 
         # Execute consolidation with LLM (with retry)
         response = await call_with_retry(
-            lambda: ainvoke_with_seed(llm_json, [HumanMessage(content=prompt)]),
+            lambda: llm_json.ainvoke([HumanMessage(content=prompt)]),
             timeout=90.0,
             label="ClassConsolidator",
         )

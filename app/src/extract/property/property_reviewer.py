@@ -13,7 +13,7 @@ from openai import APIConnectionError, RateLimitError, APIError
 from src.utils.logger import Logger
 from src.utils.llm_factory import LLMFactory
 from src.utils.prompt_utils import fill_prompt_template
-from src.utils.llm_retry import call_with_retry, ainvoke_with_seed
+from src.utils.llm_retry import call_with_retry
 
 
 class PropertyReviewer(Runnable):
@@ -210,7 +210,7 @@ class PropertyReviewer(Runnable):
 
         # Call LLM with retry functionality
         ai = await call_with_retry(
-            lambda: ainvoke_with_seed(self.llm_json, [msg]),
+            lambda: self.llm_json.ainvoke([msg]),
             timeout=90.0,
             label="PropertyReviewer",
         )

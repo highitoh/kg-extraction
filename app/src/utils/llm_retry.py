@@ -4,80 +4,13 @@ import asyncio
 import csv
 import os
 from datetime import datetime
-from typing import Any, Awaitable, Callable, Optional
+from typing import Awaitable, Callable, Optional
 
-from langchain_core.messages import HumanMessage
 from openai import APIConnectionError, RateLimitError, APIError
 
 from src.utils.logger import Logger
 
 _error_logger = Logger(os.path.join("log", "errors"))
-
-
-def resolve_openai_seed(seed: Optional[int] = None) -> Optional[int]:
-    """Resolve seed from explicit argument or OPENAI_SEED env var."""
-    if seed is not None:
-        return seed
-
-    env_seed = os.getenv("OPENAI_SEED")
-    if env_seed is None:
-        return None
-
-    try:
-        return int(env_seed)
-    except (TypeError, ValueError):
-        return None
-
-
-def _message_seed(message: HumanMessage) -> Optional[int]:
-    seed = getattr(message, "seed", None)
-    if seed is not None:
-        return seed
-
-    additional_kwargs = getattr(message, "additional_kwargs", None)
-    if isinstance(additional_kwargs, dict):
-        seed = additional_kwargs.get("seed")
-        if seed is not None:
-            return seed
-
-    return None
-
-
-def _with_seed(message: HumanMessage, seed: int) -> HumanMessage:
-    if _message_seed(message) is not None:
-        return message
-
-    additional_kwargs = dict(getattr(message, "additional_kwargs", {}) or {})
-    additional_kwargs["seed"] = seed
-
-    if hasattr(message, "model_copy"):
-        return message.model_copy(update={"additional_kwargs": additional_kwargs}, deep=True)
-    if hasattr(message, "copy"):
-        return message.copy(update={"additional_kwargs": additional_kwargs}, deep=True)
-
-    return HumanMessage(content=message.content, additional_kwargs=additional_kwargs)
-
-
-async def ainvoke_with_seed(llm: Any, payload: Any, seed: Optional[int] = None):
-    """Invoke llm.ainvoke with optional OPENAI_SEED-based message seeding."""
-    resolved_seed = resolve_openai_seed(seed)
-    if resolved_seed is None:
-        return await llm.ainvoke(payload)
-
-    if isinstance(payload, str):
-        return await llm.ainvoke([HumanMessage(content=payload, seed=resolved_seed)])
-
-    if isinstance(payload, HumanMessage):
-        return await llm.ainvoke([_with_seed(payload, resolved_seed)])
-
-    if isinstance(payload, list):
-        seeded_payload = [
-            _with_seed(message, resolved_seed) if isinstance(message, HumanMessage) else message
-            for message in payload
-        ]
-        return await llm.ainvoke(seeded_payload)
-
-    return await llm.ainvoke(payload)
 
 
 async def call_with_retry(

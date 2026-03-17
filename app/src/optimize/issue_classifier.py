@@ -17,7 +17,7 @@ from openai import APIConnectionError, RateLimitError, APIError
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from utils.llm_factory import LLMFactory
-from utils.llm_retry import call_with_retry, ainvoke_with_seed
+from utils.llm_retry import call_with_retry
 from utils.prompt_utils import fill_prompt_template
 
 
@@ -393,7 +393,7 @@ class IssueClassifier:
             # Invoke LLM with class schema
             print(f"[IssueClassifier] Invoking LLM for class issue classification: {class_iri} ({len(class_group)} instances)")
             response = await call_with_retry(
-                lambda: ainvoke_with_seed(self.llm_class, prompt),
+                lambda: self.llm_class.ainvoke(prompt),
                 timeout=90.0,
                 label="IssueClassifier-Class",
             )
@@ -440,7 +440,7 @@ class IssueClassifier:
             # Invoke LLM with property schema
             print(f"[IssueClassifier] Invoking LLM for property issue classification: {class_iri} ({len(property_group)} instances)")
             response = await call_with_retry(
-                lambda: ainvoke_with_seed(self.llm_property, prompt),
+                lambda: self.llm_property.ainvoke(prompt),
                 timeout=90.0,
                 label="IssueClassifier-Property",
             )
