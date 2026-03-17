@@ -6,7 +6,7 @@ from typing import Optional
 from langchain_core.language_models.chat_models import BaseChatModel
 from langchain_openai import ChatOpenAI, AzureChatOpenAI
 
-DEFAULT_OPENAI_MODEL = "gpt-5-mini"
+DEFAULT_LLM_MODEL = "gemini-3.1-flash-lite-preview"
 _GEMINI_MODEL_PREFIXES = ("gemini", "models/gemini", "google/gemini")
 _GEMINI_API_KEY_ENV_NAMES = ("GEMINI_API_KEY", "GOOGLE_API_KEY")
 _GEMINI_SEED_ENV_NAMES = ("GEMINI_SEED", "GOOGLE_SEED", "LLM_SEED", "OPENAI_SEED")
@@ -51,7 +51,7 @@ class LLMFactory:
 
     @staticmethod
     def create_llm(
-        model: str = DEFAULT_OPENAI_MODEL,
+        model: str = DEFAULT_LLM_MODEL,
         temperature: float = 0.0,
         reasoning_effort: str = "low",
         timeout: float = 90.0,
@@ -63,7 +63,7 @@ class LLMFactory:
         when AZURE_OPENAI_ENDPOINT is configured, falling back to standard OpenAI.
 
         Args:
-            model: The model or deployment name to use (default: "gpt-5-mini")
+            model: The model or deployment name to use (default: "gemini-3.1-flash-lite-preview")
             temperature: The temperature setting for the model (default: 0.0)
             reasoning_effort: The reasoning effort level - "low", "minimal", etc. (default: "low")
             timeout: The client-side request timeout in seconds (default: 90)
@@ -88,7 +88,7 @@ class LLMFactory:
                 - timeout: client-side request timeout in seconds (default: 60)
                 - max_retries: SDK-level retries are disabled (0); all retries handled by call_with_retry
         """
-        resolved_model = model or DEFAULT_OPENAI_MODEL
+        resolved_model = model or DEFAULT_LLM_MODEL
 
         if LLMFactory._is_gemini_model(resolved_model):
             from langchain_google_genai import ChatGoogleGenerativeAI

@@ -25,7 +25,7 @@ class PropertyRanker(Runnable):
     def __init__(
         self,
         llm: ChatOpenAI | None = None,
-        model: str = "gpt-5-mini",
+        model: str = "gemini-3.1-flash-lite-preview",
         temperature: float = 0.0,
         max_concurrency: int = 8,
         progress: bool = True,

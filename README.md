@@ -216,7 +216,7 @@ python src/extract_workflow.py [PDF_PATH] [OPTIONS]
 ### Options
 
 - `--project PROJECT` - Project name for organizing output files (default: `default`)
-- `--model MODEL` - LLM model name (e.g., `gpt-5-mini`, `gpt-5-nano`)
+- `--model MODEL` - LLM model name (e.g., `gemini-3.1-flash-lite-preview`, `gpt-5-nano`)
 - `--output-dir DIR` - Output directory path (default: `/workspace/app/output`)
 
 ### Examples
@@ -247,4 +247,3 @@ python src/extract_workflow.py ../doc/sample.pdf --project test --model gpt-5-na
 ## License
 
 MIT License
-

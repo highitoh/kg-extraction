@@ -25,7 +25,7 @@ class StrategyPlanner:
 
     def __init__(
         self,
-        model: str = "gpt-5-mini",
+        model: str = "gemini-3.1-flash-lite-preview",
         progress: bool = True,
         verbose: bool = False,
         issue_statistics: Optional[List[Dict[str, Any]]] = None,
@@ -470,8 +470,8 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Strategy Planner - Creates improvement plans by analyzing categorized issues")
     parser.add_argument(
         "--model",
-        default="gpt-5-mini",
-        help="LLM model name (default: gpt-5-mini)"
+        default="gemini-3.1-flash-lite-preview",
+        help="LLM model name (default: gemini-3.1-flash-lite-preview)"
     )
     parser.add_argument(
         "--no-progress",

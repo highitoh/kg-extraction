@@ -29,7 +29,7 @@ class KnowledgeValidator:
     def __init__(
         self,
         project: str = "default",
-        model: str = "gpt-5-mini",
+        model: str = "gemini-3.1-flash-lite-preview",
         temperature: float = 0.0,
         output_base_dir: str = "/workspace/app/output",
         verbose: bool = False,
@@ -731,8 +731,8 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         "--model",
-        default="gpt-5-mini",
-        help="LLM model name (default: gpt-5-mini)"
+        default="gemini-3.1-flash-lite-preview",
+        help="LLM model name (default: gemini-3.1-flash-lite-preview)"
     )
     parser.add_argument(
         "--verbose",

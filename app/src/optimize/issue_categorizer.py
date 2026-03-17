@@ -25,7 +25,7 @@ class IssueCategorizer:
 
     def __init__(
         self,
-        model: str = "gpt-5-mini",
+        model: str = "gemini-3.1-flash-lite-preview",
         temperature: float = 0.3,
         output_base_dir: str = "/workspace/app/output/optimize",
         progress: bool = True,
@@ -326,8 +326,8 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Issue Categorizer - Categorizes similar issue labels into canonical categories")
     parser.add_argument(
         "--model",
-        default="gpt-5-mini",
-        help="LLM model name (default: gpt-5-mini)"
+        default="gemini-3.1-flash-lite-preview",
+        help="LLM model name (default: gemini-3.1-flash-lite-preview)"
     )
 
     args = parser.parse_args()

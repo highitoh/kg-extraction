@@ -24,7 +24,7 @@ class KnowledgeExtractionState(TypedDict, total=False):
     metamodel: Dict[str, Any]  # Metamodel definition (referenced by all nodes)
 
     # ========== LLM Model Settings ==========
-    model: Optional[str]  # LLM model name (e.g., "gpt-5-mini", "gpt-5-nano")
+    model: Optional[str]  # LLM model name (e.g., "gemini-3.1-flash-lite-preview", "gpt-5-nano")
 
     # ========== Output Destination Settings ==========
     output_dir: str  # Output directory

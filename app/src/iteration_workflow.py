@@ -36,7 +36,7 @@ class IterationWorkflow:
         batch_files: List[str],
         max_iterations: int = 5,
         quality_threshold: float = 2.0,
-        model: str = "gpt-5-mini",
+        model: str = "gemini-3.1-flash-lite-preview",
         apply_changes: bool = True,
         output_dir: str = "/workspace/app/output"
     ):
@@ -570,7 +570,7 @@ class IterationWorkflow:
             batch_files=state.get("batch_files", []),
             max_iterations=config.get("max_iterations", 5),
             quality_threshold=config.get("quality_threshold", 2.0),
-            model=config.get("model", "gpt-5-mini"),
+            model=config.get("model", "gemini-3.1-flash-lite-preview"),
             apply_changes=config.get("apply_changes", True),
             output_dir=output_dir
         )
@@ -615,8 +615,8 @@ def main():
     parser.add_argument(
         "--model",
         type=str,
-        default="gpt-5-mini",
-        help="LLM model name (default: gpt-5-mini)"
+        default="gemini-3.1-flash-lite-preview",
+        help="LLM model name (default: gemini-3.1-flash-lite-preview)"
     )
     parser.add_argument(
         "--no-apply",

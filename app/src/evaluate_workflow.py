@@ -22,7 +22,7 @@ from src.evaluate.knowledge_validator import KnowledgeValidator
 from src.evaluate.reward_calculator import RewardCalculator
 
 
-def run_evaluation(project: str = "default", model: str = "gpt-5-mini", verbose: bool = False) -> Dict[str, Any]:
+def run_evaluation(project: str = "default", model: str = "gemini-3.1-flash-lite-preview", verbose: bool = False) -> Dict[str, Any]:
     """
     Execute knowledge quality evaluation
 
@@ -114,8 +114,8 @@ if __name__ == "__main__":
     parser.add_argument(
         "--model",
         type=str,
-        default="gpt-5-mini",
-        help="LLM model for validation (default: gpt-5-mini)"
+        default="gemini-3.1-flash-lite-preview",
+        help="LLM model for validation (default: gemini-3.1-flash-lite-preview)"
     )
     parser.add_argument(
         "--verbose",

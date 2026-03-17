@@ -22,7 +22,7 @@ class ClassReviewer(Runnable):
 
     def __init__(self,
                  llm: Any = None,
-                 model: str = "gpt-5-mini",
+                 model: str = "gemini-3.1-flash-lite-preview",
                  temperature: float = 0.0,
                  progress: bool = True,
                  max_concurrency: int = 8,
