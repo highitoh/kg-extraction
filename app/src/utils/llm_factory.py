@@ -7,9 +7,6 @@ from langchain_core.language_models.chat_models import BaseChatModel
 from langchain_openai import ChatOpenAI, AzureChatOpenAI
 
 DEFAULT_LLM_MODEL = "gemini-3.1-flash-lite-preview"
-_GEMINI_MODEL_PREFIXES = ("gemini", "models/gemini", "google/gemini")
-_GEMINI_API_KEY_ENV_NAMES = ("GEMINI_API_KEY", "GOOGLE_API_KEY")
-_GEMINI_SEED_ENV_NAMES = ("GEMINI_SEED", "GOOGLE_SEED", "LLM_SEED", "OPENAI_SEED")
 _GEMINI_THINKING_LEVELS = {"minimal", "low", "medium", "high"}
 
 
@@ -22,25 +19,11 @@ class LLMFactory:
         if not normalized_model:
             return False
 
-        if normalized_model.startswith(_GEMINI_MODEL_PREFIXES):
-            return True
-
-        if "/" in normalized_model:
-            normalized_model = normalized_model.split("/", 1)[1]
-
         return normalized_model.startswith("gemini")
 
     @staticmethod
-    def _get_first_env(*env_names: str) -> Optional[str]:
-        for env_name in env_names:
-            value = os.getenv(env_name)
-            if value:
-                return value
-        return None
-
-    @staticmethod
-    def _get_optional_int_env(*env_names: str) -> Optional[int]:
-        value = LLMFactory._get_first_env(*env_names)
+    def _get_optional_int_env(env_name: str) -> Optional[int]:
+        value = os.getenv(env_name)
         if value is None:
             return None
 
@@ -73,8 +56,8 @@ class LLMFactory:
 
         Environment Variables:
             For Gemini Developer API:
-                - GEMINI_API_KEY or GOOGLE_API_KEY: Gemini API key
-                - GEMINI_SEED / GOOGLE_SEED / LLM_SEED / OPENAI_SEED: Optional seed
+                - GEMINI_API_KEY: Gemini API key
+                - LLM_SEED: Optional seed
 
             For standard OpenAI:
                 - OPENAI_API_KEY: Your OpenAI API key
@@ -100,11 +83,11 @@ class LLMFactory:
                 "max_retries": 0,  # Disable SDK retries; handled by call_with_retry
             }
 
-            api_key = LLMFactory._get_first_env(*_GEMINI_API_KEY_ENV_NAMES)
+            api_key = os.getenv("GEMINI_API_KEY")
             if api_key:
                 gemini_kwargs["api_key"] = api_key
 
-            seed = LLMFactory._get_optional_int_env(*_GEMINI_SEED_ENV_NAMES)
+            seed = LLMFactory._get_optional_int_env("LLM_SEED")
             if seed is not None:
                 gemini_kwargs["seed"] = seed
 
