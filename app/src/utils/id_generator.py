@@ -2,6 +2,18 @@
 import hashlib
 
 
+def generate_file_id(file_path: str) -> str:
+    """
+    Generate a deterministic, stable ID for a file based on its contents.
+    Returns a 32-character lowercase hex string (16 bytes, SHA-256 truncated).
+    """
+    hasher = hashlib.sha256()
+    with open(file_path, "rb") as f:
+        for chunk in iter(lambda: f.read(1024 * 1024), b""):
+            hasher.update(chunk)
+    return hasher.hexdigest()[:32]
+
+
 def generate_class_id(class_iri: str, label: str, source: str) -> str:
     """
     Generate a deterministic, stable ID for a class instance.
