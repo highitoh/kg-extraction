@@ -13,6 +13,7 @@ from src.utils.logger import Logger
 from src.utils.llm_factory import LLMFactory
 from src.utils.prompt_utils import fill_prompt_template
 from src.utils.llm_retry import call_with_retry
+from src.utils.id_generator import generate_property_id
 
 class PropertyExtractor(Runnable):
     """
@@ -303,7 +304,7 @@ class PropertyExtractor(Runnable):
         properties = []
         properties_with_labels = []
         for prop in extracted_properties:
-            prop_id = str(uuid.uuid4())
+            prop_id = generate_property_id(prop["src_id"], prop["property_iri"], prop["dest_id"])
 
             # Schema-compliant property information
             property_item = {
