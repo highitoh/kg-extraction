@@ -1,13 +1,12 @@
 from typing import Any, Dict
 import os
-import uuid
 
-from langchain_core.runnables import Runnable
 from langchain_core.runnables.config import RunnableConfig
 import pdfplumber
-from src.utils.logger import Logger
+from .text_extractor import TextExtractor
 
-class PresentationTextExtractor(Runnable):
+
+class PresentationTextExtractor(TextExtractor):
     """Task to extract text from presentation files slide by slide
 
     Adds "Slide {number}:" prefix to the beginning of each slide's text.
@@ -15,7 +14,7 @@ class PresentationTextExtractor(Runnable):
     """
 
     def __init__(self):
-        self.logger = Logger("/workspace/app/log/presentation_text_extractor")
+        super().__init__("/workspace/app/log/presentation_text_extractor")
 
     def _extract_text_by_slide(self, pdf_path: str) -> list[tuple[int, str]]:
         """
@@ -60,11 +59,7 @@ class PresentationTextExtractor(Runnable):
                         "text": f"[[Slide{slide_num}]] {line_text.strip()}"
                     })
 
-        output = {
-            "id": str(uuid.uuid4()),
-            "file_name": os.path.basename(file_path),
-            "sentences": sentences
-        }
+        output = self.build_output(file_path, sentences)
 
         # Save output JSON to log
         self.logger.save_log(output, "presentation_text_extractor_output_")
