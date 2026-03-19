@@ -33,7 +33,7 @@ class ActionPlanner:
     def __init__(
         self,
         model: str = "gemini-3.1-flash-lite-preview",
-        temperature: float = 0.3,
+        temperature: float = 0.0,
         max_concurrency: int = 8,
         progress: bool = True,
     ):
@@ -731,8 +731,8 @@ if __name__ == "__main__":
     parser.add_argument(
         "--temperature",
         type=float,
-        default=0.3,
-        help="LLM temperature (default: 0.3)"
+        default=0.0,
+        help="LLM temperature (default: 0.0)"
     )
     parser.add_argument(
         "--max-concurrency",

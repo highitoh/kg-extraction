@@ -27,7 +27,7 @@ class IssueClassifier:
     def __init__(
         self,
         model: str = "gemini-3.1-flash-lite-preview",
-        temperature: float = 0.5,
+        temperature: float = 0.0,
         output_base_dir: str = "/workspace/app/output/optimize",
         progress: bool = True,
     ):
@@ -36,7 +36,7 @@ class IssueClassifier:
 
         Args:
             model: LLM model name
-            temperature: LLM temperature setting (higher for creative label generation)
+            temperature: LLM temperature setting
             output_base_dir: Base directory for optimize outputs
             progress: Whether to show progress messages
         """

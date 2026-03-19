@@ -72,7 +72,7 @@ class StrategyPlanner:
         # Create LLM instance with high reasoning effort for strategic planning
         self.llm = LLMFactory.create_llm(
             model=model,
-            temperature=0.3,
+            temperature=0.0,
             timeout=300.0,
             reasoning_effort="low"
         )

@@ -26,7 +26,7 @@ class IssueCategorizer:
     def __init__(
         self,
         model: str = "gemini-3.1-flash-lite-preview",
-        temperature: float = 0.3,
+        temperature: float = 0.0,
         output_base_dir: str = "/workspace/app/output/optimize",
         progress: bool = True,
     ):
@@ -35,7 +35,7 @@ class IssueCategorizer:
 
         Args:
             model: LLM model name
-            temperature: LLM temperature setting (lower for consistent categorization)
+            temperature: LLM temperature setting
             output_base_dir: Base directory for optimize outputs
             progress: Whether to show progress messages
         """
