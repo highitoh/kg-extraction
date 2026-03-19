@@ -301,9 +301,7 @@ class PropertyChainWithReview(Runnable):
             review_only = [p for p in result.get("properties", []) if p.get("judgment") == "REVIEW"]
 
             if not review_only:
-                # All became ACCEPT or REJECT after editing
-                new_accept = [p for p in result.get("properties", []) if p.get("judgment") == "ACCEPT"]
-                accepted_properties.extend(new_accept)
+                # All remaining properties have already been accounted for in accepted_properties.
                 result["properties"] = []
                 if self.progress:
                     print("No REVIEW properties remaining after editing")
