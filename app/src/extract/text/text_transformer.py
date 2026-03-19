@@ -14,7 +14,6 @@ Features:
 
 from typing import Any, Dict, List, Iterable
 import re
-import uuid
 
 from langchain_core.runnables import Runnable
 from langchain_core.runnables.config import RunnableConfig
@@ -147,7 +146,7 @@ class TextTransformer(Runnable):
 
         # Build output data
         output_data = {
-            "id": input_data.get("id", str(uuid.uuid4())),
+            "file_id": input_data.get("file_id", ""),
             "file_name": input_data.get("file_name", ""),
             "sentences": new_sentences
         }
@@ -177,7 +176,7 @@ class TextTransformer(Runnable):
 if __name__ == "__main__":
     # Sample data for testing
     sample_data = {
-        "id": "test-001",
+        "file_id": "file-001",
         "file_name": "sample.pdf",
         "sentences": [
             {"text": "This is a line that was"},

@@ -310,10 +310,7 @@ class PropertyRanker(Runnable):
 
         if not properties:
             # If no properties, return as is
-            output = {
-                "id": property_candidates.get("id", str(uuid.uuid4())),
-                "properties": []
-            }
+            output = {"properties": []}
             self.logger.save_log(output, filename_prefix="property_ranker_output_")
             return output
 
@@ -334,7 +331,7 @@ class PropertyRanker(Runnable):
 
             # Create property with updated strength and ranker_justification
             ranked_prop = {
-                "id": prop.get("id", str(uuid.uuid4())),
+                "id": prop.get("id") or str(uuid.uuid4()),
                 "src_id": prop.get("src_id", ""),
                 "property_iri": prop.get("property_iri", ""),
                 "dest_id": prop.get("dest_id", ""),
@@ -359,10 +356,7 @@ class PropertyRanker(Runnable):
                 "justification": ranking_result.get("justification", "")
             })
 
-        output = {
-            "id": property_candidates.get("id", str(uuid.uuid4())),
-            "properties": ranked_properties
-        }
+        output = {"properties": ranked_properties}
 
         if self.progress:
             # Display strength distribution
@@ -373,10 +367,7 @@ class PropertyRanker(Runnable):
             print(f"[PropertyRanker] Strength distribution: 0={strength_counts[0]}, 1={strength_counts[1]}, 2={strength_counts[2]}")
 
         # Log output (with label information and evaluation information)
-        log_output = {
-            "id": output["id"],
-            "properties": ranked_properties_with_labels
-        }
+        log_output = {"properties": ranked_properties_with_labels}
         self.logger.save_log(log_output, filename_prefix="property_ranker_output_")
 
         return output

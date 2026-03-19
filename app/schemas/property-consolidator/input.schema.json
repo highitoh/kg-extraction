@@ -5,10 +5,6 @@
   "type": "object",
   "description": "Input schema for PropertyConsolidator",
   "properties": {
-    "id": {
-      "type": "string",
-      "description": "Extraction ID"
-    },
     "properties": {
       "type": "array",
       "description": "Newly extracted property list",
@@ -43,7 +39,6 @@
       "type": "object",
       "description": "Class information (for ID normalization)",
       "properties": {
-        "id": {"type": "string"},
         "classes": {
           "type": "array",
           "items": {"type": "object"}
@@ -51,6 +46,6 @@
       }
     }
   },
-  "required": ["id", "properties", "class_info"],
+  "required": ["properties", "class_info"],
   "additionalProperties": true
 }

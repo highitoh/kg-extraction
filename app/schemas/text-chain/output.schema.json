@@ -5,9 +5,9 @@
   "type": "object",
   "description": "Output information for TextChain",
   "properties": {
-    "id": {
+    "file_id": {
       "type": "string",
-      "description": "Extraction ID (UUID)"
+      "description": "Stable file ID"
     },
     "file_name": {
       "type": "string",
@@ -30,6 +30,6 @@
       }
     }
   },
-  "required": ["id", "file_name", "sentences"],
+  "required": ["file_id", "file_name", "sentences"],
   "additionalProperties": false
 }

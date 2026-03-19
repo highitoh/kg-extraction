@@ -91,7 +91,6 @@ class ClassConsolidator(Runnable):
         Parameters
         ----------
         input: ClassConsolidatorInput (= ClassChainOutput)
-          - id: Extraction ID
           - classes: List of class instances
 
         Returns

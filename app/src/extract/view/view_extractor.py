@@ -267,10 +267,7 @@ class ViewExtractor(Runnable):
                     "texts": texts,
                 })
 
-        output: Dict[str, Any] = {
-            "id": str(uuid.uuid4()),
-            "views": views,
-        }
+        output: Dict[str, Any] = {"views": views}
 
         # Log ViewChainOutput using Logger
         self.logger.save_log(output, filename_prefix="view_extractor_output_")
@@ -282,7 +279,6 @@ if __name__ == "__main__":
     # Sample data for testing
     sample_input = {
         "target": {
-            "id": "test_001",
             "file_id": "sample_file",
             "chunks": [
                 {
@@ -315,7 +311,6 @@ if __name__ == "__main__":
         result = extractor.invoke(sample_input)
 
         print("\n=== Test Results ===")
-        print(f"Output ID: {result['id']}")
         print(f"Extracted Views: {len(result['views'])}")
 
         for view in result['views']:

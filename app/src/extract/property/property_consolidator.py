@@ -2,7 +2,6 @@ from typing import Dict, Any, List, Union
 import asyncio
 import json
 import os
-import uuid
 
 from langchain_core.runnables import Runnable
 from langchain_core.messages import HumanMessage
@@ -129,7 +128,6 @@ class PropertyConsolidator(Runnable):
         Parameters
         ----------
         input: PropertyConsolidatorInput
-          - id: Extraction ID
           - properties: List of newly extracted properties
           - existing_properties: List of existing properties (optional)
           - class_info: Class information (for ID normalization)
@@ -137,7 +135,6 @@ class PropertyConsolidator(Runnable):
         Returns
         -------
         output: PropertyConsolidatorOutput (= PropertyExtractor output format)
-          - id: Extraction ID
           - properties: List of consolidated properties
         """
         new_properties = input.get("properties", [])
@@ -151,10 +148,7 @@ class PropertyConsolidator(Runnable):
         if not existing_properties:
             if self.progress:
                 print("[PropertyConsolidator] No existing properties to merge")
-            return {
-                "id": input.get("id", str(uuid.uuid4())),
-                "properties": new_properties
-            }
+            return {"properties": new_properties}
 
         # Build class ID mapping
         class_id_mapping = self._build_class_id_mapping(class_info)
@@ -201,10 +195,7 @@ class PropertyConsolidator(Runnable):
         )
 
         # Build output
-        output = {
-            "id": input.get("id", str(uuid.uuid4())),
-            "properties": all_consolidated_properties
-        }
+        output = {"properties": all_consolidated_properties}
 
         if self.progress:
             print(f"[PropertyConsolidator] Completed: {len(all_properties)} -> {len(all_consolidated_properties)} properties")

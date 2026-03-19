@@ -4,7 +4,6 @@ from typing import Dict, Any, List, Optional
 import asyncio
 import json
 import os
-import uuid
 
 from langchain_openai import ChatOpenAI
 from langchain_core.messages import HumanMessage
@@ -145,7 +144,6 @@ class ClassExtractor(Runnable):
 
         # ---- Output (conforms to ClassChainOutput) -----------------------------------------
         output: Dict[str, Any] = {
-            "id": str(uuid.uuid4()),
             "classes": [c.to_dict() for c in classes],  # Schema: meets minItems=1 after implementation
         }
 

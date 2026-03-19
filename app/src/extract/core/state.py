@@ -31,8 +31,7 @@ class KnowledgeExtractionState(TypedDict, total=False):
     project: str  # Project name (output files classified by project)
 
     # ========== Intermediate Results: Text Extraction Stage ==========
-    id: str  # Extraction ID (used as file ID)
-    file_id: str  # File ID
+    file_id: str  # Stable file ID
     file_name: str  # File name
     sentences: List[Dict[str, Any]]  # List of extracted sentences
     # sentence: {"text": str, ...}

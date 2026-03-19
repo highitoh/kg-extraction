@@ -3,7 +3,6 @@ import asyncio
 import glob
 import json
 import os
-import uuid
 
 from langchain_core.runnables import Runnable
 from langchain_core.messages import HumanMessage
@@ -392,11 +391,10 @@ class PropertyReviewer(Runnable):
         """
         Input:
           - Recommended: {"property_candidates": {...}, "class_info": {...}}
-          - Compatible: {"properties":[...], "id":"...", "class_info": {...}}
+          - Compatible: {"properties":[...], "class_info": {...}}
         """
         # Flexibly interpret input
         property_candidates = input.get("property_candidates") or {
-            "id": input.get("id"),
             "properties": input.get("properties", []),
         }
         class_info = input.get("class_info") or {}
@@ -415,7 +413,6 @@ class PropertyReviewer(Runnable):
             )
 
         # For output (include judgment/justification for loop with PropertyEditor)
-        output_id = str(uuid.uuid4())
         properties = [
             {
                 "id": p["id"],
@@ -430,10 +427,7 @@ class PropertyReviewer(Runnable):
             }
             for p in filtered
         ]
-        output: Dict[str, Any] = {
-            "id": output_id,
-            "properties": properties,
-        }
+        output: Dict[str, Any] = {"properties": properties}
         return output
 
 

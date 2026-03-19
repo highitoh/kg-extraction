@@ -5,10 +5,6 @@
   "type": "object",
   "description": "Output information for class extraction",
   "properties": {
-    "id": {
-      "type": "string",
-      "description": "Extraction ID"
-    },
     "classes": {
       "type": "array",
       "description": "Extracted class instance information",
@@ -51,6 +47,6 @@
       }
     }
   },
-  "required": ["id", "classes"],
+  "required": ["classes"],
   "additionalProperties": false
 }

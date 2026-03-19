@@ -53,7 +53,6 @@ if __name__ == "__main__":
     chain = create_view_chain()
     sample_input = {
         "target": {
-            "id": "pdf-text-id-001",
             "file_id": "file-abc",
             "file_name": "sample.pdf",
             "chunks": [

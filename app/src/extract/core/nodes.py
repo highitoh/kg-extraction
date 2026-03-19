@@ -65,7 +65,7 @@ def classify_file_type_node(state: KnowledgeExtractionState) -> KnowledgeExtract
 def extract_text_document_node(state: KnowledgeExtractionState) -> KnowledgeExtractionState:
     """
     Node that extracts text from documents
-    file_path -> sentences, id, file_id, file_name
+    file_path -> sentences, file_id, file_name
     """
     try:
         doc_chain = DocTextChain(model=state.get("model"))
@@ -79,8 +79,7 @@ def extract_text_document_node(state: KnowledgeExtractionState) -> KnowledgeExtr
 
         # Store results in State
         state["sentences"] = result["sentences"]
-        state["id"] = result["id"]
-        state["file_id"] = result.get("file_id", result["id"])
+        state["file_id"] = result["file_id"]
         state["file_name"] = result["file_name"]
         state["current_stage"] = "text_extracted_document"
 
@@ -96,7 +95,7 @@ def extract_text_document_node(state: KnowledgeExtractionState) -> KnowledgeExtr
 def extract_text_presentation_node(state: KnowledgeExtractionState) -> KnowledgeExtractionState:
     """
     Node that extracts text from presentations
-    file_path -> sentences, id, file_id, file_name
+    file_path -> sentences, file_id, file_name
     """
     try:
         presentation_chain = PresentationTextChain(model=state.get("model"))
@@ -110,8 +109,7 @@ def extract_text_presentation_node(state: KnowledgeExtractionState) -> Knowledge
 
         # Store results in State
         state["sentences"] = result["sentences"]
-        state["id"] = result["id"]
-        state["file_id"] = result.get("file_id", result["id"])
+        state["file_id"] = result["file_id"]
         state["file_name"] = result["file_name"]
         state["current_stage"] = "text_extracted_presentation"
 
@@ -163,7 +161,6 @@ def extract_views_node(state: KnowledgeExtractionState) -> KnowledgeExtractionSt
         # Match ViewChain input format
         input_data = {
             "target": {
-                "id": state["id"],
                 "file_id": state["file_id"],
                 "file_name": state["file_name"],
                 "chunks": state["chunks"]
@@ -230,7 +227,6 @@ def extract_classes_node(state: KnowledgeExtractionState) -> KnowledgeExtraction
         # Pass existing classes as well
         input_data = {
             "view_info": {
-                "id": state["id"],
                 "views": state["views"]
             },
             "metamodel": state["metamodel"],
@@ -298,7 +294,6 @@ def extract_properties_node(state: KnowledgeExtractionState) -> KnowledgeExtract
         # Match PropertyChain input format
         input_data = {
             "class_info": {
-                "id": state["id"],
                 "classes": state["classes"]
             },
             "metamodel": state["metamodel"]
@@ -344,7 +339,7 @@ def save_accumulated_knowledge_node(state: KnowledgeExtractionState) -> Knowledg
         )
 
         # Load existing knowledge.json if it exists
-        existing_knowledge = {"id": state.get("id", ""), "classes": [], "properties": []}
+        existing_knowledge = {"classes": [], "properties": []}
         if os.path.exists(knowledge_path):
             try:
                 with open(knowledge_path, "r", encoding="utf-8") as f:
@@ -419,7 +414,6 @@ def save_accumulated_knowledge_node(state: KnowledgeExtractionState) -> Knowledg
 
         # Save to knowledge.json
         accumulated_knowledge = {
-            "id": state.get("id", ""),
             "classes": merged_classes,
             "properties": merged_properties
         }
@@ -474,11 +468,9 @@ def generate_outputs_node(state: KnowledgeExtractionState) -> KnowledgeExtractio
         turtle_generator = TurtleGenerator(output_dir=project_output_dir)
         turtle_input = {
             "class_info": {
-                "id": state["id"],
                 "classes": accumulated_classes
             },
             "property_info": {
-                "id": state["id"],
                 "properties": accumulated_properties
             }
         }

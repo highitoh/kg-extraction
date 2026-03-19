@@ -1,7 +1,6 @@
 from typing import Dict, Any, List
 import json
 import os
-import uuid
 
 from langchain_core.runnables import Runnable
 
@@ -96,11 +95,10 @@ class PropertyValidator(Runnable):
         """
         Input:
           - Recommended: {"property_candidates": {...}, "class_info": {...}, "metamodel": {...}}
-          - Compatible: {"properties":[...], "id":"...", "class_info": {...}, "metamodel": {...}}
+          - Compatible: {"properties":[...], "class_info": {...}, "metamodel": {...}}
         """
         # Flexibly interpret input
         property_candidates = input.get("property_candidates") or {
-            "id": input.get("id"),
             "properties": input.get("properties", []),
         }
         class_info = input.get("class_info") or {}
@@ -113,20 +111,14 @@ class PropertyValidator(Runnable):
             # Skip if class_info is missing
             if self.progress:
                 print("PropertyValidator: class_info missing -> pass-through")
-            output = {
-                "id": str(uuid.uuid4()),
-                "properties": properties,
-            }
+            output = {"properties": properties}
             return output
 
         if not metamodel:
             # Skip if metamodel is missing
             if self.progress:
                 print("PropertyValidator: metamodel missing -> pass-through")
-            output = {
-                "id": str(uuid.uuid4()),
-                "properties": properties,
-            }
+            output = {"properties": properties}
             return output
 
         # Build indexes
@@ -149,10 +141,7 @@ class PropertyValidator(Runnable):
                 })
 
         # Build output
-        output: Dict[str, Any] = {
-            "id": str(uuid.uuid4()),
-            "properties": valid_properties,
-        }
+        output: Dict[str, Any] = {"properties": valid_properties}
 
         if self.progress:
             print(

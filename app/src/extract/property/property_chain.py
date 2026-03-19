@@ -20,12 +20,11 @@ class ExtractorToRankerAdapter(Runnable):
 
     def invoke(self, input: Dict[str, Any], config=None) -> Dict[str, Any]:
         """
-        Input: PropertyExtractor output {id, properties}
+        Input: PropertyExtractor output {properties}
         Output: PropertyRanker input {property_candidates: {...}, class_info: {...}}
         """
         return {
             "property_candidates": {
-                "id": input.get("id"),
                 "properties": input.get("properties", [])
             },
             "class_info": self.original_input.get("class_info", {})
@@ -43,12 +42,11 @@ class RankerToFilterAdapter(Runnable):
 
     def invoke(self, input: Dict[str, Any], config=None) -> Dict[str, Any]:
         """
-        Input: PropertyRanker output {id, properties}
+        Input: PropertyRanker output {properties}
         Output: PropertyReviewer input {property_candidates: {...}, class_info: {...}}
         """
         return {
             "property_candidates": {
-                "id": input.get("id"),
                 "properties": input.get("properties", [])
             },
             "class_info": self.original_input.get("class_info", {})
@@ -66,11 +64,10 @@ class FilterToEditorAdapter(Runnable):
 
     def invoke(self, input: Dict[str, Any], config=None) -> Dict[str, Any]:
         """
-        Input: PropertyReviewer output {id, properties}
-        Output: PropertyEditor input {id, properties, class_info}
+        Input: PropertyReviewer output {properties}
+        Output: PropertyEditor input {properties, class_info}
         """
         return {
-            "id": input.get("id"),
             "properties": input.get("properties", []),
             "class_info": self.original_input.get("class_info", {})
         }
@@ -86,12 +83,11 @@ class EditorToFilterAdapter(Runnable):
 
     def invoke(self, input: Dict[str, Any], config=None) -> Dict[str, Any]:
         """
-        Input: PropertyEditor output {id, properties}
+        Input: PropertyEditor output {properties}
         Output: PropertyReviewer input {property_candidates: {...}, class_info: {...}}
         """
         return {
             "property_candidates": {
-                "id": input.get("id"),
                 "properties": input.get("properties", [])
             },
             "class_info": self.original_input.get("class_info", {})
@@ -216,7 +212,6 @@ class PropertyChainWithReview(Runnable):
         Returns
         -------
         output: PropertyValidatorOutput
-          - id: Extraction ID
           - properties: Validated property list
         """
         # 1. Execute PropertyExtractor
@@ -228,7 +223,6 @@ class PropertyChainWithReview(Runnable):
         if self.progress:
             print("\n=== PropertyConsolidator ===")
         consolidator_input = {
-            "id": result.get("id"),
             "properties": result.get("properties", []),
             "existing_properties": self.existing_properties,
             "class_info": self.original_input.get("class_info", {})
@@ -257,7 +251,7 @@ class PropertyChainWithReview(Runnable):
 
         reviewed_properties = []
         if review_targets:
-            filter_input = adapter2.invoke({"id": result.get("id"), "properties": review_targets})
+            filter_input = adapter2.invoke({"properties": review_targets})
             reviewed_result = self.property_reviewer.invoke(filter_input)
             reviewed_properties = reviewed_result.get("properties", [])
 
@@ -320,7 +314,7 @@ class PropertyChainWithReview(Runnable):
                 print(f"\n--- PropertyReviewer (iteration {iteration + 1}) ---")
                 print(f"Re-reviewing {len(review_only)} REVIEW properties (skipping {len(accepted_properties)} already accepted)")
             adapter_loop = EditorToFilterAdapter(self.original_input)
-            filter_input = adapter_loop.invoke({"id": result.get("id"), "properties": review_only})
+            filter_input = adapter_loop.invoke({"properties": review_only})
             result = self.property_reviewer.invoke(filter_input)
 
         # Merge accumulated ACCEPT properties with final result
@@ -349,7 +343,6 @@ class PropertyChainWithReview(Runnable):
             print("\n=== PropertyValidator ===")
         validator_input = {
             "property_candidates": {
-                "id": result.get("id"),
                 "properties": result.get("properties", [])
             },
             "class_info": self.original_input.get("class_info", {}),
@@ -454,7 +447,6 @@ if __name__ == "__main__":
     chain = create_property_chain()
     sample_input = {
         "class_info": {
-            "id": "class-chain-001",
             "classes": [
                 {
                     "id": "class-001",

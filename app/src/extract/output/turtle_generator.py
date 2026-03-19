@@ -228,7 +228,6 @@ if __name__ == "__main__":
     # Sample data for testing
     sample_input = {
         "class_info": {
-            "id": "test-extraction-001",
             "classes": [
                 {
                     "id": "cls-001",
@@ -251,7 +250,6 @@ if __name__ == "__main__":
             ]
         },
         "property_info": {
-            "id": "test-property-001",
             "properties": [
                 {
                     "id": "prop-001",

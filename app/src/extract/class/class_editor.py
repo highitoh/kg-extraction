@@ -199,7 +199,6 @@ class ClassEditor(Runnable):
         Parameters
         ----------
         input: ClassLabelCorrectorInput (= ClassReviewerOutput)
-          - id: Extraction ID
           - classes: List of class instances (including judgment/justification)
 
         Returns

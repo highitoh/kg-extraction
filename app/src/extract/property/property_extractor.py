@@ -2,7 +2,6 @@ from typing import Dict, Any, List, Union
 import asyncio
 import json
 import os
-import uuid
 
 from langchain_core.runnables import Runnable
 from langchain_core.messages import HumanMessage
@@ -19,7 +18,7 @@ class PropertyExtractor(Runnable):
     """
     Property (relationship) extraction
     Input: PropertyChainInput (class_info, metamodel)
-    Output: PropertyChainOutput (id, properties)
+    Output: PropertyChainOutput (properties)
     """
 
     def __init__(
@@ -329,20 +328,14 @@ class PropertyExtractor(Runnable):
                 "dest_label": dest_label,
             })
 
-        output: Dict[str, Any] = {
-            "id": str(uuid.uuid4()),
-            "properties": properties,
-        }
+        output: Dict[str, Any] = {"properties": properties}
 
         if self.progress:
             total_properties = len(properties)
             print(f"[PropertyExtractor] Completed: extracted {total_properties} properties")
 
         # Save property chain output with Logger (with label information)
-        log_output = {
-            "id": output["id"],
-            "properties": properties_with_labels,
-        }
+        log_output = {"properties": properties_with_labels}
         self.logger.save_log(log_output, filename_prefix="property_extractor_output_")
 
         return output

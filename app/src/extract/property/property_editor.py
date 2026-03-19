@@ -115,7 +115,6 @@ class PropertyEditor(Runnable):
         Parameters
         ----------
         input: PropertyEditorInput (= PropertyReviewerOutput)
-          - id: Extraction ID
           - properties: Property list (includes judgment/justification)
 
         Returns

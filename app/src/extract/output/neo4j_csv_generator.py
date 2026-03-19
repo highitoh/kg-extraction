@@ -183,7 +183,6 @@ def main():
     # Sample data
     sample_input = {
         "class_info": {
-            "id": "extraction_001",
             "classes": [
                 {
                     "id": "class_001",
@@ -200,7 +199,6 @@ def main():
             ]
         },
         "property_info": {
-            "id": "extraction_001",
             "properties": [
                 {
                     "id": "prop_001",

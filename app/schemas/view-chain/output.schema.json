@@ -5,10 +5,6 @@
   "type": "object",
   "description": "Output information for view description extraction",
   "properties": {
-    "id": {
-      "type": "string",
-      "description": "Extraction ID"
-    },
     "views": {
       "type": "array",
       "description": "Extracted view description information for each type",
@@ -37,6 +33,6 @@
       }
     }
   },
-  "required": ["id", "views"],
+  "required": ["views"],
   "additionalProperties": false
 }

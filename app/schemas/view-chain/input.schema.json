@@ -10,7 +10,6 @@
       "description": "Target text information for extraction",
       "additionalProperties": false,
       "properties": {
-        "id": { "type": "string", "description": "Extraction ID" },
         "file_id": { "type": "string", "description": "File ID" },
         "chunks": {
           "type": "array",
@@ -26,7 +25,7 @@
           }
         }
       },
-      "required": ["id", "file_id", "chunks"]
+      "required": ["file_id", "chunks"]
     },
     "metamodel": {
       "$ref": "https://github.com/highitoh/kg-extraction/schemas/common/metamodel.schema.json"

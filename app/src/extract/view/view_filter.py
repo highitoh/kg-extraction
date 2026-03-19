@@ -135,11 +135,8 @@ class ViewFilter(Runnable):
 
 
 if __name__ == "__main__":
-    import uuid
-
     # Sample data for testing (includes duplicates)
     sample_input = {
-        "id": str(uuid.uuid4()),
         "views": [
             {
                 "type": "business_concept",
@@ -202,7 +199,6 @@ if __name__ == "__main__":
         result = filter_instance.invoke(sample_input)
 
         print("\n=== Filtering Results ===")
-        print(f"Output ID: {result['id']}")
         print(f"Views After Filtering: {len(result['views'])}")
 
         for view in result['views']:

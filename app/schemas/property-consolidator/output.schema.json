@@ -5,10 +5,6 @@
   "type": "object",
   "description": "Output schema for PropertyConsolidator (same format as PropertyExtractor)",
   "properties": {
-    "id": {
-      "type": "string",
-      "description": "Extraction ID"
-    },
     "properties": {
       "type": "array",
       "description": "Consolidated property list",
@@ -25,6 +21,6 @@
       }
     }
   },
-  "required": ["id", "properties"],
+  "required": ["properties"],
   "additionalProperties": false
 }

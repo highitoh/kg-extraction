@@ -3,7 +3,6 @@
 from __future__ import annotations
 from typing import Any, Dict, List, Tuple
 import re
-import uuid
 
 from langchain_core.runnables import Runnable
 from langchain_core.runnables.config import RunnableConfig
@@ -49,7 +48,7 @@ class TextFilter(Runnable):
         src = input["source"]
         params = input.get("filter", {}).get("params", {}) or {}
 
-        file_name, lines = self._collect_lines(src)
+        file_id, file_name, lines = self._collect_lines(src)
         max_chars = int(params.get("max_chars", 0)) or 0
         if ChunkCreator and max_chars > 0:
             chunks = ChunkCreator(max_chars=max_chars).create("\n".join(lines))
@@ -61,7 +60,7 @@ class TextFilter(Runnable):
             sentences = self._lines_to_sentences(lines)
 
         output = {
-            "id": str(uuid.uuid4()),
+            "file_id": file_id,
             "file_name": file_name,
             "sentences": [{"text": s} for s in sentences if s.strip()]
         }
@@ -71,7 +70,8 @@ class TextFilter(Runnable):
             pass
         return output
 
-    def _collect_lines(self, src: Dict[str, Any]) -> Tuple[str, List[str]]:
+    def _collect_lines(self, src: Dict[str, Any]) -> Tuple[str, str, List[str]]:
+        file_id = src.get("file_id", "")
         file_name = src.get("file_name", src.get("filename", "unknown"))
         sents = src.get("sentences", [])
         lines = []
@@ -79,7 +79,7 @@ class TextFilter(Runnable):
             t = (s.get("text") if isinstance(s, dict) else str(s)).rstrip("\n")
             if t is not None:
                 lines.append(t)
-        return file_name, lines
+        return file_id, file_name, lines
 
     def _lines_to_sentences(self, lines: List[str]) -> List[str]:
         sentences: List[str] = []

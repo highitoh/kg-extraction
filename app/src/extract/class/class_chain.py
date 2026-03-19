@@ -112,7 +112,6 @@ class ClassChainWithReview(Runnable):
         Returns
         -------
         output: ClassConsolidatorOutput
-          - id: Extraction ID
           - classes: Consolidated list of class instances
         """
         # Get existing classes if available
@@ -264,7 +263,6 @@ if __name__ == "__main__":
     chain = create_class_chain()
     sample_input = {
         "view_info": {
-            "id": "view-chain-001",
             "views": [
                 {
                     "type": "business_concept",
