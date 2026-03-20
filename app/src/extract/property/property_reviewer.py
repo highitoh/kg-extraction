@@ -309,6 +309,11 @@ class PropertyReviewer(Runnable):
                 eval_str = r.get("eval_str", 0)
                 judgment = r["judgment"]
 
+                # Prevent ACCEPT/strength=0 from bypassing the editor and
+                # being dropped only at the validator stage.
+                if judgment == "ACCEPT" and original_strength == 0 and eval_str == 0:
+                    judgment = "REVIEW"
+
                 # Set judgment to REVIEW if strength evaluation differs
                 if judgment != "REJECT" and original_strength != eval_str:
                     judgment = "REVIEW"
