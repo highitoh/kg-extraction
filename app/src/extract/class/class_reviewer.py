@@ -364,10 +364,13 @@ class ClassReviewer(Runnable):
             async with sem:
                 class_name = self._get_class_name_from_iri(class_iri)
 
-                # Execute prohibit rule review and duplicate detection in parallel
-                prohibit_judgments, duplicate_groups = await asyncio.gather(
-                    self._review_prohibit_rules_async(class_instances, class_iri),
-                    self._detect_duplicates_async(class_instances, class_iri)
+                # Run LLM-backed review steps serially to avoid reusing async client
+                # resources concurrently within the same reviewer instance.
+                prohibit_judgments = await self._review_prohibit_rules_async(
+                    class_instances, class_iri
+                )
+                duplicate_groups = await self._detect_duplicates_async(
+                    class_instances, class_iri
                 )
 
                 # Merge results

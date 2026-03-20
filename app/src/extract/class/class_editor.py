@@ -473,10 +473,13 @@ class ClassEditor(Runnable):
             async with sem:
                 class_name = self._get_class_name_from_iri(class_iri)
 
-                # Execute prohibit rule correction and duplicate correction in parallel
-                prohibit_fixed, duplicate_resolved = await asyncio.gather(
-                    self._fix_prohibit_violations_async(class_instances, class_iri),
-                    self._fix_duplicates_async(class_instances, class_iri)
+                # Run LLM-backed correction steps serially to avoid concurrent
+                # reuse of async client resources within the same editor instance.
+                prohibit_fixed = await self._fix_prohibit_violations_async(
+                    class_instances, class_iri
+                )
+                duplicate_resolved = await self._fix_duplicates_async(
+                    class_instances, class_iri
                 )
 
                 # Merge results
