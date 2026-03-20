@@ -46,6 +46,11 @@ You can recommend edits to three types of targets:
 
 Custom prompts provide additional rules that augment base extraction/consolidation logic:
 
+- **Policy for class_reviewer_custom.txt**:
+  - Treat this file as global review policy only.
+  - Do NOT place class-specific accept/reject criteria in this custom prompt.
+  - If a rule applies to a specific class, recommend it as a metamodel update to that class's `extract_rules` or `prohibit_rules` instead.
+
 - **class_extractor_custom.txt**
   - Stage: Class Extraction
   - Role: Extractor
@@ -134,6 +139,7 @@ Combined total quality scores from recent iterations (most recent last; empty if
    - Ranker misjudging strength
    - Consolidator being too aggressive/conservative
    - Missing or unclear custom rules
+   - Missing class-specific metamodel rules that should be expressed in `extract_rules` or `prohibit_rules` rather than reviewer custom prompts
 6. **Map to Targets**: Connect each issue pattern to specific editable targets
 7. **Prioritize Impact**: Focus on high-frequency issues or those with severe quality impact
 
@@ -185,5 +191,6 @@ Output format (JSON only):
 5. **Actionable**: Each suggestion should be implementable without further clarification
 6. **Use All Target Types**: Consider custom_prompt, extract_rules, and prohibit_rules targets
 7. **Target Validation**: For extract_rules/prohibit_rules, use ONLY the exact names from [Available Metamodel Targets]. For custom_prompt, use exact filenames from the editable targets list.
+8. **Class-Specific Rule Placement**: For class review behavior, keep `class_reviewer_custom.txt` limited to global review policy. Any class-specific accept/reject rule must be recommended as a metamodel change to that class's `extract_rules` or `prohibit_rules`, not as a custom prompt edit.
 
 Generate the improvement strategy now.

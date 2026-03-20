@@ -31,6 +31,7 @@ File purpose: <<FILE_PURPOSE>>
 4. Use concise structure (short sections, compact bullets).
 5. Do not duplicate constraints already stated elsewhere in the same file.
 6. If two rules conflict, keep the more precise one and drop the other.
+7. If the target file is `class_reviewer_custom.txt`, keep it limited to global review policy. Do not add class-specific accept/reject criteria there; those belong in the metamodel class `extract_rules` or `prohibit_rules`.
 
 [Quality Checklist]
 Before finalizing, ensure:
