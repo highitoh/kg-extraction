@@ -134,6 +134,29 @@ class ClassReviewer(Runnable):
         with open(prompt_path, "r", encoding="utf-8") as f:
             return f.read()
 
+    @staticmethod
+    def _get_sources(cls: Dict[str, Any], max_sources: int = 2) -> list[str]:
+        """Get class sources (up to max_sources) with backward compatibility."""
+        sources = cls.get("sources", [])
+        if isinstance(sources, str):
+            sources = [sources]
+        if not sources and cls.get("source"):
+            sources = [cls.get("source", "")]
+        return [s for s in sources[:max_sources] if isinstance(s, str)]
+
+    def _format_class_instances(self, classes: list) -> str:
+        """Format class instances with source excerpts for reviewer prompts."""
+        lines = []
+        for cls in classes:
+            lines.append(f"- ID: {cls.get('id', '')}, Label: {cls.get('label', '')}")
+            sources = self._get_sources(cls)
+            if sources:
+                for i, source in enumerate(sources):
+                    lines.append(f"  - source[{i}]: {source[:200]}")
+            else:
+                lines.append("  - source[0]: ")
+        return "\n".join(lines)
+
     def _convert_duplicate_response_to_dict(self, parsed_response: dict) -> dict:
         """Convert LLM response to internal format dictionary
 
@@ -407,9 +430,8 @@ class ClassReviewer(Runnable):
                 }
             })
 
-        # Extract only labels to pass to prompt
-        labels = [c.get("label", "") for c in classes]
-        labels_json = json.dumps(labels, ensure_ascii=False, indent=2)
+        # Format class instances with source excerpts to give reviewer context.
+        class_instances_text = self._format_class_instances(classes)
 
         # Get only the target class's prohibit_rules
         prohibit_rules = self._build_prohibit_rules_section(class_iri)
@@ -418,7 +440,7 @@ class ClassReviewer(Runnable):
         prompt = fill_prompt_template(
             self.prompt_template,
             prohibit_rules=prohibit_rules,
-            class_labels=labels_json,
+            class_instances=class_instances_text,
             custom_rules=self.custom_rules,
         )
 
