@@ -274,7 +274,9 @@ class ClassReviewer(Runnable):
             print(f"[ClassReviewer] {len(class_groups)} class types found")
 
         # Execute filtering in parallel for each class
-        all_filtered_classes = asyncio.run(self._process_classes_parallel(class_groups))
+        all_classes_with_judgment, all_filtered_classes = asyncio.run(
+            self._process_classes_parallel(class_groups)
+        )
 
         # Build output
         output = input.copy()
@@ -285,11 +287,13 @@ class ClassReviewer(Runnable):
                 f"[ClassReviewer] Completed: {len(classes)} -> {len(all_filtered_classes)} classes"
             )
 
-        self.logger.save_log(output, filename_prefix="class_reviewer_output_")
+        log_output = input.copy()
+        log_output["classes"] = all_classes_with_judgment
+        self.logger.save_log(log_output, filename_prefix="class_reviewer_output_")
 
         return output
 
-    def _merge_review_results(self, classes: list, prohibit_judgments: list, duplicate_groups: dict) -> list:
+    def _merge_review_results(self, classes: list, prohibit_judgments: list, duplicate_groups: dict) -> tuple[list, list]:
         """Merge results of prohibit rule review and duplicate detection
 
         Args:
@@ -298,11 +302,15 @@ class ClassReviewer(Runnable):
             duplicate_groups: Dictionary of duplicate groups
 
         Returns:
-            list: Merged class list (excluding REJECT)
+            tuple:
+              - all class results including REJECT
+              - filtered class list excluding REJECT
         """
-        results = []
+        all_results = []
+        filtered_results = []
 
         for i, cls in enumerate(classes):
+            cls_result = cls.copy()
             class_id = cls.get("id", "")
 
             # Get results from prohibit rule review
@@ -324,22 +332,24 @@ class ClassReviewer(Runnable):
 
                     # Add duplicate fields
                     # duplicate_group_id: Temporary field for ClassEditor to identify duplicate group
-                    cls["duplicate_group_id"] = group_id
+                    cls_result["duplicate_group_id"] = group_id
                     # consolidated_ids/consolidated_labels are empty initially
                     # ClassEditor sets actual merged IDs and labels during merge
-                    cls["consolidated_ids"] = []
-                    cls["consolidated_labels"] = []
+                    cls_result["consolidated_ids"] = []
+                    cls_result["consolidated_labels"] = []
                     break
 
-            # Include only non-REJECT classes in results
+            cls_result["judgment"] = judgment
+            cls_result["justification"] = justification
+            all_results.append(cls_result)
+
+            # Include only non-REJECT classes in filtered results
             if judgment != "REJECT":
-                cls["judgment"] = judgment
-                cls["justification"] = justification
-                results.append(cls)
+                filtered_results.append(cls_result)
 
-        return results
+        return all_results, filtered_results
 
-    async def _process_classes_parallel(self, class_groups: Dict[str, list]) -> list:
+    async def _process_classes_parallel(self, class_groups: Dict[str, list]) -> tuple[list, list]:
         """Process class groups in parallel (execute prohibit rule review and duplicate detection concurrently)"""
         sem = asyncio.Semaphore(self.max_concurrency)
         total = len(class_groups)
@@ -349,7 +359,7 @@ class ClassReviewer(Runnable):
         if self.progress:
             print(f"[ClassReviewer] Starting parallel processing: {total} class types (concurrency={self.max_concurrency})")
 
-        async def _wrapped(class_iri: str, class_instances: list) -> list:
+        async def _wrapped(class_iri: str, class_instances: list) -> tuple[list, list]:
             nonlocal counter
             async with sem:
                 class_name = self._get_class_name_from_iri(class_iri)
@@ -361,32 +371,36 @@ class ClassReviewer(Runnable):
                 )
 
                 # Merge results
-                merged = self._merge_review_results(class_instances, prohibit_judgments, duplicate_groups)
+                all_results, filtered = self._merge_review_results(
+                    class_instances, prohibit_judgments, duplicate_groups
+                )
 
                 async with lock:
                     counter += 1
                     if self.progress:
                         # Aggregate judgment result breakdown
-                        accept_count = sum(1 for c in merged if c.get("judgment") == "ACCEPT")
-                        review_count = sum(1 for c in merged if c.get("judgment") == "REVIEW")
-                        reject_count = len(class_instances) - len(merged)
+                        accept_count = sum(1 for c in filtered if c.get("judgment") == "ACCEPT")
+                        review_count = sum(1 for c in filtered if c.get("judgment") == "REVIEW")
+                        reject_count = len(class_instances) - len(filtered)
                         duplicate_count = len(duplicate_groups)
 
                         print(f"[{counter}/{total}] ClassReviewer: {class_name} processed "
-                              f"({len(class_instances)} -> {len(merged)} instances) "
+                              f"({len(class_instances)} -> {len(filtered)} instances) "
                               f"[ACCEPT: {accept_count}, REVIEW: {review_count}, REJECT: {reject_count}] "
                               f"[Duplicate groups: {duplicate_count}]")
 
-                return merged
+                return all_results, filtered
 
         results = await asyncio.gather(*[_wrapped(iri, instances) for iri, instances in class_groups.items()])
 
         # Flatten results
+        all_with_judgment = []
         all_filtered = []
-        for result in results:
-            all_filtered.extend(result)
+        for all_group, filtered_group in results:
+            all_with_judgment.extend(all_group)
+            all_filtered.extend(filtered_group)
 
-        return all_filtered
+        return all_with_judgment, all_filtered
 
     def _group_classes_by_class_iri(self, classes: list) -> Dict[str, list]:
         """Group by class_iri"""
