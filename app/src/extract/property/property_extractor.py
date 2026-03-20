@@ -112,6 +112,29 @@ class PropertyExtractor(Runnable):
                 return part.get("text", "")
         return ""
 
+    @staticmethod
+    def _get_sources(cls: Dict[str, Any], max_sources: int = 3) -> List[str]:
+        """Get class sources (up to max_sources) with backward compatibility."""
+        sources = cls.get("sources", [])
+        if isinstance(sources, str):
+            sources = [sources]
+        if not sources and cls.get("source"):
+            sources = [cls.get("source", "")]
+        return [s for s in sources[:max_sources] if isinstance(s, str)]
+
+    def _format_instances(self, instances: List[Dict[str, Any]]) -> str:
+        """Format class instances with source excerpts for extractor prompts."""
+        lines = []
+        for inst in instances:
+            lines.append(f"- ID: {inst.get('id', '')}, Label: {inst.get('label', '')}")
+            sources = self._get_sources(inst)
+            if sources:
+                for i, source in enumerate(sources):
+                    lines.append(f"  - source[{i}]: {source[:200]}")
+            else:
+                lines.append("  - source[0]: ")
+        return "\n".join(lines)
+
     async def _extract_properties_for_batch(
         self,
         property_label: str,
@@ -128,8 +151,8 @@ class PropertyExtractor(Runnable):
         """Execute property extraction per batch"""
 
         # Format input to pass to LLM
-        src_texts = [f"- ID: {c['id']}, Label: {c['label']}" for c in src_batch]
-        dest_texts = [f"- ID: {c['id']}, Label: {c['label']}" for c in dest_batch]
+        src_instances_text = self._format_instances(src_batch)
+        dest_instances_text = self._format_instances(dest_batch)
 
         # Embed data into prompt template
         prompt_text = fill_prompt_template(
@@ -142,8 +165,8 @@ class PropertyExtractor(Runnable):
             property_definition=property_definition,
             extract_rules=property_extract_rules,
             custom_rules=self.custom_rules,
-            src_list=os.linesep.join(src_texts),
-            dest_list=os.linesep.join(dest_texts)
+            src_instances=src_instances_text,
+            dest_instances=dest_instances_text,
         )
 
         msg = HumanMessage(content=[{"type": "text", "text": prompt_text}])
