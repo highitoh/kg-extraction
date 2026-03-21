@@ -39,7 +39,7 @@ def classify_file_type_node(state: KnowledgeExtractionState) -> KnowledgeExtract
     files -> file_type, file_path, metamodel
     """
     try:
-        classifier = FileTypeClassifier()
+        classifier = FileTypeClassifier(model=state.get("model"))
         result = classifier.invoke({"files": state["files"]})
 
         # Get file_type and file_path

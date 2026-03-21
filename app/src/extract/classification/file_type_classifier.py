@@ -1,4 +1,5 @@
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, Union, List
+import base64
 import csv
 import os
 import json
@@ -6,13 +7,17 @@ import tempfile
 from datetime import datetime
 from pypdf import PdfReader, PdfWriter
 
+from langchain_core.language_models.chat_models import BaseChatModel
+from langchain_core.messages import HumanMessage
 from langchain_core.runnables import Runnable
-from openai import OpenAI
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 from src.utils.logger import Logger
+from src.utils.llm_factory import LLMFactory
 
 class FileTypeClassifierLLMSchema(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
     is_presentation: bool
     justification: str
 
@@ -21,13 +26,28 @@ class FileTypeClassifier(Runnable):
 
     def __init__(
         self,
-        model: str = "gpt-5-nano",
+        llm: BaseChatModel | None = None,
+        model: str = "gemini-3.1-flash-lite-preview",
         temperature: float = 0.0,
         log_dir: str = "/workspace/app/log/file_type_classifier",
     ):
         self.model = model
         self.temperature = temperature
-        self.client = OpenAI()
+        self.llm = llm or LLMFactory.create_llm(
+            model=model,
+            temperature=temperature,
+            reasoning_effort="minimal",
+        )
+        self.llm_json = self.llm.bind(
+            response_format={
+                "type": "json_schema",
+                "json_schema": {
+                    "name": "file_type_classifier",
+                    "schema": FileTypeClassifierLLMSchema.model_json_schema(),
+                    "strict": True,
+                },
+            }
+        )
 
         # Load prompt and schema
         self.prompt = self._load_prompt()
@@ -56,6 +76,18 @@ class FileTypeClassifier(Runnable):
 
     @staticmethod
     def _extract_usage(response) -> Optional[dict]:
+        usage = getattr(response, "usage_metadata", None)
+        if isinstance(usage, dict):
+            return usage
+
+        meta = getattr(response, "response_metadata", None)
+        if isinstance(meta, dict):
+            usage = meta.get("usage") or meta.get("token_usage")
+            if isinstance(usage, dict):
+                return usage
+            if any(k in meta for k in ("prompt_tokens", "completion_tokens", "total_tokens", "input_tokens", "output_tokens")):
+                return meta
+
         usage = getattr(response, "usage", None)
         if isinstance(usage, dict):
             return usage
@@ -64,6 +96,22 @@ class FileTypeClassifier(Runnable):
             if isinstance(dumped, dict):
                 return dumped
         return None
+
+    @staticmethod
+    def _to_text(content: Union[str, List[Any]]) -> str:
+        if isinstance(content, str):
+            return content
+
+        for part in content:
+            if isinstance(part, dict) and part.get("type") in ("output_text", "text"):
+                return part.get("text", "")
+
+        return ""
+
+    @staticmethod
+    def _read_file_base64(file_path: str) -> str:
+        with open(file_path, "rb") as f:
+            return base64.b64encode(f.read()).decode("ascii")
 
     @staticmethod
     def _log_usage(usage: dict) -> None:
@@ -104,30 +152,25 @@ class FileTypeClassifier(Runnable):
             # Extract first 2 pages
             self._extract_first_two_pages(file_path, temp_pdf_path)
 
-            # Upload PDF
-            pdf = self.client.files.create(
-                file=open(temp_pdf_path, "rb"),
-                purpose="user_data",
+            msg = HumanMessage(
+                content=[
+                    {"type": "text", "text": self.prompt},
+                    {
+                        "type": "file",
+                        "base64": self._read_file_base64(temp_pdf_path),
+                        "mime_type": "application/pdf",
+                        "filename": os.path.basename(file_path),
+                    },
+                ]
             )
 
-            # Input PDF and prompt
-            response = self.client.responses.parse(
-                model=self.model,
-                input=[{
-                    "role": "user",
-                    "content": [
-                        {"type": "input_file", "file_id": pdf.id},
-                        {"type": "input_text", "text": self.prompt}
-                    ]
-                }],
-                text_format=FileTypeClassifierLLMSchema
-            )
+            response = self.llm_json.invoke([msg])
             usage = self._extract_usage(response)
             if usage:
                 self._log_usage(usage)
 
             # Parse response
-            result_text = response.output_text
+            result_text = self._to_text(response.content)
             result_json = json.loads(result_text)
 
             is_presentation = result_json["is_presentation"]
@@ -166,7 +209,7 @@ if __name__ == "__main__":
 
     # Create FileTypeClassifier instance
     classifier = FileTypeClassifier(
-        model="gpt-5-nano",  # For cost reduction
+        model="gemini-3.1-flash-lite-preview",
         temperature=0.0
     )
 
