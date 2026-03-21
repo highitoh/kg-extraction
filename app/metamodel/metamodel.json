@@ -316,6 +316,12 @@
             "description": "Associates business requirements linked to a value.",
             "src_class": "https://github.com/highitoh/kg-extraction#value",
             "dest_class": "https://github.com/highitoh/kg-extraction#business-requirement",
+            "extract_rules": [
+                "Extract hasBusinessRequirement when the local context indicates that a business requirement is needed to realize, preserve, expand, or operationalize a value, benefit, or desired outcome.",
+                "Accept hasBusinessRequirement when value-like wording and requirement-like wording are connected by purpose or outcome cues such as 'to', 'for', 'so that', 'in order to', 'to enable', 'to support', 'to achieve', 'につなげるため', 'を実現するため', 'のために', or similar formulations.",
+                "Accept hasBusinessRequirement when the destination describes a policy, organizational condition, service provision condition, or operational arrangement required for stakeholders to obtain the value, even if the requirement is expressed as a long verbal clause.",
+                "For example, if the text states that people can receive support quickly and nearby text specifies that a consultation or testing arrangement must be established, treat the arrangement as a business requirement linked to that value."
+            ],
             "prohibit_rules": [
                 "Do not create hasBusinessRequirement relations when the candidate requirement describes an implementation detail, feature, task, or specific action rather than a business need.",
                 "Do not accept a hasBusinessRequirement relation if the target label contains verbs that describe system behavior (for example, \"send\", \"store\", \"calculate\", \"authenticate\") or contains technical nouns or artifacts (for example, \"API\", \"database\", \"server\", \"endpoint\"); instead surface the candidate as a Feature or System Requirement.",
@@ -367,6 +373,12 @@
             "description": "Associates analytical insights produced from feedback.",
             "src_class": "https://github.com/highitoh/kg-extraction#feedback",
             "dest_class": "https://github.com/highitoh/kg-extraction#analytical-insight",
+            "extract_rules": [
+                "Extract producesInsight when feedback, defect reports, complaints, observations, or reported issues are accompanied by a diagnosis, finding, constraint, explanation, or investigation result derived from them.",
+                "Accept producesInsight even when the relation is implicit, as long as the insight is stated as what is learned, inferred, or recognized from the feedback in the same local context.",
+                "Phrases such as 'many issues were reported, but investigation is difficult', 'feedback revealed', 'reports showed', 'it became clear that', or similar constructions are strong evidence for producesInsight.",
+                "For example, if the text says that many bug reports were received and therefore root-cause investigation is difficult, treat the bug reports as Feedback that produces the named Analytical Insight."
+            ],
             "prohibit_rules": []
         },
         {
@@ -375,6 +387,11 @@
             "description": "Associates analytical insights that an analysis goal leads to.",
             "src_class": "https://github.com/highitoh/kg-extraction#analysis-goal",
             "dest_class": "https://github.com/highitoh/kg-extraction#analytical-insight",
+            "extract_rules": [
+                "Extract leadsTo when an analysis goal, investigation objective, or evaluation focus is stated as leading to, clarifying, determining, or revealing a specific insight.",
+                "Accept leadsTo when the text frames the insight as the expected or resulting understanding from pursuing the analysis goal, even if the wording is indirect.",
+                "Treat nearby formulations such as 'to determine', 'to clarify', 'to identify', '変更の検討のため', or 'what we need to know is' as evidence that the goal leads to the named insight."
+            ],
             "prohibit_rules": []
         },
         {
@@ -383,6 +400,11 @@
             "description": "Associates indicators that define an analysis goal.",
             "src_class": "https://github.com/highitoh/kg-extraction#analysis-goal",
             "dest_class": "https://github.com/highitoh/kg-extraction#indicator",
+            "extract_rules": [
+                "Extract definedBy when a goal or evaluation target is framed in terms of specific counts, rates, metrics, KPIs, or indicators used to assess it.",
+                "Accept definedBy when the surrounding text presents an indicator as a measure, checkpoint, or basis for evaluating the analysis goal, even if the text does not use explicit definitional wording.",
+                "If a goal about changing, improving, or evaluating something is presented together with concrete metrics such as download counts, registration counts, error counts, or similar measurable indicators, treat those indicators as defining the goal."
+            ],
             "prohibit_rules": []
         },
         {
@@ -399,6 +421,11 @@
             "description": "Associates operational data used by an analytical insight.",
             "src_class": "https://github.com/highitoh/kg-extraction#analytical-insight",
             "dest_class": "https://github.com/highitoh/kg-extraction#operational-data",
+            "extract_rules": [
+                "Extract usesOperationalData when the analytical insight depends on logs, telemetry, runtime records, device information, operational metrics, or other concrete operational data artifacts for investigation, diagnosis, monitoring, or explanation.",
+                "Accept usesOperationalData when the text indicates that such data would be needed, referenced, or used to investigate or explain the insight, even if the wording is about the absence of that data or the need to collect it.",
+                "For example, if the text states that root-cause investigation is difficult and then refers to processing logs, device environment information, or runtime behavior records as the information to send or inspect, treat those data artifacts as operational data used by the insight."
+            ],
             "prohibit_rules": [
                 "Do not reject or mark as prohibited usesOperationalData when the text describes routine, intended, or actual consumption of operational data such as telemetry, logs, metrics, sensor feeds, or streaming operational events.",
                 "Do not prohibit usesOperationalData based solely on vague or generic mentions of data consumption; only prohibit when the text explicitly states that operational data is NOT used.",
@@ -437,6 +464,12 @@
             "description": "Associates system requirements linked to a business requirement.",
             "src_class": "https://github.com/highitoh/kg-extraction#business-requirement",
             "dest_class": "https://github.com/highitoh/kg-extraction#system-requirement",
+            "extract_rules": [
+                "Extract hasSystemRequirement when a business requirement is operationalized, constrained, or supported by specific functional or non-functional system requirements.",
+                "Accept hasSystemRequirement when the business requirement and system requirement appear in the same policy, design, or solution context and the system requirement expresses what the system must do or must not do to satisfy the business need.",
+                "Privacy, retention, consent, logging, notification, and data-handling constraints are valid hasSystemRequirement targets when they concretely support a business requirement described nearby.",
+                "For example, if the document requires service access, safe usage, or administrative handling and nearby text states that personal information must not be recorded, records can be deleted, or logs are sent only with explicit consent, treat those as system requirements linked to the business requirement."
+            ],
             "prohibit_rules": [
                 "Do not link System Requirements to Business Activities directly. System Requirements must be linked to Features or System Components. If a relationship implies a dependency on an activity, re-evaluate if it should be a Business Requirement or a Business Activity.",
                 "Do not extract hasSystemRequirement if the target System Requirement is a high-level goal rather than a specific functional or non-functional requirement; ensure the relationship links specific system capabilities to concrete requirements."
