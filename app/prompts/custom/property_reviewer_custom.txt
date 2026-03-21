@@ -1,5 +1,0 @@
-### Relationship Validation Rules
-
-- **exposedBy / exposes**: Source must be 'System Component'; target must be 'Feature' or 'Interface'. Reject if target is 'Business Requirement' or 'Stakeholder'.
-- **realizeValue**: Destination must be a 'Value' instance; reject processes or activities.
-- **hasBusinessRequirement**: Destination must link to a specific business outcome, not a generic system feature.

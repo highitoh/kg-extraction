@@ -1,8 +1,0 @@
-### Class Validation Rules
-
-- Business Activity: Must be a specific, repeatable verb-noun process. Reject broad or multi-process descriptions.
-- Business Requirement: Must be a specific, testable need. Classify outcomes as Value.
-- System Requirement: Must mandate a specific capability or constraint. Flag broad goals as Activity or Value.
-- Value: Must be an outcome, benefit, or end-state. Reject functional needs.
-- Analytical Insight: Must be a derived conclusion. Classify raw data as Operational Data.
-- Vision vs. Feature: A Vision is a long-term strategic goal. A Feature is a specific, implementable capability. Reject specific functions as Visions.

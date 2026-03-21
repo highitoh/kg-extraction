@@ -99,11 +99,16 @@
                 "If the text is outcome-oriented but lacks prescriptive language or obligative verbs (for example, it describes a desired outcome, goal, or benefit such as \"improve customer satisfaction\"), treat it as a Value rather than a Business Requirement and do not extract it as a Business Requirement.",
                 "Extract candidate Business Requirements even when conditional language is present (for example \"If X, the system must...\"), but include the condition text and evidence tokens so a reviewer can confirm scope and applicability.",
                 "Extract a Business Requirement when the text describes a clear stakeholder pain point or operational friction that necessitates a system solution, even if explicit obligative language is absent, provided the context implies a mandatory corrective action.",
-                "Ensure extracted Business Requirements are phrased as actionable needs (e.g., \"The system must allow X\"). If a candidate is phrased as a noun-heavy concept without an action, re-evaluate if it should be a Concept instead."
+                "Ensure extracted Business Requirements are phrased as actionable needs (e.g., \"The system must allow X\"). If a candidate is phrased as a noun-heavy concept without an action, re-evaluate if it should be a Concept instead.",
+                "Prefer Business Requirement only when the statement expresses a business need, obligation, policy, or operational outcome at the problem level; if the sentence mainly names a concrete function such as notifying, displaying, recording, deleting, inputting, or guiding, re-evaluate it as Feature or System Requirement.",
+                "Keep the candidate as Business Requirement when the sentence describes an organizational, service-operation, governance, documentation, support, or compliance obligation (for example preparing FAQs, providing support arrangements, maintaining documentation, or ensuring operational continuity), even if action verbs are present."
             ],
             "prohibit_rules": [
                 "Do not extract as a Business Requirement if the text describes a technical implementation detail or a specific UI element; these should be captured as Feature or System Component.",
-                "Do not extract as Business Requirement if the content describes a static system component, a technical feature implementation, or a data entity. Requirements must focus on business needs, outcomes, or constraints, not technical solutions."
+                "Do not extract as Business Requirement if the content describes a static system component, a technical feature implementation, or a data entity. Requirements must focus on business needs, outcomes, or constraints, not technical solutions.",
+                "Do not extract as Business Requirement when the candidate is dominated by concrete system behavior or interface action verbs such as notify, display, input, record, delete, send, guide, or show and the sentence reads like a functional behavior specification rather than a business need.",
+                "Do not extract as Business Requirement when the sentence primarily specifies a user-facing function, screen behavior, control flow, or data-handling operation that could directly map to a Feature or System Requirement.",
+                "Do not reject a candidate as Business Requirement solely because it contains action verbs if the action is primarily organizational or service-operational rather than a concrete system function."
             ]
         },
         {
@@ -191,12 +196,18 @@
             "min_length": 5,
             "max_length": 50,
             "extract_rules": [
-                "Extract requirements only if they specify a functional capability, performance constraint, or interface specification."
+                "Extract requirements only if they specify a functional capability, performance constraint, security/privacy constraint, data-handling rule, retention rule, interface specification, or other verifiable technical behavior.",
+                "Extract a System Requirement when the statement defines how the system must behave, what technical constraint it must satisfy, or what data/security/performance condition it must enforce, even if phrased as a full requirement sentence rather than a short feature label.",
+                "Prefer System Requirement over Business Requirement when the statement is testable at the system level and focuses on implementation-neutral technical behavior or constraint rather than business motivation.",
+                "Prefer System Requirement for retention, privacy, security, performance, interface, and data-handling rules only when the text constrains the system's technical behavior rather than assigning an organizational or service-operation responsibility."
             ],
             "prohibit_rules": [
                 "Do not extract high-level business goals or vague aspirations as System Requirement; these should be categorized as Value or Business Requirement instead.",
                 "Only extract requirements that define specific system behaviors, interfaces, or functional constraints.",
-                "Do not extract as System Requirement if the entity describes a broad business goal, a business process, or an organizational strategy; System Requirements must be verifiable, technical specifications, constraints, or functional capabilities of the system."
+                "Do not extract as System Requirement if the entity describes a broad business goal, a business process, or an organizational strategy; System Requirements must be verifiable, technical specifications, constraints, or functional capabilities of the system.",
+                "Do not extract as System Requirement when the candidate is merely a short user-facing capability label or product feature name without a requirement statement, constraint, or technical condition; classify such cases as Feature instead.",
+                "Do not reject a candidate as System Requirement solely because it mentions user-visible behavior if the sentence still specifies a verifiable system rule, limit, retention policy, security condition, or technical handling constraint.",
+                "Do not extract as System Requirement when the statement is primarily about organizational support, documentation, service-operation arrangements, governance, or operational responsibility assignment rather than a technical rule that the system itself must satisfy."
             ]
         },
         {
@@ -272,10 +283,10 @@
             "src_class": "https://github.com/highitoh/kg-extraction#concept",
             "dest_class": "https://github.com/highitoh/kg-extraction#value",
             "prohibit_rules": [
-                "Do not create a realizeValue relation when the source entity is a Feature or a System Component unless the text explicitly states that the Feature or Component enables, realizes, delivers, achieves, or directly provides the Value.",
-                "Do not accept realizeValue candidates that are only implied by proximity or co-occurrence of a Feature/Component and a Value term when no explicit causal or enabling language is present in the text.",
-                "Do not create realizeValue relations from phrasing that is clearly aspirational or promotional (for example, uses formulations such as \"aims to\", \"intends to\", \"plans to\", \"hopes to\", \"could\", or other marketing claims) unless the sentence explicitly links the Feature/Component as enabling or realizing the Value.",
-                "Do not infer realizeValue from generic capability or benefit statements about a Feature/Component unless the text contains explicit linking verbs or constructions indicating realization (for example: \"this feature will realize/achieve/deliver <value>\", \"the component enables <value>\")."
+                "Do not create a realizeValue relation when the source is not a Concept or when the destination is not a Value-like outcome, benefit, or desired end state.",
+                "Do not accept realizeValue candidates that are only implied by document proximity or loose thematic similarity between a Concept and a Value when no local causal, enabling, or realization language is present in the text.",
+                "Do not create realizeValue relations from phrasing that is clearly aspirational, speculative, or promotional (for example, uses formulations such as \"aims to\", \"intends to\", \"plans to\", \"hopes to\", \"could\", or similar) unless the text explicitly links the Concept as enabling, delivering, or realizing the Value.",
+                "Do not infer realizeValue from generic statements about a system, policy, or concept unless the local context shows that the named Concept contributes to or explains how the Value is achieved."
             ]
         },
         {
@@ -450,9 +461,9 @@
             "src_class": "https://github.com/highitoh/kg-extraction#feature",
             "dest_class": "https://github.com/highitoh/kg-extraction#system-component",
             "prohibit_rules": [
-                "Do not create implementedBy relationships when the source is a Business Activity, Value, or Stakeholder and the target is a Feature or System Component unless the sentence explicitly uses implementation language such as \"implemented by\", \"built by\", or \"developed as\".",
-                "Do not treat phrasing that implies responsibility, ownership, benefit, or association (for example \"used by\", \"owned by\", \"for\", or \"supports\") as an implementedBy relationship unless there is clear engineering/implementation voice in the sentence.",
-                "Do not infer implementedBy from passive or ambiguous constructions (for example \"is provided to\", \"is for\", \"is used in\") without corroborating technical context such as mention of code, deployment, development, engineering team, or explicit implementation verbs."
+                "Do not create implementedBy relationships when the source is a Business Activity, Value, Stakeholder, or other non-feature concept and the target is a Feature or System Component.",
+                "Do not treat phrasing that implies responsibility, ownership, benefit, or loose association (for example \"used by\", \"owned by\", \"for\", or \"supports\") as an implementedBy relationship when the text does not show that the target component executes, stores, renders, manages, or otherwise realizes the feature behavior.",
+                "Do not infer implementedBy from passive or ambiguous constructions (for example \"is provided to\", \"is for\", \"is used in\") when the surrounding text lacks concrete technical decomposition or allocation to the target component or layer; explicit implementation verbs are strong evidence but not mandatory if the technical role is clear."
             ]
         },
         {
@@ -482,9 +493,10 @@
             "prohibit_rules": [
                 "Do not accept producesOperationalData assertions when the source of production is a Stakeholder, Vision, or Business Activity; such sources do not qualify as operational data producers.",
                 "Do not accept producesOperationalData unless the stated source is a System Component, Interface, or Feature; if the source is any other model element, reject the assertion.",
-                "Do not accept producesOperationalData claims that lack explicit evidence of automated or runtime production; require wording such as \"automatically\", \"generates\", \"logs\", \"sensors\", or equivalent language indicating automated production.",
+                "Do not accept producesOperationalData when the text provides no concrete indication that the source component creates, records, stores, returns, transmits, computes, or otherwise handles the destination as a runtime or system-level data artifact.",
                 "Do not accept producesOperationalData unless the object is an explicit data artifact (for example: log entries, telemetry stream, sensor readings, event records, or a named data file/schema); reject assertions where the object is a vague activity, requirement, or non-data concept.",
-                "Do not accept producesOperationalData when production is described only as a manual action, business process outcome, or stakeholder deliverable; production must be characterized as system-level or runtime data generation."
+                "Do not accept producesOperationalData when production is described only as a manual action, business process outcome, or stakeholder deliverable; production must be characterized as system-level or runtime data generation.",
+                "Do not reject producesOperationalData solely because the text lacks explicit verbs such as \"generates\" or \"logs\" if the local context clearly allocates the named data artifact to the source component through recording, storage, transmission, computation, or interface response behavior."
             ]
         },
         {
@@ -496,8 +508,8 @@
             "prohibit_rules": [
                 "Do not extract an interfaceProducesOperationalData relation when the interface is not explicitly named or otherwise clearly identified in the source text.",
                 "Do not extract an interfaceProducesOperationalData relation when the verb phrase is metaphorical or vague (for example, 'enables insights', 'supports visibility', 'helps analyze') rather than explicitly indicating production of a data artifact.",
-                "Do not extract an interfaceProducesOperationalData relation unless the statement uses an explicit production verb tied to a concrete data artifact (for example, 'emits', 'logs', 'returns', 'outputs', followed by a dataset, log, metric, event, record, or similar).",
-                "If the source uses ambiguous language about production (for example, generic 'produces' without a named interface or without a named data artifact), mark the candidate relation for REVIEW rather than accepting it automatically."
+                "Do not extract an interfaceProducesOperationalData relation when the source text does not connect the interface to a concrete data artifact through output, return, display, download, export, logging, or similar interface-level data delivery behavior.",
+                "If the source text names both the interface and a concrete data artifact but the production wording is indirect or weak, mark the candidate relation for REVIEW rather than rejecting it automatically."
             ]
         },
         {
