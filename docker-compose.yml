@@ -12,6 +12,7 @@ services:
     command: ["sleep","infinity"]
     volumes:
       - .:/workspace:rw
+      - ${HOME}/.config/gcloud:/root/.config/gcloud:ro
     restart: "no"
   neo4j:
     image: neo4j:5

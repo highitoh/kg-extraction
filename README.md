@@ -47,6 +47,14 @@ pip install -r requirements.txt
 export OPENAI_API_KEY=your_api_key_here
 ```
 
+If you use GCP Vertex AI (`LLM_PROVIDER=gcp_vertexai`), authenticate on the host machine with `gcloud` before starting the app:
+
+```bash
+gcloud auth application-default login
+```
+
+The container relies on the host's Application Default Credentials, so this host-side `gcloud` authentication step is required for GCP usage.
+
 ### 4. Start Neo4j (optional)
 
 ```bash
