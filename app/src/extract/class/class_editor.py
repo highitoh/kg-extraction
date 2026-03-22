@@ -3,7 +3,6 @@ import asyncio
 import json
 import os
 
-from langchain_openai import ChatOpenAI
 from langchain_core.messages import HumanMessage
 from langchain_core.runnables import Runnable
 from openai import APIConnectionError, RateLimitError, APIError
@@ -28,17 +27,14 @@ class ClassEditor(Runnable):
     """
 
     def __init__(self,
-                 llm: Any = None,
                  model: str = "gemini-3.1-flash-lite-preview",
                  temperature: float = 0.0,
                  progress: bool = True,
                  max_concurrency: int = 8,
                  log_dir: str = "/workspace/app/log/class_editor"):
-        self.llm = llm or LLMFactory.create_llm(
-            model=model,
-            temperature=temperature,
-            reasoning_effort="low",
-        )
+        self.model = model
+        self.temperature = temperature
+        self.reasoning_effort = "low"
         self.progress = progress
         self.max_concurrency = max_concurrency
         self.logger = Logger(log_dir)
@@ -47,6 +43,13 @@ class ClassEditor(Runnable):
         self.metamodel = self._load_metamodel()
         # Load prompt template
         self.prompt_template = self._load_prompt_template()
+
+    def _create_llm(self) -> Any:
+        return LLMFactory.create_llm(
+            model=self.model,
+            temperature=self.temperature,
+            reasoning_effort=self.reasoning_effort,
+        )
 
     def _build_schema(self, n: int) -> dict:
         """Load LLM schema file and set element count
@@ -229,7 +232,8 @@ class ClassEditor(Runnable):
             print(f"[ClassEditor] {len(review_groups)} class types found for review")
 
         # Execute corrections in parallel for each REVIEW class
-        corrected_classes = asyncio.run(self._process_classes_parallel(review_groups))
+        llm = self._create_llm()
+        corrected_classes = asyncio.run(self._process_classes_parallel(review_groups, llm))
 
         # Build output (ACCEPT + corrected REVIEW + REJECT)
         all_classes = accept_classes + corrected_classes + reject_classes
@@ -248,7 +252,7 @@ class ClassEditor(Runnable):
 
         return output
 
-    async def _fix_duplicates_async(self, classes: list, class_iri: str) -> dict:
+    async def _fix_duplicates_async(self, llm: Any, classes: list, class_iri: str) -> dict:
         """Merge judgment and correction of duplicate classes (async version)
 
         Args:
@@ -305,7 +309,7 @@ class ClassEditor(Runnable):
 
         # Build schema
         schema = self._build_duplicate_fix_schema()
-        llm_json = self.llm.bind(
+        llm_json = llm.bind(
             response_format={
                 "type": "json_schema",
                 "json_schema": {
@@ -458,7 +462,7 @@ class ClassEditor(Runnable):
 
         return results
 
-    async def _process_classes_parallel(self, class_groups: Dict[str, list]) -> list:
+    async def _process_classes_parallel(self, class_groups: Dict[str, list], llm: Any) -> list:
         """Process class groups in parallel (execute prohibit rule correction and duplicate correction concurrently)"""
         sem = asyncio.Semaphore(self.max_concurrency)
         total = len(class_groups)
@@ -476,10 +480,10 @@ class ClassEditor(Runnable):
                 # Run LLM-backed correction steps serially to avoid concurrent
                 # reuse of async client resources within the same editor instance.
                 prohibit_fixed = await self._fix_prohibit_violations_async(
-                    class_instances, class_iri
+                    llm, class_instances, class_iri
                 )
                 duplicate_resolved = await self._fix_duplicates_async(
-                    class_instances, class_iri
+                    llm, class_instances, class_iri
                 )
 
                 # Merge results
@@ -534,7 +538,7 @@ class ClassEditor(Runnable):
                 return cls.get("name", "unknown")
         return class_iri.split("#")[-1] if "#" in class_iri else class_iri
 
-    async def _fix_prohibit_violations_async(self, classes: list, class_iri: str) -> list:
+    async def _fix_prohibit_violations_async(self, llm: Any, classes: list, class_iri: str) -> list:
         """Fix prohibit rule violations in specified class list with LLM (async version)
 
         Args:
@@ -545,7 +549,7 @@ class ClassEditor(Runnable):
             return []
 
         schema = self._build_schema(len(classes))
-        llm_json = self.llm.bind(
+        llm_json = llm.bind(
             response_format={
                 "type": "json_schema",
                 "json_schema": {

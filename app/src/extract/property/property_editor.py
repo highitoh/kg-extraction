@@ -3,7 +3,6 @@ import asyncio
 import json
 import os
 
-from langchain_openai import ChatOpenAI
 from langchain_core.messages import HumanMessage
 from langchain_core.runnables import Runnable
 from openai import APIConnectionError, RateLimitError, APIError
@@ -28,17 +27,14 @@ class PropertyEditor(Runnable):
     """
 
     def __init__(self,
-                 llm: Any = None,
                  model: str = "gemini-3.1-flash-lite-preview",
                  temperature: float = 0.0,
                  progress: bool = True,
                  max_concurrency: int = 8,
                  log_dir: str = "/workspace/app/log/property_editor"):
-        self.llm = llm or LLMFactory.create_llm(
-            model=model,
-            temperature=temperature,
-            reasoning_effort="low",
-        )
+        self.model = model
+        self.temperature = temperature
+        self.reasoning_effort = "low"
         self.progress = progress
         self.max_concurrency = max_concurrency
         self.logger = Logger(log_dir)
@@ -47,6 +43,13 @@ class PropertyEditor(Runnable):
         self.metamodel = self._load_metamodel()
         # Load prompt template
         self.prompt_template = self._load_prompt_template()
+
+    def _create_llm(self) -> Any:
+        return LLMFactory.create_llm(
+            model=self.model,
+            temperature=self.temperature,
+            reasoning_effort=self.reasoning_effort,
+        )
 
     def _build_schema(self, n: int) -> dict:
         """Load LLM schema file and set number of elements
@@ -145,7 +148,8 @@ class PropertyEditor(Runnable):
             print(f"[PropertyEditor] {len(review_groups)} property types found for review")
 
         # Execute correction in parallel for each REVIEW property
-        corrected_properties = asyncio.run(self._process_properties_parallel(review_groups))
+        llm = self._create_llm()
+        corrected_properties = asyncio.run(self._process_properties_parallel(review_groups, llm))
 
         # Build output (ACCEPT + corrected REVIEW + REJECT)
         all_properties = accept_properties + corrected_properties + reject_properties
@@ -164,7 +168,7 @@ class PropertyEditor(Runnable):
 
         return output
 
-    async def _process_properties_parallel(self, property_groups: Dict[str, list]) -> list:
+    async def _process_properties_parallel(self, property_groups: Dict[str, list], llm: Any) -> list:
         """Process property groups in parallel"""
         sem = asyncio.Semaphore(self.max_concurrency)
         total = len(property_groups)
@@ -179,7 +183,7 @@ class PropertyEditor(Runnable):
             async with sem:
                 property_name = self._get_property_name_from_iri(property_iri)
 
-                corrected = await self._correct_properties_async(property_instances, property_iri)
+                corrected = await self._correct_properties_async(llm, property_instances, property_iri)
 
                 async with lock:
                     counter += 1
@@ -221,7 +225,7 @@ class PropertyEditor(Runnable):
                 return prop.get("name", "unknown")
         return property_iri.split("#")[-1] if "#" in property_iri else property_iri
 
-    async def _correct_properties_async(self, properties: list, property_iri: str) -> list:
+    async def _correct_properties_async(self, llm: Any, properties: list, property_iri: str) -> list:
         """Correct strength of specified property list with LLM (async version)
 
         Args:
@@ -232,7 +236,7 @@ class PropertyEditor(Runnable):
             return []
 
         schema = self._build_schema(len(properties))
-        llm_json = self.llm.bind(
+        llm_json = llm.bind(
             response_format={
                 "type": "json_schema",
                 "json_schema": {

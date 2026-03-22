@@ -6,7 +6,6 @@ import os
 
 from langchain_core.runnables import Runnable
 from langchain_core.messages import HumanMessage
-from langchain_openai import ChatOpenAI
 from openai import APIConnectionError, RateLimitError, APIError
 
 from src.utils.logger import Logger
@@ -19,7 +18,6 @@ class PropertyReviewer(Runnable):
 
     def __init__(
         self,
-        llm: ChatOpenAI | None = None,
         model: str = "gemini-3.1-flash-lite-preview",
         temperature: float = 0.0,
         max_concurrency: int = 8,
@@ -27,13 +25,10 @@ class PropertyReviewer(Runnable):
         log_dir: str = "/workspace/app/log/property_reviewer",
         batch_size: int = 24,
     ):
-        self.llm = llm or LLMFactory.create_llm(
-            model=model,
-            temperature=temperature,
-            reasoning_effort="low",
-        )
+        self.model = model
+        self.temperature = temperature
+        self.reasoning_effort = "low"
         self.llm_schema = self._load_llm_schema()
-        self.llm_json = self.llm.bind(response_format={"type": "json_schema", "json_schema": {"name": "property_reviewer", "schema": self.llm_schema}})
         self.max_concurrency = max_concurrency
         self.progress = progress
         self.batch_size = batch_size
@@ -42,6 +37,24 @@ class PropertyReviewer(Runnable):
         self.custom_rules = self._load_custom_rules()
         self.metamodel = self._load_metamodel()
         self.logger = Logger(log_dir)
+
+    def _create_llm(self) -> Any:
+        return LLMFactory.create_llm(
+            model=self.model,
+            temperature=self.temperature,
+            reasoning_effort=self.reasoning_effort,
+        )
+
+    def _bind_llm_json(self, llm: Any):
+        return llm.bind(
+            response_format={
+                "type": "json_schema",
+                "json_schema": {
+                    "name": "property_reviewer",
+                    "schema": self.llm_schema,
+                },
+            }
+        )
 
     # ===== Utilities =====
     def _load_llm_schema(self) -> Dict[str, Any]:
@@ -170,7 +183,12 @@ class PropertyReviewer(Runnable):
                     return "\n".join(f"- {rule}" for rule in rules)
         return ""
 
-    async def _judge_batch(self, batch: List[Dict[str, Any]], class_index: Dict[str, Dict[str, Any]]) -> List[Dict[str, Any]]:
+    async def _judge_batch(
+        self,
+        batch: List[Dict[str, Any]],
+        class_index: Dict[str, Dict[str, Any]],
+        llm_json: Any,
+    ) -> List[Dict[str, Any]]:
         """Review one batch of candidates with LLM and return results (JSON)"""
         # Build deduplicated instance lists
         src_seen = {}
@@ -209,7 +227,7 @@ class PropertyReviewer(Runnable):
 
         # Call LLM with retry functionality
         ai = await call_with_retry(
-            lambda: self.llm_json.ainvoke([msg]),
+            lambda: llm_json.ainvoke([msg]),
             timeout=90.0,
             label="PropertyReviewer",
         )
@@ -246,6 +264,7 @@ class PropertyReviewer(Runnable):
         self,
         property_candidates: Dict[str, Any],
         class_info: Dict[str, Any],
+        llm_json: Any,
     ) -> List[Dict[str, Any]]:
         """Split candidate properties by property_iri and filter with LLM review"""
         candidates = property_candidates.get("properties", [])
@@ -267,7 +286,7 @@ class PropertyReviewer(Runnable):
             try:
                 for i in range(0, len(group), self.batch_size):
                     batch = group[i:i + self.batch_size]
-                    res = await self._judge_batch(batch, class_index)
+                    res = await self._judge_batch(batch, class_index, llm_json)
                     results_all.extend(res)
             except Exception as e:
                 # Record on group failure
@@ -409,7 +428,9 @@ class PropertyReviewer(Runnable):
             raise ValueError("PropertyReviewer requires class_info with classes for filtering. Cannot proceed without class information.")
 
         # Filter with LLM
-        filtered = asyncio.run(self._filter_properties(property_candidates, class_info))
+        llm = self._create_llm()
+        llm_json = self._bind_llm_json(llm)
+        filtered = asyncio.run(self._filter_properties(property_candidates, class_info, llm_json))
 
         if self.progress:
             print(

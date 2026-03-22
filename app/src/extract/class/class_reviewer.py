@@ -4,7 +4,6 @@ import json
 import os
 from functools import wraps
 
-from langchain_openai import ChatOpenAI
 from langchain_core.messages import HumanMessage
 from langchain_core.runnables import Runnable
 from openai import APIConnectionError, RateLimitError, APIError
@@ -21,17 +20,14 @@ class ClassReviewer(Runnable):
     """
 
     def __init__(self,
-                 llm: Any = None,
                  model: str = "gemini-3.1-flash-lite-preview",
                  temperature: float = 0.0,
                  progress: bool = True,
                  max_concurrency: int = 8,
                  log_dir: str = "/workspace/app/log/class_reviewer"):
-        self.llm = llm or LLMFactory.create_llm(
-            model=model,
-            temperature=temperature,
-            reasoning_effort="low",
-        )
+        self.model = model
+        self.temperature = temperature
+        self.reasoning_effort = "low"
         self.progress = progress
         self.max_concurrency = max_concurrency
         self.logger = Logger(log_dir)
@@ -42,6 +38,13 @@ class ClassReviewer(Runnable):
         self.prompt_template = self._load_prompt_template()
         # Load custom rules
         self.custom_rules = self._load_custom_rules()
+
+    def _create_llm(self) -> Any:
+        return LLMFactory.create_llm(
+            model=self.model,
+            temperature=self.temperature,
+            reasoning_effort=self.reasoning_effort,
+        )
 
     def _build_schema(self, n: int) -> dict:
         """Load LLM schema file and set element count
@@ -187,7 +190,7 @@ class ClassReviewer(Runnable):
 
         return result
 
-    async def _detect_duplicates_async(self, classes: list, class_iri: str) -> dict:
+    async def _detect_duplicates_async(self, llm: Any, classes: list, class_iri: str) -> dict:
         """Detect duplicates in specified class list (async version)
 
         Args:
@@ -211,7 +214,7 @@ class ClassReviewer(Runnable):
 
         # Build schema
         schema = self._build_duplicate_schema()
-        llm_json = self.llm.bind(
+        llm_json = llm.bind(
             response_format={
                 "type": "json_schema",
                 "json_schema": {
@@ -263,6 +266,7 @@ class ClassReviewer(Runnable):
 
     def invoke(self, input: Dict[str, Any], config=None) -> Dict[str, Any]:
         classes = input.get("classes", [])
+        llm = self._create_llm()
 
         if self.progress:
             print(f"[ClassReviewer] Processing {len(classes)} classes")
@@ -275,7 +279,7 @@ class ClassReviewer(Runnable):
 
         # Execute filtering in parallel for each class
         all_classes_with_judgment, all_filtered_classes = asyncio.run(
-            self._process_classes_parallel(class_groups)
+            self._process_classes_parallel(class_groups, llm)
         )
 
         # Build output
@@ -349,7 +353,7 @@ class ClassReviewer(Runnable):
 
         return all_results, filtered_results
 
-    async def _process_classes_parallel(self, class_groups: Dict[str, list]) -> tuple[list, list]:
+    async def _process_classes_parallel(self, class_groups: Dict[str, list], llm: Any) -> tuple[list, list]:
         """Process class groups in parallel (execute prohibit rule review and duplicate detection concurrently)"""
         sem = asyncio.Semaphore(self.max_concurrency)
         total = len(class_groups)
@@ -367,10 +371,10 @@ class ClassReviewer(Runnable):
                 # Run LLM-backed review steps serially to avoid reusing async client
                 # resources concurrently within the same reviewer instance.
                 prohibit_judgments = await self._review_prohibit_rules_async(
-                    class_instances, class_iri
+                    llm, class_instances, class_iri
                 )
                 duplicate_groups = await self._detect_duplicates_async(
-                    class_instances, class_iri
+                    llm, class_instances, class_iri
                 )
 
                 # Merge results
@@ -424,7 +428,7 @@ class ClassReviewer(Runnable):
                 return cls.get("name", "unknown")
         return class_iri.split("#")[-1] if "#" in class_iri else class_iri
 
-    async def _review_prohibit_rules_async(self, classes: list, class_iri: str) -> list:
+    async def _review_prohibit_rules_async(self, llm: Any, classes: list, class_iri: str) -> list:
         """Review specified class list for prohibit rules with LLM (async version)
 
         Args:
@@ -438,7 +442,7 @@ class ClassReviewer(Runnable):
             return []
 
         schema = self._build_schema(len(classes))
-        llm_json = self.llm.bind(
+        llm_json = llm.bind(
             response_format={
                 "type": "json_schema",
                 "json_schema": {
