@@ -3,6 +3,7 @@
 import asyncio
 import csv
 import os
+import random
 from datetime import datetime
 from typing import Awaitable, Callable, Optional
 
@@ -21,6 +22,7 @@ async def call_with_retry(
     max_delay: float = 60.0,
     timeout: float = 90.0,
     label: str = "LLM",
+    jitter: str = "full",
 ):
     """Execute an async call with timeout + exponential backoff retries.
 
@@ -31,10 +33,14 @@ async def call_with_retry(
         max_delay: Max backoff seconds between retries.
         timeout: Per-attempt timeout in seconds.
         label: Component label for logs.
+        jitter: Backoff jitter mode. "none" uses the raw exponential delay,
+            "full" samples uniformly from [0, backoff_cap].
 
     Raises:
         APIConnectionError, RateLimitError, APIError, asyncio.TimeoutError, or the last caught exception after retries.
     """
+    if jitter not in {"none", "full"}:
+        raise ValueError(f"Unsupported jitter mode: {jitter}")
 
     def _extract_usage(response) -> Optional[dict]:
         # LangChain messages typically store usage in usage_metadata or response_metadata.
@@ -97,11 +103,16 @@ async def call_with_retry(
 
             if isinstance(e, asyncio.TimeoutError):
                 timeout += 30
-                _log(f"[{label} Retry {attempt + 1}/{retries}] {type(e).__name__}. Extending timeout to {timeout:.0f}s. Retrying in {min(delay, max_delay):.1f}s...")
+                timeout_note = f" Extending timeout to {timeout:.0f}s."
             else:
-                _log(f"[{label} Retry {attempt + 1}/{retries}] {type(e).__name__}. Retrying in {min(delay, max_delay):.1f}s...")
+                timeout_note = ""
 
-            wait_time = min(delay, max_delay)
+            backoff_cap = min(delay, max_delay)
+            wait_time = random.uniform(0.0, backoff_cap) if jitter == "full" else backoff_cap
+            _log(
+                f"[{label} Retry {attempt + 1}/{retries}] {type(e).__name__}."
+                f"{timeout_note} backoff_cap={backoff_cap:.1f}s jitter={jitter} sleep={wait_time:.1f}s..."
+            )
             await asyncio.sleep(wait_time)
             delay *= 2
 
