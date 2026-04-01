@@ -33,6 +33,7 @@ class KnowledgeValidator:
         temperature: float = 0.0,
         output_base_dir: str = "/workspace/app/output",
         verbose: bool = False,
+        max_concurrency: int = 4,
     ):
         """
         Initialize the KnowledgeValidator.
@@ -43,12 +44,14 @@ class KnowledgeValidator:
             temperature: LLM temperature setting
             output_base_dir: Base directory for project outputs
             verbose: If True, LLM outputs detailed justifications for each score
+            max_concurrency: Maximum concurrent validation LLM calls
         """
         self.project = project
         self.model = model
         self.temperature = temperature
         self.output_base_dir = output_base_dir
         self.verbose = verbose
+        self.max_concurrency = max_concurrency
 
         # Resolve file paths from project name (do this FIRST before LLM initialization)
         self.knowledge_file, self.extraction_result_file = self._resolve_project_paths(project, output_base_dir)
@@ -617,16 +620,21 @@ Output ONLY the scores using the metrics IDs (S21-S24) as keys."""
             class_groups[class_iri].append(cls)
 
         print(f"[KnowledgeValidator] {len(class_groups)} class types found")
-        print(f"[KnowledgeValidator] Starting parallel validation: {len(class_groups)} class types")
+        print(
+            f"[KnowledgeValidator] Starting parallel validation: {len(class_groups)} class types "
+            f"(concurrency={self.max_concurrency})"
+        )
 
         # Validate classes with progress tracking
         total_class_groups = len(class_groups)
         class_counter = 0
         class_lock = asyncio.Lock()
+        class_sem = asyncio.Semaphore(self.max_concurrency)
 
         async def _wrapped_class_validation(group: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
             nonlocal class_counter
-            result = await self._validate_class_async(group)
+            async with class_sem:
+                result = await self._validate_class_async(group)
 
             async with class_lock:
                 class_counter += 1
@@ -654,16 +662,21 @@ Output ONLY the scores using the metrics IDs (S21-S24) as keys."""
             property_groups[property_iri].append(prop)
 
         print(f"[KnowledgeValidator] {len(property_groups)} property types found")
-        print(f"[KnowledgeValidator] Starting parallel validation: {len(property_groups)} property types")
+        print(
+            f"[KnowledgeValidator] Starting parallel validation: {len(property_groups)} property types "
+            f"(concurrency={self.max_concurrency})"
+        )
 
         # Validate properties with progress tracking
         total_property_groups = len(property_groups)
         property_counter = 0
         property_lock = asyncio.Lock()
+        property_sem = asyncio.Semaphore(self.max_concurrency)
 
         async def _wrapped_property_validation(group: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
             nonlocal property_counter
-            result = await self._validate_property_async(group, class_index)
+            async with property_sem:
+                result = await self._validate_property_async(group, class_index)
 
             async with property_lock:
                 property_counter += 1
@@ -740,6 +753,12 @@ if __name__ == "__main__":
         default=False,
         help="Output detailed justifications for each score (default: scores only)"
     )
+    parser.add_argument(
+        "--max-concurrency",
+        type=int,
+        default=4,
+        help="Maximum concurrent validation LLM calls (default: 4)"
+    )
 
     args = parser.parse_args()
 
@@ -749,7 +768,8 @@ if __name__ == "__main__":
         validator = KnowledgeValidator(
             project=args.project,
             model=args.model,
-            verbose=args.verbose
+            verbose=args.verbose,
+            max_concurrency=args.max_concurrency,
         )
 
         # Run validation

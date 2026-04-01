@@ -22,13 +22,19 @@ from src.evaluate.knowledge_validator import KnowledgeValidator
 from src.evaluate.reward_calculator import RewardCalculator
 
 
-def run_evaluation(project: str = "default", model: str = "gemini-3.1-flash-lite-preview", verbose: bool = False) -> Dict[str, Any]:
+def run_evaluation(
+    project: str = "default",
+    model: str = "gemini-3.1-flash-lite-preview",
+    verbose: bool = False,
+    max_concurrency: int = 4,
+) -> Dict[str, Any]:
     """
     Execute knowledge quality evaluation
 
     Args:
         project: Project name to evaluate
         model: LLM model for validation
+        max_concurrency: Maximum concurrent validation LLM calls
 
     Returns:
         Combined evaluation results
@@ -49,7 +55,8 @@ def run_evaluation(project: str = "default", model: str = "gemini-3.1-flash-lite
             project=project,
             model=model,
             output_base_dir=output_dir,
-            verbose=verbose
+            verbose=verbose,
+            max_concurrency=max_concurrency,
         )
         validation_report = validator.validate()
         validation_file = validator.save_report(validation_report)
@@ -123,6 +130,12 @@ if __name__ == "__main__":
         default=False,
         help="Output detailed justifications for each validation score (default: scores only)"
     )
+    parser.add_argument(
+        "--max-concurrency",
+        type=int,
+        default=4,
+        help="Maximum concurrent validation LLM calls (default: 4)"
+    )
 
     args = parser.parse_args()
 
@@ -134,7 +147,8 @@ if __name__ == "__main__":
         results = run_evaluation(
             project=args.project,
             model=args.model,
-            verbose=args.verbose
+            verbose=args.verbose,
+            max_concurrency=args.max_concurrency,
         )
 
         # Final summary
