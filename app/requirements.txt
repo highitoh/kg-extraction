@@ -5,6 +5,7 @@ langchain-openai
 langgraph
 numpy
 pdfplumber
+Pillow>=10.0.0
 pypdf
 python-dotenv
 rdflib

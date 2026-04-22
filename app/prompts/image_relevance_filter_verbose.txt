@@ -1,0 +1,11 @@
+Rate this image's value for knowledge extraction (0.0-1.0).
+
+HIGH (0.7-1.0): Diagrams, charts with labels, screenshots, tables, technical drawings
+MEDIUM (0.3-0.7): Charts with unclear labels, small/partial text, blurry content
+LOW (0.0-0.3): Logos, icons, page numbers, decorative graphics, blank images
+
+Output JSON:
+{
+  "relevance_score": 0.0-1.0,
+  "reason": "Brief explanation (5 words max)"
+}

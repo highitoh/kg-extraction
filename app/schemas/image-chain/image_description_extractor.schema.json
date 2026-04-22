@@ -1,0 +1,23 @@
+{
+  "$id": "https://github.com/highitoh/kg-extraction/schemas/image-chain/image_description_extractor.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ImageDescriptionExtractorLLMOutput",
+  "description": "LLM output schema for ImageExtractor description generation",
+  "type": "object",
+  "properties": {
+    "description": {
+      "type": "string",
+      "description": "Natural language description of the image (2-5 sentences)"
+    },
+    "drawio_description": {
+      "type": "string",
+      "description": "Draw.io-style structured description for structural diagrams (empty string for non-structural)"
+    },
+    "has_structural_content": {
+      "type": "boolean",
+      "description": "True if image contains structural content (UML, ER, architecture, flowchart)"
+    }
+  },
+  "required": ["description", "drawio_description", "has_structural_content"],
+  "additionalProperties": false
+}

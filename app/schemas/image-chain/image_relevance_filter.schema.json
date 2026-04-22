@@ -1,0 +1,17 @@
+{
+  "$id": "https://github.com/highitoh/kg-extraction/schemas/image-chain/image_relevance_filter.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ImageRelevanceFilterLLMOutput",
+  "description": "LLM output schema for ImageExtractor relevance filter (non-verbose mode)",
+  "type": "object",
+  "properties": {
+    "relevance_score": {
+      "type": "number",
+      "minimum": 0.0,
+      "maximum": 1.0,
+      "description": "Relevance score (0.0 = no knowledge value, 1.0 = high knowledge value)"
+    }
+  },
+  "required": ["relevance_score"],
+  "additionalProperties": false
+}

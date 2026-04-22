@@ -1,0 +1,12 @@
+Extract information from this image for knowledge extraction.
+
+If STRUCTURAL (UML, ER, architecture, flowchart), output the structure in draw.io format.
+
+If NON-STRUCTURAL (chart, screenshot, photo), output 2-5 sentence description.
+
+Output JSON:
+{
+  "description": "Natural language summary (always)",
+  "drawio_description": "Structured format (empty string if not structural)",
+  "has_structural_content": true|false
+}

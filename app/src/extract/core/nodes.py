@@ -10,6 +10,7 @@ from typing import Dict, Any
 
 from src.extract.core.state import KnowledgeExtractionState
 from src.extract.classification.file_type_classifier import FileTypeClassifier
+from src.extract.image.image_extractor import ImageExtractor
 from src.extract.text.doc_text_chain import DocTextChain
 from src.extract.text.presentation_text_chain import PresentationTextChain
 from src.extract.view.view_chain import create_view_chain
@@ -128,24 +129,104 @@ def transform_to_chunks_node(state: KnowledgeExtractionState) -> KnowledgeExtrac
     sentences -> chunks
     """
     try:
+        file_type = state["file_type"]
+        sentences = state.get("sentences", []) or []
+
         # Select chunk mode based on file type
-        if state["file_type"] == "presentation":
-            chunk_creator = ChunkCreator(chunk_mode="page")
-            combined_text = "\n".join([s["text"] for s in state["sentences"]])
+        if file_type == "presentation":
+            chunk_mode = "page"
+            chunk_creator = ChunkCreator(chunk_mode=chunk_mode)
+            combined_text = "\n".join([s["text"] for s in sentences])
         else:
-            chunk_creator = ChunkCreator(chunk_mode="char")
-            combined_text = " ".join([s["text"] for s in state["sentences"]])
+            chunk_mode = "char"
+            chunk_creator = ChunkCreator(chunk_mode=chunk_mode)
+            combined_text = " ".join([s["text"] for s in sentences])
+
+        print(
+            f"[TransformToChunksNode] Starting chunk creation: "
+            f"file_type={file_type} mode={chunk_mode} sentences={len(sentences)} "
+            f"combined_chars={len(combined_text)}"
+        )
 
         # Split into chunks
         chunk_texts = chunk_creator.create(combined_text)
         state["chunks"] = [{"text": chunk} for chunk in chunk_texts]
         state["current_stage"] = "chunks_created"
 
+        if chunk_texts:
+            chunk_lens = [len(c) for c in chunk_texts]
+            avg_len = sum(chunk_lens) / len(chunk_lens)
+            print(
+                f"[TransformToChunksNode] done: chunks={len(chunk_texts)} "
+                f"avg_chars={avg_len:.0f} min_chars={min(chunk_lens)} max_chars={max(chunk_lens)}"
+            )
+        else:
+            print("[TransformToChunksNode] done: chunks=0 (no sentences to split)")
+
     except Exception as e:
         state.setdefault("errors", [])
         state["errors"].append(f"Chunk creation failed: {e}")
         state["chunks"] = []
         state["current_stage"] = "chunk_creation_failed"
+
+    return state
+
+
+def extract_images_node(state: KnowledgeExtractionState) -> Dict[str, Any]:
+    """
+    Node that extracts image descriptions from the PDF and converts them into chunks.
+    files, file_id -> image_chunks, image_statistics
+
+    Runs in parallel with the text-extraction/chunking path and converges at
+    merge_chunks_node. Returns only the keys this node writes to avoid
+    concurrent-update conflicts with the parallel text branch. Applies to both
+    document and presentation file types (extracts embedded image XObjects such
+    as pasted diagrams; does not re-read rendered page text).
+    """
+    try:
+        extractor = ImageExtractor(model=state.get("model"))
+
+        input_data = {
+            "files": state["files"],
+            "file_id": state.get("file_id"),
+        }
+
+        result = extractor.invoke(input_data)
+
+        return {
+            "image_chunks": result.get("image_chunks", []),
+            "image_statistics": result.get("image_statistics", {}),
+        }
+
+    except Exception as e:
+        return {
+            "image_chunks": [],
+            "image_statistics": {"error": str(e), "failed_message": f"Image extraction failed: {e}"},
+        }
+
+
+def merge_chunks_node(state: KnowledgeExtractionState) -> KnowledgeExtractionState:
+    """
+    Node that merges text chunks and image chunks into a single unified list.
+    chunks + image_chunks -> chunks
+    """
+    try:
+        text_chunks = state.get("chunks", []) or []
+        image_chunks = state.get("image_chunks", []) or []
+
+        merged = list(text_chunks) + list(image_chunks)
+        state["chunks"] = merged
+        state["current_stage"] = "chunks_merged"
+
+        print(
+            f"[MergeChunksNode] merged text_chunks={len(text_chunks)} + "
+            f"image_chunks={len(image_chunks)} = {len(merged)} total"
+        )
+
+    except Exception as e:
+        state.setdefault("errors", [])
+        state["errors"].append(f"Chunk merge failed: {e}")
+        state["current_stage"] = "chunk_merge_failed"
 
     return state
 

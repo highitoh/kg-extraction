@@ -10,6 +10,8 @@ from src.extract.core.nodes import (
     extract_text_document_node,
     extract_text_presentation_node,
     transform_to_chunks_node,
+    extract_images_node,
+    merge_chunks_node,
     extract_views_node,
     extract_classes_node,
     extract_properties_node,
@@ -30,20 +32,22 @@ def create_knowledge_extraction_graph():
       ↓ (conditional routing)
       ├─→ extract_text_document ─┐
       └─→ extract_text_presentation ─┘
-              ↓
-         transform_to_chunks
-              ↓
-         extract_views
-              ↓
-         extract_classes
-              ↓
-         extract_properties
-              ↓
-         save_accumulated_knowledge
-              ↓
-         generate_outputs
-              ↓
-            END
+              ↓                     ↘
+         transform_to_chunks     extract_images (parallel - image-to-text)
+              ↓                     ↙
+              └─→ merge_chunks ←───┘
+                       ↓
+                  extract_views
+                       ↓
+                  extract_classes
+                       ↓
+                  extract_properties
+                       ↓
+                  save_accumulated_knowledge
+                       ↓
+                  generate_outputs
+                       ↓
+                      END
     """
 
     # Create StateGraph
@@ -54,6 +58,8 @@ def create_knowledge_extraction_graph():
     workflow.add_node("extract_text_document", extract_text_document_node)
     workflow.add_node("extract_text_presentation", extract_text_presentation_node)
     workflow.add_node("transform_to_chunks", transform_to_chunks_node)
+    workflow.add_node("extract_images", extract_images_node)
+    workflow.add_node("merge_chunks", merge_chunks_node)
     workflow.add_node("extract_views", extract_views_node)
     workflow.add_node("extract_classes", extract_classes_node)
     workflow.add_node("extract_properties", extract_properties_node)
@@ -75,12 +81,21 @@ def create_knowledge_extraction_graph():
     )
 
     # ========== Add Unconditional Edges ==========
-    # After text extraction, proceed to chunk splitting
+    # Text path: extract → chunk
     workflow.add_edge("extract_text_document", "transform_to_chunks")
     workflow.add_edge("extract_text_presentation", "transform_to_chunks")
 
-    # Chunk splitting → View extraction → Class extraction → Property extraction → Accumulated save → Output generation
-    workflow.add_edge("transform_to_chunks", "extract_views")
+    # Image path (parallel to text chunking): text extracted → extract images → merge
+    # Fan out from both text-extraction nodes so image extraction runs after file_id is known
+    workflow.add_edge("extract_text_document", "extract_images")
+    workflow.add_edge("extract_text_presentation", "extract_images")
+
+    # Both paths converge at merge_chunks
+    workflow.add_edge("transform_to_chunks", "merge_chunks")
+    workflow.add_edge("extract_images", "merge_chunks")
+
+    # Merged chunks → View extraction → Class extraction → Property extraction → Accumulated save → Output generation
+    workflow.add_edge("merge_chunks", "extract_views")
     workflow.add_edge("extract_views", "extract_classes")
     workflow.add_edge("extract_classes", "extract_properties")
     workflow.add_edge("extract_properties", "save_accumulated_knowledge")

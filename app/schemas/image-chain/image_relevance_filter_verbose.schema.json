@@ -1,0 +1,21 @@
+{
+  "$id": "https://github.com/highitoh/kg-extraction/schemas/image-chain/image_relevance_filter_verbose.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ImageRelevanceFilterLLMOutputVerbose",
+  "description": "LLM output schema for ImageExtractor relevance filter (verbose mode with reason)",
+  "type": "object",
+  "properties": {
+    "relevance_score": {
+      "type": "number",
+      "minimum": 0.0,
+      "maximum": 1.0,
+      "description": "Relevance score (0.0 = no knowledge value, 1.0 = high knowledge value)"
+    },
+    "reason": {
+      "type": "string",
+      "description": "Brief explanation (5 words max)"
+    }
+  },
+  "required": ["relevance_score", "reason"],
+  "additionalProperties": false
+}
