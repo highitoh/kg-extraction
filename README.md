@@ -160,6 +160,44 @@ app/output/
   - Lightweight format for efficient loading
 - **Result JSON** (`extraction_result_YYYYMMDD_HHMMSS.json`): Full processing result with timestamp for audit trail
 
+## Snapshot Management
+
+The system automatically creates snapshots of the knowledge graph after each extraction, enabling historical review and rollback capabilities.
+
+### Snapshot Structure
+
+```
+app/output/{project}/snapshots/
+├── metadata.json              # Snapshot index
+├── 20260425120000/           # Snapshot (timestamp)
+│   ├── snapshot.json         # Metadata
+│   └── knowledge.json        # Full KG snapshot
+└── 20260425130000/
+    └── ...
+```
+
+### Usage
+
+**List snapshots**:
+```bash
+cd app && ./snapshot.sh list --project myproject
+```
+
+**View latest snapshot**:
+```bash
+cd app && ./snapshot.sh latest --project myproject
+```
+
+**Rollback to a snapshot**:
+```bash
+cd app && ./snapshot.sh rollback --project myproject --snapshot 20260425120000 --backup
+```
+
+**Disable snapshots** (when running extraction):
+```bash
+cd app && python src/extract_workflow.py ../doc/sample.pdf --no-snapshot
+```
+
 ## Configuration
 
 ### Metamodel

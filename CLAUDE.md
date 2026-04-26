@@ -180,6 +180,63 @@ Output files are managed by project, specified with the `--project` parameter.
   - Automatically accumulated across multiple executions
 - **Result JSON**: `extraction_result_YYYYMMDD_HHMMSS.json` - Complete processing results for each execution (with timestamp, for history/audit)
 
+## Snapshot Management
+
+The system automatically creates snapshots of the knowledge graph after each extraction, enabling historical review and rollback.
+
+### Snapshot Directory Structure
+```
+/workspace/app/output/{project}/snapshots/
+├── metadata.json              # Snapshot index
+├── 20260425120000/           # Snapshot (timestamp-based)
+│   ├── snapshot.json         # Metadata
+│   └── knowledge.json        # Full KG snapshot
+└── 20260425130000/
+    └── ...
+```
+
+### Automatic Snapshot Creation
+
+Snapshots are created automatically after each successful extraction:
+```bash
+cd app && ./extract.sh ../doc/sample.pdf --project myproject
+# Snapshot created automatically
+```
+
+Disable snapshots with `--no-snapshot` flag:
+```bash
+cd app && python src/extract_workflow.py ../doc/sample.pdf --no-snapshot
+```
+
+### Snapshot Management Commands
+
+```bash
+# List all snapshots
+./snapshot.sh list --project myproject
+
+# Show specific snapshot
+./snapshot.sh show --project myproject --snapshot 20260425120000
+
+# Show latest snapshot
+./snapshot.sh latest --project myproject
+
+# Rollback to a snapshot (creates backup first)
+./snapshot.sh rollback --project myproject --snapshot 20260425120000 --backup
+```
+
+### Use Cases
+
+- **Historical Review**: View knowledge graph state at any point in time
+- **Rollback**: Restore to a previous state if extraction goes wrong
+- **Comparison**: Compare knowledge.json from different snapshots manually
+- **Audit**: Track which PDF added which knowledge
+
+### Storage
+
+- Each snapshot stores full knowledge.json (~50-200 KB)
+- 100 snapshots ≈ 6-25 MB
+- Old snapshots can be manually deleted if needed
+
 ## Key Dependencies
 - langchain: LLM chain construction
 - langchain-openai: OpenAI API integration

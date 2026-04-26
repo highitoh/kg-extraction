@@ -21,9 +21,10 @@ load_dotenv()
 
 from src.extract.core.graph import create_knowledge_extraction_graph
 from src.extract.core.state import KnowledgeExtractionState
+from src.utils.snapshot_manager import SnapshotManager
 
 
-def run_knowledge_extraction(pdf_path: str, output_dir: str = "/workspace/app/output", model: str = None, project: str = "default") -> Dict[str, Any]:
+def run_knowledge_extraction(pdf_path: str, output_dir: str = "/workspace/app/output", model: str = None, project: str = "default", create_snapshot: bool = True) -> Dict[str, Any]:
     """
     Execute knowledge extraction from PDF file
 
@@ -32,6 +33,7 @@ def run_knowledge_extraction(pdf_path: str, output_dir: str = "/workspace/app/ou
         output_dir: Output directory
         model: LLM model name (if None, use default for each node)
         project: Project name (output files classified by project)
+        create_snapshot: If True, create snapshot after successful extraction
 
     Returns:
         Extraction result dictionary
@@ -65,6 +67,23 @@ def run_knowledge_extraction(pdf_path: str, output_dir: str = "/workspace/app/ou
         result_copy.pop("turtle_content", None)
         json.dump(result_copy, f, ensure_ascii=False, indent=2)
 
+    # Create snapshot if requested and extraction was successful
+    if create_snapshot and result.get("summary"):
+        try:
+            snapshot_mgr = SnapshotManager(output_dir=output_dir)
+            snapshot_result = snapshot_mgr.create_snapshot(
+                project=project,
+                trigger_type="extraction",
+                source_pdf=pdf_path,
+                extraction_result_file=output_json
+            )
+            result["snapshot"] = snapshot_result
+            print(f"  - Snapshot created: {snapshot_result['snapshot_id']}")
+        except Exception as e:
+            # Don't fail extraction if snapshot creation fails
+            print(f"\nWarning: Failed to create snapshot: {e}")
+            result["snapshot_error"] = str(e)
+
     return result
 
 
@@ -75,6 +94,7 @@ if __name__ == "__main__":
     parser.add_argument("--model", type=str, default=None, help="LLM model name to use (default: default model for each node)")
     parser.add_argument("--output-dir", type=str, default="/workspace/app/output", help="Output directory (default: /workspace/app/output)")
     parser.add_argument("--project", type=str, default="default", help="Project name (default: default)")
+    parser.add_argument("--no-snapshot", action="store_true", help="Skip snapshot creation (default: create snapshot)")
 
     args = parser.parse_args()
     pdf_path = args.pdf_path
@@ -92,7 +112,8 @@ if __name__ == "__main__":
         print(f"LLM model: Using default models for each node")
 
     try:
-        result = run_knowledge_extraction(pdf_path, output_dir=args.output_dir, model=args.model, project=args.project)
+        create_snapshot = not args.no_snapshot
+        result = run_knowledge_extraction(pdf_path, output_dir=args.output_dir, model=args.model, project=args.project, create_snapshot=create_snapshot)
 
         # Check for errors
         if result.get("errors"):
