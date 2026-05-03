@@ -60,7 +60,7 @@ A LangChain-based application that extracts knowledge from PDF files and generat
 # Install dependencies
 cd app && pip install -r requirements.txt
 
-# Run main application
+# Run main application (PDF extraction)
 cd app && python src/extract_workflow.py [PDF_PATH]
 
 # Using the wrapper script (recommended)
@@ -68,6 +68,10 @@ cd app && ./extract.sh [PDF_PATH] --project [PROJECT_NAME]
 
 # All options
 cd app && python src/extract_workflow.py [PDF_PATH] --project [PROJECT_NAME] --model [MODEL_NAME] --output-dir [OUTPUT_DIR]
+
+# Miro board extraction (NEW)
+cd app && python src/extract_workflow.py "https://miro.com/app/board/BOARD_ID" --project [PROJECT_NAME]
+cd app && ./extract.sh "https://miro.com/app/board/BOARD_ID" --project [PROJECT_NAME]
 
 # Run specific chain (for development/debugging)
 cd app && python -c "import sys; sys.path.insert(0, '.'); from src.extract.text.doc_text_chain import *"
@@ -229,13 +233,52 @@ cd app && python src/extract_workflow.py ../doc/sample.pdf --no-snapshot
 - **Historical Review**: View knowledge graph state at any point in time
 - **Rollback**: Restore to a previous state if extraction goes wrong
 - **Comparison**: Compare knowledge.json from different snapshots manually
-- **Audit**: Track which PDF added which knowledge
+- **Audit**: Track which source (PDF, Miro board) added which knowledge
 
 ### Storage
 
 - Each snapshot stores full knowledge.json (~50-200 KB)
-- 100 snapshots ≈ 6-25 MB
+- For Miro boards: also stores source_raw.json with complete board state
+- 100 snapshots ≈ 6-25 MB (PDF) or 10-50 MB (Miro with raw data)
 - Old snapshots can be manually deleted if needed
+
+## Changeset Management
+
+Track changes between knowledge graph snapshots with automatic business driver extraction.
+
+### Changeset Directory Structure
+```
+/workspace/app/output/{project}/changesets/
+├── metadata.json              # Changeset index
+├── cs_20260501_120000/       # Changeset
+│   └── changeset.json        # Full changeset with changes and drivers
+└── cs_20260501_130000/
+    └── ...
+```
+
+### Changeset Management Commands
+
+```bash
+# Generate changeset between two snapshots
+./changeset.sh generate --project myproject --before 20260501110000 --after 20260501120000
+
+# Generate with specific model for driver extraction
+./changeset.sh generate --project myproject --before 20260501110000 --after 20260501120000 --model gemini-3.0-flash-lite
+
+# List all changesets
+./changeset.sh list --project myproject
+
+# Show specific changeset details
+./changeset.sh show --project myproject --changeset cs_20260501_120000
+```
+
+### What's in a Changeset
+
+Each changeset contains:
+- **Changes**: Added/updated/deleted classes and properties
+- **Drivers**: Automatically extracted business drivers (e.g., "New GDPR requirement", "Customer feedback #123")
+- **Summary**: Counts of each change type
+- **Source Changes**: Miro board item changes that triggered KG changes
 
 ## Key Dependencies
 - langchain: LLM chain construction
@@ -243,6 +286,7 @@ cd app && python src/extract_workflow.py ../doc/sample.pdf --no-snapshot
 - pdfplumber, pypdf: PDF processing
 - rdflib: RDF/Turtle generation
 - neo4j: Graph database
+- requests: HTTP client for Miro API
 
 ## Notes
 - PDF files are placed in `/workspace/doc/`

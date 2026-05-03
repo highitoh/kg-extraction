@@ -1,0 +1,106 @@
+"""Text extraction from Miro boards (parallel to PDF text extraction)."""
+
+import re
+from datetime import datetime
+from typing import Optional
+
+from src.extract.miro.miro_item_analyzer import MiroItemAnalyzer
+from src.utils.miro_client import MiroClient
+
+
+def parse_board_id_from_url(miro_url: str) -> str:
+    """Extract board ID from Miro URL.
+
+    Supported formats:
+        - https://miro.com/app/board/o9J_abc123
+        - https://miro.com/app/board/o9J_abc123/
+        - miro:o9J_abc123
+
+    Args:
+        miro_url: Miro board URL or identifier
+
+    Returns:
+        Board ID (e.g., "o9J_abc123")
+
+    Raises:
+        ValueError: If URL format is invalid
+    """
+    # Handle direct board ID format
+    if miro_url.startswith("miro:"):
+        return miro_url.replace("miro:", "")
+
+    # Extract from URL
+    match = re.search(r"miro\.com/app/board/([^/?]+)", miro_url)
+    if match:
+        return match.group(1)
+
+    raise ValueError(
+        f"Invalid Miro URL format: {miro_url}. "
+        "Expected format: https://miro.com/app/board/BOARD_ID or miro:BOARD_ID"
+    )
+
+
+def extract_text_from_miro_board(miro_url: str) -> list[dict]:
+    """Extract text chunks from Miro board.
+
+    This function is parallel to extract_text_from_document() for PDFs.
+
+    Args:
+        miro_url: Miro board URL (e.g., "https://miro.com/app/board/o9J_abc123")
+
+    Returns:
+        List of text chunks with metadata:
+        [
+            {
+                "text": str,
+                "metadata": {
+                    "item_id": str,
+                    "item_type": str,
+                    "position": {"x": float, "y": float}
+                },
+                "_miro_raw_data": dict  # Attached to first chunk for snapshot storage
+            },
+            ...
+        ]
+
+    Example:
+        >>> chunks = extract_text_from_miro_board("https://miro.com/app/board/o9J_abc123")
+        >>> print(len(chunks))
+        15
+        >>> print(chunks[0]["text"])
+        "Customer needs faster service"
+    """
+    # 1. Parse board ID from URL
+    board_id = parse_board_id_from_url(miro_url)
+
+    # 2. Fetch via MiroClient
+    client = MiroClient()
+    board_data = client.get_board(board_id)
+    board_items = client.get_board_items(board_id)
+
+    # 3. Transform via MiroItemAnalyzer
+    analyzer = MiroItemAnalyzer()
+    analyzed_items = analyzer.analyze({"items": board_items})
+    chunks = analyzer.to_text_chunks(analyzed_items)
+
+    if not chunks:
+        # Return empty chunk to maintain flow
+        chunks = [{"text": "", "metadata": {}}]
+
+    # 4. Generate snapshot-specific file_id
+    snapshot_id = datetime.now().strftime("%Y%m%d%H%M%S")
+    file_id = f"miro:{board_id}:{snapshot_id}"
+
+    # 5. Attach file_id to all chunks
+    for chunk in chunks:
+        chunk["file_id"] = file_id
+
+    # 6. Store raw data for snapshot (attached to first chunk)
+    chunks[0]["_miro_raw_data"] = {
+        "id": board_id,
+        "name": board_data.get("name", "Unnamed Board"),
+        "items": board_items,
+        "modifiedAt": board_data.get("modifiedAt"),
+    }
+
+    return chunks

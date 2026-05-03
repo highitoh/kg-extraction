@@ -33,7 +33,8 @@ class SnapshotManager:
         trigger_type: str = "extraction",
         source_pdf: Optional[str] = None,
         extraction_result_file: Optional[str] = None,
-        notes: Optional[str] = None
+        notes: Optional[str] = None,
+        raw_source_data: Optional[dict] = None
     ) -> Dict[str, Any]:
         """
         Create a new snapshot of the current knowledge graph.
@@ -44,6 +45,7 @@ class SnapshotManager:
             source_pdf: Path to PDF that triggered this snapshot
             extraction_result_file: Path to extraction result file
             notes: Optional notes about this snapshot
+            raw_source_data: Optional raw source data (e.g., Miro board JSON) to store
 
         Returns:
             Snapshot metadata dict with snapshot_id, timestamp, counts, etc.
@@ -84,6 +86,12 @@ class SnapshotManager:
         snapshot_knowledge_file = snapshot_dir / "knowledge.json"
         shutil.copy2(knowledge_file, snapshot_knowledge_file)
 
+        # Store raw source data if provided (e.g., Miro board JSON)
+        if raw_source_data:
+            raw_data_file = snapshot_dir / "source_raw.json"
+            with open(raw_data_file, 'w', encoding='utf-8') as f:
+                json.dump(raw_source_data, f, ensure_ascii=False, indent=2)
+
         # Compute counts and statistics
         counts = self._compute_counts(knowledge)
 
@@ -92,18 +100,39 @@ class SnapshotManager:
         if source_pdf and os.path.exists(source_pdf):
             source_pdf_hash = self._compute_file_hash(source_pdf)
 
+        # Build extraction trigger metadata (what caused this snapshot to be created)
+        # NOTE: "trigger" here means "extraction trigger" (technical), NOT "change driver" (business)
+        extraction_trigger = {"triggerType": trigger_type}  # "extraction" or "manual"
+
+        # Handle PDF source
+        if source_pdf:
+            extraction_trigger["sourceIdentifier"] = f"pdf:{source_pdf}"
+            extraction_trigger["sourceName"] = os.path.basename(source_pdf)
+            extraction_trigger["sourceMetadata"] = {}
+            if os.path.exists(source_pdf):
+                extraction_trigger["sourceMetadata"]["hash"] = self._compute_file_hash(source_pdf)
+
+        # Handle Miro board source
+        if raw_source_data and "id" in raw_source_data:  # Detect Miro board structure
+            extraction_trigger["sourceIdentifier"] = f"miro:{raw_source_data.get('id')}"
+            extraction_trigger["sourceName"] = raw_source_data.get("name", "Unnamed Board")
+            extraction_trigger["sourceMetadata"] = {
+                "itemCount": len(raw_source_data.get("items", [])),
+                "hash": hashlib.sha256(
+                    json.dumps(raw_source_data, sort_keys=True).encode()
+                ).hexdigest()[:16]
+            }
+
+        if extraction_result_file:
+            extraction_trigger["extractionResultFile"] = extraction_result_file
+
         # Create snapshot metadata
         snapshot_metadata = {
             "snapshot_id": snapshot_id,
             "project": project,
             "timestamp": snapshot_id.split('_')[0],  # Remove microseconds if present
             "created_at": datetime.now().isoformat(),
-            "trigger": {
-                "type": trigger_type,
-                "source_pdf": source_pdf,
-                "source_pdf_hash": source_pdf_hash,
-                "extraction_result_file": extraction_result_file
-            },
+            "trigger": extraction_trigger,  # Keep existing field name for compatibility
             "counts": counts
         }
 
@@ -204,13 +233,22 @@ class SnapshotManager:
             }
 
         # Add new snapshot to index
-        metadata["snapshots"].append({
+        trigger = snapshot_metadata["trigger"]
+        snapshot_entry = {
             "snapshot_id": snapshot_metadata["snapshot_id"],
             "timestamp": snapshot_metadata["timestamp"],
-            "trigger_type": snapshot_metadata["trigger"]["type"],
-            "source_pdf": snapshot_metadata["trigger"].get("source_pdf"),
+            "trigger_type": trigger.get("triggerType", trigger.get("type", "unknown")),
             "counts": snapshot_metadata["counts"]
-        })
+        }
+
+        # Add source information based on available fields
+        if "sourceIdentifier" in trigger:
+            snapshot_entry["source"] = trigger["sourceIdentifier"]
+            snapshot_entry["source_name"] = trigger.get("sourceName", "")
+        elif "source_pdf" in trigger:
+            snapshot_entry["source_pdf"] = trigger["source_pdf"]
+
+        metadata["snapshots"].append(snapshot_entry)
 
         # Update metadata
         metadata["last_updated"] = datetime.now().isoformat()

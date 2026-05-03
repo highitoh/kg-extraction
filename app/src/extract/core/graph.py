@@ -9,6 +9,7 @@ from src.extract.core.nodes import (
     classify_file_type_node,
     extract_text_document_node,
     extract_text_presentation_node,
+    extract_text_miro_node,
     transform_to_chunks_node,
     extract_images_node,
     merge_chunks_node,
@@ -31,7 +32,8 @@ def create_knowledge_extraction_graph():
     classify_file_type
       ↓ (conditional routing)
       ├─→ extract_text_document ─┐
-      └─→ extract_text_presentation ─┘
+      ├─→ extract_text_presentation ─┤
+      └─→ extract_text_miro ─────────┘
               ↓                     ↘
          transform_to_chunks     extract_images (parallel - image-to-text)
               ↓                     ↙
@@ -57,6 +59,7 @@ def create_knowledge_extraction_graph():
     workflow.add_node("classify_file_type", classify_file_type_node)
     workflow.add_node("extract_text_document", extract_text_document_node)
     workflow.add_node("extract_text_presentation", extract_text_presentation_node)
+    workflow.add_node("extract_text_miro", extract_text_miro_node)
     workflow.add_node("transform_to_chunks", transform_to_chunks_node)
     workflow.add_node("extract_images", extract_images_node)
     workflow.add_node("merge_chunks", merge_chunks_node)
@@ -76,7 +79,8 @@ def create_knowledge_extraction_graph():
         route_by_file_type,
         {
             "extract_text_document": "extract_text_document",
-            "extract_text_presentation": "extract_text_presentation"
+            "extract_text_presentation": "extract_text_presentation",
+            "extract_text_miro": "extract_text_miro"
         }
     )
 
@@ -84,11 +88,13 @@ def create_knowledge_extraction_graph():
     # Text path: extract → chunk
     workflow.add_edge("extract_text_document", "transform_to_chunks")
     workflow.add_edge("extract_text_presentation", "transform_to_chunks")
+    workflow.add_edge("extract_text_miro", "transform_to_chunks")
 
     # Image path (parallel to text chunking): text extracted → extract images → merge
     # Fan out from both text-extraction nodes so image extraction runs after file_id is known
     workflow.add_edge("extract_text_document", "extract_images")
     workflow.add_edge("extract_text_presentation", "extract_images")
+    workflow.add_edge("extract_text_miro", "extract_images")
 
     # Both paths converge at merge_chunks
     workflow.add_edge("transform_to_chunks", "merge_chunks")

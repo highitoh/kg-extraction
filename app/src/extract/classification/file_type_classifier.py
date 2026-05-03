@@ -144,6 +144,21 @@ class FileTypeClassifier(Runnable):
         # Get input file path
         file_path = input["files"][0]["path"]
 
+        # Check if this is a Miro board URL
+        if "miro.com/app/board/" in file_path:
+            file_type = "miro_board"
+            print(f"File: {file_path}, Type: {file_type}")
+
+            # Save log
+            log_data = {
+                "file_path": file_path,
+                "file_type": file_type,
+                "is_presentation": False,
+                "justification": "Miro board URL detected"
+            }
+            self.logger.save_log(log_data, "file_type_classifier_output_")
+            return {**input, "file_type": file_type}
+
         # Extract first 2 pages to temporary file
         with tempfile.NamedTemporaryFile(suffix=".pdf", delete=False) as tmp_file:
             temp_pdf_path = tmp_file.name

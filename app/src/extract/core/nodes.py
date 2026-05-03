@@ -123,6 +123,50 @@ def extract_text_presentation_node(state: KnowledgeExtractionState) -> Knowledge
     return state
 
 
+def extract_text_miro_node(state: KnowledgeExtractionState) -> KnowledgeExtractionState:
+    """
+    Node that extracts text from Miro board
+    miro_url -> text_chunks, miro_raw_data
+    """
+    try:
+        from src.extract.miro.miro_text_extractor import extract_text_from_miro_board
+
+        miro_url = state["files"][0]["path"]
+        chunks = extract_text_from_miro_board(miro_url)
+
+        # Extract miro_raw_data from first chunk
+        miro_raw_data = chunks[0].pop("_miro_raw_data", None)
+
+        # Convert chunks to sentences format expected by downstream nodes
+        sentences = []
+        file_id = chunks[0].get("file_id", "") if chunks else ""
+        file_name = miro_raw_data.get("name", "Miro Board") if miro_raw_data else "Miro Board"
+
+        for chunk in chunks:
+            if chunk.get("text"):
+                sentences.append({
+                    "text": chunk["text"],
+                    "metadata": chunk.get("metadata", {})
+                })
+
+        # Store results in State
+        state["sentences"] = sentences
+        state["file_id"] = file_id
+        state["file_name"] = file_name
+        state["miro_raw_data"] = miro_raw_data
+        state["current_stage"] = "text_extracted_miro"
+
+        print(f"[ExtractTextMiroNode] Extracted {len(sentences)} items from Miro board: {file_name}")
+
+    except Exception as e:
+        state.setdefault("errors", [])
+        state["errors"].append(f"Miro text extraction failed: {e}")
+        state["sentences"] = []
+        state["current_stage"] = "text_extraction_failed"
+
+    return state
+
+
 def transform_to_chunks_node(state: KnowledgeExtractionState) -> KnowledgeExtractionState:
     """
     Node that splits extracted text into chunks
@@ -590,7 +634,10 @@ def route_by_file_type(state: KnowledgeExtractionState) -> str:
     """
     Routing function that determines the next node based on file type
     """
-    if state.get("file_type") == "presentation":
+    file_type = state.get("file_type")
+    if file_type == "presentation":
         return "extract_text_presentation"
+    elif file_type == "miro_board":
+        return "extract_text_miro"
     else:
         return "extract_text_document"

@@ -35,6 +35,7 @@ class KnowledgeExtractionState(TypedDict, total=False):
     file_name: str  # File name
     sentences: List[Dict[str, Any]]  # List of extracted sentences
     # sentence: {"text": str, ...}
+    miro_raw_data: Optional[Dict[str, Any]]  # Raw Miro board data (for Miro sources)
 
     # ========== Intermediate Results: Chunk Splitting Stage ==========
     chunks: List[Dict[str, str]]  # Text chunks

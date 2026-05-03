@@ -71,10 +71,15 @@ def run_knowledge_extraction(pdf_path: str, output_dir: str = "/workspace/app/ou
     if create_snapshot and result.get("summary"):
         try:
             snapshot_mgr = SnapshotManager(output_dir=output_dir)
+
+            # Check if Miro data exists in result
+            raw_source_data = result.get("miro_raw_data")
+
             snapshot_result = snapshot_mgr.create_snapshot(
                 project=project,
                 trigger_type="extraction",
-                source_pdf=pdf_path,
+                source_pdf=pdf_path if not raw_source_data else None,
+                raw_source_data=raw_source_data,
                 extraction_result_file=output_json
             )
             result["snapshot"] = snapshot_result
@@ -99,12 +104,18 @@ if __name__ == "__main__":
     args = parser.parse_args()
     pdf_path = args.pdf_path
 
-    if not os.path.exists(pdf_path):
+    # Check if input is a URL
+    is_url = pdf_path.startswith("http://") or pdf_path.startswith("https://")
+
+    if not is_url and not os.path.exists(pdf_path):
         print(f"Error: PDF file not found: {pdf_path}")
         sys.exit(1)
 
     print("\n=== Knowledge Extraction ===")
-    print(f"PDF file: {pdf_path}")
+    if is_url:
+        print(f"Source: {pdf_path}")
+    else:
+        print(f"PDF file: {pdf_path}")
     print(f"Project: {args.project}")
     if args.model:
         print(f"LLM model: {args.model}")
