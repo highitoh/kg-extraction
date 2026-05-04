@@ -87,13 +87,13 @@ def extract_text_from_miro_board(miro_url: str) -> list[dict]:
         # Return empty chunk to maintain flow
         chunks = [{"text": "", "metadata": {}}]
 
-    # 4. Generate snapshot-specific file_id
-    snapshot_id = datetime.now().strftime("%Y%m%d%H%M%S")
-    file_id = f"miro:{board_id}:{snapshot_id}"
+    # 4. Generate item-specific file_ids
+    board_file_id_prefix = f"miro:{board_id}"
 
-    # 5. Attach file_id to all chunks
+    # 5. Attach item-specific file_id to each chunk
     for chunk in chunks:
-        chunk["file_id"] = file_id
+        item_id = chunk["metadata"].get("item_id", "unknown")
+        chunk["file_id"] = f"{board_file_id_prefix}:{item_id}"
 
     # 6. Store raw data for snapshot (attached to first chunk)
     chunks[0]["_miro_raw_data"] = {

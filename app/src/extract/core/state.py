@@ -37,6 +37,12 @@ class KnowledgeExtractionState(TypedDict, total=False):
     # sentence: {"text": str, ...}
     miro_raw_data: Optional[Dict[str, Any]]  # Raw Miro board data (for Miro sources)
 
+    # ========== Incremental Extraction ==========
+    incremental_mode: bool  # If True, only process changed items
+    previous_snapshot_id: Optional[str]  # Previous snapshot for comparison
+    changed_item_ids: Optional[List[str]]  # Item IDs to process (new/modified)
+    deleted_item_ids: Optional[List[str]]  # Item IDs deleted from board
+
     # ========== Intermediate Results: Chunk Splitting Stage ==========
     chunks: List[Dict[str, str]]  # Text chunks
     # chunk: {"text": str}

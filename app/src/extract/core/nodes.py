@@ -123,13 +123,51 @@ def extract_text_presentation_node(state: KnowledgeExtractionState) -> Knowledge
     return state
 
 
+def detect_miro_changes_node(state: KnowledgeExtractionState) -> KnowledgeExtractionState:
+    """
+    Node that detects changes in Miro board.
+    Sets incremental mode and identifies changed/deleted items.
+    Only runs for Miro file_type.
+    """
+    try:
+        from src.utils.snapshot_finder import find_latest_snapshot_for_board
+        from src.extract.miro.miro_text_extractor import parse_board_id_from_url
+
+        miro_url = state["files"][0]["path"]
+        board_id = parse_board_id_from_url(miro_url)
+        project = state.get("project", "default")
+        output_dir = state.get("output_dir", "/workspace/app/output")
+
+        # Find previous snapshot for this board
+        prev_snapshot_id = find_latest_snapshot_for_board(board_id, project, output_dir)
+
+        if not prev_snapshot_id:
+            print("[DetectMiroChanges] No previous snapshot found, doing full extraction")
+            state["incremental_mode"] = False
+            return state
+
+        print(f"[DetectMiroChanges] Found previous snapshot: {prev_snapshot_id}")
+        state["previous_snapshot_id"] = prev_snapshot_id
+        state["incremental_mode"] = True
+        state["current_stage"] = "miro_changes_detected"
+
+    except Exception as e:
+        print(f"[DetectMiroChanges] Error: {e}, falling back to full extraction")
+        state["incremental_mode"] = False
+        state["current_stage"] = "miro_change_detection_failed"
+
+    return state
+
+
 def extract_text_miro_node(state: KnowledgeExtractionState) -> KnowledgeExtractionState:
     """
-    Node that extracts text from Miro board
+    Node that extracts text from Miro board.
+    Supports incremental mode (only extract changed items).
     miro_url -> text_chunks, miro_raw_data
     """
     try:
         from src.extract.miro.miro_text_extractor import extract_text_from_miro_board
+        from src.utils.source_change_detector import load_source_raw
 
         miro_url = state["files"][0]["path"]
         chunks = extract_text_from_miro_board(miro_url)
@@ -137,26 +175,82 @@ def extract_text_miro_node(state: KnowledgeExtractionState) -> KnowledgeExtracti
         # Extract miro_raw_data from first chunk
         miro_raw_data = chunks[0].pop("_miro_raw_data", None)
 
+        # Apply incremental filtering if enabled
+        if state.get("incremental_mode"):
+            prev_snapshot_id = state.get("previous_snapshot_id")
+            project = state.get("project", "default")
+            output_dir = state.get("output_dir", "/workspace/app/output")
+
+            # Load previous snapshot data
+            prev_raw = load_source_raw(project, prev_snapshot_id, output_dir)
+
+            if prev_raw and miro_raw_data:
+                # Detect changes manually (inline to avoid creating temp snapshot)
+                prev_items = {item["id"]: item for item in prev_raw.get("items", [])}
+                curr_items = {item["id"]: item for item in miro_raw_data.get("items", [])}
+
+                prev_ids = set(prev_items.keys())
+                curr_ids = set(curr_items.keys())
+
+                new_ids = curr_ids - prev_ids
+                deleted_ids = prev_ids - curr_ids
+                common_ids = prev_ids & curr_ids
+
+                # Find modified items (check content/title changes)
+                modified_ids = set()
+                for item_id in common_ids:
+                    prev_item = prev_items[item_id]
+                    curr_item = curr_items[item_id]
+
+                    # Compare content and title (same logic as source_change_detector.py:96-104)
+                    prev_content = prev_item.get("data", {}).get("content", "")
+                    curr_content = curr_item.get("data", {}).get("content", "")
+                    prev_title = prev_item.get("data", {}).get("title", "")
+                    curr_title = curr_item.get("data", {}).get("title", "")
+
+                    if prev_content != curr_content or prev_title != curr_title:
+                        modified_ids.add(item_id)
+
+                changed_ids = new_ids | modified_ids
+
+                # Filter chunks to only changed items
+                filtered_chunks = [
+                    chunk for chunk in chunks
+                    if chunk.get("metadata", {}).get("item_id") in changed_ids
+                ]
+
+                print(f"[ExtractTextMiroNode] Incremental mode: "
+                      f"new={len(new_ids)}, modified={len(modified_ids)}, "
+                      f"deleted={len(deleted_ids)}, processing={len(filtered_chunks)} chunks")
+
+                # Store deleted/changed item IDs for cleanup and merging
+                state["deleted_item_ids"] = list(deleted_ids)
+                state["changed_item_ids"] = list(changed_ids)
+
+                chunks = filtered_chunks
+            else:
+                print("[ExtractTextMiroNode] Could not load previous data, using full extraction")
+                state["incremental_mode"] = False
+
         # Convert chunks to sentences format expected by downstream nodes
         sentences = []
-        file_id = chunks[0].get("file_id", "") if chunks else ""
-        file_name = miro_raw_data.get("name", "Miro Board") if miro_raw_data else "Miro Board"
 
         for chunk in chunks:
             if chunk.get("text"):
                 sentences.append({
                     "text": chunk["text"],
-                    "metadata": chunk.get("metadata", {})
+                    "metadata": chunk.get("metadata", {}),
+                    "file_id": chunk.get("file_id")  # Preserve item-level file_id
                 })
 
         # Store results in State
         state["sentences"] = sentences
-        state["file_id"] = file_id
-        state["file_name"] = file_name
+        state["file_id"] = chunks[0].get("file_id", "") if chunks else ""
+        state["file_name"] = miro_raw_data.get("name", "Miro Board") if miro_raw_data else "Miro Board"
         state["miro_raw_data"] = miro_raw_data
         state["current_stage"] = "text_extracted_miro"
 
-        print(f"[ExtractTextMiroNode] Extracted {len(sentences)} items from Miro board: {file_name}")
+        print(f"[ExtractTextMiroNode] Extracted {len(sentences)} items from Miro board")
 
     except Exception as e:
         state.setdefault("errors", [])
@@ -439,6 +533,95 @@ def extract_properties_node(state: KnowledgeExtractionState) -> KnowledgeExtract
     return state
 
 
+def cleanup_deleted_items_node(state: KnowledgeExtractionState) -> KnowledgeExtractionState:
+    """
+    Node that removes knowledge from deleted Miro items.
+    Runs only in incremental mode when items were deleted.
+    """
+    try:
+        # Only run in incremental mode with deletions
+        if not state.get("incremental_mode"):
+            return state
+
+        deleted_item_ids = state.get("deleted_item_ids", [])
+        if not deleted_item_ids:
+            return state
+
+        from src.extract.miro.miro_text_extractor import parse_board_id_from_url
+
+        miro_url = state["files"][0]["path"]
+        board_id = parse_board_id_from_url(miro_url)
+
+        # Build file_ids for deleted items
+        deleted_file_ids = {f"miro:{board_id}:{item_id}" for item_id in deleted_item_ids}
+
+        print(f"[CleanupDeletedItems] Removing knowledge from {len(deleted_file_ids)} deleted items")
+
+        # Load existing knowledge.json
+        output_dir = state.get("output_dir", "/workspace/app/output")
+        project = state.get("project", "default")
+        knowledge_path = os.path.join(output_dir, project, "knowledge.json")
+
+        if not os.path.exists(knowledge_path):
+            return state  # Nothing to clean up
+
+        with open(knowledge_path, "r", encoding="utf-8") as f:
+            knowledge = json.load(f)
+
+        # Clean up classes: remove deleted file_ids
+        cleaned_classes = []
+        removed_class_ids = set()
+
+        for cls in knowledge.get("classes", []):
+            file_ids = cls.get("file_ids", [])
+            sources = cls.get("sources", [])
+
+            # Filter out deleted file_ids (maintain alignment with sources)
+            filtered_pairs = [
+                (src, fid) for src, fid in zip(sources, file_ids)
+                if fid not in deleted_file_ids
+            ]
+
+            if filtered_pairs:
+                # Class still has sources from non-deleted items
+                new_sources, new_file_ids = zip(*filtered_pairs)
+                cls["sources"] = list(new_sources)
+                cls["file_ids"] = list(new_file_ids)
+                cleaned_classes.append(cls)
+            else:
+                # Class has no remaining sources → remove it
+                removed_class_ids.add(cls["id"])
+                print(f"[CleanupDeletedItems] Removing class: {cls.get('label')} (no sources remain)")
+
+        # Clean up properties: remove those referencing deleted classes
+        cleaned_properties = [
+            prop for prop in knowledge.get("properties", [])
+            if prop["src_id"] not in removed_class_ids
+            and prop["dest_id"] not in removed_class_ids
+        ]
+
+        # Save cleaned knowledge back
+        cleaned_knowledge = {
+            "classes": cleaned_classes,
+            "properties": cleaned_properties
+        }
+
+        with open(knowledge_path, "w", encoding="utf-8") as f:
+            json.dump(cleaned_knowledge, f, ensure_ascii=False, indent=2)
+
+        print(f"[CleanupDeletedItems] Removed {len(removed_class_ids)} classes, "
+              f"{len(knowledge['properties']) - len(cleaned_properties)} properties")
+
+        state["current_stage"] = "deleted_items_cleaned"
+
+    except Exception as e:
+        print(f"[CleanupDeletedItems] Warning: Cleanup failed: {e}")
+        state.setdefault("errors", [])
+        state["errors"].append(f"Deleted item cleanup failed: {e}")
+
+    return state
+
+
 def save_accumulated_knowledge_node(state: KnowledgeExtractionState) -> KnowledgeExtractionState:
     """
     Node that saves accumulated knowledge to knowledge.json
@@ -487,9 +670,32 @@ def save_accumulated_knowledge_node(state: KnowledgeExtractionState) -> Knowledg
         uuid_map = {}
         for key, new_class in current_class_map.items():
             old_class = existing_class_map.get(key)
-            if old_class and old_class.get("id") != new_class.get("id"):
-                # Same semantic key but different UUID → UUID has changed
-                uuid_map[old_class["id"]] = new_class["id"]
+            if old_class:
+                # Merge file_ids from both sources
+                new_file_ids = new_class.get("file_ids", [])
+                old_file_ids = old_class.get("file_ids", [])
+                new_sources = new_class.get("sources", [])
+                old_sources = old_class.get("sources", [])
+
+                # Combine sources and file_ids
+                # Use dict to deduplicate by file_id while preserving source mapping
+                source_file_map = {}
+                for src, fid in zip(old_sources, old_file_ids):
+                    source_file_map[fid] = src
+                for src, fid in zip(new_sources, new_file_ids):
+                    source_file_map[fid] = src  # New sources override old if same file_id
+
+                # Rebuild arrays
+                merged_file_ids = list(source_file_map.keys())
+                merged_sources = [source_file_map[fid] for fid in merged_file_ids]
+
+                new_class["file_ids"] = merged_file_ids
+                new_class["sources"] = merged_sources
+
+                # Track UUID changes
+                if old_class.get("id") != new_class.get("id"):
+                    uuid_map[old_class["id"]] = new_class["id"]
+
             existing_class_map[key] = new_class
         merged_classes = list(existing_class_map.values())
 

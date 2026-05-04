@@ -7,6 +7,7 @@ from langgraph.graph import StateGraph, END
 from src.extract.core.state import KnowledgeExtractionState
 from src.extract.core.nodes import (
     classify_file_type_node,
+    detect_miro_changes_node,
     extract_text_document_node,
     extract_text_presentation_node,
     extract_text_miro_node,
@@ -16,6 +17,7 @@ from src.extract.core.nodes import (
     extract_views_node,
     extract_classes_node,
     extract_properties_node,
+    cleanup_deleted_items_node,
     save_accumulated_knowledge_node,
     generate_outputs_node,
     route_by_file_type
@@ -33,7 +35,7 @@ def create_knowledge_extraction_graph():
       ↓ (conditional routing)
       ├─→ extract_text_document ─┐
       ├─→ extract_text_presentation ─┤
-      └─→ extract_text_miro ─────────┘
+      └─→ detect_miro_changes (Miro only) → extract_text_miro ─┘
               ↓                     ↘
          transform_to_chunks     extract_images (parallel - image-to-text)
               ↓                     ↙
@@ -44,6 +46,8 @@ def create_knowledge_extraction_graph():
                   extract_classes
                        ↓
                   extract_properties
+                       ↓
+                  cleanup_deleted_items (incremental mode only)
                        ↓
                   save_accumulated_knowledge
                        ↓
@@ -57,6 +61,7 @@ def create_knowledge_extraction_graph():
 
     # ========== Add Nodes ==========
     workflow.add_node("classify_file_type", classify_file_type_node)
+    workflow.add_node("detect_miro_changes", detect_miro_changes_node)
     workflow.add_node("extract_text_document", extract_text_document_node)
     workflow.add_node("extract_text_presentation", extract_text_presentation_node)
     workflow.add_node("extract_text_miro", extract_text_miro_node)
@@ -66,6 +71,7 @@ def create_knowledge_extraction_graph():
     workflow.add_node("extract_views", extract_views_node)
     workflow.add_node("extract_classes", extract_classes_node)
     workflow.add_node("extract_properties", extract_properties_node)
+    workflow.add_node("cleanup_deleted_items", cleanup_deleted_items_node)
     workflow.add_node("save_accumulated_knowledge", save_accumulated_knowledge_node)
     workflow.add_node("generate_outputs", generate_outputs_node)
 
@@ -74,15 +80,30 @@ def create_knowledge_extraction_graph():
 
     # ========== Add Conditional Edges ==========
     # Select text extraction node based on file type
+    # For Miro, route to change detection first
+    def route_after_classify(state):
+        file_type = state.get("file_type")
+        if file_type == "miro_board":
+            return "detect_miro_changes"
+        elif file_type == "document":
+            return "extract_text_document"
+        elif file_type == "presentation":
+            return "extract_text_presentation"
+        else:
+            return "extract_text_document"  # default
+
     workflow.add_conditional_edges(
         "classify_file_type",
-        route_by_file_type,
+        route_after_classify,
         {
+            "detect_miro_changes": "detect_miro_changes",
             "extract_text_document": "extract_text_document",
             "extract_text_presentation": "extract_text_presentation",
-            "extract_text_miro": "extract_text_miro"
         }
     )
+
+    # detect_miro_changes → extract_text_miro
+    workflow.add_edge("detect_miro_changes", "extract_text_miro")
 
     # ========== Add Unconditional Edges ==========
     # Text path: extract → chunk
@@ -100,11 +121,12 @@ def create_knowledge_extraction_graph():
     workflow.add_edge("transform_to_chunks", "merge_chunks")
     workflow.add_edge("extract_images", "merge_chunks")
 
-    # Merged chunks → View extraction → Class extraction → Property extraction → Accumulated save → Output generation
+    # Merged chunks → View extraction → Class extraction → Property extraction → Cleanup deleted → Accumulated save → Output generation
     workflow.add_edge("merge_chunks", "extract_views")
     workflow.add_edge("extract_views", "extract_classes")
     workflow.add_edge("extract_classes", "extract_properties")
-    workflow.add_edge("extract_properties", "save_accumulated_knowledge")
+    workflow.add_edge("extract_properties", "cleanup_deleted_items")
+    workflow.add_edge("cleanup_deleted_items", "save_accumulated_knowledge")
     workflow.add_edge("save_accumulated_knowledge", "generate_outputs")
 
     # After output generation, end
