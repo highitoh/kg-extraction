@@ -130,7 +130,7 @@ def detect_miro_changes_node(state: KnowledgeExtractionState) -> KnowledgeExtrac
     Only runs for Miro file_type.
     """
     try:
-        from src.utils.snapshot_finder import find_latest_snapshot_for_board
+        from src.utils.snapshot_repository import SnapshotRepository
         from src.extract.miro.miro_text_extractor import parse_board_id_from_url
 
         miro_url = state["files"][0]["path"]
@@ -139,7 +139,8 @@ def detect_miro_changes_node(state: KnowledgeExtractionState) -> KnowledgeExtrac
         output_dir = state.get("output_dir", "/workspace/app/output")
 
         # Find previous snapshot for this board
-        prev_snapshot_id = find_latest_snapshot_for_board(board_id, project, output_dir)
+        repo = SnapshotRepository(output_dir=output_dir)
+        prev_snapshot_id = repo.find_latest_for_board(board_id, project)
 
         if not prev_snapshot_id:
             print("[DetectMiroChanges] No previous snapshot found, doing full extraction")

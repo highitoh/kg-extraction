@@ -242,3 +242,40 @@ class SnapshotRepository:
             return len(snapshots)
         except FileNotFoundError:
             return 0
+
+    def find_latest_for_board(
+        self,
+        board_id: str,
+        project: str
+    ) -> Optional[str]:
+        """
+        Find the latest snapshot for a given Miro board.
+
+        Args:
+            board_id: Miro board ID (e.g., "uXjVGf-nTm0=")
+            project: Project name
+
+        Returns:
+            Snapshot ID if found, None otherwise
+
+        Example:
+            >>> repo = SnapshotRepository()
+            >>> snapshot_id = repo.find_latest_for_board("uXjVGf-nTm0=", "myproject")
+            >>> print(snapshot_id)
+            "20260503100502"
+        """
+        try:
+            snapshots = self.list_snapshots(project)
+        except FileNotFoundError:
+            return None
+
+        # Find snapshots with matching sourceIdentifier
+        target_source = f"miro:{board_id}"
+
+        # list_snapshots() returns newest first (sorted at line 66)
+        for snapshot in snapshots:
+            source_id = snapshot.get("source", "")
+            if source_id == target_source:
+                return snapshot["snapshot_id"]
+
+        return None
