@@ -122,6 +122,73 @@ class ClassConsolidator(Runnable):
 
         return output
 
+    def invoke_stage2_match_with_frozen(self, new_classes: list, frozen_classes: list, config=None) -> Dict[str, Any]:
+        """
+        Stage 2: Match already-consolidated new classes against frozen existing classes.
+
+        This is called after Stage 1 (consolidate new among themselves).
+        Input new_classes are already consolidated, so typically small (5-10 classes).
+
+        Parameters
+        ----------
+        new_classes: list
+            Already-consolidated new class instances (output from Stage 1)
+        frozen_classes: list
+            Existing ACCEPT'ed class instances with _frozen_from_existing_accept flag
+
+        Returns
+        -------
+        output: ClassConsolidatorOutput
+            - classes: Merged list (frozen classes + unmatched new classes)
+        """
+        if not new_classes:
+            # No new classes, return frozen as-is
+            return {"classes": frozen_classes}
+
+        if not frozen_classes:
+            # No frozen classes, return new as-is
+            return {"classes": new_classes}
+
+        if self.progress:
+            print(f"[ClassConsolidator Stage 2] Matching {len(new_classes)} new classes against {len(frozen_classes)} frozen classes")
+
+        # Group by class_iri (only process class_iris that appear in BOTH new and frozen)
+        new_by_iri = self._group_classes_by_class_iri(new_classes)
+        frozen_by_iri = self._group_classes_by_class_iri(frozen_classes)
+
+        common_iris = set(new_by_iri.keys()) & set(frozen_by_iri.keys())
+
+        # Process each common class_iri: match new against frozen
+        all_classes = []
+        processed_new_ids = set()
+
+        # Process all common_iris in parallel
+        matched_results = asyncio.run(self._process_stage2_parallel(
+            common_iris, new_by_iri, frozen_by_iri
+        ))
+
+        for matched_result in matched_results:
+            all_classes.extend(matched_result)
+
+        # Add frozen classes for class_iris that have no new instances
+        for class_iri, frozen_instances in frozen_by_iri.items():
+            if class_iri not in common_iris:
+                all_classes.extend(frozen_instances)
+
+        # Add new classes for class_iris that have no frozen instances
+        for class_iri, new_instances in new_by_iri.items():
+            if class_iri not in common_iris:
+                all_classes.extend(new_instances)
+
+        output = {"classes": all_classes}
+
+        if self.progress:
+            print(f"[ClassConsolidator Stage 2] Completed: {len(new_classes)} new + {len(frozen_classes)} frozen → {len(all_classes)} final classes")
+
+        self.logger.save_log(output, filename_prefix="class_consolidator_stage2_output_")
+
+        return output
+
     def _group_classes_by_class_iri(self, classes: list) -> Dict[str, list]:
         """Group by class_iri"""
         class_groups = {}
@@ -261,6 +328,170 @@ class ClassConsolidator(Runnable):
 
         return consolidated_classes
 
+    async def _process_stage2_parallel(self, common_iris: set, new_by_iri: dict, frozen_by_iri: dict) -> list:
+        """Process Stage 2 matching in parallel for each common class_iri"""
+        sem = asyncio.Semaphore(self.max_concurrency)
+        total = len(common_iris)
+        counter = 0
+        lock = asyncio.Lock()
+
+        if self.progress:
+            print(f"[ClassConsolidator Stage 2] Starting parallel processing: {total} class types (concurrency={self.max_concurrency})")
+
+        async def _wrapped(class_iri: str) -> list:
+            nonlocal counter
+            async with sem:
+                new_instances = new_by_iri[class_iri]
+                frozen_instances = frozen_by_iri[class_iri]
+
+                class_name = self._get_class_name_from_iri(class_iri)
+
+                matched_result = await self._match_new_against_frozen_async(
+                    new_instances, frozen_instances, class_iri
+                )
+
+                async with lock:
+                    counter += 1
+                    if self.progress:
+                        print(f"[{counter}/{total}] ClassConsolidator Stage 2: {class_name} processed ({len(new_instances)} new vs {len(frozen_instances)} frozen → {len(matched_result)} final)")
+
+                return matched_result
+
+        results = await asyncio.gather(*[_wrapped(iri) for iri in common_iris])
+        return results
+
+    async def _match_new_against_frozen_async(self, new_classes: list, frozen_classes: list, class_iri: str) -> list:
+        """
+        Stage 2 core logic: Match new classes against frozen classes.
+
+        Task for LLM: For each new class, determine if it matches any frozen class.
+        If match found, merge new into frozen. If not, keep new as standalone.
+
+        Args:
+            new_classes: Consolidated new class instances (typically 1-5)
+            frozen_classes: Existing frozen class instances (typically 5-50)
+            class_iri: Target class IRI
+
+        Returns:
+            List of classes: frozen classes (with merged sources if matched) + unmatched new classes
+        """
+        # Build combined list: frozen first
+        all_classes = frozen_classes + new_classes
+
+        # Build schema
+        schema = self._build_schema()
+        llm_json = self.llm.bind(
+            response_format={
+                "type": "json_schema",
+                "json_schema": {
+                    "name": "class_consolidator_stage2",
+                    "schema": schema
+                }
+            }
+        )
+
+        # Create label list with [EXISTING] markers
+        labels = []
+        for i, c in enumerate(all_classes):
+            label = c.get("label", "")
+            if i < len(frozen_classes):
+                labels.append(f"{label} [EXISTING]")
+            else:
+                labels.append(f"{label} [NEW]")
+        label_list_text = "\n".join([f"{i}: {label}" for i, label in enumerate(labels)])
+
+        # Get class name and consolidation rules
+        class_name = self._get_class_name_from_iri(class_iri)
+        extraction_rules = self._build_extraction_rules(class_iri)
+
+        # Build Stage 2 specific instructions
+        stage2_rules = """
+
+[STAGE 2: Matching New Classes Against Existing]
+- Labels marked [EXISTING] are from previous extractions (frozen)
+- Labels marked [NEW] are newly consolidated classes
+- Task: Group each [NEW] label with a matching [EXISTING] label if they represent the same concept
+- If a [NEW] label matches an [EXISTING] label, prefer the [EXISTING] label as canonical_label
+- NEVER group two [EXISTING] labels together (already consolidated)
+- If a [NEW] label doesn't match any [EXISTING], keep it as a standalone group
+- Remove [EXISTING] and [NEW] markers from canonical_label in output
+"""
+
+        enhanced_custom_rules = self.custom_rules + stage2_rules
+
+        # Build prompt
+        prompt = fill_prompt_template(
+            self.prompt_template,
+            class_name=class_name,
+            extraction_rules=extraction_rules,
+            label_list=label_list_text,
+            custom_rules=enhanced_custom_rules
+        )
+
+        # Execute matching with LLM
+        response = await call_with_retry(
+            lambda: llm_json.ainvoke([HumanMessage(content=prompt)]),
+            timeout=90.0,
+            label="ClassConsolidator Stage 2",
+        )
+
+        # Parse response
+        result_text = self._to_text(response.content)
+        try:
+            parsed = json.loads(result_text)
+            groups = parsed.get("groups", [])
+        except json.JSONDecodeError:
+            if self.progress:
+                print(f"[ClassConsolidator Stage 2] JSON parse error, keeping classes separate")
+            return all_classes
+
+        # Process groups: merge new into frozen where matched
+        result_classes = []
+        processed_indices = set()
+
+        for group in groups:
+            indices = group.get("indices", [])
+            canonical_label = group.get("canonical_label", "").replace(" [EXISTING]", "").replace(" [NEW]", "")
+            reason = group.get("reason", "")
+
+            if not indices or not canonical_label:
+                continue
+
+            # Check if group contains frozen classes
+            frozen_indices = [i for i in indices if i < len(frozen_classes)]
+            new_indices = [i for i in indices if i >= len(frozen_classes)]
+
+            if len(frozen_indices) > 1:
+                # Multiple frozen in one group - LLM error, keep separate
+                for idx in frozen_indices:
+                    result_classes.append(all_classes[idx])
+                    processed_indices.add(idx)
+                for idx in new_indices:
+                    result_classes.append(all_classes[idx])
+                    processed_indices.add(idx)
+                continue
+
+            # Normal case: merge group
+            group_classes = [all_classes[i] for i in indices if i < len(all_classes)]
+
+            # If frozen class in group, put it first (base for merge)
+            if frozen_indices:
+                frozen_idx = frozen_indices[0]
+                group_classes_reordered = [all_classes[frozen_idx]] + [all_classes[i] for i in indices if i != frozen_idx]
+                merged = self._merge_classes(group_classes_reordered, canonical_label, reason)
+            else:
+                merged = self._merge_classes(group_classes, canonical_label, reason)
+
+            result_classes.append(merged)
+            processed_indices.update(indices)
+
+        # Add unprocessed classes
+        for i, cls in enumerate(all_classes):
+            if i not in processed_indices:
+                result_classes.append(cls)
+
+        return result_classes
+
     def _build_extraction_rules(self, class_iri: str) -> str:
         """
         Get extract_rules for corresponding class from metamodel and
@@ -305,12 +536,18 @@ class ClassConsolidator(Runnable):
         # Use first instance as base
         merged = group_classes[0].copy()
 
+        # Check if base class is frozen (from existing knowledge)
+        is_frozen_base = merged.get("_frozen_from_existing_accept", False)
+
         # Update label to canonical label
         merged["label"] = canonical_label
 
         # Recompute ID based on the new canonical label and first source
-        first_source = group_classes[0].get("sources", [""])[0] if group_classes[0].get("sources") else ""
-        merged["id"] = generate_class_id(merged["class_iri"], canonical_label, first_source)
+        # UNLESS this is a frozen base class (preserve existing IDs for stability)
+        if not is_frozen_base:
+            first_source = group_classes[0].get("sources", [""])[0] if group_classes[0].get("sources") else ""
+            merged["id"] = generate_class_id(merged["class_iri"], canonical_label, first_source)
+        # else: preserve existing ID for frozen classes
 
         # Collect IDs and labels of consolidated classes (excluding the first one)
         consolidated_ids = []

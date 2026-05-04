@@ -122,20 +122,23 @@ class ClassChainWithReview(Runnable):
             print("\n=== ClassExtractor ===")
         result = self.extractor.invoke(input)
 
-        # 2. Execute ClassConsolidator ONLY on newly extracted classes
-        # (Do NOT consolidate existing classes - they're already consolidated)
+        # 2. Stage 1: Consolidate new classes among themselves
         if self.progress:
-            print("\n=== ClassConsolidator ===")
-            if existing_classes:
-                print(f"Consolidating {len(result.get('classes', []))} newly extracted classes (skipping {len(existing_classes)} existing classes)")
+            print("\n=== ClassConsolidator - Stage 1: New Classes ===")
+            print(f"Consolidating {len(result.get('classes', []))} newly extracted classes")
         result = self.consolidator.invoke(result)
 
-        # 3. Add existing classes AFTER consolidation
-        # Merge newly consolidated classes with existing classes before review
+        # 3. Stage 2: Match consolidated new against existing (if any)
         if existing_classes:
             if self.progress:
-                print(f"\n=== Merging {len(result.get('classes', []))} new classes with {len(existing_classes)} existing classes ===")
-            result["classes"] = result.get("classes", []) + existing_classes
+                print(f"\n=== ClassConsolidator - Stage 2: Match Against Existing ===")
+                print(f"Matching {len(result.get('classes', []))} consolidated new classes against {len(existing_classes)} existing classes")
+
+            result = self.consolidator.invoke_stage2_match_with_frozen(
+                new_classes=result.get("classes", []),
+                frozen_classes=existing_classes
+            )
+        # else: no existing classes, Stage 1 result is final
 
         # 4. Execute ClassReviewer (initial)
         classes_before_review = result.get("classes", [])
