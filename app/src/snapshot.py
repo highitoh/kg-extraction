@@ -65,20 +65,34 @@ def show_command(args):
         print(f"Snapshot ID: {metadata['snapshot_id']}")
         print(f"Project: {metadata['project']}")
         print(f"Created: {metadata['created_at']}")
+
         print(f"\nTrigger:")
-        print(f"  Type: {metadata['trigger']['type']}")
-        if metadata['trigger'].get('source_pdf'):
-            print(f"  Source PDF: {metadata['trigger']['source_pdf']}")
-        if metadata['trigger'].get('extraction_result_file'):
-            print(f"  Extraction result: {metadata['trigger']['extraction_result_file']}")
+        trigger = metadata.get('trigger', {})
+        # Handle both 'type' and 'triggerType' (camelCase)
+        trigger_type = trigger.get('type') or trigger.get('triggerType', 'unknown')
+        print(f"  Type: {trigger_type}")
+
+        # Handle different source field names
+        if trigger.get('source_pdf'):
+            print(f"  Source PDF: {trigger['source_pdf']}")
+        elif trigger.get('sourceIdentifier'):
+            print(f"  Source: {trigger['sourceIdentifier']}")
+
+        if trigger.get('sourceName'):
+            print(f"  Source Name: {trigger['sourceName']}")
+
+        if trigger.get('extraction_result_file') or trigger.get('extractionResultFile'):
+            result_file = trigger.get('extraction_result_file') or trigger.get('extractionResultFile')
+            print(f"  Extraction result: {result_file}")
 
         print(f"\nCounts:")
-        print(f"  Total classes: {metadata['counts']['total_classes']}")
-        print(f"  Total properties: {metadata['counts']['total_properties']}")
+        counts = metadata.get('counts', {})
+        print(f"  Total classes: {counts.get('total_classes', 0)}")
+        print(f"  Total properties: {counts.get('total_properties', 0)}")
 
-        if metadata['counts'].get('classes_by_type'):
+        if counts.get('classes_by_type'):
             print(f"\n  Classes by type:")
-            for class_type, count in metadata['counts']['classes_by_type'].items():
+            for class_type, count in counts['classes_by_type'].items():
                 print(f"    {class_type}: {count}")
 
         if metadata.get('notes'):
@@ -101,18 +115,30 @@ def latest_command(args):
         print(f"Snapshot ID: {metadata['snapshot_id']}")
         print(f"Project: {metadata['project']}")
         print(f"Created: {metadata['created_at']}")
+
         print(f"\nTrigger:")
-        print(f"  Type: {metadata['trigger']['type']}")
-        if metadata['trigger'].get('source_pdf'):
-            print(f"  Source PDF: {metadata['trigger']['source_pdf']}")
+        trigger = metadata.get('trigger', {})
+        # Handle both 'type' and 'triggerType' (camelCase)
+        trigger_type = trigger.get('type') or trigger.get('triggerType', 'unknown')
+        print(f"  Type: {trigger_type}")
+
+        # Handle different source field names
+        if trigger.get('source_pdf'):
+            print(f"  Source PDF: {trigger['source_pdf']}")
+        elif trigger.get('sourceIdentifier'):
+            print(f"  Source: {trigger['sourceIdentifier']}")
+
+        if trigger.get('sourceName'):
+            print(f"  Source Name: {trigger['sourceName']}")
 
         print(f"\nCounts:")
-        print(f"  Total classes: {metadata['counts']['total_classes']}")
-        print(f"  Total properties: {metadata['counts']['total_properties']}")
+        counts = metadata.get('counts', {})
+        print(f"  Total classes: {counts.get('total_classes', 0)}")
+        print(f"  Total properties: {counts.get('total_properties', 0)}")
 
-        if metadata['counts'].get('classes_by_type'):
+        if counts.get('classes_by_type'):
             print(f"\n  Classes by type:")
-            for class_type, count in sorted(metadata['counts']['classes_by_type'].items()):
+            for class_type, count in sorted(counts['classes_by_type'].items()):
                 print(f"    {class_type}: {count}")
 
     except FileNotFoundError as e:
