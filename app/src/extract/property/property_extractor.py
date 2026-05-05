@@ -235,36 +235,64 @@ class PropertyExtractor(Runnable):
         if not src_classes or not dest_classes:
             return []
 
-        # Split classes into batches by batch size
-        src_batches = [
-            src_classes[i:i + self.batch_size]
-            for i in range(0, len(src_classes), self.batch_size)
-        ]
-        dest_batches = [
-            dest_classes[i:i + self.batch_size]
-            for i in range(0, len(dest_classes), self.batch_size)
-        ]
+        # Optimization: Only extract properties for pairs involving at least one new class
+        # Separate new and existing classes
+        src_new = [c for c in src_classes if c.get("_is_new", False)]
+        src_existing = [c for c in src_classes if not c.get("_is_new", False)]
+        dest_new = [c for c in dest_classes if c.get("_is_new", False)]
+        dest_existing = [c for c in dest_classes if not c.get("_is_new", False)]
 
-        # Generate all batch combinations
+        # If no new classes on either side, skip this property type entirely
+        if not src_new and not dest_new:
+            if self.progress:
+                print(f"  [SKIP] {property_label}: No new classes for {src_class_label}→{dest_class_label}")
+            return []
+
+        # Create batches for three scenarios: new×new, new×existing, existing×new
+        # (Skip existing×existing - already extracted in previous runs)
+        batch_pairs = []
+
+        # 1. new×new pairs
+        if src_new and dest_new:
+            src_new_batches = [src_new[i:i + self.batch_size] for i in range(0, len(src_new), self.batch_size)]
+            dest_new_batches = [dest_new[i:i + self.batch_size] for i in range(0, len(dest_new), self.batch_size)]
+            batch_pairs.extend([(s, d) for s in src_new_batches for d in dest_new_batches])
+
+        # 2. new×existing pairs
+        if src_new and dest_existing:
+            src_new_batches = [src_new[i:i + self.batch_size] for i in range(0, len(src_new), self.batch_size)]
+            dest_existing_batches = [dest_existing[i:i + self.batch_size] for i in range(0, len(dest_existing), self.batch_size)]
+            batch_pairs.extend([(s, d) for s in src_new_batches for d in dest_existing_batches])
+
+        # 3. existing×new pairs
+        if src_existing and dest_new:
+            src_existing_batches = [src_existing[i:i + self.batch_size] for i in range(0, len(src_existing), self.batch_size)]
+            dest_new_batches = [dest_new[i:i + self.batch_size] for i in range(0, len(dest_new), self.batch_size)]
+            batch_pairs.extend([(s, d) for s in src_existing_batches for d in dest_new_batches])
+
+        if self.progress:
+            total_pairs = sum(len(s) * len(d) for s, d in batch_pairs)
+            print(f"  {property_label}: Processing {total_pairs} class pairs (new classes only)")
+
+        # Generate tasks from filtered batch pairs
         tasks = []
-        for src_batch in src_batches:
-            for dest_batch in dest_batches:
-                tasks.append(
-                    self._extract_properties_for_batch(
-                        property_label=property_label,
-                        property_iri=property_iri,
-                        property_definition=property_definition,
-                        property_extract_rules="\n".join(
-                            f"- {r}" for r in property_extract_rules if isinstance(r, str) and r.strip()
-                        ),
-                        src_class_label=src_class_label,
-                        dest_class_label=dest_class_label,
-                        src_class_definition=src_class_definition,
-                        dest_class_definition=dest_class_definition,
-                        src_batch=src_batch,
-                        dest_batch=dest_batch
-                    )
+        for src_batch, dest_batch in batch_pairs:
+            tasks.append(
+                self._extract_properties_for_batch(
+                    property_label=property_label,
+                    property_iri=property_iri,
+                    property_definition=property_definition,
+                    property_extract_rules="\n".join(
+                        f"- {r}" for r in property_extract_rules if isinstance(r, str) and r.strip()
+                    ),
+                    src_class_label=src_class_label,
+                    dest_class_label=dest_class_label,
+                    src_class_definition=src_class_definition,
+                    dest_class_definition=dest_class_definition,
+                    src_batch=src_batch,
+                    dest_batch=dest_batch
                 )
+            )
 
         # Execute in parallel
         results = await asyncio.gather(*tasks)

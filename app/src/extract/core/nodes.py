@@ -455,6 +455,15 @@ def extract_classes_node(state: KnowledgeExtractionState) -> KnowledgeExtraction
 
         result = class_chain.invoke(input_data)
 
+        # Mark newly extracted classes (those NOT from existing_classes)
+        # This flag is used by PropertyExtractor to filter class pairs for incremental updates
+        existing_ids = {c.get("id") for c in existing_classes if c.get("id")}
+        for cls in result["classes"]:
+            if cls.get("id") not in existing_ids:
+                cls["_is_new"] = True
+            else:
+                cls["_is_new"] = False
+
         # Store results in State
         state["classes"] = result["classes"]
         state["current_stage"] = "classes_extracted"
