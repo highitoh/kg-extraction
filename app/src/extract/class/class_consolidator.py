@@ -3,7 +3,6 @@ import asyncio
 import json
 import os
 
-from langchain_openai import ChatOpenAI
 from langchain_core.messages import HumanMessage
 from langchain_core.runnables import Runnable
 from openai import APIConnectionError, RateLimitError, APIError
@@ -23,18 +22,15 @@ class ClassConsolidator(Runnable):
 
     def __init__(
         self,
-        llm: Any = None,
         model: str = "gemini-3.1-flash-lite-preview",
         temperature: float = 0.0,
         progress: bool = True,
         max_concurrency: int = 8,
         log_dir: str = "/workspace/app/log/class_consolidator"
     ):
-        self.llm = llm or LLMFactory.create_llm(
-            model=model,
-            temperature=temperature,
-            reasoning_effort="minimal",
-        )
+        self.model = model
+        self.temperature = temperature
+        self.reasoning_effort = "minimal"
         self.progress = progress
         self.max_concurrency = max_concurrency
         self.logger = Logger(log_dir)
@@ -45,6 +41,13 @@ class ClassConsolidator(Runnable):
         self.prompt_template = self._load_prompt_template()
         # Load custom rules
         self.custom_rules = self._load_custom_rules()
+
+    def _create_llm(self) -> Any:
+        return LLMFactory.create_llm(
+            model=self.model,
+            temperature=self.temperature,
+            reasoning_effort=self.reasoning_effort,
+        )
 
     def _load_metamodel(self) -> dict:
         """Load metamodel file"""
@@ -109,7 +112,8 @@ class ClassConsolidator(Runnable):
             print(f"[ClassConsolidator] {len(class_groups)} class types found")
 
         # Execute consolidation in parallel for each class
-        all_consolidated_classes = asyncio.run(self._process_classes_parallel(class_groups))
+        llm = self._create_llm()
+        all_consolidated_classes = asyncio.run(self._process_classes_parallel(class_groups, llm))
 
         # Build output
         output = input.copy()
@@ -163,8 +167,9 @@ class ClassConsolidator(Runnable):
         processed_new_ids = set()
 
         # Process all common_iris in parallel
+        llm = self._create_llm()
         matched_results = asyncio.run(self._process_stage2_parallel(
-            common_iris, new_by_iri, frozen_by_iri
+            common_iris, new_by_iri, frozen_by_iri, llm
         ))
 
         for matched_result in matched_results:
@@ -208,7 +213,7 @@ class ClassConsolidator(Runnable):
                 return cls.get("name", "unknown")
         return class_iri.split("#")[-1] if "#" in class_iri else class_iri
 
-    async def _process_classes_parallel(self, class_groups: Dict[str, list]) -> list:
+    async def _process_classes_parallel(self, class_groups: Dict[str, list], llm: Any) -> list:
         """Process class groups in parallel"""
         sem = asyncio.Semaphore(self.max_concurrency)
         total = len(class_groups)
@@ -223,7 +228,7 @@ class ClassConsolidator(Runnable):
             async with sem:
                 class_name = self._get_class_name_from_iri(class_iri)
 
-                consolidated = await self._consolidate_classes_async(class_instances, class_iri)
+                consolidated = await self._consolidate_classes_async(llm, class_instances, class_iri)
 
                 async with lock:
                     counter += 1
@@ -241,11 +246,12 @@ class ClassConsolidator(Runnable):
 
         return all_consolidated
 
-    async def _consolidate_classes_async(self, classes: list, class_iri: str) -> list:
+    async def _consolidate_classes_async(self, llm: Any, classes: list, class_iri: str) -> list:
         """
         Consolidate specified class list with LLM (async version)
 
         Args:
+            llm: LLM instance to use for consolidation
             classes: List of class instances to consolidate
             class_iri: Target class IRI
 
@@ -261,7 +267,7 @@ class ClassConsolidator(Runnable):
 
         # Build schema
         schema = self._build_schema()
-        llm_json = self.llm.bind(
+        llm_json = llm.bind(
             response_format={
                 "type": "json_schema",
                 "json_schema": {
@@ -328,7 +334,7 @@ class ClassConsolidator(Runnable):
 
         return consolidated_classes
 
-    async def _process_stage2_parallel(self, common_iris: set, new_by_iri: dict, frozen_by_iri: dict) -> list:
+    async def _process_stage2_parallel(self, common_iris: set, new_by_iri: dict, frozen_by_iri: dict, llm: Any) -> list:
         """Process Stage 2 matching in parallel for each common class_iri"""
         sem = asyncio.Semaphore(self.max_concurrency)
         total = len(common_iris)
@@ -347,7 +353,7 @@ class ClassConsolidator(Runnable):
                 class_name = self._get_class_name_from_iri(class_iri)
 
                 matched_result = await self._match_new_against_frozen_async(
-                    new_instances, frozen_instances, class_iri
+                    llm, new_instances, frozen_instances, class_iri
                 )
 
                 async with lock:
@@ -360,7 +366,7 @@ class ClassConsolidator(Runnable):
         results = await asyncio.gather(*[_wrapped(iri) for iri in common_iris])
         return results
 
-    async def _match_new_against_frozen_async(self, new_classes: list, frozen_classes: list, class_iri: str) -> list:
+    async def _match_new_against_frozen_async(self, llm: Any, new_classes: list, frozen_classes: list, class_iri: str) -> list:
         """
         Stage 2 core logic: Match new classes against frozen classes.
 
@@ -368,6 +374,7 @@ class ClassConsolidator(Runnable):
         If match found, merge new into frozen. If not, keep new as standalone.
 
         Args:
+            llm: LLM instance to use for matching
             new_classes: Consolidated new class instances (typically 1-5)
             frozen_classes: Existing frozen class instances (typically 5-50)
             class_iri: Target class IRI
@@ -380,7 +387,7 @@ class ClassConsolidator(Runnable):
 
         # Build schema
         schema = self._build_schema()
-        llm_json = self.llm.bind(
+        llm_json = llm.bind(
             response_format={
                 "type": "json_schema",
                 "json_schema": {
