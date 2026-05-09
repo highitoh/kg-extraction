@@ -123,6 +123,27 @@ class SnapshotManager:
                 ).hexdigest()[:16]
             }
 
+        # Handle GitHub repository source
+        if raw_source_data and "owner" in raw_source_data and "repo" in raw_source_data:  # Detect GitHub structure
+            owner = raw_source_data.get("owner")
+            repo = raw_source_data.get("repo")
+            extraction_trigger["sourceIdentifier"] = f"github:{owner}:{repo}"
+            extraction_trigger["sourceName"] = f"{owner}/{repo}"
+            extraction_trigger["sourceMetadata"] = {
+                "owner": owner,
+                "repo": repo,
+                "ref": raw_source_data.get("ref", "main"),
+                "commit_sha": raw_source_data.get("commit_sha", ""),
+                "tag": raw_source_data.get("tag"),
+                "branch": raw_source_data.get("branch"),
+                "profile": raw_source_data.get("profile", "documentation"),
+                "url": raw_source_data.get("url", f"https://github.com/{owner}/{repo}"),
+                "file_count": raw_source_data.get("file_count", 0),
+                "hash": hashlib.sha256(
+                    json.dumps(raw_source_data, sort_keys=True).encode()
+                ).hexdigest()[:16]
+            }
+
         if extraction_result_file:
             extraction_trigger["extractionResultFile"] = extraction_result_file
 

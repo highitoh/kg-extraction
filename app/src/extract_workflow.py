@@ -72,8 +72,8 @@ def run_knowledge_extraction(pdf_path: str, output_dir: str = "/workspace/app/ou
         try:
             snapshot_mgr = SnapshotManager(output_dir=output_dir)
 
-            # Check if Miro data exists in result
-            raw_source_data = result.get("miro_raw_data")
+            # Check if Miro or GitHub data exists in result
+            raw_source_data = result.get("miro_raw_data") or result.get("github_raw_data")
 
             snapshot_result = snapshot_mgr.create_snapshot(
                 project=project,

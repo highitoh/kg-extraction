@@ -71,9 +71,14 @@ cd app && ./extract.sh [PDF_PATH] --project [PROJECT_NAME]
 # All options
 cd app && python src/extract_workflow.py [PDF_PATH] --project [PROJECT_NAME] --model [MODEL_NAME] --output-dir [OUTPUT_DIR]
 
-# Miro board extraction (NEW)
+# Miro board extraction
 cd app && python src/extract_workflow.py "https://miro.com/app/board/BOARD_ID" --project [PROJECT_NAME]
 cd app && ./extract.sh "https://miro.com/app/board/BOARD_ID" --project [PROJECT_NAME]
+
+# GitHub repository extraction
+cd app && python src/extract_workflow.py "https://github.com/facebook/react" --project react-docs
+cd app && python src/extract_workflow.py "https://github.com/owner/repo/tree/main/docs" --project myproject
+cd app && python src/extract_workflow.py "https://github.com/owner/repo#profile=full-knowledge" --project myproject-full
 
 # Run specific chain (for development/debugging)
 cd app && python -c "import sys; sys.path.insert(0, '.'); from src.extract.text.doc_text_chain import *"

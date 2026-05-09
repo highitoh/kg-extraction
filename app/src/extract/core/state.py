@@ -18,7 +18,7 @@ class KnowledgeExtractionState(TypedDict, total=False):
     # ========== Input Information ==========
     files: List[Dict[str, str]]  # [{"path": "/path/to/file.pdf"}]
     file_path: str  # File path to process (value extracted from files)
-    file_type: str  # "document" | "presentation"
+    file_type: str  # "document" | "presentation" | "miro_board" | "github_repo"
 
     # ========== Metamodel ==========
     metamodel: Dict[str, Any]  # Metamodel definition (referenced by all nodes)
@@ -36,12 +36,22 @@ class KnowledgeExtractionState(TypedDict, total=False):
     sentences: List[Dict[str, Any]]  # List of extracted sentences
     # sentence: {"text": str, ...}
     miro_raw_data: Optional[Dict[str, Any]]  # Raw Miro board data (for Miro sources)
+    github_raw_data: Optional[Dict[str, Any]]  # Raw GitHub repository data (for GitHub sources)
 
     # ========== Incremental Extraction ==========
     incremental_mode: bool  # If True, only process changed items
     previous_snapshot_id: Optional[str]  # Previous snapshot for comparison
     changed_item_ids: Optional[List[str]]  # Item IDs to process (new/modified)
     deleted_item_ids: Optional[List[str]]  # Item IDs deleted from board
+
+    # ========== GitHub-Specific Fields ==========
+    github_scope: Optional[str]  # Extraction scope: "readme-only", "documentation", "diff", etc.
+    github_profile: Optional[Dict[str, Any]]  # Active profile definition
+    github_patterns: Optional[List[str]]  # Include patterns from profile
+    github_exclusions: Optional[List[str]]  # Exclude patterns from profile
+    github_from_tag: Optional[str]  # For diff extraction (base tag/branch)
+    github_to_tag: Optional[str]  # For diff extraction (head tag/branch)
+    github_file_map: Optional[Dict[str, str]]  # Map file_id → file metadata for change tracking
 
     # ========== Intermediate Results: Chunk Splitting Stage ==========
     chunks: List[Dict[str, str]]  # Text chunks

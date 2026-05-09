@@ -262,6 +262,157 @@ def extract_text_miro_node(state: KnowledgeExtractionState) -> KnowledgeExtracti
     return state
 
 
+def detect_github_changes_node(state: KnowledgeExtractionState) -> KnowledgeExtractionState:
+    """
+    Node that detects changes in GitHub repository.
+    Sets incremental mode and identifies changed/deleted files.
+    Only runs for GitHub file_type.
+    """
+    try:
+        from src.utils.snapshot_repository import SnapshotRepository
+        from src.extract.github.github_url_parser import parse_github_url
+
+        github_url = state["files"][0]["path"]
+        parsed = parse_github_url(github_url)
+        owner = parsed["owner"]
+        repo = parsed["repo"]
+
+        repo_identifier = f"github:{owner}:{repo}"
+        project = state.get("project", "default")
+        output_dir = state.get("output_dir", "/workspace/app/output")
+
+        # Find previous snapshot for this repository
+        repo_obj = SnapshotRepository(output_dir=output_dir)
+
+        # Look for previous snapshot with matching source identifier
+        try:
+            snapshots = repo_obj.list_snapshots(project)
+            prev_snapshot_id = None
+
+            for snapshot in snapshots:
+                trigger = snapshot.get("trigger", {})
+                source_id = trigger.get("sourceIdentifier", "")
+                if source_id == repo_identifier:
+                    prev_snapshot_id = snapshot["snapshot_id"]
+                    break
+
+            if not prev_snapshot_id:
+                print("[DetectGitHubChanges] No previous snapshot found, doing full extraction")
+                state["incremental_mode"] = False
+                return state
+
+            print(f"[DetectGitHubChanges] Found previous snapshot: {prev_snapshot_id}")
+            state["previous_snapshot_id"] = prev_snapshot_id
+            state["incremental_mode"] = True
+            state["current_stage"] = "github_changes_detected"
+
+        except FileNotFoundError:
+            print("[DetectGitHubChanges] No snapshots directory, doing full extraction")
+            state["incremental_mode"] = False
+
+    except Exception as e:
+        print(f"[DetectGitHubChanges] Error: {e}, falling back to full extraction")
+        state["incremental_mode"] = False
+        state["current_stage"] = "github_change_detection_failed"
+
+    return state
+
+
+def extract_text_github_node(state: KnowledgeExtractionState) -> KnowledgeExtractionState:
+    """
+    Node that extracts text from GitHub repository.
+    Supports incremental mode (only extract changed files).
+    github_url -> text_chunks, github_raw_data
+    """
+    try:
+        from src.extract.github.github_text_extractor import extract_text_from_github
+        from src.utils.source_change_detector import load_source_raw
+
+        github_url = state["files"][0]["path"]
+        chunks = extract_text_from_github(github_url)
+
+        # Extract github_raw_data from first chunk
+        github_raw_data = chunks[0].pop("_github_raw_data", None) if chunks else None
+
+        # Apply incremental filtering if enabled
+        if state.get("incremental_mode") and github_raw_data:
+            prev_snapshot_id = state.get("previous_snapshot_id")
+            project = state.get("project", "default")
+            output_dir = state.get("output_dir", "/workspace/app/output")
+
+            # Load previous snapshot data
+            prev_raw = load_source_raw(project, prev_snapshot_id, output_dir)
+
+            if prev_raw and "file_map" in prev_raw:
+                prev_file_map = prev_raw.get("file_map", {})
+                curr_file_map = github_raw_data.get("file_map", {})
+
+                prev_ids = set(prev_file_map.keys())
+                curr_ids = set(curr_file_map.keys())
+
+                new_ids = curr_ids - prev_ids
+                deleted_ids = prev_ids - curr_ids
+
+                # Find modified files (check SHA changes)
+                modified_ids = set()
+                for file_id in prev_ids & curr_ids:
+                    prev_sha = prev_file_map[file_id].get("sha", "")
+                    curr_sha = curr_file_map[file_id].get("sha", "")
+                    if prev_sha != curr_sha:
+                        modified_ids.add(file_id)
+
+                changed_ids = new_ids | modified_ids
+
+                # Filter chunks to only changed files
+                filtered_chunks = [
+                    chunk for chunk in chunks
+                    if chunk.get("file_id") in changed_ids
+                ]
+
+                print(f"[ExtractTextGitHubNode] Incremental mode: "
+                      f"new={len(new_ids)}, modified={len(modified_ids)}, "
+                      f"deleted={len(deleted_ids)}, processing={len(filtered_chunks)} chunks")
+
+                # Store deleted/changed file IDs for cleanup and merging
+                state["deleted_item_ids"] = list(deleted_ids)
+                state["changed_item_ids"] = list(changed_ids)
+
+                chunks = filtered_chunks
+            else:
+                print("[ExtractTextGitHubNode] Could not load previous data, using full extraction")
+                state["incremental_mode"] = False
+
+        # Convert chunks to sentences format expected by downstream nodes
+        sentences = []
+
+        for chunk in chunks:
+            if chunk.get("text"):
+                sentences.append({
+                    "text": chunk["text"],
+                    "metadata": chunk.get("metadata", {}),
+                    "file_id": chunk.get("file_id")  # Preserve file-level file_id
+                })
+
+        # Store results in State
+        state["sentences"] = sentences
+        state["file_id"] = chunks[0].get("file_id", "") if chunks else ""
+        state["file_name"] = f"{github_raw_data['owner']}/{github_raw_data['repo']}" if github_raw_data else "GitHub Repository"
+        state["github_raw_data"] = github_raw_data
+        state["current_stage"] = "text_extracted_github"
+
+        print(f"[ExtractTextGitHubNode] Extracted {len(sentences)} items from GitHub repository")
+
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        state.setdefault("errors", [])
+        state["errors"].append(f"GitHub text extraction failed: {e}")
+        state["sentences"] = []
+        state["current_stage"] = "text_extraction_failed"
+
+    return state
+
+
 def transform_to_chunks_node(state: KnowledgeExtractionState) -> KnowledgeExtractionState:
     """
     Node that splits extracted text into chunks

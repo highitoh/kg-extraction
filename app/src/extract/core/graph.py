@@ -8,9 +8,11 @@ from src.extract.core.state import KnowledgeExtractionState
 from src.extract.core.nodes import (
     classify_file_type_node,
     detect_miro_changes_node,
+    detect_github_changes_node,
     extract_text_document_node,
     extract_text_presentation_node,
     extract_text_miro_node,
+    extract_text_github_node,
     transform_to_chunks_node,
     extract_images_node,
     merge_chunks_node,
@@ -35,7 +37,8 @@ def create_knowledge_extraction_graph():
       ↓ (conditional routing)
       ├─→ extract_text_document ─┐
       ├─→ extract_text_presentation ─┤
-      └─→ detect_miro_changes (Miro only) → extract_text_miro ─┘
+      ├─→ detect_miro_changes (Miro only) → extract_text_miro ─┤
+      └─→ detect_github_changes (GitHub only) → extract_text_github ─┘
               ↓                     ↘
          transform_to_chunks     extract_images (parallel - image-to-text)
               ↓                     ↙
@@ -62,9 +65,11 @@ def create_knowledge_extraction_graph():
     # ========== Add Nodes ==========
     workflow.add_node("classify_file_type", classify_file_type_node)
     workflow.add_node("detect_miro_changes", detect_miro_changes_node)
+    workflow.add_node("detect_github_changes", detect_github_changes_node)
     workflow.add_node("extract_text_document", extract_text_document_node)
     workflow.add_node("extract_text_presentation", extract_text_presentation_node)
     workflow.add_node("extract_text_miro", extract_text_miro_node)
+    workflow.add_node("extract_text_github", extract_text_github_node)
     workflow.add_node("transform_to_chunks", transform_to_chunks_node)
     workflow.add_node("extract_images", extract_images_node)
     workflow.add_node("merge_chunks", merge_chunks_node)
@@ -80,10 +85,12 @@ def create_knowledge_extraction_graph():
 
     # ========== Add Conditional Edges ==========
     # Select text extraction node based on file type
-    # For Miro, route to change detection first
+    # For Miro and GitHub, route to change detection first
     def route_after_classify(state):
         file_type = state.get("file_type")
-        if file_type == "miro_board":
+        if file_type == "github_repo":
+            return "detect_github_changes"
+        elif file_type == "miro_board":
             return "detect_miro_changes"
         elif file_type == "document":
             return "extract_text_document"
@@ -96,11 +103,15 @@ def create_knowledge_extraction_graph():
         "classify_file_type",
         route_after_classify,
         {
+            "detect_github_changes": "detect_github_changes",
             "detect_miro_changes": "detect_miro_changes",
             "extract_text_document": "extract_text_document",
             "extract_text_presentation": "extract_text_presentation",
         }
     )
+
+    # detect_github_changes → extract_text_github
+    workflow.add_edge("detect_github_changes", "extract_text_github")
 
     # detect_miro_changes → extract_text_miro
     workflow.add_edge("detect_miro_changes", "extract_text_miro")
@@ -110,12 +121,14 @@ def create_knowledge_extraction_graph():
     workflow.add_edge("extract_text_document", "transform_to_chunks")
     workflow.add_edge("extract_text_presentation", "transform_to_chunks")
     workflow.add_edge("extract_text_miro", "transform_to_chunks")
+    workflow.add_edge("extract_text_github", "transform_to_chunks")
 
     # Image path (parallel to text chunking): text extracted → extract images → merge
     # Fan out from both text-extraction nodes so image extraction runs after file_id is known
     workflow.add_edge("extract_text_document", "extract_images")
     workflow.add_edge("extract_text_presentation", "extract_images")
     workflow.add_edge("extract_text_miro", "extract_images")
+    workflow.add_edge("extract_text_github", "extract_images")
 
     # Both paths converge at merge_chunks
     workflow.add_edge("transform_to_chunks", "merge_chunks")
