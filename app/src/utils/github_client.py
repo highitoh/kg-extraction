@@ -325,7 +325,8 @@ class GitHubClient:
         repo: str,
         path: str = "",
         ref: str = None,
-        max_depth: int = 10
+        max_depth: int = 10,
+        _log_progress: bool = True
     ) -> List[Dict[str, Any]]:
         """Recursively list all files in a directory.
 
@@ -335,6 +336,7 @@ class GitHubClient:
             path: Directory path (empty string for root)
             ref: Git ref (branch, tag, or commit SHA)
             max_depth: Maximum recursion depth to prevent infinite loops
+            _log_progress: Internal flag to control logging (default: True for top-level call)
 
         Returns:
             List of file metadata dicts (directories excluded)
@@ -349,11 +351,22 @@ class GitHubClient:
 
         all_files = []
 
+        # Log directory being scanned
+        dir_display = path if path else "(root)"
+        if _log_progress:
+            print(f"[GitHubClient] Scanning directory: {dir_display}")
+
         try:
             items = self.list_directory(owner, repo, path, ref)
         except ValueError:
             # Path is a file, not a directory
             return []
+
+        # Count files and subdirectories
+        file_count = sum(1 for item in items if item['type'] == 'file')
+        dir_count = sum(1 for item in items if item['type'] == 'dir')
+        if _log_progress:
+            print(f"[GitHubClient]   Found {file_count} files, {dir_count} subdirectories")
 
         for item in items:
             if item['type'] == 'file':
@@ -361,7 +374,7 @@ class GitHubClient:
             elif item['type'] == 'dir':
                 # Recursively list subdirectory
                 sub_files = self.list_files_recursive(
-                    owner, repo, item['path'], ref, max_depth - 1
+                    owner, repo, item['path'], ref, max_depth - 1, _log_progress
                 )
                 all_files.extend(sub_files)
 

@@ -118,16 +118,19 @@ def extract_text_from_github(
             all_files = [f for f in all_files if f["type"] == "file"]
 
         print(f"[GitHubExtractor] " +f"Found {len(all_files)} files in directory")
+        print(f"[GitHubExtractor] " +f"Fetching file contents...")
 
         # Fetch content for each file
-        for file_meta in all_files:
+        for idx, file_meta in enumerate(all_files, 1):
+            file_path = file_meta["path"]
             try:
-                content = client.get_file_content(owner, repo, file_meta["path"], ref)
+                print(f"[GitHubExtractor]   [{idx}/{len(all_files)}] {file_path}")
+                content = client.get_file_content(owner, repo, file_path, ref)
                 file_meta["content"] = content
-                file_meta["html_url"] = f"https://github.com/{owner}/{repo}/blob/{ref}/{file_meta['path']}"
+                file_meta["html_url"] = f"https://github.com/{owner}/{repo}/blob/{ref}/{file_path}"
                 raw_files.append(file_meta)
             except Exception as e:
-                print(f"[GitHubExtractor] Warning: " +f"Failed to fetch {file_meta['path']}: {e}")
+                print(f"[GitHubExtractor] Warning: " +f"Failed to fetch {file_path}: {e}")
                 continue
 
     except ValueError as e:
