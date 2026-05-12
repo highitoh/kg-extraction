@@ -24,7 +24,7 @@ from src.extract.core.state import KnowledgeExtractionState
 from src.utils.snapshot_manager import SnapshotManager
 
 
-def run_knowledge_extraction(pdf_path: str, output_dir: str = "/workspace/app/output", model: str = None, project: str = "default", create_snapshot: bool = True) -> Dict[str, Any]:
+def run_knowledge_extraction(pdf_path: str, output_dir: str = "/workspace/app/output", model: str = None, project: str = "default", create_snapshot: bool = True, date: str = None) -> Dict[str, Any]:
     """
     Execute knowledge extraction from PDF file
 
@@ -34,6 +34,7 @@ def run_knowledge_extraction(pdf_path: str, output_dir: str = "/workspace/app/ou
         model: LLM model name (if None, use default for each node)
         project: Project name (output files classified by project)
         create_snapshot: If True, create snapshot after successful extraction
+        date: Date in YYYYMMDD format for GitHub extraction at specific point in time
 
     Returns:
         Extraction result dictionary
@@ -52,6 +53,10 @@ def run_knowledge_extraction(pdf_path: str, output_dir: str = "/workspace/app/ou
     # Add model to State if specified
     if model:
         initial_state["model"] = model
+
+    # Add date to State if specified (for GitHub extraction)
+    if date:
+        initial_state["date"] = date
 
     # Execute graph
     result = app.invoke(initial_state)
@@ -100,6 +105,7 @@ if __name__ == "__main__":
     parser.add_argument("--output-dir", type=str, default="/workspace/app/output", help="Output directory (default: /workspace/app/output)")
     parser.add_argument("--project", type=str, default="default", help="Project name (default: default)")
     parser.add_argument("--no-snapshot", action="store_true", help="Skip snapshot creation (default: create snapshot)")
+    parser.add_argument("--date", type=str, default=None, help="Extract from GitHub at specific date in YYYYMMDD format (e.g., 20230115)")
 
     args = parser.parse_args()
     pdf_path = args.pdf_path
@@ -121,10 +127,12 @@ if __name__ == "__main__":
         print(f"LLM model: {args.model}")
     else:
         print(f"LLM model: Using default models for each node")
+    if args.date:
+        print(f"Date: {args.date}")
 
     try:
         create_snapshot = not args.no_snapshot
-        result = run_knowledge_extraction(pdf_path, output_dir=args.output_dir, model=args.model, project=args.project, create_snapshot=create_snapshot)
+        result = run_knowledge_extraction(pdf_path, output_dir=args.output_dir, model=args.model, project=args.project, create_snapshot=create_snapshot, date=args.date)
 
         # Check for errors
         if result.get("errors"):

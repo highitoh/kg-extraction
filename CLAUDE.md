@@ -79,6 +79,7 @@ cd app && ./extract.sh "https://miro.com/app/board/BOARD_ID" --project [PROJECT_
 cd app && python src/extract_workflow.py "https://github.com/facebook/react" --project react-docs
 cd app && python src/extract_workflow.py "https://github.com/owner/repo/tree/main/docs" --project myproject
 cd app && python src/extract_workflow.py "https://github.com/owner/repo#profile=full-knowledge" --project myproject-full
+cd app && python src/extract_workflow.py "https://github.com/owner/repo/tree/main" --project myproject-history --date 20221201
 
 # Run specific chain (for development/debugging)
 cd app && python -c "import sys; sys.path.insert(0, '.'); from src.extract.text.doc_text_chain import *"
@@ -308,10 +309,12 @@ Each changeset contains:
 python src/extract_workflow.py [PDF_PATH] [OPTIONS]
 
 Arguments:
-  PDF_PATH              Target PDF file path (default: ../doc/sample.pdf)
+  PDF_PATH              Target PDF file path or URL (default: ../doc/sample.pdf)
 
 Options:
   --project PROJECT     Project name (default: default)
   --model MODEL         LLM model name (e.g., gemini-3.1-flash-lite-preview, gpt-5-nano)
   --output-dir DIR      Output directory (default: /workspace/app/output)
+  --date YYYYMMDD       Extract from GitHub at specific date (e.g., 20230115)
+  --no-snapshot         Skip snapshot creation (default: create snapshot)
 ```

@@ -509,3 +509,56 @@ class GitHubClient:
         """
         repo_data = self.get_repo(owner, repo)
         return repo_data.get("default_branch", "main")
+
+    def get_commit_at_date(
+        self,
+        owner: str,
+        repo: str,
+        date: str,
+        branch: Optional[str] = None
+    ) -> Dict[str, Any]:
+        """Find the most recent commit on or before a specific date.
+
+        Args:
+            owner: Repository owner
+            repo: Repository name
+            date: ISO 8601 date string (e.g., "2023-01-15", "2023-01-15T10:30:00Z")
+            branch: Branch name to search (defaults to default branch)
+
+        Returns:
+            Commit metadata including:
+            - sha: Commit SHA
+            - commit: Commit details (message, author, date, etc.)
+            - author: Author information
+            - committer: Committer information
+
+        Raises:
+            ValueError: If no commit found before the specified date
+
+        Example:
+            >>> client = GitHubClient()
+            >>> commit = client.get_commit_at_date("facebook", "react", "2023-01-15")
+            >>> print(commit['sha'])
+        """
+        # Get default branch if not specified
+        if not branch:
+            branch = self.get_default_branch(owner, repo)
+
+        # Fetch commits until the specified date
+        # GitHub API returns commits in reverse chronological order
+        params = {
+            "sha": branch,
+            "until": date,
+            "per_page": 1
+        }
+
+        commits = self._make_request("GET", f"/repos/{owner}/{repo}/commits", params=params)
+
+        if not commits:
+            raise ValueError(
+                f"No commits found on branch '{branch}' before date '{date}'. "
+                f"Repository may not have existed at that time."
+            )
+
+        # Return the most recent commit before the date
+        return commits[0]

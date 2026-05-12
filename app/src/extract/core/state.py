@@ -45,6 +45,7 @@ class KnowledgeExtractionState(TypedDict, total=False):
     deleted_item_ids: Optional[List[str]]  # Item IDs deleted from board
 
     # ========== GitHub-Specific Fields ==========
+    date: Optional[str]  # Date in YYYYMMDD format for GitHub extraction at specific point in time
     github_scope: Optional[str]  # Extraction scope: "readme-only", "documentation", "diff", etc.
     github_profile: Optional[Dict[str, Any]]  # Active profile definition
     github_patterns: Optional[List[str]]  # Include patterns from profile

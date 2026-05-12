@@ -10,7 +10,8 @@ from src.utils.github_client import GitHubClient
 
 def extract_text_from_github(
     github_url: str,
-    profile_override: Optional[str] = None
+    profile_override: Optional[str] = None,
+    date: Optional[str] = None
 ) -> List[Dict[str, Any]]:
     """Extract text content from GitHub repository.
 
@@ -24,6 +25,8 @@ def extract_text_from_github(
     Args:
         github_url: GitHub repository URL or shorthand
         profile_override: Optional profile name to override URL-detected profile
+        date: Optional date in YYYYMMDD format to extract from specific point in time
+              (e.g., "20230115" for January 15, 2023)
 
     Returns:
         List of text chunks with metadata:
@@ -48,6 +51,7 @@ def extract_text_from_github(
         >>> chunks = extract_text_from_github("https://github.com/facebook/react")
         >>> len(chunks) > 0
         True
+        >>> chunks = extract_text_from_github("https://github.com/facebook/react", date="20230115")
     """
     print(f"[GitHubExtractor] Extracting text from GitHub URL: {github_url}")
 
@@ -65,13 +69,27 @@ def extract_text_from_github(
     # Initialize GitHub client
     client = GitHubClient()
 
+    # Convert date from YYYYMMDD to ISO 8601 format if provided
+    iso_date = None
+    if date:
+        if len(date) != 8 or not date.isdigit():
+            raise ValueError(f"Invalid date format: {date}. Expected YYYYMMDD (e.g., 20230115)")
+        iso_date = f"{date[:4]}-{date[4:6]}-{date[6:8]}"
+
     # Get repository metadata (always needed)
     try:
         repo_data = client.get_repo(owner, repo)
         print(f"[GitHubExtractor] " +f"Repository: {repo_data['full_name']} - {repo_data.get('description', '')}")
 
+        # If date is specified, find commit at that date
+        if iso_date:
+            print(f"[GitHubExtractor] Finding commit at date: {iso_date}")
+            commit = client.get_commit_at_date(owner, repo, iso_date, branch=ref)
+            ref = commit["sha"]
+            commit_date = commit["commit"]["committer"]["date"]
+            print(f"[GitHubExtractor] Using commit {ref[:7]} from {commit_date}")
         # Auto-detect default branch if ref is None (root URL)
-        if ref is None:
+        elif ref is None:
             ref = repo_data.get("default_branch", "main")
             print(f"[GitHubExtractor] " +f"Auto-detected default branch: {ref}")
         # Use default branch if ref is "main" but repo uses different default

@@ -329,7 +329,8 @@ def extract_text_github_node(state: KnowledgeExtractionState) -> KnowledgeExtrac
         from src.utils.source_change_detector import load_source_raw
 
         github_url = state["files"][0]["path"]
-        chunks = extract_text_from_github(github_url)
+        date = state.get("date")
+        chunks = extract_text_from_github(github_url, date=date)
 
         # Extract github_raw_data from first chunk
         github_raw_data = chunks[0].pop("_github_raw_data", None) if chunks else None
