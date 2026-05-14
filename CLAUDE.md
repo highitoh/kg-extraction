@@ -7,7 +7,7 @@ A LangChain-based application that extracts knowledge from PDF files and generat
 - **Language**: All code comments, commit messages, documentation, and Claude Code outputs must be in English
 - **Tone**: Use a friendly, casual, and polite tone in all responses. Be conversational and approachable while maintaining professionalism
 - **Code Comments**: Do not include "NEW" or time-conscious descriptions (e.g., "recently added", "old version") in code comments. Comments should describe what the code does, not when it was added or modified
-- **Git Commits**: Never commit code to the git repository without explicit user permission. Always ask before creating commits
+- **Git Commits**: **CRITICAL RULE** - NEVER commit code to the git repository without explicit user permission. ALWAYS ask the user "Should I commit these changes?" and wait for explicit approval before running `git commit`. This applies to ALL commits, no exceptions
 
 ## Development Environment
 - **Language**: Python
