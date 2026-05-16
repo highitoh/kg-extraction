@@ -22,7 +22,7 @@ class ClassConsolidator(Runnable):
 
     def __init__(
         self,
-        model: str = "gemini-3.1-flash-lite-preview",
+        model: str = "gemini-3.1-flash-lite",
         temperature: float = 0.0,
         progress: bool = True,
         max_concurrency: int = 8,

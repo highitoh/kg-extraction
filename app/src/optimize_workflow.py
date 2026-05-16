@@ -141,7 +141,7 @@ def _compute_issue_stats_from_category(
 
 def run_optimization_workflow(
     projects: List[str],
-    model: str = "gemini-3.1-flash-lite-preview",
+    model: str = "gemini-3.1-flash-lite",
     output_dir: str = "/workspace/app/output",
     previous_rewards: Optional[List[float]] = None,
     run_id: Optional[str] = None,
@@ -263,8 +263,8 @@ if __name__ == "__main__":
     parser.add_argument(
         "--model",
         type=str,
-        default="gemini-3.1-flash-lite-preview",
-        help="LLM model name (default: gemini-3.1-flash-lite-preview)"
+        default="gemini-3.1-flash-lite",
+        help="LLM model name (default: gemini-3.1-flash-lite)"
     )
     parser.add_argument(
         "--output-dir",

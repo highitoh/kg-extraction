@@ -27,7 +27,7 @@ class FileTypeClassifier(Runnable):
     def __init__(
         self,
         llm: BaseChatModel | None = None,
-        model: str = "gemini-3.1-flash-lite-preview",
+        model: str = "gemini-3.1-flash-lite",
         temperature: float = 0.0,
         log_dir: str = "/workspace/app/log/file_type_classifier",
     ):
@@ -239,7 +239,7 @@ if __name__ == "__main__":
 
     # Create FileTypeClassifier instance
     classifier = FileTypeClassifier(
-        model="gemini-3.1-flash-lite-preview",
+        model="gemini-3.1-flash-lite",
         temperature=0.0
     )
 

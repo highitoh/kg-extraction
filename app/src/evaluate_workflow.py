@@ -24,7 +24,7 @@ from src.evaluate.reward_calculator import RewardCalculator
 
 def run_evaluation(
     project: str = "default",
-    model: str = "gemini-3.1-flash-lite-preview",
+    model: str = "gemini-3.1-flash-lite",
     verbose: bool = False,
     max_concurrency: int = 4,
 ) -> Dict[str, Any]:
@@ -121,8 +121,8 @@ if __name__ == "__main__":
     parser.add_argument(
         "--model",
         type=str,
-        default="gemini-3.1-flash-lite-preview",
-        help="LLM model for validation (default: gemini-3.1-flash-lite-preview)"
+        default="gemini-3.1-flash-lite",
+        help="LLM model for validation (default: gemini-3.1-flash-lite)"
     )
     parser.add_argument(
         "--verbose",

@@ -32,7 +32,7 @@ class ActionPlanner:
 
     def __init__(
         self,
-        model: str = "gemini-3.1-flash-lite-preview",
+        model: str = "gemini-3.1-flash-lite",
         temperature: float = 0.0,
         max_concurrency: int = 8,
         progress: bool = True,
@@ -725,8 +725,8 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Action Planner - Generates concrete fix proposals from strategy plans")
     parser.add_argument(
         "--model",
-        default="gemini-3.1-flash-lite-preview",
-        help="LLM model name (default: gemini-3.1-flash-lite-preview)"
+        default="gemini-3.1-flash-lite",
+        help="LLM model name (default: gemini-3.1-flash-lite)"
     )
     parser.add_argument(
         "--temperature",

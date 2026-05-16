@@ -307,7 +307,7 @@ Arguments:
 
 Options:
   --project PROJECT     Project name (default: default)
-  --model MODEL         LLM model name (e.g., gemini-3.1-flash-lite-preview, gpt-5-nano)
+  --model MODEL         LLM model name (e.g., gemini-3.1-flash-lite, gpt-5-nano)
   --output-dir DIR      Output directory (default: /workspace/app/output)
   --date YYYYMMDD       Extract from GitHub at specific date (e.g., 20230115)
   --no-snapshot         Skip snapshot creation (default: create snapshot)
