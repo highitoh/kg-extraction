@@ -75,12 +75,6 @@ cd app && python src/extract_workflow.py [PDF_PATH] --project [PROJECT_NAME] --m
 cd app && python src/extract_workflow.py "https://miro.com/app/board/BOARD_ID" --project [PROJECT_NAME]
 cd app && ./extract.sh "https://miro.com/app/board/BOARD_ID" --project [PROJECT_NAME]
 
-# GitHub repository extraction
-cd app && python src/extract_workflow.py "https://github.com/facebook/react" --project react-docs
-cd app && python src/extract_workflow.py "https://github.com/owner/repo/tree/main/docs" --project myproject
-cd app && python src/extract_workflow.py "https://github.com/owner/repo#profile=full-knowledge" --project myproject-full
-cd app && python src/extract_workflow.py "https://github.com/owner/repo/tree/main" --project myproject-history --date 20221201
-
 # Run specific chain (for development/debugging)
 cd app && python -c "import sys; sys.path.insert(0, '.'); from src.extract.text.doc_text_chain import *"
 cd app && python -c "import sys; sys.path.insert(0, '.'); from src.extract.view.view_chain import *"
