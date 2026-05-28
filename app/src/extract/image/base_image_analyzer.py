@@ -100,25 +100,6 @@ class BaseImageAnalyzer(Runnable):
     # ========== Image utilities ==========
 
     @staticmethod
-    def _resize_image(image: Image.Image, max_width: int = 1024) -> Image.Image:
-        """Resize image maintaining aspect ratio.
-
-        Args:
-            image: PIL Image
-            max_width: Maximum width in pixels
-
-        Returns:
-            Resized PIL Image
-        """
-        if image.width <= max_width:
-            return image
-
-        aspect_ratio = image.height / image.width
-        new_width = max_width
-        new_height = int(new_width * aspect_ratio)
-        return image.resize((new_width, new_height), Image.Resampling.LANCZOS)
-
-    @staticmethod
     def _image_to_base64(image: Image.Image) -> str:
         """Convert PIL Image to base64 string.
 
@@ -161,9 +142,8 @@ class BaseImageAnalyzer(Runnable):
             }
         """
         async with semaphore:
-            # Resize image
-            resized = self._resize_image(image, max_width=1024)
-            base64_img = self._image_to_base64(resized)
+            # Convert image to base64 (caller should resize before calling if needed)
+            base64_img = self._image_to_base64(image)
 
             # Send to LLM
             msg = HumanMessage(
