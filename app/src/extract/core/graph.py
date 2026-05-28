@@ -97,14 +97,8 @@ def create_knowledge_extraction_graph():
         if file_type == "github_repo":
             return "detect_github_changes"
         elif file_type == "miro_board":
-            # Check if this is the PDF+API mode or URL-only mode
-            miro_board_url = state.get("miro_board_url")
-            if miro_board_url:
-                # PDF + Miro URL (skip change detection)
-                return "extract_text_miro_board"
-            else:
-                # URL-only (use change detection)
-                return "detect_miro_changes"
+            # Both PDF+API and URL-only modes go through change detection
+            return "detect_miro_changes"
         elif file_type == "document":
             return "extract_text_document"
         elif file_type == "presentation":
@@ -127,8 +121,24 @@ def create_knowledge_extraction_graph():
     # detect_github_changes → extract_text_github
     workflow.add_edge("detect_github_changes", "extract_text_github")
 
-    # detect_miro_changes → extract_text_miro
-    workflow.add_edge("detect_miro_changes", "extract_text_miro")
+    # detect_miro_changes → route based on mode (PDF+URL vs URL-only)
+    def route_after_miro_changes(state):
+        miro_board_url = state.get("miro_board_url")
+        if miro_board_url:
+            # PDF + URL mode: proceed to PDF+API extraction
+            return "extract_text_miro_board"
+        else:
+            # URL-only mode: use old extraction path
+            return "extract_text_miro"
+
+    workflow.add_conditional_edges(
+        "detect_miro_changes",
+        route_after_miro_changes,
+        {
+            "extract_text_miro_board": "extract_text_miro_board",
+            "extract_text_miro": "extract_text_miro",
+        }
+    )
 
     # New miro_board path: extract_text_miro_board → extract_images_miro_board → transform_to_chunks
     workflow.add_edge("extract_text_miro_board", "extract_images_miro_board")

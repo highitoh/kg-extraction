@@ -127,14 +127,23 @@ def detect_miro_changes_node(state: KnowledgeExtractionState) -> KnowledgeExtrac
     """
     Node that detects changes in Miro board.
     Sets incremental mode and identifies changed/deleted items.
-    Only runs for Miro file_type.
+    Supports both URL-only mode and PDF+URL mode.
     """
     try:
         from src.utils.snapshot_repository import SnapshotRepository
-        from src.extract.miro.miro_text_extractor import parse_board_id_from_url
 
-        miro_url = state["files"][0]["path"]
-        board_id = parse_board_id_from_url(miro_url)
+        # Get board ID from either PDF+URL mode or URL-only mode
+        miro_board_url = state.get("miro_board_url")
+        if miro_board_url:
+            # PDF+URL mode: board URL is in state
+            from src.extract.miro.miro_board_text_extractor import parse_board_id_from_url
+            board_id = parse_board_id_from_url(miro_board_url)
+        else:
+            # URL-only mode: URL is in files path
+            from src.extract.miro.miro_text_extractor import parse_board_id_from_url
+            miro_url = state["files"][0]["path"]
+            board_id = parse_board_id_from_url(miro_url)
+
         project = state.get("project", "default")
         output_dir = state.get("output_dir", "/workspace/app/output")
 
@@ -1001,15 +1010,99 @@ def generate_outputs_node(state: KnowledgeExtractionState) -> KnowledgeExtractio
 def extract_text_miro_board_node(state: KnowledgeExtractionState) -> KnowledgeExtractionState:
     """
     Extract text from Miro board (PDF + API) and match pages to Frames/Diagrams.
-    New miro_board mode that combines PDF and Miro API data.
+    Supports incremental mode: only process changed items.
     """
     try:
         from src.extract.miro.miro_board_text_extractor import extract_text_from_miro_board
+        from src.utils.source_change_detector import load_source_raw
 
         pdf_path = state["files"][0]["path"]
         miro_board_url = state["miro_board_url"]
 
         result = extract_text_from_miro_board(pdf_path, miro_board_url)
+
+        # Apply incremental filtering if enabled
+        if state.get("incremental_mode"):
+            prev_snapshot_id = state.get("previous_snapshot_id")
+            project = state.get("project", "default")
+            output_dir = state.get("output_dir", "/workspace/app/output")
+
+            # Load previous snapshot data
+            prev_raw = load_source_raw(project, prev_snapshot_id, output_dir)
+            miro_raw_data = result["miro_raw_data"]
+
+            if prev_raw and miro_raw_data:
+                print("[ExtractTextMiroBoard] Incremental mode: detecting changes...")
+
+                # Detect changes at item level
+                prev_items = {item["id"]: item for item in prev_raw.get("items", [])}
+                curr_items = {item["id"]: item for item in miro_raw_data.get("items", [])}
+
+                prev_ids = set(prev_items.keys())
+                curr_ids = set(curr_items.keys())
+
+                new_ids = curr_ids - prev_ids
+                deleted_ids = prev_ids - curr_ids
+                common_ids = prev_ids & curr_ids
+
+                # Find modified items (compare content/title)
+                modified_ids = set()
+                for item_id in common_ids:
+                    prev_item = prev_items[item_id]
+                    curr_item = curr_items[item_id]
+
+                    prev_content = prev_item.get("data", {}).get("content", "")
+                    curr_content = curr_item.get("data", {}).get("content", "")
+                    prev_title = prev_item.get("data", {}).get("title", "")
+                    curr_title = curr_item.get("data", {}).get("title", "")
+
+                    if prev_content != curr_content or prev_title != curr_title:
+                        modified_ids.add(item_id)
+
+                changed_ids = new_ids | modified_ids
+
+                print(f"[ExtractTextMiroBoard] Changes detected: {len(new_ids)} new, {len(modified_ids)} modified, {len(deleted_ids)} deleted")
+
+                if changed_ids:
+                    # Filter visual_items to only include Frames/Diagrams with changed children
+                    changed_visual_items = []
+                    for visual_item in result["miro_visual_items"]:
+                        # Check if this Frame/Diagram or any of its children changed
+                        item_id = visual_item["item_id"]
+                        child_ids = {child["id"] for child in visual_item.get("child_items", [])}
+
+                        if item_id in changed_ids or child_ids & changed_ids:
+                            changed_visual_items.append(visual_item)
+
+                    result["miro_visual_items"] = changed_visual_items
+
+                    # Filter item_page_mappings to only include changed items
+                    result["item_page_mappings"] = [
+                        mapping for mapping in result["item_page_mappings"]
+                        if mapping["item_id"] in {item["item_id"] for item in changed_visual_items}
+                    ]
+
+                    # Filter text chunks to only include changed items
+                    result["sentences"] = [
+                        sent for sent in result["sentences"]
+                        if any(changed_id in sent["file_id"] for changed_id in changed_ids)
+                    ]
+
+                    state["changed_item_ids"] = list(changed_ids)
+                    state["deleted_item_ids"] = list(deleted_ids)
+
+                    print(f"[ExtractTextMiroBoard] Filtered to {len(result['miro_visual_items'])} changed visual items")
+                    print(f"[ExtractTextMiroBoard] Filtered to {len(result['item_page_mappings'])} changed page mappings")
+                else:
+                    print("[ExtractTextMiroBoard] No changes detected, skipping extraction")
+                    state["incremental_mode"] = False
+                    result["sentences"] = []
+                    result["miro_visual_items"] = []
+                    result["item_page_mappings"] = []
+                    state["deleted_item_ids"] = list(deleted_ids) if deleted_ids else []
+            else:
+                print("[ExtractTextMiroBoard] Could not load previous snapshot, doing full extraction")
+                state["incremental_mode"] = False
 
         # Update state with results
         state["sentences"] = result["sentences"]
