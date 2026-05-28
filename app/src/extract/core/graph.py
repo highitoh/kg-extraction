@@ -12,6 +12,8 @@ from src.extract.core.nodes import (
     extract_text_document_node,
     extract_text_presentation_node,
     extract_text_miro_node,
+    extract_text_miro_board_node,
+    extract_images_miro_board_node,
     extract_text_github_node,
     transform_to_chunks_node,
     extract_images_node,
@@ -37,7 +39,8 @@ def create_knowledge_extraction_graph():
       ↓ (conditional routing)
       ├─→ extract_text_document ─┐
       ├─→ extract_text_presentation ─┤
-      ├─→ detect_miro_changes (Miro only) → extract_text_miro ─┤
+      ├─→ extract_text_miro_board (Miro PDF+API) → extract_images_miro_board ─┤
+      ├─→ detect_miro_changes (Miro URL-only) → extract_text_miro ─┤
       └─→ detect_github_changes (GitHub only) → extract_text_github ─┘
               ↓                     ↘
          transform_to_chunks     extract_images (parallel - image-to-text)
@@ -69,6 +72,8 @@ def create_knowledge_extraction_graph():
     workflow.add_node("extract_text_document", extract_text_document_node)
     workflow.add_node("extract_text_presentation", extract_text_presentation_node)
     workflow.add_node("extract_text_miro", extract_text_miro_node)
+    workflow.add_node("extract_text_miro_board", extract_text_miro_board_node)
+    workflow.add_node("extract_images_miro_board", extract_images_miro_board_node)
     workflow.add_node("extract_text_github", extract_text_github_node)
     workflow.add_node("transform_to_chunks", transform_to_chunks_node)
     workflow.add_node("extract_images", extract_images_node)
@@ -85,13 +90,21 @@ def create_knowledge_extraction_graph():
 
     # ========== Add Conditional Edges ==========
     # Select text extraction node based on file type
-    # For Miro and GitHub, route to change detection first
+    # For Miro board with PDF+URL, route directly to new path
+    # For old Miro URL-only mode, route to change detection first
     def route_after_classify(state):
         file_type = state.get("file_type")
         if file_type == "github_repo":
             return "detect_github_changes"
         elif file_type == "miro_board":
-            return "detect_miro_changes"
+            # Check if this is the PDF+API mode or URL-only mode
+            miro_board_url = state.get("miro_board_url")
+            if miro_board_url:
+                # PDF + Miro URL (skip change detection)
+                return "extract_text_miro_board"
+            else:
+                # URL-only (use change detection)
+                return "detect_miro_changes"
         elif file_type == "document":
             return "extract_text_document"
         elif file_type == "presentation":
@@ -105,6 +118,7 @@ def create_knowledge_extraction_graph():
         {
             "detect_github_changes": "detect_github_changes",
             "detect_miro_changes": "detect_miro_changes",
+            "extract_text_miro_board": "extract_text_miro_board",
             "extract_text_document": "extract_text_document",
             "extract_text_presentation": "extract_text_presentation",
         }
@@ -115,6 +129,11 @@ def create_knowledge_extraction_graph():
 
     # detect_miro_changes → extract_text_miro
     workflow.add_edge("detect_miro_changes", "extract_text_miro")
+
+    # New miro_board path: extract_text_miro_board → extract_images_miro_board → transform_to_chunks
+    workflow.add_edge("extract_text_miro_board", "extract_images_miro_board")
+    workflow.add_edge("extract_images_miro_board", "transform_to_chunks")
+    workflow.add_edge("extract_images_miro_board", "merge_chunks")
 
     # ========== Add Unconditional Edges ==========
     # Text path: extract → chunk

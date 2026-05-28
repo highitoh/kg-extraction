@@ -24,7 +24,7 @@ from src.extract.core.state import KnowledgeExtractionState
 from src.utils.snapshot_manager import SnapshotManager
 
 
-def run_knowledge_extraction(pdf_path: str, output_dir: str = "/workspace/app/output", model: str = None, project: str = "default", create_snapshot: bool = True, date: str = None) -> Dict[str, Any]:
+def run_knowledge_extraction(pdf_path: str, output_dir: str = "/workspace/app/output", model: str = None, project: str = "default", create_snapshot: bool = True, date: str = None, miro_board_url: str = None) -> Dict[str, Any]:
     """
     Execute knowledge extraction from PDF file
 
@@ -35,6 +35,7 @@ def run_knowledge_extraction(pdf_path: str, output_dir: str = "/workspace/app/ou
         project: Project name (output files classified by project)
         create_snapshot: If True, create snapshot after successful extraction
         date: Date in YYYYMMDD format for GitHub extraction at specific point in time
+        miro_board_url: Miro board URL (for PDF exports of Miro boards)
 
     Returns:
         Extraction result dictionary
@@ -57,6 +58,10 @@ def run_knowledge_extraction(pdf_path: str, output_dir: str = "/workspace/app/ou
     # Add date to State if specified (for GitHub extraction)
     if date:
         initial_state["date"] = date
+
+    # Add miro_board_url to State if specified (for Miro board PDF extraction)
+    if miro_board_url:
+        initial_state["miro_board_url"] = miro_board_url
 
     # Execute graph
     result = app.invoke(initial_state)
@@ -106,6 +111,7 @@ if __name__ == "__main__":
     parser.add_argument("--project", type=str, default="default", help="Project name (default: default)")
     parser.add_argument("--no-snapshot", action="store_true", help="Skip snapshot creation (default: create snapshot)")
     parser.add_argument("--date", type=str, default=None, help="Extract from GitHub at specific date in YYYYMMDD format (e.g., 20230115)")
+    parser.add_argument("--miro-url", type=str, default=None, help="Miro board URL (for PDF exports of Miro boards)")
 
     args = parser.parse_args()
     pdf_path = args.pdf_path
@@ -129,10 +135,12 @@ if __name__ == "__main__":
         print(f"LLM model: Using default models for each node")
     if args.date:
         print(f"Date: {args.date}")
+    if args.miro_url:
+        print(f"Miro board URL: {args.miro_url}")
 
     try:
         create_snapshot = not args.no_snapshot
-        result = run_knowledge_extraction(pdf_path, output_dir=args.output_dir, model=args.model, project=args.project, create_snapshot=create_snapshot, date=args.date)
+        result = run_knowledge_extraction(pdf_path, output_dir=args.output_dir, model=args.model, project=args.project, create_snapshot=create_snapshot, date=args.date, miro_board_url=args.miro_url)
 
         # Check for errors
         if result.get("errors"):

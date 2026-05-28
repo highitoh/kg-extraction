@@ -14,6 +14,9 @@ class MiroItemAnalyzer:
         - connector: Extract structure (start/end, label) - for future relationship inference
         - frame: Extract title as context
         - document: Extract title + plain text content
+        - diagram: Extract embedded text/labels from Smart Diagram
+        - document_format: Extract title and text content from Miro Doc
+        - data_table_format: Extract table content from Miro Table
 
     Skipped Types:
         - image: Skip initially (future: OCR)
@@ -28,6 +31,9 @@ class MiroItemAnalyzer:
         "connector",
         "frame",
         "document",
+        "diagram",
+        "document_format",
+        "data_table_format",
     }
 
     def analyze(self, raw_board_data: dict) -> list[dict]:
@@ -98,6 +104,21 @@ class MiroItemAnalyzer:
             document_url = data.get("documentUrl", "")
             # For now, just extract title. Future: fetch document content
             content = title
+
+        elif item_type == "diagram":
+            # Extract any embedded text/labels from diagram
+            content = data.get("content", "").strip() or data.get("title", "").strip()
+
+        elif item_type == "document_format":
+            # Extract title and any accessible text content from Miro Doc
+            title = data.get("title", "").strip()
+            # Placeholder: API may provide doc content in future
+            content = title
+
+        elif item_type == "data_table_format":
+            # Extract table content if available in API response
+            # Placeholder: May need to iterate cells if API provides structured data
+            content = data.get("title", "").strip()
 
         elif item_type == "connector":
             # Store connector structure for future relationship inference

@@ -38,6 +38,26 @@ class KnowledgeExtractionState(TypedDict, total=False):
     miro_raw_data: Optional[Dict[str, Any]]  # Raw Miro board data (for Miro sources)
     github_raw_data: Optional[Dict[str, Any]]  # Raw GitHub repository data (for GitHub sources)
 
+    # ========== Miro PDF-Specific Fields ==========
+    miro_board_url: Optional[str]  # Miro board URL (for miro_board file type with PDF)
+    miro_board_id: Optional[str]  # Extracted board ID (e.g., "o9J_abc123")
+    miro_visual_items: Optional[List[Dict[str, Any]]]  # Frame + Diagram items from API
+    # Visual item structure (Frame or Diagram): {
+    #   "item_id": str,
+    #   "item_type": str,  # "frame" or "diagram"
+    #   "child_items": List[Dict],  # Items with parent=item_id
+    #   "item_text": str,  # Concatenated text from all child items
+    #   "child_item_types": Dict[str, int]  # {"diagram": 2, "doc": 1, "sticky_note": 5, ...}
+    # }
+    # Note: item_title is NOT included (Frame/Diagram titles not visible in PDF)
+    item_page_mappings: Optional[List[Dict[str, Any]]]  # PDF page ↔ Frame/Diagram matches
+    # Mapping structure: {
+    #   "page_number": int,
+    #   "item_id": str,
+    #   "item_type": str,  # "frame" or "diagram"
+    #   "similarity_score": float
+    # }
+
     # ========== Incremental Extraction ==========
     incremental_mode: bool  # If True, only process changed items
     previous_snapshot_id: Optional[str]  # Previous snapshot for comparison

@@ -998,6 +998,76 @@ def generate_outputs_node(state: KnowledgeExtractionState) -> KnowledgeExtractio
 
 # ========== Routing Functions ==========
 
+def extract_text_miro_board_node(state: KnowledgeExtractionState) -> KnowledgeExtractionState:
+    """
+    Extract text from Miro board (PDF + API) and match pages to Frames/Diagrams.
+    New miro_board mode that combines PDF and Miro API data.
+    """
+    try:
+        from src.extract.miro.miro_board_text_extractor import extract_text_from_miro_board
+
+        pdf_path = state["files"][0]["path"]
+        miro_board_url = state["miro_board_url"]
+
+        result = extract_text_from_miro_board(pdf_path, miro_board_url)
+
+        # Update state with results
+        state["sentences"] = result["sentences"]
+        state["miro_visual_items"] = result["miro_visual_items"]
+        state["item_page_mappings"] = result["item_page_mappings"]
+        state["miro_board_id"] = result["miro_board_id"]
+        state["miro_raw_data"] = result["miro_raw_data"]
+        state["file_path"] = pdf_path
+        state["file_name"] = os.path.basename(pdf_path)
+        state["file_id"] = f"miro_board:{result['miro_board_id']}"
+        state["current_stage"] = "extract_text_miro_board"
+
+        print(f"[ExtractTextMiroBoard] Extracted {len(result['sentences'])} text chunks")
+        print(f"[ExtractTextMiroBoard] Found {len(result['item_page_mappings'])} page-to-item mappings")
+
+    except Exception as e:
+        print(f"[ExtractTextMiroBoard] Error: {e}")
+        import traceback
+        traceback.print_exc()
+        state["errors"].append(f"ExtractTextMiroBoard: {e}")
+        state["current_stage"] = "extract_text_miro_board_failed"
+
+    return state
+
+
+def extract_images_miro_board_node(state: KnowledgeExtractionState) -> KnowledgeExtractionState:
+    """
+    Extract images from ALL PDF pages matched to Frames/Diagrams (no screening).
+    Converts PDF pages to images and sends to LLM for analysis.
+    """
+    try:
+        from src.extract.miro.miro_board_image_extractor import MiroBoardImageExtractor
+
+        model = state.get("model")
+        extractor = MiroBoardImageExtractor(model=model) if model else MiroBoardImageExtractor()
+
+        result = extractor.invoke({
+            "pdf_path": state["file_path"],
+            "item_page_mappings": state["item_page_mappings"],
+            "file_id": state["file_id"],
+        })
+
+        state["image_chunks"] = result["image_chunks"]
+        state["image_statistics"] = result["image_statistics"]
+        state["current_stage"] = "extract_images_miro_board"
+
+        print(f"[ExtractImagesMiroBoard] Generated {len(result['image_chunks'])} image chunks")
+
+    except Exception as e:
+        print(f"[ExtractImagesMiroBoard] Error: {e}")
+        import traceback
+        traceback.print_exc()
+        state["errors"].append(f"ExtractImagesMiroBoard: {e}")
+        state["current_stage"] = "extract_images_miro_board_failed"
+
+    return state
+
+
 def route_by_file_type(state: KnowledgeExtractionState) -> str:
     """
     Routing function that determines the next node based on file type
