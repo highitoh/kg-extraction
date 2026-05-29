@@ -6,7 +6,7 @@ LangGraph node function definitions for knowledge extraction processing
 import os
 import json
 import importlib
-from typing import Dict, Any
+from typing import Dict, Any, Set, Tuple
 
 from src.extract.core.state import KnowledgeExtractionState
 from src.extract.classification.file_type_classifier import FileTypeClassifier
@@ -31,6 +31,41 @@ def _load_metamodel() -> Dict[str, Any]:
     with open(metamodel_path, "r", encoding="utf-8") as f:
         return json.load(f)
 
+def _detect_miro_item_changes(prev_raw: Dict[str, Any], curr_raw: Dict[str, Any]) -> Tuple[Set[str], Set[str], Set[str]]:
+    """Detect changes in Miro board items by comparing snapshots.
+
+    Args:
+        prev_raw: Previous snapshot raw data (with "items" key)
+        curr_raw: Current snapshot raw data (with "items" key)
+
+    Returns:
+        Tuple of (new_ids, modified_ids, deleted_ids)
+    """
+    prev_items = {item["id"]: item for item in prev_raw.get("items", [])}
+    curr_items = {item["id"]: item for item in curr_raw.get("items", [])}
+
+    prev_ids = set(prev_items.keys())
+    curr_ids = set(curr_items.keys())
+
+    new_ids = curr_ids - prev_ids
+    deleted_ids = prev_ids - curr_ids
+    common_ids = prev_ids & curr_ids
+
+    # Find modified items (compare content/title)
+    modified_ids = set()
+    for item_id in common_ids:
+        prev_item = prev_items[item_id]
+        curr_item = curr_items[item_id]
+
+        prev_content = prev_item.get("data", {}).get("content", "")
+        curr_content = curr_item.get("data", {}).get("content", "")
+        prev_title = prev_item.get("data", {}).get("title", "")
+        curr_title = curr_item.get("data", {}).get("title", "")
+
+        if prev_content != curr_content or prev_title != curr_title:
+            modified_ids.add(item_id)
+
+    return new_ids, modified_ids, deleted_ids
 
 # ========== Node Function Definitions ==========
 
@@ -195,32 +230,8 @@ def extract_text_miro_node(state: KnowledgeExtractionState) -> KnowledgeExtracti
             prev_raw = load_source_raw(project, prev_snapshot_id, output_dir)
 
             if prev_raw and miro_raw_data:
-                # Detect changes manually (inline to avoid creating temp snapshot)
-                prev_items = {item["id"]: item for item in prev_raw.get("items", [])}
-                curr_items = {item["id"]: item for item in miro_raw_data.get("items", [])}
-
-                prev_ids = set(prev_items.keys())
-                curr_ids = set(curr_items.keys())
-
-                new_ids = curr_ids - prev_ids
-                deleted_ids = prev_ids - curr_ids
-                common_ids = prev_ids & curr_ids
-
-                # Find modified items (check content/title changes)
-                modified_ids = set()
-                for item_id in common_ids:
-                    prev_item = prev_items[item_id]
-                    curr_item = curr_items[item_id]
-
-                    # Compare content and title (same logic as source_change_detector.py:96-104)
-                    prev_content = prev_item.get("data", {}).get("content", "")
-                    curr_content = curr_item.get("data", {}).get("content", "")
-                    prev_title = prev_item.get("data", {}).get("title", "")
-                    curr_title = curr_item.get("data", {}).get("title", "")
-
-                    if prev_content != curr_content or prev_title != curr_title:
-                        modified_ids.add(item_id)
-
+                # Detect changes using helper function
+                new_ids, modified_ids, deleted_ids = _detect_miro_item_changes(prev_raw, miro_raw_data)
                 changed_ids = new_ids | modified_ids
 
                 # Filter chunks to only changed items
@@ -1034,31 +1045,8 @@ def extract_text_miro_board_node(state: KnowledgeExtractionState) -> KnowledgeEx
             if prev_raw and miro_raw_data:
                 print("[ExtractTextMiroBoard] Incremental mode: detecting changes...")
 
-                # Detect changes at item level
-                prev_items = {item["id"]: item for item in prev_raw.get("items", [])}
-                curr_items = {item["id"]: item for item in miro_raw_data.get("items", [])}
-
-                prev_ids = set(prev_items.keys())
-                curr_ids = set(curr_items.keys())
-
-                new_ids = curr_ids - prev_ids
-                deleted_ids = prev_ids - curr_ids
-                common_ids = prev_ids & curr_ids
-
-                # Find modified items (compare content/title)
-                modified_ids = set()
-                for item_id in common_ids:
-                    prev_item = prev_items[item_id]
-                    curr_item = curr_items[item_id]
-
-                    prev_content = prev_item.get("data", {}).get("content", "")
-                    curr_content = curr_item.get("data", {}).get("content", "")
-                    prev_title = prev_item.get("data", {}).get("title", "")
-                    curr_title = curr_item.get("data", {}).get("title", "")
-
-                    if prev_content != curr_content or prev_title != curr_title:
-                        modified_ids.add(item_id)
-
+                # Detect changes using helper function
+                new_ids, modified_ids, deleted_ids = _detect_miro_item_changes(prev_raw, miro_raw_data)
                 changed_ids = new_ids | modified_ids
 
                 print(f"[ExtractTextMiroBoard] Changes detected: {len(new_ids)} new, {len(modified_ids)} modified, {len(deleted_ids)} deleted")
