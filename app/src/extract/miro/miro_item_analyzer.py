@@ -2,6 +2,8 @@
 
 from typing import Optional
 
+from src.utils.text_utils import clean_html_text
+
 
 class MiroItemAnalyzer:
     """Transform raw Miro board data into structured text chunks for extraction.
@@ -130,13 +132,16 @@ class MiroItemAnalyzer:
                 return {
                     "item_id": item_id,
                     "item_type": "connector",
-                    "content": label or "",
+                    "content": clean_html_text(label),
                     "position": position,
                     "metadata": {
                         "start_item": start_item,
                         "end_item": end_item,
                     },
                 }
+
+        # Strip HTML markup from rich-text content
+        content = clean_html_text(content)
 
         if not content:
             return None
