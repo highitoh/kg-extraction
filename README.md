@@ -70,7 +70,7 @@ Credentials: neo4j / neo4jpassword (described in docker-compose.yml)
 
 ```bash
 cd app
-python src/extract_workflow.py ../doc/sample.pdf
+./extract.sh ../doc/sample.pdf
 ```
 
 ### With Project Organization
@@ -78,7 +78,7 @@ python src/extract_workflow.py ../doc/sample.pdf
 Organize output files by project:
 
 ```bash
-python src/extract_workflow.py ../doc/sample.pdf --project my-project
+./extract.sh ../doc/sample.pdf --project my-project
 ```
 
 ### With Custom Model
@@ -86,13 +86,13 @@ python src/extract_workflow.py ../doc/sample.pdf --project my-project
 For development, use `gpt-5-nano` to reduce costs:
 
 ```bash
-python src/extract_workflow.py ../doc/sample.pdf --project test --model gpt-5-nano
+./extract.sh ../doc/sample.pdf --project test --model gpt-5-nano
 ```
 
 ### All Options
 
 ```bash
-python src/extract_workflow.py ../doc/sample.pdf \
+./extract.sh ../doc/sample.pdf \
   --project healthcare \
   --model gpt-5-nano \
   --output-dir ./custom_output
@@ -202,7 +202,7 @@ cd app && ./snapshot.sh rollback --project myproject --snapshot 20260425120000 -
 
 **Disable snapshots** (when running extraction):
 ```bash
-cd app && python src/extract_workflow.py ../doc/sample.pdf --no-snapshot
+cd app && ./extract.sh ../doc/sample.pdf --no-snapshot
 ```
 
 ## Configuration
@@ -259,7 +259,7 @@ docker-compose up -d neo4j
 ## Command Line Arguments
 
 ```bash
-python src/extract_workflow.py [PDF_PATH] [OPTIONS]
+./extract.sh [PDF_PATH] [OPTIONS]
 ```
 
 ### Arguments
@@ -276,16 +276,16 @@ python src/extract_workflow.py [PDF_PATH] [OPTIONS]
 
 ```bash
 # Use default settings
-python src/extract_workflow.py
+./extract.sh
 
 # Specify project name
-python src/extract_workflow.py ../doc/sample.pdf --project test
+./extract.sh ../doc/sample.pdf --project test
 
 # Development testing with cost-effective model
-python src/extract_workflow.py ../doc/sample.pdf --project test --model gpt-5-nano
+./extract.sh ../doc/sample.pdf --project test --model gpt-5-nano
 
 # All options
-python src/extract_workflow.py ../doc/sample.pdf --project test --model gpt-5-nano --output-dir /custom/output
+./extract.sh ../doc/sample.pdf --project test --model gpt-5-nano --output-dir /custom/output
 ```
 
 ## Tips
