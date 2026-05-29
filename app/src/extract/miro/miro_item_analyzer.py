@@ -15,7 +15,7 @@ class MiroItemAnalyzer:
         - frame: Extract title as context
         - document: Extract title + plain text content
         - diagram: Extract embedded text/labels from Smart Diagram
-        - document_format: Extract title and text content from Miro Doc
+        - doc_format: Extract title and text content from Miro Doc
         - data_table_format: Extract table content from Miro Table
 
     Skipped Types:
@@ -32,7 +32,7 @@ class MiroItemAnalyzer:
         "frame",
         "document",
         "diagram",
-        "document_format",
+        "doc_format",
         "data_table_format",
     }
 
@@ -109,7 +109,7 @@ class MiroItemAnalyzer:
             # Extract any embedded text/labels from diagram
             content = data.get("content", "").strip() or data.get("title", "").strip()
 
-        elif item_type == "document_format":
+        elif item_type == "doc_format":
             # Extract title and any accessible text content from Miro Doc
             title = data.get("title", "").strip()
             # Placeholder: API may provide doc content in future

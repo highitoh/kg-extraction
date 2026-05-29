@@ -119,30 +119,36 @@ def extract_text_from_miro_board(pdf_path: str, miro_board_url: str) -> Dict[str
     board_data = client.get_board(board_id)
     print(f"Board name: {board_data.get('name', 'Unnamed')}")
 
-    # Fetch items by type to reduce API calls
-    all_items = client.get_board_items(board_id)
-    print(f"Total items fetched: {len(all_items)}")
-
-    # 3. Separate items by type
-    frames = [item for item in all_items if item.get("type") == "frame"]
-    diagrams = [item for item in all_items if item.get("type") == "diagram"]
-    documents = [item for item in all_items if item.get("type") == "document_format"]
-    tables = [item for item in all_items if item.get("type") == "data_table_format"]
+    # 3. Fetch top-level container items by type.
+    # Note: the API "type" query values differ from the "type" field returned
+    # in responses for some items (e.g. Miro Docs use "doc_format").
+    frames = client.get_board_items(board_id, item_type="frame")
+    diagrams = client.get_board_items(board_id, item_type="diagram")
+    documents = client.get_board_items(board_id, item_type="doc_format")
+    tables = client.get_board_items(board_id, item_type="data_table_format")
 
     print(f"  - Frames: {len(frames)}")
     print(f"  - Diagrams: {len(diagrams)}")
     print(f"  - Documents: {len(documents)}")
     print(f"  - Tables: {len(tables)}")
 
-    # 4. Build parent-to-children map
+    # 4. Fetch children of each Frame and Diagram via parent_item_id.
+    # Both containers expose their children the same way through this endpoint.
     parent_to_children = {}
-    for item in all_items:
-        parent = item.get("parent")
-        if parent and parent.get("id"):
-            parent_id = parent["id"]
-            if parent_id not in parent_to_children:
-                parent_to_children[parent_id] = []
-            parent_to_children[parent_id].append(item)
+    all_items = frames + diagrams + documents + tables
+
+    for container in frames + diagrams:
+        container_id = container["id"]
+        try:
+            children = client.get_board_items(board_id, parent_item_id=container_id)
+            if children:
+                parent_to_children[container_id] = children
+                all_items.extend(children)
+                print(f"  - {container.get('type')} {container_id} children: {len(children)}")
+        except Exception as e:
+            print(f"  - Warning: Failed to fetch children for {container_id}: {e}")
+
+    print(f"Total items fetched: {len(all_items)}")
 
     # 5. Extract text from all relevant items
     analyzer = MiroItemAnalyzer()

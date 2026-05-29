@@ -154,12 +154,14 @@ class MiroClient:
         endpoint = f"/boards/{board_id}"
         return self._make_request("GET", endpoint)
 
-    def get_board_items(self, board_id: str, limit: int = 50) -> list[dict]:
-        """Fetch all items from a board.
+    def get_board_items(self, board_id: str, limit: int = 50, parent_item_id: str = None, item_type: str = None) -> list[dict]:
+        """Fetch items from a board.
 
         Args:
             board_id: Miro board ID
             limit: Items per page (default: 50, max: 50)
+            parent_item_id: If specified, fetch only direct children of this item
+            item_type: If specified, fetch only items of this type (e.g., "frame", "diagram")
 
         Returns:
             List of board items. Each item includes:
@@ -170,8 +172,8 @@ class MiroClient:
             - geometry: {width, height} dimensions
 
         Example:
-            >>> items = client.get_board_items("o9J_abc123")
-            >>> sticky_notes = [i for i in items if i["type"] == "sticky_note"]
+            >>> frames = client.get_board_items("o9J_abc123", item_type="frame")
+            >>> children = client.get_board_items("o9J_abc123", parent_item_id="frame_id")
         """
         endpoint = f"/boards/{board_id}/items"
 
@@ -182,6 +184,10 @@ class MiroClient:
             params = {"limit": min(limit, 50)}
             if cursor:
                 params["cursor"] = cursor
+            if parent_item_id:
+                params["parent_item_id"] = parent_item_id
+            if item_type:
+                params["type"] = item_type
 
             response = self._make_request("GET", endpoint, params=params)
             items = response.get("data", [])
