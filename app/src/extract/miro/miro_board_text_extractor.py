@@ -214,7 +214,7 @@ def extract_text_from_miro_board(pdf_path: str, miro_board_url: str) -> Dict[str
         item_page_mappings = match_pages_to_items(
             pdf_page_texts,
             visual_items,
-            threshold=0.9
+            threshold=0.3
         )
         print(f"Matched {len(item_page_mappings)} pages to Frames/Diagrams")
 
