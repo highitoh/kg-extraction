@@ -98,6 +98,13 @@ python src/extract_workflow.py ../doc/sample.pdf \
   --output-dir ./custom_output
 ```
 
+### Miro Board Extraction
+
+```bash
+cd app
+./extract.sh "https://miro.com/app/board/BOARD_ID" ../doc/sample.pdf --project my-miro-project
+```
+
 ## Project Structure
 
 ```
