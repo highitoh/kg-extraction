@@ -76,7 +76,10 @@ def classify_file_type_node(state: KnowledgeExtractionState) -> KnowledgeExtract
     """
     try:
         classifier = FileTypeClassifier(model=state.get("model"))
-        result = classifier.invoke({"files": state["files"]})
+        classifier_input = {"files": state["files"]}
+        if state.get("miro_board_url"):
+            classifier_input["miro_board_url"] = state["miro_board_url"]
+        result = classifier.invoke(classifier_input)
 
         # Get file_type and file_path
         state["file_type"] = result.get("file_type", "document")
@@ -1105,6 +1108,15 @@ def extract_text_miro_board_node(state: KnowledgeExtractionState) -> KnowledgeEx
 
         print(f"[ExtractTextMiroBoard] Extracted {len(result['sentences'])} text chunks")
         print(f"[ExtractTextMiroBoard] Found {len(result['item_page_mappings'])} page-to-item mappings")
+
+        # Save extracted text to log for inspection
+        from src.utils.logger import Logger
+        logger = Logger("/workspace/app/log/miro_text_extractor")
+        logger.save_log({
+            "board_id": result["miro_board_id"],
+            "sentences": result["sentences"],
+            "item_page_mappings": result["item_page_mappings"]
+        }, "miro_extracted_text_")
 
     except Exception as e:
         print(f"[ExtractTextMiroBoard] Error: {e}")

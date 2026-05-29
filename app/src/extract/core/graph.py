@@ -140,10 +140,9 @@ def create_knowledge_extraction_graph():
         }
     )
 
-    # New miro_board path: extract_text_miro_board → extract_images_miro_board → transform_to_chunks
+    # miro_board path: extract_text_miro_board → extract_images_miro_board → transform_to_chunks → merge_chunks
     workflow.add_edge("extract_text_miro_board", "extract_images_miro_board")
     workflow.add_edge("extract_images_miro_board", "transform_to_chunks")
-    workflow.add_edge("extract_images_miro_board", "merge_chunks")
 
     # ========== Add Unconditional Edges ==========
     # Text path: extract → chunk
