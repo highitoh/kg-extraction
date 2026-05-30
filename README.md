@@ -105,6 +105,9 @@ cd app
 ./extract.sh "https://miro.com/app/board/BOARD_ID" ../doc/sample.pdf --project my-miro-project
 ```
 
+> **Note:** Export the PDF from Miro as **Vector** (a paid Miro plan feature).
+> If exported as an image, image analysis is skipped.
+
 ## Project Structure
 
 ```
