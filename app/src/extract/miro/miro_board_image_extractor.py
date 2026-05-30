@@ -119,11 +119,11 @@ class MiroBoardImageExtractor(BaseImageAnalyzer):
 
             # Build chunk with Miro-specific metadata
             description = result["description"]
-            drawio_description = result["drawio_description"]
+            structural_description = result["structural_description"]
             has_structural = result["has_structural_content"]
 
-            # Use drawio format as primary text when structural; otherwise natural description
-            text_content = drawio_description if (has_structural and drawio_description) else description
+            # Use structural format as primary text when structural; otherwise natural description
+            text_content = structural_description if (has_structural and structural_description) else description
 
             if not text_content:
                 return None
@@ -138,7 +138,7 @@ class MiroBoardImageExtractor(BaseImageAnalyzer):
                     "item_type": item_type,
                     "has_structural_content": has_structural,
                     "image_description": description,
-                    "drawio_description": drawio_description
+                    "structural_description": structural_description
                 }
             }
 

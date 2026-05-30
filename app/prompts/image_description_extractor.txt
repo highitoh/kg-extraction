@@ -1,12 +1,16 @@
 Extract information from this image for knowledge extraction.
 
-If STRUCTURAL (UML, ER, architecture, flowchart), output the structure in draw.io format.
+If STRUCTURAL (UML, ER, architecture, flowchart), output the structure as a
+Mermaid diagram in "structural_description". Declare the diagram type on the first
+line (e.g. `flowchart TD`, `classDiagram`) and use the exact labels shown.
 
-If NON-STRUCTURAL (chart, screenshot, photo), output 2-5 sentence description.
+If NON-STRUCTURAL (chart, screenshot, photo), leave "structural_description" empty.
+
+Always output a 2-5 sentence summary in "description".
 
 Output JSON:
 {
   "description": "Natural language summary (always)",
-  "drawio_description": "Structured format (empty string if not structural)",
+  "structural_description": "Mermaid diagram if structural, else empty string",
   "has_structural_content": true|false
 }

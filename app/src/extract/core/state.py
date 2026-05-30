@@ -81,7 +81,7 @@ class KnowledgeExtractionState(TypedDict, total=False):
     # ========== Intermediate Results: Image Extraction Stage ==========
     image_chunks: List[Dict[str, Any]]  # Image descriptions as chunks (parallel to text chunks)
     # image_chunk: {
-    #   "text": str,              # Description text (drawio format or natural language)
+    #   "text": str,              # Description text (Mermaid diagram or natural language)
     #   "file_id": str,
     #   "page_number": int,
     #   "provenance": {
@@ -90,7 +90,7 @@ class KnowledgeExtractionState(TypedDict, total=False):
     #     "relevance_score": float,
     #     "has_structural_content": bool,
     #     "image_description": str,
-    #     "drawio_description": str | None
+    #     "structural_description": str | None
     #   }
     # }
     image_statistics: Dict[str, Any]  # Image pipeline statistics

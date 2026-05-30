@@ -136,7 +136,7 @@ class BaseImageAnalyzer(Runnable):
             {
                 "image_id": str,
                 "description": str,
-                "drawio_description": str | None,
+                "structural_description": str | None,
                 "has_structural_content": bool,
                 "status": "success" | "failed" | "empty"
             }
@@ -165,7 +165,7 @@ class BaseImageAnalyzer(Runnable):
                 data = json.loads(self._to_text(response.content))
 
                 description = data.get("description", "") or ""
-                drawio = data.get("drawio_description", "") or ""
+                structural = data.get("structural_description", "") or ""
                 has_structural = bool(data.get("has_structural_content", False))
 
                 if not description:
@@ -176,7 +176,7 @@ class BaseImageAnalyzer(Runnable):
                 result = {
                     "image_id": image_id,
                     "description": description,
-                    "drawio_description": drawio if drawio else None,
+                    "structural_description": structural if structural else None,
                     "has_structural_content": has_structural,
                     "status": status
                 }
@@ -190,7 +190,7 @@ class BaseImageAnalyzer(Runnable):
                 result = {
                     "image_id": image_id,
                     "description": "",
-                    "drawio_description": None,
+                    "structural_description": None,
                     "has_structural_content": False,
                     "status": f"failed ({exc})"
                 }

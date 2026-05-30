@@ -263,11 +263,11 @@ class ImageExtractor(Runnable):
                     data = json.loads(self._to_text(response.content))
 
                     description = data.get("description", "") or ""
-                    drawio = data.get("drawio_description", "") or ""
+                    structural = data.get("structural_description", "") or ""
                     has_structural = bool(data.get("has_structural_content", False))
 
-                    # Use drawio format as primary text when structural; otherwise the natural description
-                    text_content = drawio if (has_structural and drawio) else description
+                    # Use structural format as primary text when structural; otherwise the natural description
+                    text_content = structural if (has_structural and structural) else description
 
                     if not text_content:
                         status = "empty"
@@ -283,7 +283,7 @@ class ImageExtractor(Runnable):
                                 "relevance_score": image_data["relevance_score"],
                                 "has_structural_content": has_structural,
                                 "image_description": description,
-                                "drawio_description": drawio if drawio else None,
+                                "structural_description": structural if structural else None,
                             },
                         }
                 except Exception as exc:

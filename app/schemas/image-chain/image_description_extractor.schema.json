@@ -9,15 +9,15 @@
       "type": "string",
       "description": "Natural language description of the image (2-5 sentences)"
     },
-    "drawio_description": {
+    "structural_description": {
       "type": "string",
-      "description": "Draw.io-style structured description for structural diagrams (empty string for non-structural)"
+      "description": "Mermaid diagram for structural images (empty string for non-structural)"
     },
     "has_structural_content": {
       "type": "boolean",
       "description": "True if image contains structural content (UML, ER, architecture, flowchart)"
     }
   },
-  "required": ["description", "drawio_description", "has_structural_content"],
+  "required": ["description", "structural_description", "has_structural_content"],
   "additionalProperties": false
 }
