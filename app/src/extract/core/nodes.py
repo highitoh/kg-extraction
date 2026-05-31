@@ -21,6 +21,7 @@ from src.extract.property.property_chain import create_property_chain
 from src.extract.output.turtle_generator import TurtleGenerator
 from src.extract.output.neo4j_csv_generator import Neo4jCSVGenerator
 from src.utils.chunk_creator import ChunkCreator
+from src.utils.mermaid_parser import build_extracted_structure
 
 
 def _load_metamodel() -> Dict[str, Any]:
@@ -507,15 +508,18 @@ def extract_images_node(state: KnowledgeExtractionState) -> Dict[str, Any]:
 
         result = extractor.invoke(input_data)
 
+        image_chunks = result.get("image_chunks", [])
         return {
-            "image_chunks": result.get("image_chunks", []),
+            "image_chunks": image_chunks,
             "image_statistics": result.get("image_statistics", {}),
+            "extracted_structure": build_extracted_structure(image_chunks),
         }
 
     except Exception as e:
         return {
             "image_chunks": [],
             "image_statistics": {"error": str(e), "failed_message": f"Image extraction failed: {e}"},
+            "extracted_structure": [],
         }
 
 
@@ -700,7 +704,8 @@ def extract_properties_node(state: KnowledgeExtractionState) -> KnowledgeExtract
             "class_info": {
                 "classes": state["classes"]
             },
-            "metamodel": state["metamodel"]
+            "metamodel": state["metamodel"],
+            "extracted_structure": state.get("extracted_structure", [])
         }
 
         result = property_chain.invoke(input_data)
@@ -1147,9 +1152,11 @@ def extract_images_miro_board_node(state: KnowledgeExtractionState) -> Knowledge
 
         state["image_chunks"] = result["image_chunks"]
         state["image_statistics"] = result["image_statistics"]
+        state["extracted_structure"] = build_extracted_structure(result["image_chunks"])
         state["current_stage"] = "extract_images_miro_board"
 
         print(f"[ExtractImagesMiroBoard] Generated {len(result['image_chunks'])} image chunks")
+        print(f"[ExtractImagesMiroBoard] Parsed {len(state['extracted_structure'])} structural edges")
 
     except Exception as e:
         print(f"[ExtractImagesMiroBoard] Error: {e}")

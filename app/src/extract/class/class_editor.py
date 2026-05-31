@@ -610,7 +610,15 @@ class ClassEditor(Runnable):
                 else:
                     # Keep as REVIEW if label corrected (will be re-evaluated by ClassReviewer)
                     if revised_label and revised_label != c.get("label", ""):
+                        original_label = c.get("label", "")
                         c_corrected["label"] = revised_label
+                        # Preserve the original label so downstream label-based
+                        # matching (e.g. structure relation extraction) can still
+                        # resolve to this class via its pre-revision label.
+                        preserved = list(c_corrected.get("consolidated_labels", []) or [])
+                        if original_label and original_label not in preserved:
+                            preserved.append(original_label)
+                            c_corrected["consolidated_labels"] = preserved
                     # judgment = "REVIEW" unchanged
                     c_corrected["justification"] = revision_reason
 

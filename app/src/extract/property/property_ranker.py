@@ -329,6 +329,12 @@ class PropertyRanker(Runnable):
 
             strength = ranking_result.get("strength", 0)
 
+            # Frozen properties (carry-over ACCEPTs and structure-derived candidates)
+            # keep their frozen strength instead of the LLM-derived value, so the
+            # PropertyChain freeze path (skip re-review) is preserved.
+            if prop.get("_frozen_from_existing_accept") and prop.get("_frozen_strength") is not None:
+                strength = prop.get("_frozen_strength")
+
             # Create property with updated strength and ranker_justification
             ranked_prop = {
                 "id": prop.get("id") or str(uuid.uuid4()),
@@ -343,6 +349,8 @@ class PropertyRanker(Runnable):
                 ranked_prop["_frozen_from_existing_accept"] = prop.get("_frozen_from_existing_accept")
             if "_frozen_strength" in prop:
                 ranked_prop["_frozen_strength"] = prop.get("_frozen_strength")
+            if "_structure_derived" in prop:
+                ranked_prop["_structure_derived"] = prop.get("_structure_derived")
             ranked_properties.append(ranked_prop)
 
             # Add label information and evaluation information for logging

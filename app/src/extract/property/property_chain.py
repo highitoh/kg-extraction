@@ -197,6 +197,7 @@ class PropertyChainWithReview(Runnable):
         for p in properties:
             p.pop("_frozen_from_existing_accept", None)
             p.pop("_frozen_strength", None)
+            p.pop("_structure_derived", None)
         return properties
 
     def invoke(self, input: Dict[str, Any], config=None) -> Dict[str, Any]:

@@ -14,6 +14,13 @@ from src.utils.prompt_utils import fill_prompt_template
 from src.utils.llm_retry import call_with_retry
 from src.utils.id_generator import generate_property_id
 
+
+def _normalize_label(label: str) -> str:
+    """Normalize a label for matching: trim, lowercase, collapse whitespace."""
+    if not label:
+        return ""
+    return " ".join(label.split()).strip().lower()
+
 class PropertyExtractor(Runnable):
     """
     Property (relationship) extraction
@@ -342,28 +349,158 @@ class PropertyExtractor(Runnable):
 
         return all_properties
 
+    def _build_label_index(self, classes: List[Dict[str, Any]]) -> Dict[str, List[Dict[str, Any]]]:
+        """Map normalized label -> list of class instances.
+
+        Indexes both the primary `label` and any `consolidated_labels` so that
+        instances merged away during consolidation are still resolvable.
+        """
+        index: Dict[str, List[Dict[str, Any]]] = {}
+        for cls in classes:
+            labels = [cls.get("label", "")] + list(cls.get("consolidated_labels", []) or [])
+            for label in labels:
+                norm = _normalize_label(label)
+                if not norm:
+                    continue
+                index.setdefault(norm, []).append(cls)
+        return index
+
+    def _build_class_pair_property_map(self) -> Dict[tuple, str]:
+        """Map (src_class_iri, dest_class_iri) -> property_iri from the metamodel."""
+        pair_map: Dict[tuple, str] = {}
+        for prop in self.metamodel.get("properties", []):
+            src_class = prop.get("src_class")
+            dest_class = prop.get("dest_class")
+            iri = prop.get("iri")
+            if src_class and dest_class and iri:
+                pair_map[(src_class, dest_class)] = iri
+        return pair_map
+
+    def _extract_properties_from_structure(
+        self,
+        classes: List[Dict[str, Any]],
+        extracted_structure: List[Dict[str, Any]],
+    ) -> tuple[List[Dict[str, str]], Dict[str, int]]:
+        """Derive property candidates deterministically from structural edges.
+
+        Each edge's src/dest labels are resolved to class instances (by label),
+        then the class-pair is mapped to a metamodel property via src_class/
+        dest_class. Direction is tried both ways to tolerate diagram direction
+        uncertainty. Per-diagram scoping is not possible (class instances retain
+        only the board-level file_id), so resolution is label-matching across the
+        whole board; label collisions emit a candidate for every valid pair and
+        are filtered downstream by the consolidator/validator.
+
+        Returns (candidates, summary_counts).
+        """
+        label_index = self._build_label_index(classes)
+        pair_map = self._build_class_pair_property_map()
+
+        candidates: List[Dict[str, str]] = []
+        seen = set()
+        edges_parsed = len(extracted_structure)
+        both_resolved = 0
+        no_property = 0
+
+        for edge in extracted_structure:
+            src_instances = label_index.get(_normalize_label(edge.get("src_label", "")), [])
+            dest_instances = label_index.get(_normalize_label(edge.get("dest_label", "")), [])
+            if not src_instances or not dest_instances:
+                continue
+            both_resolved += 1
+
+            matched_any = False
+            for src in src_instances:
+                for dest in dest_instances:
+                    src_iri = src.get("class_iri", "")
+                    dest_iri = dest.get("class_iri", "")
+
+                    property_iri = pair_map.get((src_iri, dest_iri))
+                    resolved_src, resolved_dest = src, dest
+                    if property_iri is None:
+                        # Try reversed direction; swap endpoints if only that matches.
+                        property_iri = pair_map.get((dest_iri, src_iri))
+                        if property_iri is not None:
+                            resolved_src, resolved_dest = dest, src
+                    if property_iri is None:
+                        continue
+
+                    matched_any = True
+                    src_id = resolved_src.get("id", "")
+                    dest_id = resolved_dest.get("id", "")
+                    key = (src_id, property_iri, dest_id)
+                    if key in seen:
+                        continue
+                    seen.add(key)
+                    candidates.append({
+                        "src_id": src_id,
+                        "property_iri": property_iri,
+                        "dest_id": dest_id,
+                    })
+
+            if not matched_any:
+                no_property += 1
+
+        summary = {
+            "edges_parsed": edges_parsed,
+            "both_resolved": both_resolved,
+            "no_metamodel_property": no_property,
+            "candidates": len(candidates),
+        }
+        return candidates, summary
+
     def invoke(self, input: Dict[str, Any], config=None) -> Dict[str, Any]:
         """Extract properties from PropertyChainInput and output PropertyChainOutput"""
         class_info = input["class_info"]
         classes = class_info.get("classes", [])
+        extracted_structure = input.get("extracted_structure", []) or []
 
         # Execute property extraction
         extracted_properties = asyncio.run(self._extract_properties_from_classes(classes))
 
+        # Derive deterministic candidates from structural edges (diagrams).
+        # Structure candidates are merged FIRST so they win ties during
+        # consolidation. They carry the frozen flags so the review loop trusts
+        # them (skip LLM review) while still passing the validator.
+        structure_candidates = []
+        structure_summary = {}
+        if extracted_structure:
+            structure_candidates, structure_summary = self._extract_properties_from_structure(
+                classes, extracted_structure
+            )
+            if self.progress:
+                print(
+                    f"[PropertyExtractor] Structure: {structure_summary['edges_parsed']} edges, "
+                    f"{structure_summary['both_resolved']} resolved, "
+                    f"{structure_summary['candidates']} candidates"
+                )
+
+        # Tag candidates with their origin and the flags that control downstream
+        # strength/review handling.
+        tagged_structure = [
+            {**c, "_structure_derived": True, "strength": 2,
+             "_frozen_from_existing_accept": True, "_frozen_strength": 2}
+            for c in structure_candidates
+        ]
+        tagged_llm = [{**c, "strength": 0} for c in extracted_properties]
+
         # Organize to match output format
         properties = []
         properties_with_labels = []
-        for prop in extracted_properties:
+        for prop in tagged_structure + tagged_llm:
             prop_id = generate_property_id(prop["src_id"], prop["property_iri"], prop["dest_id"])
 
-            # Schema-compliant property information
+            # Schema-compliant property information (preserve control flags)
             property_item = {
                 "id": prop_id,
                 "src_id": prop["src_id"],
                 "property_iri": prop["property_iri"],
                 "dest_id": prop["dest_id"],
-                "strength": 0,  # Default value, updated by PropertyRanker
+                "strength": prop.get("strength", 0),
             }
+            for flag in ("_structure_derived", "_frozen_from_existing_accept", "_frozen_strength"):
+                if flag in prop:
+                    property_item[flag] = prop[flag]
             properties.append(property_item)
 
             # Add label information for log output
@@ -383,10 +520,13 @@ class PropertyExtractor(Runnable):
 
         if self.progress:
             total_properties = len(properties)
-            print(f"[PropertyExtractor] Completed: extracted {total_properties} properties")
+            print(f"[PropertyExtractor] Completed: extracted {total_properties} properties "
+                  f"({len(tagged_structure)} from structure, {len(tagged_llm)} from LLM)")
 
-        # Save property chain output with Logger (with label information)
+        # Save property chain output with Logger (with label information + structure summary)
         log_output = {"properties": properties_with_labels}
+        if structure_summary:
+            log_output["structure_summary"] = structure_summary
         self.logger.save_log(log_output, filename_prefix="property_extractor_output_")
 
         return output

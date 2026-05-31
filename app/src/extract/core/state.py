@@ -95,6 +95,11 @@ class KnowledgeExtractionState(TypedDict, total=False):
     # }
     image_statistics: Dict[str, Any]  # Image pipeline statistics
 
+    extracted_structure: List[Dict[str, Any]]  # Format-agnostic structural edges from diagrams
+    # Parsed from diagram chunks (Mermaid today, other sources later). Consumed by
+    # PropertyExtractor to derive deterministic relationship candidates.
+    # record: {"src_label": str, "dest_label": str, "edge_label": str, "file_id": str}
+
     # ========== Intermediate Results: View Extraction Stage ==========
     views: List[Dict[str, Any]]  # View description extraction results
     # view: {
