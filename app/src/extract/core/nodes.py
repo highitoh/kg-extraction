@@ -1072,16 +1072,28 @@ def extract_text_miro_board_node(state: KnowledgeExtractionState) -> KnowledgeEx
 
                     result["miro_visual_items"] = changed_visual_items
 
+                    changed_visual_item_ids = {item["item_id"] for item in changed_visual_items}
+
                     # Filter item_page_mappings to only include changed items
                     result["item_page_mappings"] = [
                         mapping for mapping in result["item_page_mappings"]
-                        if mapping["item_id"] in {item["item_id"] for item in changed_visual_items}
+                        if mapping["item_id"] in changed_visual_item_ids
                     ]
 
-                    # Filter text chunks to only include changed items
+                    # Filter text chunks to changed items. A chunk's file_id ends
+                    # with the id of its container (Frame/Diagram) or, for
+                    # standalone Documents/Tables, the item's own id. Keep a chunk
+                    # if that id is a changed visual item OR is itself a changed id
+                    # (covers standalone items not wrapped in a Frame/Diagram).
+                    keep_ids = changed_visual_item_ids | changed_ids
+
+                    def _chunk_belongs_to_changed(sent):
+                        chunk_item_id = sent["file_id"].rsplit(":", 1)[-1]
+                        return chunk_item_id in keep_ids
+
                     result["sentences"] = [
                         sent for sent in result["sentences"]
-                        if any(changed_id in sent["file_id"] for changed_id in changed_ids)
+                        if _chunk_belongs_to_changed(sent)
                     ]
 
                     state["changed_item_ids"] = list(changed_ids)
