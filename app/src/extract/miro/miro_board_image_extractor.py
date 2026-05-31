@@ -3,7 +3,7 @@
 import asyncio
 from typing import Any, Dict, List
 
-from src.extract.image.base_image_analyzer import BaseImageAnalyzer
+from src.extract.image.base_image_analyzer import BaseImageAnalyzer, combine_description
 from src.utils.pdf_page_to_image import convert_pdf_page_to_image
 
 
@@ -122,8 +122,10 @@ class MiroBoardImageExtractor(BaseImageAnalyzer):
             structural_description = result["structural_description"]
             has_structural = result["has_structural_content"]
 
-            # Use structural format as primary text when structural; otherwise natural description
-            text_content = structural_description if (has_structural and structural_description) else description
+            # Always include the natural-language description; append the
+            # structural (Mermaid) form for structural images so both reach
+            # downstream extraction.
+            text_content = combine_description(description, structural_description, has_structural)
 
             if not text_content:
                 return None

@@ -17,6 +17,7 @@ from langchain_core.language_models.chat_models import BaseChatModel
 from langchain_core.messages import HumanMessage
 from langchain_core.runnables import Runnable
 
+from src.extract.image.base_image_analyzer import combine_description
 from src.utils.image_utils import (
     extract_image_bytes,
     passes_basic_filters,
@@ -266,8 +267,11 @@ class ImageExtractor(Runnable):
                     structural = data.get("structural_description", "") or ""
                     has_structural = bool(data.get("has_structural_content", False))
 
-                    # Use structural format as primary text when structural; otherwise the natural description
-                    text_content = structural if (has_structural and structural) else description
+                    # Always include the natural-language description in the text.
+                    # For structural images, append the structural (Mermaid) form so
+                    # both the prose summary and the explicit structure reach
+                    # downstream extraction.
+                    text_content = combine_description(description, structural, has_structural)
 
                     if not text_content:
                         status = "empty"

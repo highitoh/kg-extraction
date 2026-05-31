@@ -17,6 +17,22 @@ from src.utils.llm_retry import call_with_retry
 from src.utils.logger import Logger
 
 
+def combine_description(description: str, structural: str, has_structural: bool) -> str:
+    """Build the chunk text from an image's natural-language and structural forms.
+
+    The natural-language description is always included. For structural images,
+    the structural (Mermaid) form is appended so both the prose summary and the
+    explicit structure reach downstream extraction.
+    """
+    description = (description or "").strip()
+    structural = (structural or "").strip()
+    if has_structural and structural:
+        if description:
+            return f"{description}\n\n{structural}"
+        return structural
+    return description
+
+
 class BaseImageAnalyzer(Runnable):
     """Base class for LLM-based image analysis.
 
