@@ -69,7 +69,7 @@ cd app && python src/extract_workflow.py [PDF_PATH]
 cd app && ./extract.sh [PDF_PATH] --project [PROJECT_NAME]
 
 # All options
-cd app && python src/extract_workflow.py [PDF_PATH] --project [PROJECT_NAME] --model [MODEL_NAME] --output-dir [OUTPUT_DIR]
+cd app && python src/extract_workflow.py [PDF_PATH] --project [PROJECT_NAME] --model [MODEL_NAME] --output-dir [OUTPUT_DIR] --timestamp [YYYYMMDD]
 
 # Miro board extraction
 cd app && python src/extract_workflow.py "https://miro.com/app/board/BOARD_ID" --project [PROJECT_NAME]
@@ -310,5 +310,6 @@ Options:
   --model MODEL         LLM model name (e.g., gemini-3.1-flash-lite, gpt-5-nano)
   --output-dir DIR      Output directory (default: /workspace/app/output)
   --date YYYYMMDD       Extract from GitHub at specific date (e.g., 20230115)
+  --timestamp YYYYMMDD  Manual snapshot timestamp (e.g., 20260531). Must be later than latest snapshot.
   --no-snapshot         Skip snapshot creation (default: create snapshot)
 ```

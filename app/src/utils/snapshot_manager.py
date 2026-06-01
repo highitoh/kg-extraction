@@ -18,14 +18,16 @@ from collections import defaultdict
 class SnapshotManager:
     """Manages creation and storage of knowledge graph snapshots."""
 
-    def __init__(self, output_dir: str = "/workspace/app/output"):
+    def __init__(self, output_dir: str = "/workspace/app/output", timestamp: Optional[str] = None):
         """
         Initialize SnapshotManager.
 
         Args:
             output_dir: Base output directory for all projects
+            timestamp: Optional manual timestamp in YYYYMMDD format (converted to YYYYMMDD000000)
         """
         self.output_dir = Path(output_dir)
+        self.manual_timestamp = self._normalize_timestamp(timestamp) if timestamp else None
 
     def create_snapshot(
         self,
@@ -67,11 +69,21 @@ class SnapshotManager:
         with open(knowledge_file, 'r', encoding='utf-8') as f:
             knowledge = json.load(f)
 
+        # Get latest snapshot timestamp for validation
+        snapshots_dir = project_dir / "snapshots"
+        latest_snapshot = self._get_latest_snapshot_timestamp(snapshots_dir)
+
         # Generate snapshot ID
         snapshot_id = self._generate_snapshot_id()
 
+        # Validate time-ordering constraint
+        if latest_snapshot and snapshot_id <= latest_snapshot:
+            raise ValueError(
+                f"Timestamp {snapshot_id} must be later than latest snapshot {latest_snapshot}. "
+                f"Time-ordered extraction is required to maintain snapshot consistency."
+            )
+
         # Handle potential collision (same-second extraction)
-        snapshots_dir = project_dir / "snapshots"
         snapshot_dir = snapshots_dir / snapshot_id
 
         if snapshot_dir.exists():
@@ -170,6 +182,30 @@ class SnapshotManager:
 
         return snapshot_metadata
 
+    def _normalize_timestamp(self, timestamp: str) -> str:
+        """
+        Normalize timestamp from YYYYMMDD to YYYYMMDD000000.
+
+        Args:
+            timestamp: Timestamp in YYYYMMDD format
+
+        Returns:
+            Normalized timestamp in YYYYMMDD000000 format
+
+        Raises:
+            ValueError: If timestamp format is invalid
+        """
+        if len(timestamp) != 8:
+            raise ValueError(f"Timestamp must be in YYYYMMDD format (8 digits), got: {timestamp}")
+
+        try:
+            # Validate it's a valid date
+            datetime.strptime(timestamp, "%Y%m%d")
+        except ValueError as e:
+            raise ValueError(f"Invalid date format: {timestamp}. Expected YYYYMMDD.") from e
+
+        return f"{timestamp}000000"
+
     def _generate_snapshot_id(self) -> str:
         """
         Generate timestamp-based snapshot ID.
@@ -177,6 +213,8 @@ class SnapshotManager:
         Returns:
             Snapshot ID in format YYYYMMDDHHMMSS
         """
+        if self.manual_timestamp:
+            return self.manual_timestamp
         return datetime.now().strftime("%Y%m%d%H%M%S")
 
     def _compute_counts(self, knowledge: Dict[str, Any]) -> Dict[str, Any]:
@@ -206,6 +244,33 @@ class SnapshotManager:
             "total_properties": len(properties),
             "classes_by_type": dict(classes_by_type)
         }
+
+    def _get_latest_snapshot_timestamp(self, snapshots_dir: Path) -> Optional[str]:
+        """
+        Get the timestamp of the latest snapshot.
+
+        Args:
+            snapshots_dir: Path to snapshots directory
+
+        Returns:
+            Latest snapshot timestamp (YYYYMMDDHHMMSS) or None if no snapshots exist
+        """
+        if not snapshots_dir.exists():
+            return None
+
+        # Get all snapshot directories (excluding metadata.json)
+        snapshot_dirs = [
+            d.name for d in snapshots_dir.iterdir()
+            if d.is_dir() and d.name[0].isdigit()
+        ]
+
+        if not snapshot_dirs:
+            return None
+
+        # Return the maximum timestamp (lexicographic ordering works for YYYYMMDDHHMMSS)
+        # Handle timestamps with microseconds (format: YYYYMMDDHHMMSS_microseconds)
+        timestamps = [s.split('_')[0] for s in snapshot_dirs]
+        return max(timestamps)
 
     def _compute_file_hash(self, file_path: str) -> str:
         """

@@ -24,7 +24,7 @@ from src.extract.core.state import KnowledgeExtractionState
 from src.utils.snapshot_manager import SnapshotManager
 
 
-def run_knowledge_extraction(pdf_path: str, output_dir: str = "/workspace/app/output", model: str = None, project: str = "default", create_snapshot: bool = True, date: str = None, miro_board_url: str = None) -> Dict[str, Any]:
+def run_knowledge_extraction(pdf_path: str, output_dir: str = "/workspace/app/output", model: str = None, project: str = "default", create_snapshot: bool = True, date: str = None, miro_board_url: str = None, timestamp: str = None) -> Dict[str, Any]:
     """
     Execute knowledge extraction from PDF file
 
@@ -36,6 +36,7 @@ def run_knowledge_extraction(pdf_path: str, output_dir: str = "/workspace/app/ou
         create_snapshot: If True, create snapshot after successful extraction
         date: Date in YYYYMMDD format for GitHub extraction at specific point in time
         miro_board_url: Miro board URL (for PDF exports of Miro boards)
+        timestamp: Manual timestamp in YYYYMMDD format (converted to YYYYMMDD000000)
 
     Returns:
         Extraction result dictionary
@@ -80,7 +81,7 @@ def run_knowledge_extraction(pdf_path: str, output_dir: str = "/workspace/app/ou
     # Create snapshot if requested and extraction was successful
     if create_snapshot and result.get("summary"):
         try:
-            snapshot_mgr = SnapshotManager(output_dir=output_dir)
+            snapshot_mgr = SnapshotManager(output_dir=output_dir, timestamp=timestamp)
 
             # Check if Miro or GitHub data exists in result
             raw_source_data = result.get("miro_raw_data") or result.get("github_raw_data")
@@ -112,6 +113,7 @@ if __name__ == "__main__":
     parser.add_argument("--no-snapshot", action="store_true", help="Skip snapshot creation (default: create snapshot)")
     parser.add_argument("--date", type=str, default=None, help="Extract from GitHub at specific date in YYYYMMDD format (e.g., 20230115)")
     parser.add_argument("--miro-url", type=str, default=None, help="Miro board URL (for PDF exports of Miro boards)")
+    parser.add_argument("--timestamp", type=str, default=None, help="Manual snapshot timestamp in YYYYMMDD format (e.g., 20260531). Must be later than the latest existing snapshot.")
 
     args = parser.parse_args()
     pdf_path = args.pdf_path
@@ -137,10 +139,12 @@ if __name__ == "__main__":
         print(f"Date: {args.date}")
     if args.miro_url:
         print(f"Miro board URL: {args.miro_url}")
+    if args.timestamp:
+        print(f"Manual timestamp: {args.timestamp} (will be normalized to {args.timestamp}000000)")
 
     try:
         create_snapshot = not args.no_snapshot
-        result = run_knowledge_extraction(pdf_path, output_dir=args.output_dir, model=args.model, project=args.project, create_snapshot=create_snapshot, date=args.date, miro_board_url=args.miro_url)
+        result = run_knowledge_extraction(pdf_path, output_dir=args.output_dir, model=args.model, project=args.project, create_snapshot=create_snapshot, date=args.date, miro_board_url=args.miro_url, timestamp=args.timestamp)
 
         # Check for errors
         if result.get("errors"):
