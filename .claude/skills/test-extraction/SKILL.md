@@ -20,7 +20,7 @@ When the user asks to test extraction:
 2. **Check Results**
    ```bash
    ls -lh output/test-YYYYMMDD/
-   cat output/test-YYYYMMDD/knowledge.json | jq '{classes: (.classes | length), properties: ([.classes[].properties // [] | length] | add)}'
+   cat output/test-YYYYMMDD/knowledge.json | jq '{classes: (.classes | length), properties: (.properties | length)}'
    ```
 
 3. **Check Logs**
