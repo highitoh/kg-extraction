@@ -60,26 +60,26 @@ A LangChain-based application that extracts knowledge from PDF files and generat
 ### Development
 ```bash
 # Install dependencies
-cd app && pip install -r requirements.txt
+cd app && uv sync
 
 # Run main application (PDF extraction)
-cd app && python src/extract_workflow.py [PDF_PATH]
+cd app && uv run python src/extract_workflow.py [PDF_PATH]
 
 # Using the wrapper script (recommended)
 cd app && ./extract.sh [PDF_PATH] --project [PROJECT_NAME]
 
 # All options
-cd app && python src/extract_workflow.py [PDF_PATH] --project [PROJECT_NAME] --model [MODEL_NAME] --output-dir [OUTPUT_DIR] --timestamp [YYYYMMDD]
+cd app && uv run python src/extract_workflow.py [PDF_PATH] --project [PROJECT_NAME] --model [MODEL_NAME] --output-dir [OUTPUT_DIR] --timestamp [YYYYMMDD]
 
 # Miro board extraction
-cd app && python src/extract_workflow.py "https://miro.com/app/board/BOARD_ID" --project [PROJECT_NAME]
+cd app && uv run python src/extract_workflow.py "https://miro.com/app/board/BOARD_ID" --project [PROJECT_NAME]
 cd app && ./extract.sh "https://miro.com/app/board/BOARD_ID" --project [PROJECT_NAME]
 
 # Run specific chain (for development/debugging)
-cd app && python -c "import sys; sys.path.insert(0, '.'); from src.extract.text.doc_text_chain import *"
-cd app && python -c "import sys; sys.path.insert(0, '.'); from src.extract.view.view_chain import *"
-cd app && python -c "import sys; sys.path.insert(0, '.'); from src.extract.class.class_chain import *"
-cd app && python -c "import sys; sys.path.insert(0, '.'); from src.extract.property.property_chain import *"
+cd app && uv run python -c "import sys; sys.path.insert(0, '.'); from src.extract.text.doc_text_chain import *"
+cd app && uv run python -c "import sys; sys.path.insert(0, '.'); from src.extract.view.view_chain import *"
+cd app && uv run python -c "import sys; sys.path.insert(0, '.'); from src.extract.class.class_chain import *"
+cd app && uv run python -c "import sys; sys.path.insert(0, '.'); from src.extract.property.property_chain import *"
 ```
 
 ### Batch Extraction
@@ -140,16 +140,16 @@ Use **gpt-5-nano** when testing the entire process to reduce costs
 ### Single file extraction
 ```bash
 # Default project
-python src/extract_workflow.py ../doc/sample.pdf --model gpt-5-nano
+cd app && uv run python src/extract_workflow.py ../doc/sample.pdf --model gpt-5-nano
 
 # Specific project
-python src/extract_workflow.py ../doc/sample.pdf --project test-project --model gpt-5-nano
+cd app && uv run python src/extract_workflow.py ../doc/sample.pdf --project test-project --model gpt-5-nano
 ```
 
 ### Multiple files extraction
 ```bash
-python src/extract_workflow.py ../doc/sample.pdf --project test-project --model gpt-5-nano
-python src/extract_workflow.py ../doc/sample2.pdf --project test-project --model gpt-5-nano
+cd app && uv run python src/extract_workflow.py ../doc/sample.pdf --project test-project --model gpt-5-nano
+cd app && uv run python src/extract_workflow.py ../doc/sample2.pdf --project test-project --model gpt-5-nano
 ```
 
 ## Environment Variables
