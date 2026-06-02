@@ -2,7 +2,6 @@
 
 import asyncio
 import json
-import os
 import sys
 import argparse
 from datetime import datetime
@@ -11,7 +10,6 @@ from typing import Dict, List, Any, Optional, Tuple
 import uuid
 import glob
 
-from openai import APIConnectionError, RateLimitError, APIError
 
 # Add src directory to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent))
@@ -576,7 +574,7 @@ class IssueClassifier:
             "property_validations": merged_property_validations,
         }
 
-        print(f"[IssueClassifier] Classification completed!")
+        print("[IssueClassifier] Classification completed!")
 
         return report
 
@@ -622,7 +620,7 @@ if __name__ == "__main__":
 
         # Save report
         output_file = classifier.save_report(report)
-        print(f"\n[IssueClassifier] Classification completed!")
+        print("\n[IssueClassifier] Classification completed!")
         print(f"[IssueClassifier] Report saved to: {output_file}")
 
     except FileNotFoundError as e:

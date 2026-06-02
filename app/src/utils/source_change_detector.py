@@ -2,7 +2,7 @@
 
 import json
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Optional
 
 
 def load_source_raw(project: str, snapshot_id: str, output_dir: str = "/workspace/app/output") -> Optional[dict]:

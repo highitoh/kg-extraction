@@ -1,19 +1,17 @@
 """Action Applicator - Applies action proposals to target files."""
 
 import json
-import os
 import sys
 import argparse
 import shutil
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, List, Any, Optional
+from typing import Dict, Any, Optional
 import glob
 
 # Add src directory to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from utils.logger import Logger
 
 
 class ActionApplicator:
@@ -307,7 +305,7 @@ if __name__ == "__main__":
 
     try:
         # Create applicator
-        print(f"[ActionApplicator] Initializing ActionApplicator...")
+        print("[ActionApplicator] Initializing ActionApplicator...")
         applicator = ActionApplicator(progress=not args.no_progress, backup=not args.no_backup)
 
         # Apply updates
@@ -316,7 +314,7 @@ if __name__ == "__main__":
 
         # Save result
         output_file = applicator.save_result(result)
-        print(f"\n[ActionApplicator] Application completed!")
+        print("\n[ActionApplicator] Application completed!")
         print(f"[ActionApplicator] Result saved to: {output_file}")
 
         # Print summary
@@ -324,14 +322,14 @@ if __name__ == "__main__":
         errors = result.get("errors", [])
         backups_created = result.get("backups_created", [])
 
-        print(f"\n[ActionApplicator] Summary:")
+        print("\n[ActionApplicator] Summary:")
         print(f"  Total proposals: {result.get('total_proposals', 0)}")
         print(f"  Successfully applied: {len(updates_applied)}")
         print(f"  Errors: {len(errors)}")
         print(f"  Backups created: {len(backups_created)}")
 
         if updates_applied:
-            print(f"\n[ActionApplicator] Updates Applied:")
+            print("\n[ActionApplicator] Updates Applied:")
             for i, update in enumerate(updates_applied, 1):
                 target_type = update.get("target_type", "?")
                 target = update.get("target", "?")
@@ -339,7 +337,7 @@ if __name__ == "__main__":
                 print(f"  {i}. {target_type}:{target}{backup_info}")
 
         if errors:
-            print(f"\n[ActionApplicator] Errors:")
+            print("\n[ActionApplicator] Errors:")
             for i, error in enumerate(errors, 1):
                 target_type = error.get("target_type", "?")
                 target = error.get("target", "?")

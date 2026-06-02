@@ -1,12 +1,11 @@
 """Reward Calculator - Calculates quality scores for extracted classes and properties."""
 
 import json
-import os
 import sys
 import argparse
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, List, Any, Tuple
+from typing import Dict, Any
 import glob
 
 # Add src directory to path for imports
@@ -351,7 +350,7 @@ def main():
         # Save report
         output_file = calculator.save_report(report)
 
-        print(f"\nSuccess! Reward calculation completed.")
+        print("\nSuccess! Reward calculation completed.")
         print(f"Output file: {output_file}")
 
     except FileNotFoundError as e:

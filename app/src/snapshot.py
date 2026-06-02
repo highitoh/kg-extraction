@@ -7,7 +7,6 @@ Command-line interface for managing knowledge graph snapshots.
 import sys
 import os
 import argparse
-from pathlib import Path
 
 # Add the app directory to sys.path to enable src imports
 app_dir = os.path.dirname(os.path.dirname(__file__))
@@ -61,12 +60,12 @@ def show_command(args):
         metadata = snapshot["metadata"]
         knowledge = snapshot["knowledge"]
 
-        print(f"\n=== Snapshot Details ===")
+        print("\n=== Snapshot Details ===")
         print(f"Snapshot ID: {metadata['snapshot_id']}")
         print(f"Project: {metadata['project']}")
         print(f"Created: {metadata['created_at']}")
 
-        print(f"\nTrigger:")
+        print("\nTrigger:")
         trigger = metadata.get("trigger", {})
         # Handle both 'type' and 'triggerType' (camelCase)
         trigger_type = trigger.get("type") or trigger.get("triggerType", "unknown")
@@ -85,13 +84,13 @@ def show_command(args):
             result_file = trigger.get("extraction_result_file") or trigger.get("extractionResultFile")
             print(f"  Extraction result: {result_file}")
 
-        print(f"\nCounts:")
+        print("\nCounts:")
         counts = metadata.get("counts", {})
         print(f"  Total classes: {counts.get('total_classes', 0)}")
         print(f"  Total properties: {counts.get('total_properties', 0)}")
 
         if counts.get("classes_by_type"):
-            print(f"\n  Classes by type:")
+            print("\n  Classes by type:")
             for class_type, count in counts["classes_by_type"].items():
                 print(f"    {class_type}: {count}")
 
@@ -111,12 +110,12 @@ def latest_command(args):
         snapshot = repo.get_latest_snapshot(args.project)
         metadata = snapshot["metadata"]
 
-        print(f"\n=== Latest Snapshot ===")
+        print("\n=== Latest Snapshot ===")
         print(f"Snapshot ID: {metadata['snapshot_id']}")
         print(f"Project: {metadata['project']}")
         print(f"Created: {metadata['created_at']}")
 
-        print(f"\nTrigger:")
+        print("\nTrigger:")
         trigger = metadata.get("trigger", {})
         # Handle both 'type' and 'triggerType' (camelCase)
         trigger_type = trigger.get("type") or trigger.get("triggerType", "unknown")
@@ -131,13 +130,13 @@ def latest_command(args):
         if trigger.get("sourceName"):
             print(f"  Source Name: {trigger['sourceName']}")
 
-        print(f"\nCounts:")
+        print("\nCounts:")
         counts = metadata.get("counts", {})
         print(f"  Total classes: {counts.get('total_classes', 0)}")
         print(f"  Total properties: {counts.get('total_properties', 0)}")
 
         if counts.get("classes_by_type"):
-            print(f"\n  Classes by type:")
+            print("\n  Classes by type:")
             for class_type, count in sorted(counts["classes_by_type"].items()):
                 print(f"    {class_type}: {count}")
 
@@ -163,7 +162,7 @@ def rollback_command(args):
         # Perform rollback
         result = repo.rollback_to_snapshot(args.project, args.snapshot, backup=args.backup)
 
-        print(f"\n=== Rollback Complete ===")
+        print("\n=== Rollback Complete ===")
         print(f"Project: {result['project']}")
         print(f"Snapshot: {result['snapshot_id']}")
         print(f"Timestamp: {result['rollback_timestamp']}")

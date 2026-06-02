@@ -6,7 +6,6 @@ import os
 
 from langchain_core.runnables import Runnable
 from langchain_core.messages import HumanMessage
-from openai import APIConnectionError, RateLimitError, APIError
 
 from src.utils.logger import Logger
 from src.utils.llm_factory import LLMFactory

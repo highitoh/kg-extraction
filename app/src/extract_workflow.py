@@ -162,7 +162,7 @@ if __name__ == "__main__":
     if args.model:
         print(f"LLM model: {args.model}")
     else:
-        print(f"LLM model: Using default models for each node")
+        print("LLM model: Using default models for each node")
     if args.date:
         print(f"Date: {args.date}")
     if args.miro_url:
@@ -193,11 +193,11 @@ if __name__ == "__main__":
         if "summary" in result:
             print("\n=== Extraction Complete ===")
             print(f"Final stage: {result.get('current_stage', 'unknown')}")
-            print(f"\nGenerated files:")
+            print("\nGenerated files:")
             for file_path in result["summary"]["files_generated"]:
                 print(f"  - {file_path}")
 
-            print(f"\nSummary:")
+            print("\nSummary:")
             print(f"  - Classes extracted: {result['summary']['classes_count']}")
             print(f"  - Properties extracted: {result['summary']['properties_count']}")
 
@@ -205,7 +205,7 @@ if __name__ == "__main__":
 
         else:
             print("\n=== Extraction Failed ===")
-            print(f"Extraction did not complete successfully.")
+            print("Extraction did not complete successfully.")
             if result.get("errors"):
                 print("\nErrors encountered:")
                 for error in result["errors"]:

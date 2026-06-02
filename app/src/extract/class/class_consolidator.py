@@ -5,7 +5,6 @@ import os
 
 from langchain_core.messages import HumanMessage
 from langchain_core.runnables import Runnable
-from openai import APIConnectionError, RateLimitError, APIError
 
 from src.utils.logger import Logger
 from src.utils.llm_factory import LLMFactory
@@ -452,7 +451,7 @@ class ClassConsolidator(Runnable):
             groups = parsed.get("groups", [])
         except json.JSONDecodeError:
             if self.progress:
-                print(f"[ClassConsolidator Stage 2] JSON parse error, keeping classes separate")
+                print("[ClassConsolidator Stage 2] JSON parse error, keeping classes separate")
             return all_classes
 
         # Process groups: merge new into frozen where matched

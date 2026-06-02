@@ -2,7 +2,6 @@
 
 import json
 from pathlib import Path
-from typing import Dict, List
 
 
 def load_knowledge(project: str, snapshot_id: str, output_dir: str = "/workspace/app/output") -> dict:

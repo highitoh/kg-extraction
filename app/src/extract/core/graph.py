@@ -24,7 +24,6 @@ from src.extract.core.nodes import (
     cleanup_deleted_items_node,
     save_accumulated_knowledge_node,
     generate_outputs_node,
-    route_by_file_type,
 )
 
 

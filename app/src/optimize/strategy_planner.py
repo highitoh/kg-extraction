@@ -2,7 +2,6 @@
 
 import asyncio
 import json
-import os
 import sys
 import argparse
 from datetime import datetime
@@ -10,7 +9,6 @@ from pathlib import Path
 from typing import Dict, List, Any, Optional
 import glob
 
-from openai import APIConnectionError, RateLimitError, APIError
 
 # Add src directory to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent))
@@ -499,7 +497,7 @@ if __name__ == "__main__":
 
         # Save result
         output_file = planner.save_result(result)
-        print(f"\n[StrategyPlanner] Planning completed!")
+        print("\n[StrategyPlanner] Planning completed!")
         print(f"[StrategyPlanner] Result saved to: {output_file}")
 
         # Print summary

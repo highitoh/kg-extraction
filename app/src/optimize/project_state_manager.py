@@ -3,13 +3,10 @@ Project State Manager - Manages project state for re-extraction while preserving
 """
 
 import glob
-import json
-import os
 import re
 import shutil
-from datetime import datetime
 from pathlib import Path
-from typing import Dict, List, Any, Optional
+from typing import Dict, Any
 
 
 class ProjectStateManager:

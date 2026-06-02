@@ -4,8 +4,6 @@ from langchain_core.runnables import Runnable
 from langchain_core.runnables.config import RunnableConfig
 
 from .presentation_text_extractor import PresentationTextExtractor
-from .text_filter import TextFilter
-from .text_transformer import TextTransformer
 
 
 class PresentationTextChain(Runnable):

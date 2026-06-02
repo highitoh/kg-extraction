@@ -1,8 +1,6 @@
 """Text extraction from Miro boards (parallel to PDF text extraction)."""
 
 import re
-from datetime import datetime
-from typing import Optional
 
 from src.extract.miro.miro_item_analyzer import MiroItemAnalyzer
 from src.utils.miro_client import MiroClient

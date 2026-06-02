@@ -110,7 +110,7 @@ class GitHubClient:
                                 f"Rate limit exceeded. Resets in {wait_time / 60:.1f} minutes. "
                                 f"Use GITHUB_TOKEN for higher limits (5,000/hr vs 60/hr)."
                             )
-                    raise ValueError(f"No access to requested resource. Check repository permissions and token scopes.")
+                    raise ValueError("No access to requested resource. Check repository permissions and token scopes.")
                 elif response.status_code == 404:
                     # Extract meaningful info from endpoint for better error message
                     parts = endpoint.split("/")

@@ -150,7 +150,7 @@ class IterationWorkflow:
         Returns:
             Phase results
         """
-        print(f"\n--- Phase 2: Batch Extraction ---")
+        print("\n--- Phase 2: Batch Extraction ---")
         results = {"projects": {}, "success": True}
 
         for project in self.projects:
@@ -168,7 +168,7 @@ class IterationWorkflow:
                     )
                     project_results["files"].append({"file": pdf_path, "success": True})
                     project_results["success_count"] += 1
-                    print(f"      Extraction complete")
+                    print("      Extraction complete")
                 except Exception as e:
                     project_results["files"].append({"file": pdf_path, "success": False, "error": str(e)})
                     project_results["fail_count"] += 1
@@ -192,7 +192,7 @@ class IterationWorkflow:
         Returns:
             Dictionary mapping project to evaluation results
         """
-        print(f"\n--- Phase 3: Evaluation ---")
+        print("\n--- Phase 3: Evaluation ---")
         results = {}
 
         for project in self.projects:
@@ -217,7 +217,7 @@ class IterationWorkflow:
         Returns:
             Optimization results
         """
-        print(f"\n--- Phase 4: Optimization ---")
+        print("\n--- Phase 4: Optimization ---")
         try:
             # Gather reward history for strategy planner
             recent_rewards = self.quality_tracker.get_recent_rewards(last_n=5)
@@ -245,7 +245,7 @@ class IterationWorkflow:
         Returns:
             Application results
         """
-        print(f"\n--- Phase 5: Apply Proposals ---")
+        print("\n--- Phase 5: Apply Proposals ---")
 
         if not self.apply_changes:
             print("  Skipping (--no-apply flag set)")
@@ -313,7 +313,7 @@ class IterationWorkflow:
         }
 
         # Phase 1: Reset for extraction
-        print(f"\n--- Phase 1: Reset for Extraction ---")
+        print("\n--- Phase 1: Reset for Extraction ---")
         for project in self.projects:
             # Archive previous artifacts (if not first iteration)
             if iteration > 1:
@@ -362,7 +362,7 @@ class IterationWorkflow:
         self._save_state()
 
         # Phase 6: Record quality metrics
-        print(f"\n--- Phase 6: Quality Recording ---")
+        print("\n--- Phase 6: Quality Recording ---")
         reward_reports = self._load_reward_reports()
         quality_entry = self.quality_tracker.record_quality(iteration, reward_reports)
         iteration_result["combined_quality_score"] = quality_entry.get("combined_average_score")
@@ -445,7 +445,7 @@ class IterationWorkflow:
         try:
             # Fresh run only: clear stale optimize artifacts to avoid cross-run contamination.
             if start_iteration == 1 and not self.is_resume_mode:
-                print(f"\n--- Pre-run Cleanup: Optimize Artifacts ---")
+                print("\n--- Pre-run Cleanup: Optimize Artifacts ---")
                 cleanup_result = self.state_manager.cleanup_optimize_artifacts(keep_last_n=0)
                 removed_count = len(cleanup_result.get("files_removed", []))
                 kept_count = len(cleanup_result.get("files_kept", []))

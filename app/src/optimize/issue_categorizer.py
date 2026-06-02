@@ -2,7 +2,6 @@
 
 import asyncio
 import json
-import os
 import sys
 import argparse
 from datetime import datetime
@@ -10,7 +9,6 @@ from pathlib import Path
 from typing import Dict, List, Any, Optional
 import glob
 
-from openai import APIConnectionError, RateLimitError, APIError
 
 # Add src directory to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent))
@@ -334,7 +332,7 @@ if __name__ == "__main__":
 
         # Save report
         output_file = categorizer.save_report(report)
-        print(f"\n[IssueCategorizer] Categorization completed!")
+        print("\n[IssueCategorizer] Categorization completed!")
         print(f"[IssueCategorizer] Report saved to: {output_file}")
 
     except FileNotFoundError as e:

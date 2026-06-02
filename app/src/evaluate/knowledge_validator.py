@@ -2,7 +2,6 @@
 
 import asyncio
 import json
-import os
 import sys
 import argparse
 from datetime import datetime
@@ -11,7 +10,6 @@ from typing import Dict, List, Any, Optional, Tuple
 import uuid
 import glob
 
-from openai import APIConnectionError, RateLimitError, APIError
 
 # Add src directory to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent))
@@ -761,7 +759,7 @@ if __name__ == "__main__":
 
         # Save report
         output_file = validator.save_report(report)
-        print(f"\nValidation completed!")
+        print("\nValidation completed!")
         print(f"Report saved to: {output_file}")
 
     except FileNotFoundError as e:

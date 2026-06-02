@@ -68,7 +68,7 @@ def run_evaluation(
         }
         results["stages_completed"].append("validation")
 
-        print(f"\nValidation completed!")
+        print("\nValidation completed!")
         print(f"  - Classes validated: {results['validation_summary']['classes_validated']}")
         print(f"  - Properties validated: {results['validation_summary']['properties_validated']}")
         print(f"  - Report saved to: {validation_file}")
@@ -160,7 +160,7 @@ if __name__ == "__main__":
 
             if "reward_summary" in results:
                 summary = results["reward_summary"]
-                print(f"\nQuality Metrics:")
+                print("\nQuality Metrics:")
                 print(f"  - Overall average score: {summary.get('overall_average_score', 'N/A')}")
                 print(f"  - Total classes: {summary.get('total_classes', 0)}")
                 print(f"  - Total properties: {summary.get('total_properties', 0)}")

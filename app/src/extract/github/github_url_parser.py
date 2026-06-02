@@ -1,8 +1,7 @@
 """Parse GitHub URLs and detect extraction strategy."""
 
-import re
 from typing import Dict, Optional
-from urllib.parse import urlparse, parse_qs
+from urllib.parse import urlparse
 
 
 def parse_github_url(url: str) -> Dict[str, Optional[str]]:

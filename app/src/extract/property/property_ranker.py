@@ -7,7 +7,6 @@ import uuid
 from langchain_core.runnables import Runnable
 from langchain_core.messages import HumanMessage
 from langchain_openai import ChatOpenAI
-from openai import APIConnectionError, RateLimitError, APIError
 
 from src.utils.logger import Logger
 from src.utils.llm_factory import LLMFactory
@@ -440,7 +439,7 @@ if __name__ == "__main__":
         print("Output:")
         print(json.dumps(result, ensure_ascii=False, indent=2))
 
-        print(f"\nSummary:")
+        print("\nSummary:")
         print(f"- Total properties ranked: {len(result['properties'])}")
 
         # Display strength distribution
@@ -448,7 +447,7 @@ if __name__ == "__main__":
         for prop in result["properties"]:
             strength_counts[prop["strength"]] += 1
 
-        print(f"\nStrength Distribution:")
+        print("\nStrength Distribution:")
         print(f"  0 (None): {strength_counts[0]}")
         print(f"  1 (Implicit): {strength_counts[1]}")
         print(f"  2 (Explicit): {strength_counts[2]}")

@@ -2,7 +2,6 @@
 
 import asyncio
 import json
-import os
 import sys
 import argparse
 from datetime import datetime
@@ -11,7 +10,6 @@ from typing import Dict, List, Any, Optional, Tuple
 import glob
 from collections import defaultdict
 
-from openai import APIConnectionError, RateLimitError, APIError
 
 # Add src directory to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent))
@@ -730,7 +728,7 @@ if __name__ == "__main__":
 
         # Save result
         output_file = planner.save_result(result)
-        print(f"\n[ActionPlanner] Proposal generation completed!")
+        print("\n[ActionPlanner] Proposal generation completed!")
         print(f"[ActionPlanner] Result saved to: {output_file}")
 
         # Print summary
@@ -738,13 +736,13 @@ if __name__ == "__main__":
         total_actions = result.get("total_actions", 0)
         filtered_actions = result.get("filtered_actions", 0)
 
-        print(f"\n[ActionPlanner] Summary:")
+        print("\n[ActionPlanner] Summary:")
         print(f"  Total actions in strategy plan: {total_actions}")
         print(f"  Actions processed (high/medium with suggestions): {filtered_actions}")
         print(f"  Proposals generated: {len(proposals)}")
 
         if proposals:
-            print(f"\n[ActionPlanner] Proposals:")
+            print("\n[ActionPlanner] Proposals:")
             for i, proposal in enumerate(proposals, 1):
                 target_type = proposal.get("target_type", "?")
                 target = proposal.get("target", "?")

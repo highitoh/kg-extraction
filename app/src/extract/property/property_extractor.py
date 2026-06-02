@@ -6,7 +6,6 @@ import os
 from langchain_core.runnables import Runnable
 from langchain_core.messages import HumanMessage
 from langchain_openai import ChatOpenAI
-from openai import APIConnectionError, RateLimitError, APIError
 
 from src.utils.logger import Logger
 from src.utils.llm_factory import LLMFactory
@@ -585,7 +584,7 @@ if __name__ == "__main__":
         print("Output:")
         print(json.dumps(result, ensure_ascii=False, indent=2))
 
-        print(f"\nSummary:")
+        print("\nSummary:")
         print(f"- Total properties extracted: {len(result['properties'])}")
 
         # Display each property relationship

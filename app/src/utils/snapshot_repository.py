@@ -5,7 +5,6 @@ Handles storage, retrieval, and management of knowledge graph snapshots.
 Provides query interface and rollback functionality.
 """
 
-import os
 import json
 import shutil
 from datetime import datetime

@@ -6,7 +6,6 @@ import os
 from langchain_core.runnables import Runnable
 from langchain_core.messages import HumanMessage
 from langchain_openai import ChatOpenAI
-from openai import APIConnectionError, RateLimitError, APIError
 
 from src.utils.logger import Logger
 from src.utils.llm_factory import LLMFactory
@@ -554,7 +553,7 @@ if __name__ == "__main__":
         "class_info": class_data,
     }
 
-    print(f"\nInput data:")
+    print("\nInput data:")
     print(f"  - New properties: {len(sample_input['properties'])}")
     print(f"  - Existing properties: {len(sample_input['existing_properties'])}")
     print(f"  - Classes: {len(class_data.get('classes', []))}")
@@ -563,6 +562,6 @@ if __name__ == "__main__":
     consolidator = PropertyConsolidator(progress=True)
     result = consolidator.invoke(sample_input)
 
-    print(f"\nOutput data:")
+    print("\nOutput data:")
     print(f"  - Consolidated properties: {len(result.get('properties', []))}")
     print(json.dumps(result, ensure_ascii=False, indent=2)[:500])

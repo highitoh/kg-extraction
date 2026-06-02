@@ -1,5 +1,5 @@
 from typing import Dict, Any
-from langchain_core.runnables import RunnableSequence, Runnable
+from langchain_core.runnables import Runnable
 
 from .class_extractor import ClassExtractor
 from .class_reviewer import ClassReviewer
@@ -129,7 +129,7 @@ class ClassChainWithReview(Runnable):
         # 3. Stage 2: Match consolidated new against existing (if any)
         if existing_classes:
             if self.progress:
-                print(f"\n=== ClassConsolidator - Stage 2: Match Against Existing ===")
+                print("\n=== ClassConsolidator - Stage 2: Match Against Existing ===")
                 print(
                     f"Matching {len(result.get('classes', []))} consolidated new classes against {len(existing_classes)} existing classes"
                 )

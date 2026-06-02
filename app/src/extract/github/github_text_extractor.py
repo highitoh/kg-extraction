@@ -77,7 +77,7 @@ def extract_text_from_github(
     # Get repository metadata (always needed)
     try:
         repo_data = client.get_repo(owner, repo)
-        print(f"[GitHubExtractor] " + f"Repository: {repo_data['full_name']} - {repo_data.get('description', '')}")
+        print("[GitHubExtractor] " + f"Repository: {repo_data['full_name']} - {repo_data.get('description', '')}")
 
         # If date is specified, find commit at that date
         if iso_date:
@@ -89,23 +89,23 @@ def extract_text_from_github(
         # Auto-detect default branch if ref is None (root URL)
         elif ref is None:
             ref = repo_data.get("default_branch", "main")
-            print(f"[GitHubExtractor] " + f"Auto-detected default branch: {ref}")
+            print("[GitHubExtractor] " + f"Auto-detected default branch: {ref}")
         # Use default branch if ref is "main" but repo uses different default
         elif ref == "main" and repo_data.get("default_branch") != "main":
             ref = repo_data["default_branch"]
-            print(f"[GitHubExtractor] " + f"Using default branch: {ref}")
+            print("[GitHubExtractor] " + f"Using default branch: {ref}")
         else:
-            print(f"[GitHubExtractor] " + f"Using branch: {ref}")
+            print("[GitHubExtractor] " + f"Using branch: {ref}")
 
     except ValueError as e:
-        print(f"[GitHubExtractor] Error: " + f"Failed to fetch repository: {e}")
+        print("[GitHubExtractor] Error: " + f"Failed to fetch repository: {e}")
         raise
 
-    print(f"[GitHubExtractor] " + f"Profile: {profile_name}")
+    print("[GitHubExtractor] " + f"Profile: {profile_name}")
 
     # Directory extraction
     dir_path = parsed_url["path"] or ""
-    print(f"[GitHubExtractor] " + f"Fetching directory: {dir_path or '(root)'}")
+    print("[GitHubExtractor] " + f"Fetching directory: {dir_path or '(root)'}")
 
     raw_files = []
     try:
@@ -115,8 +115,8 @@ def extract_text_from_github(
             all_files = client.list_directory(owner, repo, dir_path, ref)
             all_files = [f for f in all_files if f["type"] == "file"]
 
-        print(f"[GitHubExtractor] " + f"Found {len(all_files)} files in directory")
-        print(f"[GitHubExtractor] " + f"Fetching file contents...")
+        print("[GitHubExtractor] " + f"Found {len(all_files)} files in directory")
+        print("[GitHubExtractor] " + "Fetching file contents...")
 
         # Fetch content for each file
         for idx, file_meta in enumerate(all_files, 1):
@@ -128,11 +128,11 @@ def extract_text_from_github(
                 file_meta["html_url"] = f"https://github.com/{owner}/{repo}/blob/{ref}/{file_path}"
                 raw_files.append(file_meta)
             except Exception as e:
-                print(f"[GitHubExtractor] Warning: " + f"Failed to fetch {file_path}: {e}")
+                print("[GitHubExtractor] Warning: " + f"Failed to fetch {file_path}: {e}")
                 continue
 
     except ValueError as e:
-        print(f"[GitHubExtractor] Error: " + f"Failed to list directory: {e}")
+        print("[GitHubExtractor] Error: " + f"Failed to list directory: {e}")
         raise
 
     # Fetch issues if profile includes them
@@ -141,16 +141,16 @@ def extract_text_from_github(
         max_issues = profile.get("max_issues", 100)
         try:
             issues = client.get_issues(owner, repo, state="all", per_page=max_issues)
-            print(f"[GitHubExtractor] " + f"Fetched {len(issues)} issues")
+            print("[GitHubExtractor] " + f"Fetched {len(issues)} issues")
         except Exception as e:
-            print(f"[GitHubExtractor] Warning: " + f"Failed to fetch issues: {e}")
+            print("[GitHubExtractor] Warning: " + f"Failed to fetch issues: {e}")
 
     # Get current commit SHA for snapshot tracking
     try:
         commit = client.get_commit(owner, repo, ref)
         commit_sha = commit["sha"]
     except Exception as e:
-        print(f"[GitHubExtractor] Warning: " + f"Failed to get commit SHA: {e}")
+        print("[GitHubExtractor] Warning: " + f"Failed to get commit SHA: {e}")
         commit_sha = ref
 
     # Analyze and filter items
@@ -163,7 +163,7 @@ def extract_text_from_github(
     }
 
     analyzed_items = analyzer.analyze(raw_repo_data)
-    print(f"[GitHubExtractor] " + f"Analyzed {len(analyzed_items)} items after filtering")
+    print("[GitHubExtractor] " + f"Analyzed {len(analyzed_items)} items after filtering")
 
     # Convert to text chunks
     chunks = analyzer.to_text_chunks(analyzed_items)
@@ -194,6 +194,6 @@ def extract_text_from_github(
             "file_map": analyzer.get_file_map(analyzed_items),
         }
 
-    print(f"[GitHubExtractor] " + f"Extracted {len(chunks)} text chunks from {owner}/{repo}")
+    print("[GitHubExtractor] " + f"Extracted {len(chunks)} text chunks from {owner}/{repo}")
 
     return chunks

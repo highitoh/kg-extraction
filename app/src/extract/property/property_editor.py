@@ -1,11 +1,10 @@
-from typing import Dict, Any, List
+from typing import Dict, Any
 import asyncio
 import json
 import os
 
 from langchain_core.messages import HumanMessage
 from langchain_core.runnables import Runnable
-from openai import APIConnectionError, RateLimitError, APIError
 
 from src.utils.logger import Logger
 from src.utils.llm_factory import LLMFactory

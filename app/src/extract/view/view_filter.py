@@ -197,7 +197,7 @@ if __name__ == "__main__":
         original_text_count = sum(len(v.get("texts", [])) for v in sample_input["views"])
         filtered_text_count = sum(len(v.get("texts", [])) for v in result["views"])
 
-        print(f"\n=== Statistics ===")
+        print("\n=== Statistics ===")
         print(f"Original Text Count: {original_text_count}")
         print(f"Filtered Text Count: {filtered_text_count}")
         print(f"Removed Text Count: {original_text_count - filtered_text_count}")

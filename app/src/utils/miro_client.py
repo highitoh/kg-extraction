@@ -100,7 +100,7 @@ class MiroClient:
                         "Invalid or missing MIRO_API_KEY. Check your access token at https://developers.miro.com/"
                     )
                 elif response.status_code == 403:
-                    raise ValueError(f"No access to requested resource. Check board permissions and API token scopes.")
+                    raise ValueError("No access to requested resource. Check board permissions and API token scopes.")
                 elif response.status_code == 404:
                     board_id = endpoint.split("/")[2] if "/boards/" in endpoint else "unknown"
                     raise ValueError(f"Board or resource not found: {board_id}")
