@@ -16,4 +16,4 @@
 #   ./snapshot.sh rollback --project cocoa --snapshot 20260425120000 --backup
 
 cd /workspace/app
-python src/snapshot.py "$@"
+uv run python src/snapshot.py "$@"

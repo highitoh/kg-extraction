@@ -4,4 +4,4 @@
 # Usage: ./apply.sh [--no-backup] [--no-progress]
 
 cd /workspace/app
-python src/optimize/action_applicator.py "$@"
+uv run python src/optimize/action_applicator.py "$@"

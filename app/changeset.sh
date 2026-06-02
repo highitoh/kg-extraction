@@ -134,7 +134,7 @@ changeset_id = generate_changeset('$BEFORE_SNAPSHOT', '$AFTER_SNAPSHOT', '$PROJE
         PYTHON_CMD="${PYTHON_CMD}); \
 print(f'\\n✓ Changeset created: {changeset_id}')"
 
-        python -c "$PYTHON_CMD"
+        uv run python -c "$PYTHON_CMD"
 
         if [ $? -eq 0 ]; then
             echo -e "${GREEN}Changeset generation completed successfully${NC}"
@@ -155,7 +155,7 @@ print(f'\\n✓ Changeset created: {changeset_id}')"
             exit 0
         fi
 
-        python -c "
+        uv run python -c "
 import json
 import sys
 sys.path.insert(0, '.')
@@ -200,7 +200,7 @@ for cs in changesets:
         echo -e "${GREEN}Changeset: $CHANGESET_ID${NC}"
         echo ""
 
-        python -c "
+        uv run python -c "
 import json
 import sys
 

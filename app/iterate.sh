@@ -25,4 +25,4 @@
 #   ./iterate.sh --resume 20260130120000
 
 cd /workspace/app
-python src/iteration_workflow.py "$@"
+uv run python src/iteration_workflow.py "$@"

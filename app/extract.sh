@@ -35,7 +35,7 @@ done
 
 # Single file mode
 if [ "$BATCH_MODE" = false ]; then
-  python src/extract_workflow.py "${OTHER_ARGS[@]}"
+  uv run python src/extract_workflow.py "${OTHER_ARGS[@]}"
   exit $?
 fi
 
@@ -108,7 +108,7 @@ while IFS= read -r line || [[ -n "$line" ]]; do
 
     # Run extraction
     FILE_START=$(date +%s)
-    if python src/extract_workflow.py "$PDF_PATH" "${OTHER_ARGS[@]}"; then
+    if uv run python src/extract_workflow.py "$PDF_PATH" "${OTHER_ARGS[@]}"; then
       FILE_END=$(date +%s)
       FILE_TIME=$((FILE_END - FILE_START))
       echo "  ✓ Extraction complete (${FILE_TIME}s)"
