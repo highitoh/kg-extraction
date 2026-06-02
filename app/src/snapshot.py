@@ -4,14 +4,12 @@ Snapshot Management CLI
 Command-line interface for managing knowledge graph snapshots.
 """
 
-import sys
-import os
 import argparse
+import os
+import sys
 
 # Add the app directory to sys.path to enable src imports
-app_dir = os.path.dirname(os.path.dirname(__file__))
-if app_dir not in sys.path:
-    sys.path.insert(0, app_dir)
+sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 
 from src.utils.snapshot_repository import SnapshotRepository
 

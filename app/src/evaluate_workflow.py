@@ -3,23 +3,22 @@ Knowledge Extraction Evaluation
 Evaluates extracted knowledge quality by running validation and reward calculation
 """
 
+import argparse
 import os
 import sys
-import argparse
 from datetime import datetime
-from typing import Dict, Any
-from dotenv import load_dotenv
+from typing import Any, Dict
 
 # Add the app directory to sys.path to enable src imports
-app_dir = os.path.dirname(os.path.dirname(__file__))
-if app_dir not in sys.path:
-    sys.path.insert(0, app_dir)
+sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 
-# Load environment variables from .env file
-load_dotenv()
+from dotenv import load_dotenv
 
 from src.evaluate.knowledge_validator import KnowledgeValidator
 from src.evaluate.reward_calculator import RewardCalculator
+
+# Load environment variables from .env file
+load_dotenv()
 
 
 def run_evaluation(

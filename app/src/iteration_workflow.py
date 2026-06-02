@@ -3,29 +3,27 @@ Iteration Workflow Orchestrator
 Coordinates the iterative extraction → evaluation → optimization → apply cycle.
 """
 
+import argparse
+import json
 import os
 import sys
-import json
-import argparse
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, List, Any, Optional, Tuple
-from dotenv import load_dotenv
+from typing import Any, Dict, List, Optional, Tuple
 
 # Path setup
-app_dir = os.path.dirname(os.path.dirname(__file__))
-if app_dir not in sys.path:
-    sys.path.insert(0, app_dir)
+sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
+
+from dotenv import load_dotenv
+
+from src.evaluate_workflow import run_evaluation
+from src.extract_workflow import run_knowledge_extraction
+from src.optimize.action_applicator import ActionApplicator
+from src.optimize.project_state_manager import ProjectStateManager
+from src.optimize.quality_tracker import QualityTracker
+from src.optimize_workflow import run_optimization_workflow
 
 load_dotenv()
-
-# Component imports
-from src.extract_workflow import run_knowledge_extraction
-from src.evaluate_workflow import run_evaluation
-from src.optimize_workflow import run_optimization_workflow
-from src.optimize.action_applicator import ActionApplicator
-from src.optimize.quality_tracker import QualityTracker
-from src.optimize.project_state_manager import ProjectStateManager
 
 
 class IterationWorkflow:

@@ -3,28 +3,26 @@ Optimization Workflow Orchestrator
 Coordinates the optimization pipeline from validator results to action proposals
 """
 
+import argparse
+import glob
+import json
 import os
 import sys
-import json
-import glob
-import argparse
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, List, Any, Optional
-from dotenv import load_dotenv
+from typing import Any, Dict, List, Optional
 
 # Path setup
-app_dir = os.path.dirname(os.path.dirname(__file__))
-if app_dir not in sys.path:
-    sys.path.insert(0, app_dir)
+sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
+
+from dotenv import load_dotenv
+
+from src.optimize.action_planner import ActionPlanner
+from src.optimize.issue_categorizer import IssueCategorizer
+from src.optimize.issue_classifier import IssueClassifier
+from src.optimize.strategy_planner import StrategyPlanner
 
 load_dotenv()
-
-# Component imports
-from src.optimize.issue_classifier import IssueClassifier
-from src.optimize.issue_categorizer import IssueCategorizer
-from src.optimize.strategy_planner import StrategyPlanner
-from src.optimize.action_planner import ActionPlanner
 
 
 def aggregate_validator_results(projects: List[str], output_dir: str) -> str:

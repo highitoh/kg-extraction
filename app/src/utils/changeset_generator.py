@@ -5,14 +5,14 @@ import uuid
 from datetime import datetime
 from pathlib import Path
 from typing import List, Optional
+
 from dotenv import load_dotenv
 
-# Load environment variables
-load_dotenv()
-
 from src.utils import change_diff_engine
-from src.utils import source_change_detector
 from src.utils import driver_extractor
+from src.utils import source_change_detector
+
+load_dotenv()
 
 
 def generate_changeset(

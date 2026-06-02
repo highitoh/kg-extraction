@@ -3,12 +3,12 @@
 import json
 from pathlib import Path
 from typing import List
+
 from dotenv import load_dotenv
 
-# Load environment variables
-load_dotenv()
-
 from src.utils.llm_factory import LLMFactory
+
+load_dotenv()
 
 
 def cluster_and_extract_drivers(source_changes: dict, kg_changes: dict, model: str = None) -> List[dict]:

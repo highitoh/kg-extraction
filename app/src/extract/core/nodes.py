@@ -3,26 +3,26 @@ LangGraph Node Functions for Knowledge Extraction
 LangGraph node function definitions for knowledge extraction processing
 """
 
-import os
-import json
 import importlib
-from typing import Dict, Any, Set, Tuple
+import json
+import os
+from typing import Any, Dict, Set, Tuple
 
-from src.extract.core.state import KnowledgeExtractionState
 from src.extract.classification.file_type_classifier import FileTypeClassifier
+from src.extract.core.state import KnowledgeExtractionState
 from src.extract.image.image_extractor import ImageExtractor
+from src.extract.output.neo4j_csv_generator import Neo4jCSVGenerator
+from src.extract.output.turtle_generator import TurtleGenerator
+from src.extract.property.property_chain import create_property_chain
 from src.extract.text.doc_text_chain import DocTextChain
 from src.extract.text.presentation_text_chain import PresentationTextChain
 from src.extract.view.view_chain import create_view_chain
+from src.utils.chunk_creator import ChunkCreator
+from src.utils.mermaid_parser import build_extracted_structure
 
 # Note: 'class' is a reserved keyword, so we use importlib for this import
 _class_chain_module = importlib.import_module("src.extract.class.class_chain")
 create_class_chain = _class_chain_module.create_class_chain
-from src.extract.property.property_chain import create_property_chain
-from src.extract.output.turtle_generator import TurtleGenerator
-from src.extract.output.neo4j_csv_generator import Neo4jCSVGenerator
-from src.utils.chunk_creator import ChunkCreator
-from src.utils.mermaid_parser import build_extracted_structure
 
 
 def _load_metamodel() -> Dict[str, Any]:

@@ -3,25 +3,24 @@ Knowledge Graph Extraction Main
 Extract knowledge from PDF files and generate Turtle and Neo4j CSV files
 """
 
-import os
-import json
-import sys
 import argparse
+import json
+import os
+import sys
 from datetime import datetime
-from typing import Dict, Any
-from dotenv import load_dotenv
+from typing import Any, Dict
 
 # Add the app directory to sys.path to enable src imports
-app_dir = os.path.dirname(os.path.dirname(__file__))
-if app_dir not in sys.path:
-    sys.path.insert(0, app_dir)
+sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 
-# Load environment variables from .env file
-load_dotenv()
+from dotenv import load_dotenv
 
 from src.extract.core.graph import create_knowledge_extraction_graph
 from src.extract.core.state import KnowledgeExtractionState
 from src.utils.snapshot_manager import SnapshotManager
+
+# Load environment variables from .env file
+load_dotenv()
 
 
 def run_knowledge_extraction(
