@@ -4,6 +4,7 @@ from langchain_core.runnables import Runnable
 
 from src.utils.logger import Logger
 
+
 class ViewFilter(Runnable):
     """
     Task to apply filter processing to view description extraction results
@@ -126,7 +127,9 @@ class ViewFilter(Runnable):
         if self.progress:
             original_count = sum(len(v.get("texts", [])) for v in views)
             filtered_count = sum(len(v.get("texts", [])) for v in filtered_views)
-            print(f"ViewFilter: {original_count} -> {filtered_count} texts (removed {original_count - filtered_count} duplicates)")
+            print(
+                f"ViewFilter: {original_count} -> {filtered_count} texts (removed {original_count - filtered_count} duplicates)"
+            )
 
         # Log ViewChainOutput using Logger
         self.logger.save_log(output, filename_prefix="view_filter_output_")
@@ -141,46 +144,29 @@ if __name__ == "__main__":
             {
                 "type": "business_concept",
                 "texts": [
+                    {"file_id": "test_file", "text": "Customer Management System"},
                     {
                         "file_id": "test_file",
-                        "text": "Customer Management System"
+                        "text": "Customer Management System Development",  # Inclusion relationship (longer)
                     },
                     {
                         "file_id": "test_file",
-                        "text": "Customer Management System Development"  # Inclusion relationship (longer)
+                        "text": "Customer Management System",  # Exact match (duplicate)
                     },
-                    {
-                        "file_id": "test_file",
-                        "text": "Customer Management System"  # Exact match (duplicate)
-                    }
-                ]
+                ],
             },
             {
                 "type": "system_requirement",
                 "texts": [
+                    {"file_id": "test_file", "text": "Database Integration Feature"},
                     {
                         "file_id": "test_file",
-                        "text": "Database Integration Feature"
+                        "text": "Database Integration",  # Inclusion relationship (shorter)
                     },
-                    {
-                        "file_id": "test_file",
-                        "text": "Database Integration"  # Inclusion relationship (shorter)
-                    },
-                    {
-                        "file_id": "test_file",
-                        "text": "API Design Requirements"
-                    }
-                ]
+                    {"file_id": "test_file", "text": "API Design Requirements"},
+                ],
             },
-            {
-                "type": "data_analysis",
-                "texts": [
-                    {
-                        "file_id": "test_file",
-                        "text": "Sales Data Analysis"
-                    }
-                ]
-            }
+            {"type": "data_analysis", "texts": [{"file_id": "test_file", "text": "Sales Data Analysis"}]},
         ]
     }
 
@@ -192,7 +178,7 @@ if __name__ == "__main__":
     for view in sample_input["views"]:
         print(f"View Type: {view['type']}")
         for i, text in enumerate(view["texts"]):
-            print(f"  [{i+1}] {text['text']}")
+            print(f"  [{i + 1}] {text['text']}")
 
     try:
         # Run test
@@ -201,11 +187,11 @@ if __name__ == "__main__":
         print("\n=== Filtering Results ===")
         print(f"Views After Filtering: {len(result['views'])}")
 
-        for view in result['views']:
+        for view in result["views"]:
             print(f"\nView Type: {view['type']}")
             print(f"Text Count: {len(view['texts'])}")
-            for i, text in enumerate(view['texts']):
-                print(f"  [{i+1}] {text['text']}")
+            for i, text in enumerate(view["texts"]):
+                print(f"  [{i + 1}] {text['text']}")
 
         # Verify duplicate removal
         original_text_count = sum(len(v.get("texts", [])) for v in sample_input["views"])
@@ -221,4 +207,5 @@ if __name__ == "__main__":
     except Exception as e:
         print(f"\n❌ Test execution error: {e}")
         import traceback
+
         traceback.print_exc()

@@ -8,12 +8,7 @@ class ChunkCreator:
     Reusable in ViewExtractor
     """
 
-    def __init__(
-        self,
-        chunk_mode: Literal["char", "page"] = "char",
-        max_chars: int = 400,
-        overlap_chars: int = 50
-    ):
+    def __init__(self, chunk_mode: Literal["char", "page"] = "char", max_chars: int = 400, overlap_chars: int = 50):
         """
         Args:
             chunk_mode: Chunk splitting mode
@@ -36,10 +31,10 @@ class ChunkCreator:
         #     (avoids splitting abbreviations like "Dr.", "Mr.", "U.")
         #   - Double newlines (paragraph boundary)
         parts = re.split(
-            r'(?<=[。！？!?])\s*'
-            r'|(?<=[a-z]{2}\.)\s+(?=[A-Z])'
-            r'|\n{2,}',
-            text
+            r"(?<=[。！？!?])\s*"
+            r"|(?<=[a-z]{2}\.)\s+(?=[A-Z])"
+            r"|\n{2,}",
+            text,
         )
         sentences = [p.strip() for p in parts if p and p.strip()]
 
@@ -71,7 +66,7 @@ class ChunkCreator:
     def _split_by_space_or_hard(self, text: str) -> List[str]:
         """Split text by space boundaries, falling back to hard character cut."""
         # Try splitting by spaces
-        tokens = re.split(r'(\s+)', text)
+        tokens = re.split(r"(\s+)", text)
         chunks, cur = [], ""
         for token in tokens:
             if len(cur) + len(token) <= self.max_chars:
@@ -83,8 +78,8 @@ class ChunkCreator:
                     # Hard cut for tokens with no whitespace at all
                     remaining = token.strip()
                     while remaining:
-                        chunks.append(remaining[:self.max_chars])
-                        remaining = remaining[self.max_chars:]
+                        chunks.append(remaining[: self.max_chars])
+                        remaining = remaining[self.max_chars :]
                     cur = ""
                 else:
                     cur = token
@@ -120,7 +115,7 @@ class ChunkCreator:
                 if cur:
                     chunks.append(cur)
                 if self.overlap_chars > 0 and cur:
-                    tail = cur[-self.overlap_chars:]
+                    tail = cur[-self.overlap_chars :]
                     cur = (tail + " " + s).strip()
                 else:
                     cur = s
@@ -141,7 +136,7 @@ class ChunkCreator:
         Returns:
             List of text joined by slide (in slide number order)
         """
-        lines = text.split('\n')
+        lines = text.split("\n")
         slide_chunks = {}
 
         for line in lines:
@@ -150,19 +145,16 @@ class ChunkCreator:
                 continue
 
             # Extract "[[Slide{number}]]"
-            match = re.search(r'\[\[Slide(\d+)\]\]', line)
+            match = re.search(r"\[\[Slide(\d+)\]\]", line)
             if match:
                 slide_num = match.group(1)
-                slide_text = line.replace(match.group(0), '').strip()
+                slide_text = line.replace(match.group(0), "").strip()
                 if slide_num not in slide_chunks:
                     slide_chunks[slide_num] = []
                 if slide_text:  # Don't add empty strings
                     slide_chunks[slide_num].append(slide_text)
 
         # Create list by joining per slide (in number order)
-        chunks = [
-            " ".join(texts)
-            for slide_num, texts in sorted(slide_chunks.items(), key=lambda x: int(x[0]))
-        ]
+        chunks = [" ".join(texts) for slide_num, texts in sorted(slide_chunks.items(), key=lambda x: int(x[0]))]
 
         return chunks

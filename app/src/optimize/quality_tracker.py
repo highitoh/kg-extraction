@@ -12,12 +12,7 @@ from typing import Dict, List, Any, Optional, Tuple
 class QualityTracker:
     """Tracks and analyzes quality scores across iterations."""
 
-    def __init__(
-        self,
-        run_id: str,
-        projects: List[str],
-        output_dir: str = "/workspace/app/output"
-    ):
+    def __init__(self, run_id: str, projects: List[str], output_dir: str = "/workspace/app/output"):
         """
         Initialize the QualityTracker.
 
@@ -43,25 +38,17 @@ class QualityTracker:
     def _load_or_initialize_history(self) -> Dict[str, Any]:
         """Load existing history or initialize a new one."""
         if self.history_file.exists():
-            with open(self.history_file, 'r', encoding='utf-8') as f:
+            with open(self.history_file, "r", encoding="utf-8") as f:
                 return json.load(f)
         else:
-            return {
-                "run_id": self.run_id,
-                "projects": self.projects,
-                "history": []
-            }
+            return {"run_id": self.run_id, "projects": self.projects, "history": []}
 
     def _save_history(self) -> None:
         """Save the history data to file."""
-        with open(self.history_file, 'w', encoding='utf-8') as f:
+        with open(self.history_file, "w", encoding="utf-8") as f:
             json.dump(self.history_data, f, indent=2, ensure_ascii=False)
 
-    def record_quality(
-        self,
-        iteration: int,
-        project_reward_reports: Dict[str, Dict[str, Any]]
-    ) -> Dict[str, Any]:
+    def record_quality(self, iteration: int, project_reward_reports: Dict[str, Dict[str, Any]]) -> Dict[str, Any]:
         """
         Record quality metrics for an iteration.
 
@@ -90,7 +77,7 @@ class QualityTracker:
                 "combined_total_quality_score": summary.get("combined_total_quality_score", 0),
                 "average_class_score": summary.get("average_class_score", 0),
                 "average_property_score": summary.get("average_property_score", 0),
-                "overall_average_score": summary.get("overall_average_score", 0)
+                "overall_average_score": summary.get("overall_average_score", 0),
             }
             project_metrics[project] = metrics
 
@@ -105,7 +92,7 @@ class QualityTracker:
             "iteration": iteration,
             "timestamp": timestamp,
             "project_metrics": project_metrics,
-            "combined_average_score": combined_average_score
+            "combined_average_score": combined_average_score,
         }
 
         # Check if this iteration already exists (update) or is new (append)
@@ -182,11 +169,7 @@ class QualityTracker:
         else:
             return "stable"
 
-    def get_improvement(
-        self,
-        from_iteration: int,
-        to_iteration: int
-    ) -> Optional[Dict[str, Any]]:
+    def get_improvement(self, from_iteration: int, to_iteration: int) -> Optional[Dict[str, Any]]:
         """
         Compare quality between two iterations.
 
@@ -220,14 +203,10 @@ class QualityTracker:
             "from_score": from_score,
             "to_score": to_score,
             "delta": round(to_score - from_score, 2),
-            "percent_change": round(((to_score - from_score) / abs(from_score)) * 100, 2) if from_score != 0 else 0
+            "percent_change": round(((to_score - from_score) / abs(from_score)) * 100, 2) if from_score != 0 else 0,
         }
 
-    def should_stop(
-        self,
-        quality_threshold: float,
-        degradation_tolerance: int = 2
-    ) -> Tuple[bool, Optional[str]]:
+    def should_stop(self, quality_threshold: float, degradation_tolerance: int = 2) -> Tuple[bool, Optional[str]]:
         """
         Check if the iteration loop should stop.
 
@@ -252,8 +231,7 @@ class QualityTracker:
         # Check for degradation
         if len(history) >= degradation_tolerance + 1:
             recent_scores = [
-                entry.get("combined_average_score", 0)
-                for entry in history[-(degradation_tolerance + 1):]
+                entry.get("combined_average_score", 0) for entry in history[-(degradation_tolerance + 1) :]
             ]
             # Check if all recent changes are negative
             consecutive_degradations = 0
@@ -286,10 +264,7 @@ class QualityTracker:
         rewards = []
         for entry in recent:
             project_metrics = entry.get("project_metrics", {})
-            total = sum(
-                pm.get("combined_total_quality_score", 0)
-                for pm in project_metrics.values()
-            )
+            total = sum(pm.get("combined_total_quality_score", 0) for pm in project_metrics.values())
             rewards.append(total)
 
         return rewards
@@ -319,10 +294,7 @@ class QualityTracker:
 
         # Show improvement from first to last
         if len(history) >= 2:
-            improvement = self.get_improvement(
-                history[0]["iteration"],
-                history[-1]["iteration"]
-            )
+            improvement = self.get_improvement(history[0]["iteration"], history[-1]["iteration"])
             if improvement:
                 print("-" * 80)
                 print(f"Overall improvement: {improvement['delta']:+.2f}")

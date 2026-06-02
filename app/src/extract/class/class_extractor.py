@@ -30,10 +30,11 @@ VIEW_TYPES = [
 @dataclass
 class ExtractedClass:
     """One element of ClassExtractOutput.classes"""
-    id: str              # Required: Class instance ID
-    class_iri: str       # Required: URI format
-    label: str           # Required: Extracted class (display label)
-    sources: List[str]   # Required: Source text (array)
+
+    id: str  # Required: Class instance ID
+    class_iri: str  # Required: URI format
+    label: str  # Required: Extracted class (display label)
+    sources: List[str]  # Required: Source text (array)
     file_ids: List[str]  # Required: Source file IDs (array)
 
     def to_dict(self) -> Dict[str, Any]:
@@ -52,7 +53,7 @@ class ClassExtractor(Runnable):
         temperature: float = 0.0,
         progress: bool = True,
         max_concurrency: int = 8,
-        log_dir: str = "/workspace/app/log/class_extractor"
+        log_dir: str = "/workspace/app/log/class_extractor",
     ):
         self.llm = llm or LLMFactory.create_llm(
             model=model,
@@ -65,7 +66,9 @@ class ClassExtractor(Runnable):
 
         # Load JSON schema
         schema = self._load_schema()
-        self.llm_json = self.llm.bind(response_format={"type": "json_schema", "json_schema": {"name": "class_extractor", "schema": schema}})
+        self.llm_json = self.llm.bind(
+            response_format={"type": "json_schema", "json_schema": {"name": "class_extractor", "schema": schema}}
+        )
 
         # Load prompt template
         self.prompt_template = self._load_prompt_template()
@@ -134,13 +137,15 @@ class ClassExtractor(Runnable):
                 sources = [source]
                 file_ids = [file_id]
 
-                classes.append(ExtractedClass(
-                    id=generate_class_id(class_iri, label, source),
-                    class_iri=class_iri,
-                    label=label,
-                    sources=sources,
-                    file_ids=file_ids,
-                ))
+                classes.append(
+                    ExtractedClass(
+                        id=generate_class_id(class_iri, label, source),
+                        class_iri=class_iri,
+                        label=label,
+                        sources=sources,
+                        file_ids=file_ids,
+                    )
+                )
 
         # ---- Output (conforms to ClassChainOutput) -----------------------------------------
         output: Dict[str, Any] = {
@@ -175,7 +180,9 @@ class ClassExtractor(Runnable):
                 return v.get("texts", []) or []
         return []
 
-    async def _process_views_parallel(self, view_info: Dict[str, Any], metamodel: Dict[str, Any]) -> List[Dict[str, Any]]:
+    async def _process_views_parallel(
+        self, view_info: Dict[str, Any], metamodel: Dict[str, Any]
+    ) -> List[Dict[str, Any]]:
         """Execute class extraction in parallel for each view"""
         sem = asyncio.Semaphore(self.max_concurrency)
         total = len(VIEW_TYPES)
@@ -199,12 +206,14 @@ class ClassExtractor(Runnable):
                         if attempt == 4:  # Last attempt
                             if self.progress:
                                 print(f"[ClassExtractor] Error in view={view_type}: {e}")
-                        await asyncio.sleep(min(2 ** attempt, 10))
+                        await asyncio.sleep(min(2**attempt, 10))
 
                 async with lock:
                     counter += 1
                     if self.progress:
-                        print(f"[{counter}/{total}] ClassExtractor: {view_type} processed (extracted {len(label_items)} items)")
+                        print(
+                            f"[{counter}/{total}] ClassExtractor: {view_type} processed (extracted {len(label_items)} items)"
+                        )
 
                 return {"view_type": view_type, "label_items": label_items}
 
@@ -243,25 +252,24 @@ class ClassExtractor(Runnable):
         writer = csv.writer(output, quoting=csv.QUOTE_MINIMAL)
 
         # Write CSV header
-        writer.writerow(['ID', 'Text'])
+        writer.writerow(["ID", "Text"])
 
         # Create text_map to store full text and file_id for each ID
         text_map = {}
 
         for idx, t in enumerate(texts):
             text_id = f"t{idx}"
-            text_content = t.get('text', '')
-            file_id = t.get('file_id', 'unknown')
+            text_content = t.get("text", "")
+            file_id = t.get("file_id", "unknown")
 
             writer.writerow([text_id, text_content])
-            text_map[text_id] = {
-                "text": text_content,
-                "file_id": file_id
-            }
+            text_map[text_id] = {"text": text_content, "file_id": file_id}
 
         return output.getvalue(), text_map
 
-    async def _extract_labels_async(self, view_type: str, texts: List[Dict[str, Any]], metamodel: Dict[str, Any] = None) -> List[Dict[str, str]]:
+    async def _extract_labels_async(
+        self, view_type: str, texts: List[Dict[str, Any]], metamodel: Dict[str, Any] = None
+    ) -> List[Dict[str, str]]:
         """
         Extract class instances from specified view type using LLM (async version)
         """
@@ -316,19 +324,20 @@ class ClassExtractor(Runnable):
             # Resolve text_id to full text and file_id
             if text_id in text_map:
                 text_info = text_map[text_id]
-                labels.append({
-                    "class": item["class"],
-                    "label": item["label"],
-                    "source": text_info["text"],      # Resolved full text (backward compatible)
-                    "file_id": text_info["file_id"],  # Correct file_id (fixes existing bug!)
-                })
+                labels.append(
+                    {
+                        "class": item["class"],
+                        "label": item["label"],
+                        "source": text_info["text"],  # Resolved full text (backward compatible)
+                        "file_id": text_info["file_id"],  # Correct file_id (fixes existing bug!)
+                    }
+                )
             else:
                 # Handle invalid text ID from LLM
                 if self.progress:
                     print(f"[ClassExtractor] Warning: Invalid text ID '{text_id}' not found in text_map")
 
         return labels
-
 
     def _get_class_definitions(self, metamodel: Dict[str, Any], view_type: str) -> str:
         """
@@ -434,6 +443,7 @@ class ClassExtractor(Runnable):
 
         # Return empty string if not found
         return ""
+
 
 if __name__ == "__main__":
     import glob

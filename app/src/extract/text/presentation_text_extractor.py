@@ -26,7 +26,7 @@ class PresentationTextExtractor(TextExtractor):
         if not os.path.exists(pdf_path):
             raise FileNotFoundError(f"PDF file not found: {pdf_path}")
 
-        if not pdf_path.lower().endswith('.pdf'):
+        if not pdf_path.lower().endswith(".pdf"):
             raise ValueError("Not a PDF file")
 
         slides = []
@@ -53,11 +53,9 @@ class PresentationTextExtractor(TextExtractor):
         # Generate sentences with "Slide {number}:" prefix for each slide
         sentences = []
         for slide_num, slide_text in slides:
-            for line_text in slide_text.split('\n'):
+            for line_text in slide_text.split("\n"):
                 if line_text.strip():  # Exclude empty lines
-                    sentences.append({
-                        "text": f"[[Slide{slide_num}]] {line_text.strip()}"
-                    })
+                    sentences.append({"text": f"[[Slide{slide_num}]] {line_text.strip()}"})
 
         output = self.build_output(file_path, sentences)
 
@@ -73,5 +71,5 @@ if __name__ == "__main__":
     print(f"Extracted Slides: {len([s for s in result['sentences'] if 'Slide1' in s['text']])}")
     print(f"Total Sentences: {len(result['sentences'])}")
     print("\nFirst 5 Sentences:")
-    for i, sentence in enumerate(result['sentences'][:5], 1):
+    for i, sentence in enumerate(result["sentences"][:5], 1):
         print(f"{i}. {sentence['text']}")

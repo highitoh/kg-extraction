@@ -58,8 +58,7 @@ def cluster_and_extract_drivers(source_changes: dict, kg_changes: dict, model: s
 
     # Prepare prompt
     prompt = prompt_template.format(
-        source_changes=json.dumps(source_changes, indent=2, ensure_ascii=False),
-        kg_changes_summary=kg_summary
+        source_changes=json.dumps(source_changes, indent=2, ensure_ascii=False), kg_changes_summary=kg_summary
     )
 
     # Invoke LLM
@@ -114,9 +113,7 @@ def _summarize_kg_changes(kg_changes: dict) -> str:
     if deleted_properties:
         lines.append(f"\nDeleted {len(deleted_properties)} properties:")
         for prop in deleted_properties[:10]:
-            lines.append(
-                f"  - {prop.get('src_label', 'Unknown')} → {prop.get('dest_label', 'Unknown')}"
-            )
+            lines.append(f"  - {prop.get('src_label', 'Unknown')} → {prop.get('dest_label', 'Unknown')}")
 
     return "\n".join(lines) if lines else "No significant changes detected"
 

@@ -53,7 +53,10 @@ async def call_with_retry(
             usage = meta.get("usage") or meta.get("token_usage")
             if isinstance(usage, dict):
                 return usage
-            if any(k in meta for k in ("prompt_tokens", "completion_tokens", "total_tokens", "input_tokens", "output_tokens")):
+            if any(
+                k in meta
+                for k in ("prompt_tokens", "completion_tokens", "total_tokens", "input_tokens", "output_tokens")
+            ):
                 return meta
 
         usage = getattr(response, "usage", None)

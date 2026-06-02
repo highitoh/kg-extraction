@@ -55,7 +55,7 @@ class ActionApplicator:
 
     def _load_json(self, file_path: str) -> Dict[str, Any]:
         """Load a JSON file."""
-        with open(file_path, 'r', encoding='utf-8') as f:
+        with open(file_path, "r", encoding="utf-8") as f:
             return json.load(f)
 
     def _resolve_action_proposals_path(self) -> str:
@@ -72,10 +72,7 @@ class ActionApplicator:
 
         # Check if output directory exists
         if not output_dir.exists():
-            raise FileNotFoundError(
-                f"Output directory not found: {output_dir}\n"
-                f"Please run optimize workflow first."
-            )
+            raise FileNotFoundError(f"Output directory not found: {output_dir}\nPlease run optimize workflow first.")
 
         # Find most recent action_proposals file
         action_proposals_pattern = str(output_dir / "action_proposals_*.json")
@@ -137,11 +134,7 @@ class ActionApplicator:
 
         custom_path = self.custom_prompts_dir / target
 
-        result = {
-            "target_type": "custom_prompt",
-            "target": target,
-            "status": "success"
-        }
+        result = {"target_type": "custom_prompt", "target": target, "status": "success"}
 
         # Backup if enabled
         if self.backup:
@@ -151,7 +144,7 @@ class ActionApplicator:
                 self.backups_created.append(backup_file)
 
         # Write updated content (overwrite)
-        with open(custom_path, 'w', encoding='utf-8') as f:
+        with open(custom_path, "w", encoding="utf-8") as f:
             f.write(updated_content)
 
         if self.progress:
@@ -170,14 +163,10 @@ class ActionApplicator:
             Result dictionary with status and backup info
         """
         target_type = proposal["target_type"]  # "extract_rules" or "prohibit_rules"
-        target = proposal["target"]            # Class or property name
+        target = proposal["target"]  # Class or property name
         updated_rules = proposal["updated_content"]  # Array of strings
 
-        result = {
-            "target_type": target_type,
-            "target": target,
-            "status": "success"
-        }
+        result = {"target_type": target_type, "target": target, "status": "success"}
 
         # Backup if enabled
         if self.backup:
@@ -189,7 +178,7 @@ class ActionApplicator:
                     self.backups_created.append(backup_file)
 
         # Load metamodel
-        with open(self.metamodel_path, 'r', encoding='utf-8') as f:
+        with open(self.metamodel_path, "r", encoding="utf-8") as f:
             metamodel = json.load(f)
 
         # Find and update target
@@ -214,7 +203,7 @@ class ActionApplicator:
             raise ValueError(f"Target '{target}' not found in metamodel")
 
         # Save updated metamodel (overwrite)
-        with open(self.metamodel_path, 'w', encoding='utf-8') as f:
+        with open(self.metamodel_path, "w", encoding="utf-8") as f:
             json.dump(metamodel, f, indent=4, ensure_ascii=False)
 
         if self.progress:
@@ -237,7 +226,7 @@ class ActionApplicator:
             "total_proposals": len(proposals),
             "updates_applied": [],
             "errors": [],
-            "backups_created": []
+            "backups_created": [],
         }
 
         if self.progress:
@@ -264,7 +253,7 @@ class ActionApplicator:
                 error_info = {
                     "target_type": proposal.get("target_type"),
                     "target": proposal.get("target"),
-                    "error": str(e)
+                    "error": str(e),
                 }
                 results["errors"].append(error_info)
 
@@ -300,10 +289,10 @@ class ActionApplicator:
 
         output_dir.mkdir(parents=True, exist_ok=True)
 
-        timestamp = result['timestamp']
+        timestamp = result["timestamp"]
         output_file = output_dir / f"action_application_{timestamp}.json"
 
-        with open(output_file, 'w', encoding='utf-8') as f:
+        with open(output_file, "w", encoding="utf-8") as f:
             json.dump(result, f, indent=2, ensure_ascii=False)
 
         return str(output_file)
@@ -311,26 +300,15 @@ class ActionApplicator:
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Action Applicator - Applies action proposals to target files")
-    parser.add_argument(
-        "--no-backup",
-        action="store_true",
-        help="Disable backup creation before modifying files"
-    )
-    parser.add_argument(
-        "--no-progress",
-        action="store_true",
-        help="Disable progress messages"
-    )
+    parser.add_argument("--no-backup", action="store_true", help="Disable backup creation before modifying files")
+    parser.add_argument("--no-progress", action="store_true", help="Disable progress messages")
 
     args = parser.parse_args()
 
     try:
         # Create applicator
         print(f"[ActionApplicator] Initializing ActionApplicator...")
-        applicator = ActionApplicator(
-            progress=not args.no_progress,
-            backup=not args.no_backup
-        )
+        applicator = ActionApplicator(progress=not args.no_progress, backup=not args.no_backup)
 
         # Apply updates
         print("[ActionApplicator] Starting application of proposals...")
@@ -342,9 +320,9 @@ if __name__ == "__main__":
         print(f"[ActionApplicator] Result saved to: {output_file}")
 
         # Print summary
-        updates_applied = result.get('updates_applied', [])
-        errors = result.get('errors', [])
-        backups_created = result.get('backups_created', [])
+        updates_applied = result.get("updates_applied", [])
+        errors = result.get("errors", [])
+        backups_created = result.get("backups_created", [])
 
         print(f"\n[ActionApplicator] Summary:")
         print(f"  Total proposals: {result.get('total_proposals', 0)}")
@@ -355,17 +333,17 @@ if __name__ == "__main__":
         if updates_applied:
             print(f"\n[ActionApplicator] Updates Applied:")
             for i, update in enumerate(updates_applied, 1):
-                target_type = update.get('target_type', '?')
-                target = update.get('target', '?')
-                backup_info = f" (backup: {update.get('backup_file', 'none')})" if 'backup_file' in update else ""
+                target_type = update.get("target_type", "?")
+                target = update.get("target", "?")
+                backup_info = f" (backup: {update.get('backup_file', 'none')})" if "backup_file" in update else ""
                 print(f"  {i}. {target_type}:{target}{backup_info}")
 
         if errors:
             print(f"\n[ActionApplicator] Errors:")
             for i, error in enumerate(errors, 1):
-                target_type = error.get('target_type', '?')
-                target = error.get('target', '?')
-                error_msg = error.get('error', '?')
+                target_type = error.get("target_type", "?")
+                target = error.get("target", "?")
+                error_msg = error.get("error", "?")
                 print(f"  {i}. {target_type}:{target} - {error_msg}")
 
         if backups_created:
@@ -377,5 +355,6 @@ if __name__ == "__main__":
     except Exception as e:
         print(f"\n[ActionApplicator] Unexpected error: {e}")
         import traceback
+
         traceback.print_exc()
         sys.exit(1)

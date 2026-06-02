@@ -35,8 +35,7 @@ def parse_board_id_from_url(miro_url: str) -> str:
         return match.group(1)
 
     raise ValueError(
-        f"Invalid Miro URL format: {miro_url}. "
-        "Expected format: https://miro.com/app/board/BOARD_ID or miro:BOARD_ID"
+        f"Invalid Miro URL format: {miro_url}. Expected format: https://miro.com/app/board/BOARD_ID or miro:BOARD_ID"
     )
 
 

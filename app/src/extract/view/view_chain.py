@@ -49,6 +49,7 @@ def create_view_chain(model: str = None, progress: bool = True) -> Runnable:
     """
     return ViewChain(model=model, progress=progress)
 
+
 if __name__ == "__main__":
     chain = create_view_chain()
     sample_input = {

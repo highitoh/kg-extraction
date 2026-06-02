@@ -59,10 +59,9 @@ def aggregate_validator_results(projects: List[str], output_dir: str) -> str:
     for project in projects:
         project_dir = Path(output_dir) / project
         if not project_dir.exists():
-            available = [d.name for d in Path(output_dir).iterdir() if d.is_dir() and d.name != 'optimize']
+            available = [d.name for d in Path(output_dir).iterdir() if d.is_dir() and d.name != "optimize"]
             raise FileNotFoundError(
-                f"Project directory not found: {project_dir}\n"
-                f"Available projects: {', '.join(available)}"
+                f"Project directory not found: {project_dir}\nAvailable projects: {', '.join(available)}"
             )
 
     # Aggregate validator results from all projects
@@ -82,17 +81,19 @@ def aggregate_validator_results(projects: List[str], output_dir: str) -> str:
         print(f"  - Loading {project}: {validator_file}")
 
         # Load and merge validations
-        with open(validator_file, 'r', encoding='utf-8') as f:
+        with open(validator_file, "r", encoding="utf-8") as f:
             data = json.load(f)
 
-        all_class_validations.extend(data.get('class_validations', []))
-        all_property_validations.extend(data.get('property_validations', []))
-        source_files.append({
-            "project": project,
-            "validator_result_file": validator_file,
-            "knowledge_file": data.get('knowledge_file', ''),
-            "extraction_result_file": data.get('extraction_result_file', '')
-        })
+        all_class_validations.extend(data.get("class_validations", []))
+        all_property_validations.extend(data.get("property_validations", []))
+        source_files.append(
+            {
+                "project": project,
+                "validator_result_file": validator_file,
+                "knowledge_file": data.get("knowledge_file", ""),
+                "extraction_result_file": data.get("extraction_result_file", ""),
+            }
+        )
 
     # Use the first project's files as reference for metamodel and knowledge
     # (All projects should share the same metamodel)
@@ -106,12 +107,12 @@ def aggregate_validator_results(projects: List[str], output_dir: str) -> str:
         "class_validations": all_class_validations,
         "property_validations": all_property_validations,
         "knowledge_file": first_project_knowledge_file,
-        "extraction_result_file": first_project_extraction_file
+        "extraction_result_file": first_project_extraction_file,
     }
 
     # Save to optimize directory
     output_file = optimize_dir / f"validator_result_{timestamp}.json"
-    with open(output_file, 'w', encoding='utf-8') as f:
+    with open(output_file, "w", encoding="utf-8") as f:
         json.dump(aggregated, f, indent=2, ensure_ascii=False)
 
     print(f"  - Aggregated {len(all_class_validations)} class validations")
@@ -134,7 +135,7 @@ def _compute_issue_stats_from_category(
     Returns:
         List of {category, count, class_breakdown?, property_breakdown?} dicts sorted by frequency
     """
-    with open(category_file, 'r', encoding='utf-8') as f:
+    with open(category_file, "r", encoding="utf-8") as f:
         data = json.load(f)
     return StrategyPlanner.compute_issue_statistics(data, metamodel=metamodel)
 
@@ -167,7 +168,7 @@ def run_optimization_workflow(
         "projects": projects,
         "timestamp": datetime.now().strftime("%Y%m%d%H%M%S"),
         "stages_completed": [],
-        "errors": []
+        "errors": [],
     }
 
     try:
@@ -197,7 +198,7 @@ def run_optimization_workflow(
         # Stage 3: Strategy Planning
         print("\n=== Stage 3: Strategy Planning ===")
         metamodel_path = Path(__file__).parent.parent / "metamodel" / "metamodel.json"
-        with open(metamodel_path, 'r', encoding='utf-8') as f:
+        with open(metamodel_path, "r", encoding="utf-8") as f:
             metamodel_data = json.load(f)
         issue_stats = _compute_issue_stats_from_category(category_file, metamodel=metamodel_data)
         planner = StrategyPlanner(
@@ -239,13 +240,13 @@ def display_summary(results: Dict[str, Any]) -> None:
     print(f"Stages completed: {', '.join(results['stages_completed'])}")
 
     print("\nGenerated files:")
-    for key in ['validator_result_file', 'classification_file', 'category_file', 'strategy_file', 'action_file']:
+    for key in ["validator_result_file", "classification_file", "category_file", "strategy_file", "action_file"]:
         if key in results:
             print(f"  - {results[key]}")
 
-    if results.get('errors'):
+    if results.get("errors"):
         print("\nErrors encountered:")
-        for error in results['errors']:
+        for error in results["errors"]:
             print(f"  - {error}")
 
 
@@ -254,23 +255,15 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description="Optimize knowledge extraction workflow by analyzing validation results"
     )
+    parser.add_argument("--projects", nargs="+", required=True, help="Project names to optimize (space-separated)")
     parser.add_argument(
-        "--projects",
-        nargs="+",
-        required=True,
-        help="Project names to optimize (space-separated)"
-    )
-    parser.add_argument(
-        "--model",
-        type=str,
-        default="gemini-3.1-flash-lite",
-        help="LLM model name (default: gemini-3.1-flash-lite)"
+        "--model", type=str, default="gemini-3.1-flash-lite", help="LLM model name (default: gemini-3.1-flash-lite)"
     )
     parser.add_argument(
         "--output-dir",
         type=str,
         default="/workspace/app/output",
-        help="Base output directory (default: /workspace/app/output)"
+        help="Base output directory (default: /workspace/app/output)",
     )
 
     args = parser.parse_args()
@@ -280,11 +273,7 @@ if __name__ == "__main__":
     print(f"Model: {args.model}")
 
     try:
-        results = run_optimization_workflow(
-            projects=args.projects,
-            model=args.model,
-            output_dir=args.output_dir
-        )
+        results = run_optimization_workflow(projects=args.projects, model=args.model, output_dir=args.output_dir)
 
         display_summary(results)
 
@@ -294,5 +283,6 @@ if __name__ == "__main__":
     except Exception as e:
         print(f"\nUnexpected error: {e}")
         import traceback
+
         traceback.print_exc()
         sys.exit(1)

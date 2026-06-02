@@ -31,9 +31,7 @@ def compute_text_similarity(text1: str, text2: str) -> float:
 
 
 def match_pages_to_items(
-    pdf_page_texts: List[str],
-    item_texts: List[Dict[str, Any]],
-    threshold: float = 0.9
+    pdf_page_texts: List[str], item_texts: List[Dict[str, Any]], threshold: float = 0.9
 ) -> List[Dict[str, Any]]:
     """Match PDF pages to Miro items (Frames/Diagrams) by text similarity.
 
@@ -94,11 +92,13 @@ def match_pages_to_items(
                 best_match = item
 
         if best_match:
-            mappings.append({
-                "page_number": page_num,
-                "item_id": best_match["item_id"],
-                "item_type": best_match["item_type"],
-                "similarity_score": best_score
-            })
+            mappings.append(
+                {
+                    "page_number": page_num,
+                    "item_id": best_match["item_id"],
+                    "item_type": best_match["item_type"],
+                    "similarity_score": best_score,
+                }
+            )
 
     return mappings

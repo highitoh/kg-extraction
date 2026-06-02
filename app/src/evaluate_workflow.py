@@ -45,7 +45,7 @@ def run_evaluation(
         "project": project,
         "timestamp": datetime.now().strftime("%Y%m%d%H%M%S"),
         "stages_completed": [],
-        "errors": []
+        "errors": [],
     }
 
     # Stage 1: Knowledge Validation
@@ -64,7 +64,7 @@ def run_evaluation(
         results["validation_file"] = validation_file
         results["validation_summary"] = {
             "classes_validated": len(validation_report["class_validations"]),
-            "properties_validated": len(validation_report["property_validations"])
+            "properties_validated": len(validation_report["property_validations"]),
         }
         results["stages_completed"].append("validation")
 
@@ -78,16 +78,14 @@ def run_evaluation(
         results["errors"].append(error_msg)
         print(f"\nError: {error_msg}")
         import traceback
+
         traceback.print_exc()
         return results
 
     # Stage 2: Reward Calculation
     print("\n=== Stage 2: Reward Calculation ===")
     try:
-        calculator = RewardCalculator(
-            project=project,
-            output_base_dir=output_dir
-        )
+        calculator = RewardCalculator(project=project, output_base_dir=output_dir)
         reward_report = calculator.calculate_all()
         reward_file = calculator.save_report(reward_report)
 
@@ -103,6 +101,7 @@ def run_evaluation(
         results["errors"].append(error_msg)
         print(f"\nError: {error_msg}")
         import traceback
+
         traceback.print_exc()
         return results
 
@@ -112,29 +111,21 @@ def run_evaluation(
 if __name__ == "__main__":
     # Parse command line arguments
     parser = argparse.ArgumentParser(description="Evaluate knowledge extraction quality")
-    parser.add_argument(
-        "--project",
-        type=str,
-        default="default",
-        help="Project name to evaluate (default: default)"
-    )
+    parser.add_argument("--project", type=str, default="default", help="Project name to evaluate (default: default)")
     parser.add_argument(
         "--model",
         type=str,
         default="gemini-3.1-flash-lite",
-        help="LLM model for validation (default: gemini-3.1-flash-lite)"
+        help="LLM model for validation (default: gemini-3.1-flash-lite)",
     )
     parser.add_argument(
         "--verbose",
         action="store_true",
         default=False,
-        help="Output detailed justifications for each validation score (default: scores only)"
+        help="Output detailed justifications for each validation score (default: scores only)",
     )
     parser.add_argument(
-        "--max-concurrency",
-        type=int,
-        default=4,
-        help="Maximum concurrent validation LLM calls (default: 4)"
+        "--max-concurrency", type=int, default=4, help="Maximum concurrent validation LLM calls (default: 4)"
     )
 
     args = parser.parse_args()
@@ -180,5 +171,6 @@ if __name__ == "__main__":
     except Exception as e:
         print(f"\nUnexpected error: {e}")
         import traceback
+
         traceback.print_exc()
         sys.exit(1)

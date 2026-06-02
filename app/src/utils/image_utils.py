@@ -1,4 +1,5 @@
 """Image utility functions for PDF image extraction and processing."""
+
 from typing import Any, Dict, Optional
 import base64
 import io

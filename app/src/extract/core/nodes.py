@@ -14,8 +14,9 @@ from src.extract.image.image_extractor import ImageExtractor
 from src.extract.text.doc_text_chain import DocTextChain
 from src.extract.text.presentation_text_chain import PresentationTextChain
 from src.extract.view.view_chain import create_view_chain
+
 # Note: 'class' is a reserved keyword, so we use importlib for this import
-_class_chain_module = importlib.import_module('src.extract.class.class_chain')
+_class_chain_module = importlib.import_module("src.extract.class.class_chain")
 create_class_chain = _class_chain_module.create_class_chain
 from src.extract.property.property_chain import create_property_chain
 from src.extract.output.turtle_generator import TurtleGenerator
@@ -32,7 +33,10 @@ def _load_metamodel() -> Dict[str, Any]:
     with open(metamodel_path, "r", encoding="utf-8") as f:
         return json.load(f)
 
-def _detect_miro_item_changes(prev_raw: Dict[str, Any], curr_raw: Dict[str, Any]) -> Tuple[Set[str], Set[str], Set[str]]:
+
+def _detect_miro_item_changes(
+    prev_raw: Dict[str, Any], curr_raw: Dict[str, Any]
+) -> Tuple[Set[str], Set[str], Set[str]]:
     """Detect changes in Miro board items by comparing snapshots.
 
     Args:
@@ -68,7 +72,9 @@ def _detect_miro_item_changes(prev_raw: Dict[str, Any], curr_raw: Dict[str, Any]
 
     return new_ids, modified_ids, deleted_ids
 
+
 # ========== Node Function Definitions ==========
+
 
 def classify_file_type_node(state: KnowledgeExtractionState) -> KnowledgeExtractionState:
     """
@@ -111,9 +117,7 @@ def extract_text_document_node(state: KnowledgeExtractionState) -> KnowledgeExtr
         doc_chain = DocTextChain(model=state.get("model"))
 
         # Match DocTextChain input format
-        input_data = {
-            "files": state["files"]
-        }
+        input_data = {"files": state["files"]}
 
         result = doc_chain.invoke(input_data)
 
@@ -141,9 +145,7 @@ def extract_text_presentation_node(state: KnowledgeExtractionState) -> Knowledge
         presentation_chain = PresentationTextChain(model=state.get("model"))
 
         # Match PresentationTextChain input format
-        input_data = {
-            "files": state["files"]
-        }
+        input_data = {"files": state["files"]}
 
         result = presentation_chain.invoke(input_data)
 
@@ -176,10 +178,12 @@ def detect_miro_changes_node(state: KnowledgeExtractionState) -> KnowledgeExtrac
         if miro_board_url:
             # PDF+URL mode: board URL is in state
             from src.extract.miro.miro_board_text_extractor import parse_board_id_from_url
+
             board_id = parse_board_id_from_url(miro_board_url)
         else:
             # URL-only mode: URL is in files path
             from src.extract.miro.miro_text_extractor import parse_board_id_from_url
+
             miro_url = state["files"][0]["path"]
             board_id = parse_board_id_from_url(miro_url)
 
@@ -239,14 +243,13 @@ def extract_text_miro_node(state: KnowledgeExtractionState) -> KnowledgeExtracti
                 changed_ids = new_ids | modified_ids
 
                 # Filter chunks to only changed items
-                filtered_chunks = [
-                    chunk for chunk in chunks
-                    if chunk.get("metadata", {}).get("item_id") in changed_ids
-                ]
+                filtered_chunks = [chunk for chunk in chunks if chunk.get("metadata", {}).get("item_id") in changed_ids]
 
-                print(f"[ExtractTextMiroNode] Incremental mode: "
-                      f"new={len(new_ids)}, modified={len(modified_ids)}, "
-                      f"deleted={len(deleted_ids)}, processing={len(filtered_chunks)} chunks")
+                print(
+                    f"[ExtractTextMiroNode] Incremental mode: "
+                    f"new={len(new_ids)}, modified={len(modified_ids)}, "
+                    f"deleted={len(deleted_ids)}, processing={len(filtered_chunks)} chunks"
+                )
 
                 # Store deleted/changed item IDs for cleanup and merging
                 state["deleted_item_ids"] = list(deleted_ids)
@@ -262,11 +265,13 @@ def extract_text_miro_node(state: KnowledgeExtractionState) -> KnowledgeExtracti
 
         for chunk in chunks:
             if chunk.get("text"):
-                sentences.append({
-                    "text": chunk["text"],
-                    "metadata": chunk.get("metadata", {}),
-                    "file_id": chunk.get("file_id")  # Preserve item-level file_id
-                })
+                sentences.append(
+                    {
+                        "text": chunk["text"],
+                        "metadata": chunk.get("metadata", {}),
+                        "file_id": chunk.get("file_id"),  # Preserve item-level file_id
+                    }
+                )
 
         # Store results in State
         state["sentences"] = sentences
@@ -389,14 +394,13 @@ def extract_text_github_node(state: KnowledgeExtractionState) -> KnowledgeExtrac
                 changed_ids = new_ids | modified_ids
 
                 # Filter chunks to only changed files
-                filtered_chunks = [
-                    chunk for chunk in chunks
-                    if chunk.get("file_id") in changed_ids
-                ]
+                filtered_chunks = [chunk for chunk in chunks if chunk.get("file_id") in changed_ids]
 
-                print(f"[ExtractTextGitHubNode] Incremental mode: "
-                      f"new={len(new_ids)}, modified={len(modified_ids)}, "
-                      f"deleted={len(deleted_ids)}, processing={len(filtered_chunks)} chunks")
+                print(
+                    f"[ExtractTextGitHubNode] Incremental mode: "
+                    f"new={len(new_ids)}, modified={len(modified_ids)}, "
+                    f"deleted={len(deleted_ids)}, processing={len(filtered_chunks)} chunks"
+                )
 
                 # Store deleted/changed file IDs for cleanup and merging
                 state["deleted_item_ids"] = list(deleted_ids)
@@ -412,16 +416,20 @@ def extract_text_github_node(state: KnowledgeExtractionState) -> KnowledgeExtrac
 
         for chunk in chunks:
             if chunk.get("text"):
-                sentences.append({
-                    "text": chunk["text"],
-                    "metadata": chunk.get("metadata", {}),
-                    "file_id": chunk.get("file_id")  # Preserve file-level file_id
-                })
+                sentences.append(
+                    {
+                        "text": chunk["text"],
+                        "metadata": chunk.get("metadata", {}),
+                        "file_id": chunk.get("file_id"),  # Preserve file-level file_id
+                    }
+                )
 
         # Store results in State
         state["sentences"] = sentences
         state["file_id"] = chunks[0].get("file_id", "") if chunks else ""
-        state["file_name"] = f"{github_raw_data['owner']}/{github_raw_data['repo']}" if github_raw_data else "GitHub Repository"
+        state["file_name"] = (
+            f"{github_raw_data['owner']}/{github_raw_data['repo']}" if github_raw_data else "GitHub Repository"
+        )
         state["github_raw_data"] = github_raw_data
         state["current_stage"] = "text_extracted_github"
 
@@ -429,6 +437,7 @@ def extract_text_github_node(state: KnowledgeExtractionState) -> KnowledgeExtrac
 
     except Exception as e:
         import traceback
+
         traceback.print_exc()
         state.setdefault("errors", [])
         state["errors"].append(f"GitHub text extraction failed: {e}")
@@ -559,12 +568,8 @@ def extract_views_node(state: KnowledgeExtractionState) -> KnowledgeExtractionSt
 
         # Match ViewChain input format
         input_data = {
-            "target": {
-                "file_id": state["file_id"],
-                "file_name": state["file_name"],
-                "chunks": state["chunks"]
-            },
-            "metamodel": state["metamodel"]
+            "target": {"file_id": state["file_id"], "file_name": state["file_name"], "chunks": state["chunks"]},
+            "metamodel": state["metamodel"],
         }
 
         result = view_chain.invoke(input_data)
@@ -614,9 +619,13 @@ def extract_classes_node(state: KnowledgeExtractionState) -> KnowledgeExtraction
                         c_copy["_frozen_label"] = c_copy.get("label", "")
                         existing_classes.append(c_copy)
                     if existing_classes:
-                        print(f"[ExtractClassesNode] Loaded {len(existing_classes)} existing ACCEPT'ed classes from previous extraction")
+                        print(
+                            f"[ExtractClassesNode] Loaded {len(existing_classes)} existing ACCEPT'ed classes from previous extraction"
+                        )
             except (json.JSONDecodeError, KeyError) as e:
-                print(f"[ExtractClassesNode] Warning: Could not load existing classes from {extraction_result_path}: {e}")
+                print(
+                    f"[ExtractClassesNode] Warning: Could not load existing classes from {extraction_result_path}: {e}"
+                )
                 existing_classes = []
 
         class_chain = create_class_chain(model=state.get("model"))
@@ -625,11 +634,9 @@ def extract_classes_node(state: KnowledgeExtractionState) -> KnowledgeExtraction
         # Use ViewChain output directly as view_info
         # Pass existing classes as well
         input_data = {
-            "view_info": {
-                "views": state["views"]
-            },
+            "view_info": {"views": state["views"]},
             "metamodel": state["metamodel"],
-            "existing_classes": existing_classes  # Add existing classes
+            "existing_classes": existing_classes,  # Add existing classes
         }
 
         result = class_chain.invoke(input_data)
@@ -689,23 +696,22 @@ def extract_properties_node(state: KnowledgeExtractionState) -> KnowledgeExtract
                         p_copy["_frozen_strength"] = strength
                         existing_properties.append(p_copy)
                     if existing_properties:
-                        print(f"[ExtractPropertiesNode] Loaded {len(existing_properties)} existing properties (strength > 0) from previous extraction")
+                        print(
+                            f"[ExtractPropertiesNode] Loaded {len(existing_properties)} existing properties (strength > 0) from previous extraction"
+                        )
             except (json.JSONDecodeError, KeyError) as e:
-                print(f"[ExtractPropertiesNode] Warning: Could not load existing properties from {extraction_result_path}: {e}")
+                print(
+                    f"[ExtractPropertiesNode] Warning: Could not load existing properties from {extraction_result_path}: {e}"
+                )
                 existing_properties = []
 
-        property_chain = create_property_chain(
-            model=state.get("model"),
-            existing_properties=existing_properties
-        )
+        property_chain = create_property_chain(model=state.get("model"), existing_properties=existing_properties)
 
         # Match PropertyChain input format
         input_data = {
-            "class_info": {
-                "classes": state["classes"]
-            },
+            "class_info": {"classes": state["classes"]},
             "metamodel": state["metamodel"],
-            "extracted_structure": state.get("extracted_structure", [])
+            "extracted_structure": state.get("extracted_structure", []),
         }
 
         result = property_chain.invoke(input_data)
@@ -767,10 +773,7 @@ def cleanup_deleted_items_node(state: KnowledgeExtractionState) -> KnowledgeExtr
             sources = cls.get("sources", [])
 
             # Filter out deleted file_ids (maintain alignment with sources)
-            filtered_pairs = [
-                (src, fid) for src, fid in zip(sources, file_ids)
-                if fid not in deleted_file_ids
-            ]
+            filtered_pairs = [(src, fid) for src, fid in zip(sources, file_ids) if fid not in deleted_file_ids]
 
             if filtered_pairs:
                 # Class still has sources from non-deleted items
@@ -785,22 +788,21 @@ def cleanup_deleted_items_node(state: KnowledgeExtractionState) -> KnowledgeExtr
 
         # Clean up properties: remove those referencing deleted classes
         cleaned_properties = [
-            prop for prop in knowledge.get("properties", [])
-            if prop["src_id"] not in removed_class_ids
-            and prop["dest_id"] not in removed_class_ids
+            prop
+            for prop in knowledge.get("properties", [])
+            if prop["src_id"] not in removed_class_ids and prop["dest_id"] not in removed_class_ids
         ]
 
         # Save cleaned knowledge back
-        cleaned_knowledge = {
-            "classes": cleaned_classes,
-            "properties": cleaned_properties
-        }
+        cleaned_knowledge = {"classes": cleaned_classes, "properties": cleaned_properties}
 
         with open(knowledge_path, "w", encoding="utf-8") as f:
             json.dump(cleaned_knowledge, f, ensure_ascii=False, indent=2)
 
-        print(f"[CleanupDeletedItems] Removed {len(removed_class_ids)} classes, "
-              f"{len(knowledge['properties']) - len(cleaned_properties)} properties")
+        print(
+            f"[CleanupDeletedItems] Removed {len(removed_class_ids)} classes, "
+            f"{len(knowledge['properties']) - len(cleaned_properties)} properties"
+        )
 
         state["current_stage"] = "deleted_items_cleaned"
 
@@ -832,8 +834,7 @@ def save_accumulated_knowledge_node(state: KnowledgeExtractionState) -> Knowledg
 
         # Extract ACCEPT'ed classes and valid properties from current execution result
         current_classes, current_properties = filter_accumulated_knowledge(
-            state.get("classes", []),
-            state.get("properties", [])
+            state.get("classes", []), state.get("properties", [])
         )
 
         # Load existing knowledge.json if it exists
@@ -847,14 +848,8 @@ def save_accumulated_knowledge_node(state: KnowledgeExtractionState) -> Knowledg
 
         # Merge classes (deduplicate/replace based on semantic key)
         # Keep existing classes to record UUID mapping when UUIDs change
-        current_class_map = {
-            (c.get("class_iri"), c.get("label")): c
-            for c in current_classes
-        }
-        existing_class_map = {
-            (c.get("class_iri"), c.get("label")): c
-            for c in existing_knowledge.get("classes", [])
-        }
+        current_class_map = {(c.get("class_iri"), c.get("label")): c for c in current_classes}
+        existing_class_map = {(c.get("class_iri"), c.get("label")): c for c in existing_knowledge.get("classes", [])}
 
         # UUID mapping: old_uuid -> new_uuid (used when replacing classes)
         uuid_map = {}
@@ -901,10 +896,7 @@ def save_accumulated_knowledge_node(state: KnowledgeExtractionState) -> Knowledg
             return remapped
 
         # Remap UUIDs of existing properties
-        existing_properties = remap_property_ids(
-            existing_knowledge.get("properties", []),
-            uuid_map
-        )
+        existing_properties = remap_property_ids(existing_knowledge.get("properties", []), uuid_map)
         # Remap current properties as well (just in case)
         current_properties = remap_property_ids(current_properties, uuid_map)
 
@@ -934,10 +926,7 @@ def save_accumulated_knowledge_node(state: KnowledgeExtractionState) -> Knowledg
             print(f"[Info] Removed {orphaned_count} orphaned properties (referencing non-existent classes)")
 
         # Save to knowledge.json
-        accumulated_knowledge = {
-            "classes": merged_classes,
-            "properties": merged_properties
-        }
+        accumulated_knowledge = {"classes": merged_classes, "properties": merged_properties}
 
         with open(knowledge_path, "w", encoding="utf-8") as f:
             json.dump(accumulated_knowledge, f, ensure_ascii=False, indent=2)
@@ -981,19 +970,14 @@ def generate_outputs_node(state: KnowledgeExtractionState) -> KnowledgeExtractio
         else:
             # For first execution (when knowledge.json doesn't exist yet), filter current results
             accumulated_classes, accumulated_properties = filter_accumulated_knowledge(
-                state["classes"],
-                state["properties"]
+                state["classes"], state["properties"]
             )
 
         # TurtleGenerator
         turtle_generator = TurtleGenerator(output_dir=project_output_dir)
         turtle_input = {
-            "class_info": {
-                "classes": accumulated_classes
-            },
-            "property_info": {
-                "properties": accumulated_properties
-            }
+            "class_info": {"classes": accumulated_classes},
+            "property_info": {"properties": accumulated_properties},
         }
         turtle_path, turtle_result = turtle_generator.generate_and_save(turtle_input)
 
@@ -1011,7 +995,7 @@ def generate_outputs_node(state: KnowledgeExtractionState) -> KnowledgeExtractio
         state["summary"] = {
             "classes_count": len(accumulated_classes),
             "properties_count": len(accumulated_properties),
-            "files_generated": [turtle_path, csv_result["nodes_path"], csv_result["properties_path"]]
+            "files_generated": [turtle_path, csv_result["nodes_path"], csv_result["properties_path"]],
         }
 
         state["current_stage"] = "outputs_generated"
@@ -1025,6 +1009,7 @@ def generate_outputs_node(state: KnowledgeExtractionState) -> KnowledgeExtractio
 
 
 # ========== Routing Functions ==========
+
 
 def extract_text_miro_board_node(state: KnowledgeExtractionState) -> KnowledgeExtractionState:
     """
@@ -1057,7 +1042,9 @@ def extract_text_miro_board_node(state: KnowledgeExtractionState) -> KnowledgeEx
                 new_ids, modified_ids, deleted_ids = _detect_miro_item_changes(prev_raw, miro_raw_data)
                 changed_ids = new_ids | modified_ids
 
-                print(f"[ExtractTextMiroBoard] Changes detected: {len(new_ids)} new, {len(modified_ids)} modified, {len(deleted_ids)} deleted")
+                print(
+                    f"[ExtractTextMiroBoard] Changes detected: {len(new_ids)} new, {len(modified_ids)} modified, {len(deleted_ids)} deleted"
+                )
 
                 if changed_ids:
                     # Filter visual_items to only include Frames/Diagrams with changed children
@@ -1076,7 +1063,8 @@ def extract_text_miro_board_node(state: KnowledgeExtractionState) -> KnowledgeEx
 
                     # Filter item_page_mappings to only include changed items
                     result["item_page_mappings"] = [
-                        mapping for mapping in result["item_page_mappings"]
+                        mapping
+                        for mapping in result["item_page_mappings"]
                         if mapping["item_id"] in changed_visual_item_ids
                     ]
 
@@ -1091,16 +1079,15 @@ def extract_text_miro_board_node(state: KnowledgeExtractionState) -> KnowledgeEx
                         chunk_item_id = sent["file_id"].rsplit(":", 1)[-1]
                         return chunk_item_id in keep_ids
 
-                    result["sentences"] = [
-                        sent for sent in result["sentences"]
-                        if _chunk_belongs_to_changed(sent)
-                    ]
+                    result["sentences"] = [sent for sent in result["sentences"] if _chunk_belongs_to_changed(sent)]
 
                     state["changed_item_ids"] = list(changed_ids)
                     state["deleted_item_ids"] = list(deleted_ids)
 
                     print(f"[ExtractTextMiroBoard] Filtered to {len(result['miro_visual_items'])} changed visual items")
-                    print(f"[ExtractTextMiroBoard] Filtered to {len(result['item_page_mappings'])} changed page mappings")
+                    print(
+                        f"[ExtractTextMiroBoard] Filtered to {len(result['item_page_mappings'])} changed page mappings"
+                    )
                 else:
                     print("[ExtractTextMiroBoard] No changes detected, skipping extraction")
                     state["incremental_mode"] = False
@@ -1128,16 +1115,21 @@ def extract_text_miro_board_node(state: KnowledgeExtractionState) -> KnowledgeEx
 
         # Save extracted text to log for inspection
         from src.utils.logger import Logger
+
         logger = Logger("/workspace/app/log/miro_text_extractor")
-        logger.save_log({
-            "board_id": result["miro_board_id"],
-            "sentences": result["sentences"],
-            "item_page_mappings": result["item_page_mappings"]
-        }, "miro_extracted_text_")
+        logger.save_log(
+            {
+                "board_id": result["miro_board_id"],
+                "sentences": result["sentences"],
+                "item_page_mappings": result["item_page_mappings"],
+            },
+            "miro_extracted_text_",
+        )
 
     except Exception as e:
         print(f"[ExtractTextMiroBoard] Error: {e}")
         import traceback
+
         traceback.print_exc()
         state["errors"].append(f"ExtractTextMiroBoard: {e}")
         state["current_stage"] = "extract_text_miro_board_failed"
@@ -1156,11 +1148,13 @@ def extract_images_miro_board_node(state: KnowledgeExtractionState) -> Knowledge
         model = state.get("model")
         extractor = MiroBoardImageExtractor(model=model) if model else MiroBoardImageExtractor()
 
-        result = extractor.invoke({
-            "pdf_path": state["file_path"],
-            "item_page_mappings": state["item_page_mappings"],
-            "file_id": state["file_id"],
-        })
+        result = extractor.invoke(
+            {
+                "pdf_path": state["file_path"],
+                "item_page_mappings": state["item_page_mappings"],
+                "file_id": state["file_id"],
+            }
+        )
 
         state["image_chunks"] = result["image_chunks"]
         state["image_statistics"] = result["image_statistics"]
@@ -1173,6 +1167,7 @@ def extract_images_miro_board_node(state: KnowledgeExtractionState) -> Knowledge
     except Exception as e:
         print(f"[ExtractImagesMiroBoard] Error: {e}")
         import traceback
+
         traceback.print_exc()
         state["errors"].append(f"ExtractImagesMiroBoard: {e}")
         state["current_stage"] = "extract_images_miro_board_failed"

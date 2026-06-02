@@ -10,11 +10,13 @@ from langchain_core.runnables.config import RunnableConfig
 try:
     from src.utils.logger import Logger
 except Exception:
+
     class Logger:
         def __init__(self, *_args, **_kwargs): ...
         def save_log(self, *_args, **_kwargs): ...
         def info(self, *_args, **_kwargs): ...
         def error(self, *_args, **_kwargs): ...
+
 
 try:
     from src.utils.chunk_creator import ChunkCreator
@@ -36,8 +38,8 @@ class DocTextFilter(Runnable):
 
     # === Added: Exclude patterns (table of contents and page numbers) ===
     EXCLUDE_PATTERNS = [
-        re.compile(r"^\s*目\s*次\s*$"),          # "Table of Contents"
-        re.compile(r"^\s*別\d+-\d+\s*$"),       # "Appendix 8-1", "Appendix 8-5", etc.
+        re.compile(r"^\s*目\s*次\s*$"),  # "Table of Contents"
+        re.compile(r"^\s*別\d+-\d+\s*$"),  # "Appendix 8-1", "Appendix 8-5", etc.
     ]
 
     def __init__(self):
@@ -62,7 +64,7 @@ class DocTextFilter(Runnable):
         output = {
             "file_id": file_id,
             "file_name": file_name,
-            "sentences": [{"text": s} for s in sentences if s.strip()]
+            "sentences": [{"text": s} for s in sentences if s.strip()],
         }
         try:
             self.logger.save_log(output, "doc_text_filter_output_")
@@ -143,7 +145,7 @@ class DocTextFilter(Runnable):
         return bool(self.SENT_END_RE.search(text))
 
     def _normalize_inline_whitespace(self, text: str) -> str:
-        t = text.replace("\u00AD", "")
+        t = text.replace("\u00ad", "")
         t = re.sub(r"[ \t]{2,}", " ", t)
         return t.strip("\r")
 
@@ -152,7 +154,7 @@ class DocTextFilter(Runnable):
             return prev[:-1] + cur.lstrip()
         if cur[:1] in "、。，．）」』】〉》" or prev.endswith(("（", "「", "『", "【", "〈", "《")):
             return prev + cur
-        if (prev.endswith(" ") or cur.startswith(" ")):
+        if prev.endswith(" ") or cur.startswith(" "):
             return prev + cur
         return prev + " " + cur
 
@@ -180,7 +182,6 @@ class DocTextFilter(Runnable):
             raise ValueError("source.sentences must be a list.")
 
 
-
 if __name__ == "__main__":
     # Dummy input data (mimicking TextExtractor output)
     source = {
@@ -192,18 +193,15 @@ if __name__ == "__main__":
             {"text": "・First bullet point item"},
             {"text": "with continuation line"},
             {"text": "・Second bullet point"},
-            {"text": "This is the last normal sentence."}
-        ]
+            {"text": "This is the last normal sentence."},
+        ],
     }
 
     # Initialize DocTextFilter
     filter_instance = DocTextFilter()
 
     # Execute filter
-    result = filter_instance.invoke({
-        "source": source,
-        "filter": {"name": "sentence_extraction", "params": {}}
-    })
+    result = filter_instance.invoke({"source": source, "filter": {"name": "sentence_extraction", "params": {}}})
 
     # Verify output
     print("=== DocTextFilter Output Result ===")

@@ -21,6 +21,7 @@ def _normalize_label(label: str) -> str:
         return ""
     return " ".join(label.split()).strip().lower()
 
+
 class PropertyExtractor(Runnable):
     """
     Property (relationship) extraction
@@ -46,7 +47,9 @@ class PropertyExtractor(Runnable):
 
         # Load JSON schema
         schema = self._load_schema()
-        self.llm_json = self.llm.bind(response_format={"type": "json_schema", "json_schema": {"name": "property_extractor", "schema": schema}})
+        self.llm_json = self.llm.bind(
+            response_format={"type": "json_schema", "json_schema": {"name": "property_extractor", "schema": schema}}
+        )
         self.max_concurrency = max_concurrency
         self.progress = progress
         self.batch_size = batch_size
@@ -153,7 +156,7 @@ class PropertyExtractor(Runnable):
         src_class_definition: str,
         dest_class_definition: str,
         src_batch: List[Dict[str, Any]],
-        dest_batch: List[Dict[str, Any]]
+        dest_batch: List[Dict[str, Any]],
     ) -> List[Dict[str, str]]:
         """Execute property extraction per batch"""
 
@@ -199,18 +202,14 @@ class PropertyExtractor(Runnable):
                 src_id = prop.get("src_id", "")
                 dest_id = prop.get("dest_id", "")
                 if src_id and dest_id:
-                    properties.append({
-                        "src_id": src_id.strip(),
-                        "property_iri": property_iri,
-                        "dest_id": dest_id.strip()
-                    })
+                    properties.append(
+                        {"src_id": src_id.strip(), "property_iri": property_iri, "dest_id": dest_id.strip()}
+                    )
 
         return properties
 
     async def _extract_properties_for_one_type(
-        self,
-        property_def: Dict[str, Any],
-        classes: List[Dict[str, Any]]
+        self, property_def: Dict[str, Any], classes: List[Dict[str, Any]]
     ) -> List[Dict[str, str]]:
         """Extract relationships between classes for a specific property type"""
 
@@ -261,20 +260,24 @@ class PropertyExtractor(Runnable):
 
         # 1. new×new pairs
         if src_new and dest_new:
-            src_new_batches = [src_new[i:i + self.batch_size] for i in range(0, len(src_new), self.batch_size)]
-            dest_new_batches = [dest_new[i:i + self.batch_size] for i in range(0, len(dest_new), self.batch_size)]
+            src_new_batches = [src_new[i : i + self.batch_size] for i in range(0, len(src_new), self.batch_size)]
+            dest_new_batches = [dest_new[i : i + self.batch_size] for i in range(0, len(dest_new), self.batch_size)]
             batch_pairs.extend([(s, d) for s in src_new_batches for d in dest_new_batches])
 
         # 2. new×existing pairs
         if src_new and dest_existing:
-            src_new_batches = [src_new[i:i + self.batch_size] for i in range(0, len(src_new), self.batch_size)]
-            dest_existing_batches = [dest_existing[i:i + self.batch_size] for i in range(0, len(dest_existing), self.batch_size)]
+            src_new_batches = [src_new[i : i + self.batch_size] for i in range(0, len(src_new), self.batch_size)]
+            dest_existing_batches = [
+                dest_existing[i : i + self.batch_size] for i in range(0, len(dest_existing), self.batch_size)
+            ]
             batch_pairs.extend([(s, d) for s in src_new_batches for d in dest_existing_batches])
 
         # 3. existing×new pairs
         if src_existing and dest_new:
-            src_existing_batches = [src_existing[i:i + self.batch_size] for i in range(0, len(src_existing), self.batch_size)]
-            dest_new_batches = [dest_new[i:i + self.batch_size] for i in range(0, len(dest_new), self.batch_size)]
+            src_existing_batches = [
+                src_existing[i : i + self.batch_size] for i in range(0, len(src_existing), self.batch_size)
+            ]
+            dest_new_batches = [dest_new[i : i + self.batch_size] for i in range(0, len(dest_new), self.batch_size)]
             batch_pairs.extend([(s, d) for s in src_existing_batches for d in dest_new_batches])
 
         if self.progress:
@@ -297,7 +300,7 @@ class PropertyExtractor(Runnable):
                     src_class_definition=src_class_definition,
                     dest_class_definition=dest_class_definition,
                     src_batch=src_batch,
-                    dest_batch=dest_batch
+                    dest_batch=dest_batch,
                 )
             )
 
@@ -325,7 +328,9 @@ class PropertyExtractor(Runnable):
         lock = asyncio.Lock()
 
         if self.progress:
-            print(f"[PropertyExtractor] Starting parallel processing: {total} property types (concurrency={self.max_concurrency})")
+            print(
+                f"[PropertyExtractor] Starting parallel processing: {total} property types (concurrency={self.max_concurrency})"
+            )
 
         # Parallel processing for each property type
         async def _wrapped(property_def: Dict[str, Any]) -> List[Dict[str, str]]:
@@ -336,7 +341,9 @@ class PropertyExtractor(Runnable):
             async with lock:
                 counter += 1
                 if self.progress:
-                    print(f"[{counter}/{total}] PropertyExtractor: {property_name} processed (extracted {len(result)} items)")
+                    print(
+                        f"[{counter}/{total}] PropertyExtractor: {property_name} processed (extracted {len(result)} items)"
+                    )
 
             return result
 
@@ -432,11 +439,13 @@ class PropertyExtractor(Runnable):
                     if key in seen:
                         continue
                     seen.add(key)
-                    candidates.append({
-                        "src_id": src_id,
-                        "property_iri": property_iri,
-                        "dest_id": dest_id,
-                    })
+                    candidates.append(
+                        {
+                            "src_id": src_id,
+                            "property_iri": property_iri,
+                            "dest_id": dest_id,
+                        }
+                    )
 
             if not matched_any:
                 no_property += 1
@@ -478,8 +487,13 @@ class PropertyExtractor(Runnable):
         # Tag candidates with their origin and the flags that control downstream
         # strength/review handling.
         tagged_structure = [
-            {**c, "_structure_derived": True, "strength": 2,
-             "_frozen_from_existing_accept": True, "_frozen_strength": 2}
+            {
+                **c,
+                "_structure_derived": True,
+                "strength": 2,
+                "_frozen_from_existing_accept": True,
+                "_frozen_strength": 2,
+            }
             for c in structure_candidates
         ]
         tagged_llm = [{**c, "strength": 0} for c in extracted_properties]
@@ -510,18 +524,22 @@ class PropertyExtractor(Runnable):
             src_label = src_class["label"] if src_class else prop["src_id"]
             dest_label = dest_class["label"] if dest_class else prop["dest_id"]
 
-            properties_with_labels.append({
-                **property_item,
-                "src_label": src_label,
-                "dest_label": dest_label,
-            })
+            properties_with_labels.append(
+                {
+                    **property_item,
+                    "src_label": src_label,
+                    "dest_label": dest_label,
+                }
+            )
 
         output: Dict[str, Any] = {"properties": properties}
 
         if self.progress:
             total_properties = len(properties)
-            print(f"[PropertyExtractor] Completed: extracted {total_properties} properties "
-                  f"({len(tagged_structure)} from structure, {len(tagged_llm)} from LLM)")
+            print(
+                f"[PropertyExtractor] Completed: extracted {total_properties} properties "
+                f"({len(tagged_structure)} from structure, {len(tagged_llm)} from LLM)"
+            )
 
         # Save property chain output with Logger (with label information + structure summary)
         log_output = {"properties": properties_with_labels}
@@ -539,7 +557,9 @@ if __name__ == "__main__":
     extractor = PropertyExtractor()
 
     # Load the latest ClassReviewer output JSON
-    class_files = sorted(glob.glob("/workspace/app/log/class_consolidator/class_consolidator_output_*.json"), reverse=True)
+    class_files = sorted(
+        glob.glob("/workspace/app/log/class_consolidator/class_consolidator_output_*.json"), reverse=True
+    )
 
     if not class_files:
         print("Error: No ClassReviewer output files found in log/class_consolidator/")
@@ -552,14 +572,11 @@ if __name__ == "__main__":
         class_info = json.load(f)
 
     # Prepare input data for PropertyExtractor
-    sample_input = {
-        "class_info": class_info,
-        "metamodel": {}
-    }
+    sample_input = {"class_info": class_info, "metamodel": {}}
 
     print("=== PropertyExtractor Test ===")
     print(f"Input: {len(class_info.get('classes', []))} classes loaded")
-    print("\n" + "="*50 + "\n")
+    print("\n" + "=" * 50 + "\n")
 
     try:
         # Execute PropertyExtractor
@@ -585,4 +602,5 @@ if __name__ == "__main__":
     except Exception as e:
         print(f"Error: {e}")
         import traceback
+
         traceback.print_exc()

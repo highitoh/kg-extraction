@@ -7,6 +7,7 @@ from .doc_text_extractor import DocTextExtractor
 from .doc_text_filter import DocTextFilter
 from .text_transformer import TextTransformer
 
+
 class DocTextChain(Runnable):
     """Document text extraction chain"""
 
@@ -40,7 +41,5 @@ class DocTextChain(Runnable):
 
 if __name__ == "__main__":
     chain = DocTextChain()
-    result = chain.invoke({
-        "files": [{"path": "../doc/sample.pdf"}]
-    })
+    result = chain.invoke({"files": [{"path": "../doc/sample.pdf"}]})
     print(result)

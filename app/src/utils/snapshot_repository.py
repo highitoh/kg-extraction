@@ -25,11 +25,7 @@ class SnapshotRepository:
         """
         self.output_dir = Path(output_dir)
 
-    def list_snapshots(
-        self,
-        project: str,
-        limit: Optional[int] = None
-    ) -> List[Dict[str, Any]]:
+    def list_snapshots(self, project: str, limit: Optional[int] = None) -> List[Dict[str, Any]]:
         """
         List all snapshots for a project.
 
@@ -48,16 +44,14 @@ class SnapshotRepository:
         metadata_file = snapshots_dir / "metadata.json"
 
         if not snapshots_dir.exists():
-            raise FileNotFoundError(
-                f"No snapshots directory found for project '{project}' at {snapshots_dir}"
-            )
+            raise FileNotFoundError(f"No snapshots directory found for project '{project}' at {snapshots_dir}")
 
         if not metadata_file.exists():
             # No metadata file means no snapshots yet
             return []
 
         # Load metadata index
-        with open(metadata_file, 'r', encoding='utf-8') as f:
+        with open(metadata_file, "r", encoding="utf-8") as f:
             metadata = json.load(f)
 
         snapshots = metadata.get("snapshots", [])
@@ -71,11 +65,7 @@ class SnapshotRepository:
 
         return snapshots
 
-    def get_snapshot(
-        self,
-        project: str,
-        snapshot_id: str
-    ) -> Optional[Dict[str, Any]]:
+    def get_snapshot(self, project: str, snapshot_id: str) -> Optional[Dict[str, Any]]:
         """
         Retrieve a specific snapshot.
 
@@ -93,39 +83,27 @@ class SnapshotRepository:
         snapshot_dir = project_dir / "snapshots" / snapshot_id
 
         if not snapshot_dir.exists():
-            raise FileNotFoundError(
-                f"Snapshot '{snapshot_id}' not found for project '{project}'"
-            )
+            raise FileNotFoundError(f"Snapshot '{snapshot_id}' not found for project '{project}'")
 
         # Load snapshot metadata
         metadata_file = snapshot_dir / "snapshot.json"
         if not metadata_file.exists():
-            raise FileNotFoundError(
-                f"Snapshot metadata not found: {metadata_file}"
-            )
+            raise FileNotFoundError(f"Snapshot metadata not found: {metadata_file}")
 
-        with open(metadata_file, 'r', encoding='utf-8') as f:
+        with open(metadata_file, "r", encoding="utf-8") as f:
             metadata = json.load(f)
 
         # Load knowledge graph
         knowledge_file = snapshot_dir / "knowledge.json"
         if not knowledge_file.exists():
-            raise FileNotFoundError(
-                f"Snapshot knowledge.json not found: {knowledge_file}"
-            )
+            raise FileNotFoundError(f"Snapshot knowledge.json not found: {knowledge_file}")
 
-        with open(knowledge_file, 'r', encoding='utf-8') as f:
+        with open(knowledge_file, "r", encoding="utf-8") as f:
             knowledge = json.load(f)
 
-        return {
-            "metadata": metadata,
-            "knowledge": knowledge
-        }
+        return {"metadata": metadata, "knowledge": knowledge}
 
-    def get_latest_snapshot(
-        self,
-        project: str
-    ) -> Optional[Dict[str, Any]]:
+    def get_latest_snapshot(self, project: str) -> Optional[Dict[str, Any]]:
         """
         Get the most recent snapshot for a project.
 
@@ -141,19 +119,12 @@ class SnapshotRepository:
         snapshots = self.list_snapshots(project, limit=1)
 
         if not snapshots:
-            raise FileNotFoundError(
-                f"No snapshots found for project '{project}'"
-            )
+            raise FileNotFoundError(f"No snapshots found for project '{project}'")
 
         latest_snapshot_id = snapshots[0]["snapshot_id"]
         return self.get_snapshot(project, latest_snapshot_id)
 
-    def rollback_to_snapshot(
-        self,
-        project: str,
-        snapshot_id: str,
-        backup: bool = True
-    ) -> Dict[str, Any]:
+    def rollback_to_snapshot(self, project: str, snapshot_id: str, backup: bool = True) -> Dict[str, Any]:
         """
         Restore knowledge.json to a specific snapshot state.
 
@@ -184,9 +155,7 @@ class SnapshotRepository:
             )
 
         if not snapshot_knowledge_file.exists():
-            raise FileNotFoundError(
-                f"Snapshot knowledge.json not found: {snapshot_knowledge_file}"
-            )
+            raise FileNotFoundError(f"Snapshot knowledge.json not found: {snapshot_knowledge_file}")
 
         result = {
             "project": project,
@@ -194,7 +163,7 @@ class SnapshotRepository:
             "rollback_timestamp": datetime.now().isoformat(),
             "backup_created": False,
             "backup_file": None,
-            "success": False
+            "success": False,
         }
 
         # Create backup if requested and current knowledge.json exists
@@ -243,11 +212,7 @@ class SnapshotRepository:
         except FileNotFoundError:
             return 0
 
-    def find_latest_for_board(
-        self,
-        board_id: str,
-        project: str
-    ) -> Optional[str]:
+    def find_latest_for_board(self, board_id: str, project: str) -> Optional[str]:
         """
         Find the latest snapshot for a given Miro board.
 

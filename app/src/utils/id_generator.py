@@ -1,4 +1,5 @@
 """Deterministic ID generation utilities for knowledge graph entities."""
+
 import hashlib
 
 

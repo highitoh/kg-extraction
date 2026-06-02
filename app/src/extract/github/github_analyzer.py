@@ -65,7 +65,7 @@ class GitHubAnalyzer:
         # Analyze issues if enabled
         if self.include_issues:
             issues = raw_repo_data.get("issues", [])
-            for issue_data in issues[:self.max_issues]:
+            for issue_data in issues[: self.max_issues]:
                 item = self._analyze_issue(issue_data)
                 if item:
                     analyzed_items.append(item)
@@ -126,8 +126,8 @@ class GitHubAnalyzer:
                 "sha": file_data.get("sha", ""),
                 "size": file_data.get("size", 0),
                 "url": file_data.get("html_url", ""),
-                "download_url": file_data.get("download_url", "")
-            }
+                "download_url": file_data.get("download_url", ""),
+            },
         }
 
     def _analyze_issue(self, issue_data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
@@ -165,8 +165,8 @@ class GitHubAnalyzer:
                 "created_at": issue_data.get("created_at", ""),
                 "updated_at": issue_data.get("updated_at", ""),
                 "url": issue_data.get("html_url", ""),
-                "labels": [label.get("name") for label in issue_data.get("labels", [])]
-            }
+                "labels": [label.get("name") for label in issue_data.get("labels", [])],
+            },
         }
 
     def _analyze_wiki(self, wiki_data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
@@ -188,11 +188,7 @@ class GitHubAnalyzer:
             "path": f"wiki/{path}",
             "title": title,
             "content": content,
-            "metadata": {
-                "source": "github",
-                "item_type": "wiki",
-                "url": wiki_data.get("url", "")
-            }
+            "metadata": {"source": "github", "item_type": "wiki", "url": wiki_data.get("url", "")},
         }
 
     def _matches_pattern(self, path: str) -> bool:
@@ -275,20 +271,16 @@ class GitHubAnalyzer:
                     "file_path": item["path"],
                     "item_type": item["type"],
                     "title": item["title"],
-                    **item["metadata"]  # Merge in all metadata fields
+                    **item["metadata"],  # Merge in all metadata fields
                 },
-                "file_id": item["id"]
+                "file_id": item["id"],
             }
 
             chunks.append(chunk)
 
         return chunks
 
-    def filter_by_file_ids(
-        self,
-        items: List[Dict[str, Any]],
-        file_ids: List[str]
-    ) -> List[Dict[str, Any]]:
+    def filter_by_file_ids(self, items: List[Dict[str, Any]], file_ids: List[str]) -> List[Dict[str, Any]]:
         """Filter items to only include specific file IDs.
 
         Used for incremental extraction to process only changed files.
@@ -332,7 +324,7 @@ class GitHubAnalyzer:
                     "path": item["path"],
                     "sha": item["metadata"].get("sha", ""),
                     "size": item["metadata"].get("size", 0),
-                    "type": item["type"]
+                    "type": item["type"],
                 }
 
         return file_map

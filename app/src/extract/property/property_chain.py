@@ -24,10 +24,8 @@ class ExtractorToRankerAdapter(Runnable):
         Output: PropertyRanker input {property_candidates: {...}, class_info: {...}}
         """
         return {
-            "property_candidates": {
-                "properties": input.get("properties", [])
-            },
-            "class_info": self.original_input.get("class_info", {})
+            "property_candidates": {"properties": input.get("properties", [])},
+            "class_info": self.original_input.get("class_info", {}),
         }
 
 
@@ -46,10 +44,8 @@ class RankerToFilterAdapter(Runnable):
         Output: PropertyReviewer input {property_candidates: {...}, class_info: {...}}
         """
         return {
-            "property_candidates": {
-                "properties": input.get("properties", [])
-            },
-            "class_info": self.original_input.get("class_info", {})
+            "property_candidates": {"properties": input.get("properties", [])},
+            "class_info": self.original_input.get("class_info", {}),
         }
 
 
@@ -67,10 +63,7 @@ class FilterToEditorAdapter(Runnable):
         Input: PropertyReviewer output {properties}
         Output: PropertyEditor input {properties, class_info}
         """
-        return {
-            "properties": input.get("properties", []),
-            "class_info": self.original_input.get("class_info", {})
-        }
+        return {"properties": input.get("properties", []), "class_info": self.original_input.get("class_info", {})}
 
 
 class EditorToFilterAdapter(Runnable):
@@ -87,10 +80,8 @@ class EditorToFilterAdapter(Runnable):
         Output: PropertyReviewer input {property_candidates: {...}, class_info: {...}}
         """
         return {
-            "property_candidates": {
-                "properties": input.get("properties", [])
-            },
-            "class_info": self.original_input.get("class_info", {})
+            "property_candidates": {"properties": input.get("properties", [])},
+            "class_info": self.original_input.get("class_info", {}),
         }
 
 
@@ -106,17 +97,19 @@ class PropertyChainWithReview(Runnable):
     - If REVIEW properties remain after reaching max iterations, they are converted to ACCEPT
     """
 
-    def __init__(self,
-                 extractor: PropertyExtractor,
-                 consolidator: PropertyConsolidator,
-                 ranker: PropertyRanker,
-                 property_reviewer: PropertyReviewer,
-                 editor: PropertyEditor,
-                 validator: PropertyValidator,
-                 original_input: Dict[str, Any],
-                 existing_properties: list = None,
-                 max_review_iterations: int = 2,
-                 progress: bool = True):
+    def __init__(
+        self,
+        extractor: PropertyExtractor,
+        consolidator: PropertyConsolidator,
+        ranker: PropertyRanker,
+        property_reviewer: PropertyReviewer,
+        editor: PropertyEditor,
+        validator: PropertyValidator,
+        original_input: Dict[str, Any],
+        existing_properties: list = None,
+        max_review_iterations: int = 2,
+        progress: bool = True,
+    ):
         """
         Args:
             extractor: PropertyExtractor instance
@@ -160,11 +153,7 @@ class PropertyChainWithReview(Runnable):
         Items matched by should_replace are replaced from reviewed_properties.
         If no match is found, the item is treated as rejected and dropped.
         """
-        reviewed_by_id = {
-            p.get("id"): p
-            for p in reviewed_properties
-            if p.get("id")
-        }
+        reviewed_by_id = {p.get("id"): p for p in reviewed_properties if p.get("id")}
         reviewed_by_key = {}
         for p in reviewed_properties:
             if p.get("id"):
@@ -226,7 +215,7 @@ class PropertyChainWithReview(Runnable):
         consolidator_input = {
             "properties": result.get("properties", []),
             "existing_properties": self.existing_properties,
-            "class_info": self.original_input.get("class_info", {})
+            "class_info": self.original_input.get("class_info", {}),
         }
         result = self.consolidator.invoke(consolidator_input)
 
@@ -267,7 +256,9 @@ class PropertyChainWithReview(Runnable):
                 **p,
                 "judgment": "ACCEPT",
                 "justification": p.get("justification", ""),
-            } if self._is_frozen_unchanged(p) else p
+            }
+            if self._is_frozen_unchanged(p)
+            else p
             for p in merged_initial
         ]
 
@@ -311,7 +302,9 @@ class PropertyChainWithReview(Runnable):
             # Re-execute PropertyReviewer
             if self.progress:
                 print(f"\n--- PropertyReviewer (iteration {iteration + 1}) ---")
-                print(f"Re-reviewing {len(review_only)} REVIEW properties (skipping {len(accepted_properties)} already accepted)")
+                print(
+                    f"Re-reviewing {len(review_only)} REVIEW properties (skipping {len(accepted_properties)} already accepted)"
+                )
             adapter_loop = EditorToFilterAdapter(self.original_input)
             filter_input = adapter_loop.invoke({"properties": review_only})
             result = self.property_reviewer.invoke(filter_input)
@@ -326,7 +319,9 @@ class PropertyChainWithReview(Runnable):
             if p.get("judgment") == "REVIEW":
                 p_copy = p.copy()
                 p_copy["judgment"] = "ACCEPT"
-                p_copy["justification"] = f"Maximum review iterations ({self.max_review_iterations}) reached. Auto-accepted. {p.get('justification', '')}"
+                p_copy["justification"] = (
+                    f"Maximum review iterations ({self.max_review_iterations}) reached. Auto-accepted. {p.get('justification', '')}"
+                )
                 final_properties.append(p_copy)
                 accepted_review_count += 1
             else:
@@ -341,11 +336,9 @@ class PropertyChainWithReview(Runnable):
         if self.progress:
             print("\n=== PropertyValidator ===")
         validator_input = {
-            "property_candidates": {
-                "properties": result.get("properties", [])
-            },
+            "property_candidates": {"properties": result.get("properties", [])},
             "class_info": self.original_input.get("class_info", {}),
-            "metamodel": self.original_input.get("metamodel", {})
+            "metamodel": self.original_input.get("metamodel", {}),
         }
         result = self.validator.invoke(validator_input)
 
@@ -384,7 +377,9 @@ class PropertyChainWithAdapter(Runnable):
         return chain.invoke(input, config)
 
 
-def create_property_chain(model: str = None, max_review_iterations: int = 2, enable_review: bool = True, existing_properties: list = None) -> Runnable:
+def create_property_chain(
+    model: str = None, max_review_iterations: int = 2, enable_review: bool = True, existing_properties: list = None
+) -> Runnable:
     """
     Property extraction chain:
       - enable_review=True: PropertyExtractor -> PropertyConsolidator -> PropertyRanker -> PropertyReviewer -> (PropertyEditor -> PropertyReviewer)* -> PropertyValidator
@@ -437,7 +432,9 @@ def create_property_chain(model: str = None, max_review_iterations: int = 2, ena
 
             return chain.invoke(input, config)
 
-    return PropertyChainWithReviewWrapper(model=model, max_review_iterations=max_review_iterations, existing_properties=existing_properties)
+    return PropertyChainWithReviewWrapper(
+        model=model, max_review_iterations=max_review_iterations, existing_properties=existing_properties
+    )
 
 
 if __name__ == "__main__":
@@ -458,7 +455,7 @@ if __name__ == "__main__":
                     "class_iri": "ex:SystemComponentClass",
                     "label": "Database",
                     "file_id": "file-abc",
-                }
+                },
             ]
         },
         "metamodel": {

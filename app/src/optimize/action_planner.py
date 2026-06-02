@@ -62,11 +62,7 @@ class ActionPlanner:
         self.metamodel = self._load_metamodel()
 
         # Create LLM instance with medium reasoning effort
-        self.llm = LLMFactory.create_llm(
-            model=model,
-            temperature=temperature,
-            reasoning_effort="low"
-        )
+        self.llm = LLMFactory.create_llm(model=model, temperature=temperature, reasoning_effort="low")
 
         # Load schemas (path: /workspace/app/schemas/action-planner/)
         self.schemas_dir = Path(__file__).parent.parent.parent / "schemas" / "action-planner"
@@ -76,11 +72,7 @@ class ActionPlanner:
         self.llm_bound = self.llm.bind(
             response_format={
                 "type": "json_schema",
-                "json_schema": {
-                    "name": "action_planner_response",
-                    "schema": self.llm_schema,
-                    "strict": True
-                }
+                "json_schema": {"name": "action_planner_response", "schema": self.llm_schema, "strict": True},
             }
         )
 
@@ -92,24 +84,24 @@ class ActionPlanner:
     def _load_schema(self, schema_name: str) -> Dict[str, Any]:
         """Load a JSON schema file."""
         schema_path = self.schemas_dir / schema_name
-        with open(schema_path, 'r', encoding='utf-8') as f:
+        with open(schema_path, "r", encoding="utf-8") as f:
             return json.load(f)
 
     def _load_prompt(self, prompt_filename: str) -> str:
         """Load a prompt template."""
         prompt_path = Path(__file__).parent.parent.parent / "prompts" / prompt_filename
-        with open(prompt_path, 'r', encoding='utf-8') as f:
+        with open(prompt_path, "r", encoding="utf-8") as f:
             return f.read()
 
     def _load_json(self, file_path: str) -> Dict[str, Any]:
         """Load a JSON file."""
-        with open(file_path, 'r', encoding='utf-8') as f:
+        with open(file_path, "r", encoding="utf-8") as f:
             return json.load(f)
 
     def _load_metamodel(self) -> Dict[str, Any]:
         """Load metamodel from metamodel.json."""
         metamodel_path = Path(__file__).parent.parent.parent / "metamodel" / "metamodel.json"
-        with open(metamodel_path, 'r', encoding='utf-8') as f:
+        with open(metamodel_path, "r", encoding="utf-8") as f:
             return json.load(f)
 
     def _resolve_strategy_plan_path(self) -> str:
@@ -126,9 +118,7 @@ class ActionPlanner:
 
         # Check if optimize directory exists
         if not optimize_dir.exists():
-            raise FileNotFoundError(
-                f"Optimize directory not found: {optimize_dir}"
-            )
+            raise FileNotFoundError(f"Optimize directory not found: {optimize_dir}")
 
         # Find most recent strategy_plan file
         strategy_plan_pattern = str(optimize_dir / "strategy_plan_*.json")
@@ -160,13 +150,15 @@ class ActionPlanner:
             Filtered list of valid actions
         """
         valid_actions = [
-            action for action in actions
-            if action.get("priority", "").lower() in ["high", "medium"]
-            and action.get("suggested_changes", "").strip()
+            action
+            for action in actions
+            if action.get("priority", "").lower() in ["high", "medium"] and action.get("suggested_changes", "").strip()
         ]
 
         if self.progress:
-            print(f"[ActionPlanner] Filtered actions: {len(valid_actions)}/{len(actions)} (high/medium priority with suggestions)")
+            print(
+                f"[ActionPlanner] Filtered actions: {len(valid_actions)}/{len(actions)} (high/medium priority with suggestions)"
+            )
 
         return valid_actions
 
@@ -203,8 +195,7 @@ class ActionPlanner:
         return 2
 
     def _select_target_keys(
-        self,
-        grouped_actions: Dict[Tuple[str, str], List[Dict[str, Any]]]
+        self, grouped_actions: Dict[Tuple[str, str], List[Dict[str, Any]]]
     ) -> List[Tuple[str, str]]:
         """
         Select target keys under the fixed per-iteration cap.
@@ -222,7 +213,7 @@ class ActionPlanner:
             ranked.append((best_rank, idx, key))
 
         ranked.sort(key=lambda x: (x[0], x[1]))
-        return [key for _, _, key in ranked[:self.MAX_TARGETS_PER_ITER]]
+        return [key for _, _, key in ranked[: self.MAX_TARGETS_PER_ITER]]
 
     def _load_custom_prompt_file(self, filename: str) -> str:
         """
@@ -239,7 +230,7 @@ class ActionPlanner:
         if not custom_path.exists():
             return ""
 
-        with open(custom_path, 'r', encoding='utf-8') as f:
+        with open(custom_path, "r", encoding="utf-8") as f:
             content = f.read()
             return content if content else ""
 
@@ -273,11 +264,7 @@ class ActionPlanner:
 
         raise ValueError(f"Target '{target}' not found in metamodel")
 
-    def _create_custom_prompt_plan_prompt(
-        self,
-        target: str,
-        actions: List[Dict[str, Any]]
-    ) -> str:
+    def _create_custom_prompt_plan_prompt(self, target: str, actions: List[Dict[str, Any]]) -> str:
         """Create prompt for custom_prompt target."""
         current_content = self._load_custom_prompt_file(target)
         file_purpose = self._get_custom_prompt_purpose(target)
@@ -289,7 +276,7 @@ class ActionPlanner:
             target_file=target,
             file_purpose=file_purpose,
             current_content=current_content if current_content else "(empty file)",
-            suggested_changes_list=suggested_changes_list
+            suggested_changes_list=suggested_changes_list,
         )
 
         return prompt
@@ -302,7 +289,7 @@ class ActionPlanner:
         proposed_content: str,
         max_bytes: int,
         current_bytes: int,
-        attempt: int
+        attempt: int,
     ) -> str:
         """Create compression prompt for custom_prompt target."""
         file_purpose = self._get_custom_prompt_purpose(target)
@@ -317,7 +304,7 @@ class ActionPlanner:
             suggested_changes_list=suggested_changes_list,
             target_max_bytes=max_bytes,
             current_proposed_bytes=current_bytes,
-            compression_attempt=attempt
+            compression_attempt=attempt,
         )
 
     @staticmethod
@@ -342,12 +329,14 @@ class ActionPlanner:
     @staticmethod
     def _format_suggested_changes(actions: List[Dict[str, Any]]) -> str:
         """Format suggested changes for prompt templates."""
-        return "\n\n".join([
-            f"**Change {i+1}** (Priority: {action.get('priority', 'unknown')})\n"
-            f"Reason: {action.get('reason', '')}\n"
-            f"Suggested: {action.get('suggested_changes', '')}"
-            for i, action in enumerate(actions)
-        ])
+        return "\n\n".join(
+            [
+                f"**Change {i + 1}** (Priority: {action.get('priority', 'unknown')})\n"
+                f"Reason: {action.get('reason', '')}\n"
+                f"Suggested: {action.get('suggested_changes', '')}"
+                for i, action in enumerate(actions)
+            ]
+        )
 
     @staticmethod
     def _parse_llm_json_response(response: Any) -> Dict[str, Any]:
@@ -356,10 +345,10 @@ class ActionPlanner:
             return json.loads(response.content)
 
         if isinstance(response.content, list) and len(response.content) > 0:
-            text_record = next((item for item in response.content if item.get('type') == 'text'), None)
+            text_record = next((item for item in response.content if item.get("type") == "text"), None)
             if text_record is None:
                 raise ValueError(f"No text record found in response.content: {response.content}")
-            return json.loads(text_record.get('text', '{}'))
+            return json.loads(text_record.get("text", "{}"))
 
         raise ValueError(f"Unexpected response format: {type(response.content)}")
 
@@ -371,7 +360,7 @@ class ActionPlanner:
         proposed_content: str,
         max_bytes: int,
         current_bytes: int,
-        attempt: int
+        attempt: int,
     ) -> Tuple[str, str]:
         """
         Compress proposed custom prompt while preserving intent.
@@ -386,7 +375,7 @@ class ActionPlanner:
             proposed_content=proposed_content,
             max_bytes=max_bytes,
             current_bytes=current_bytes,
-            attempt=attempt
+            attempt=attempt,
         )
 
         response = await call_with_retry(
@@ -401,11 +390,7 @@ class ActionPlanner:
         return compressed_content, compression_summary
 
     async def _compress_custom_prompt_until_limit_async(
-        self,
-        target: str,
-        actions: List[Dict[str, Any]],
-        original_content: str,
-        proposed_content: str
+        self, target: str, actions: List[Dict[str, Any]], original_content: str, proposed_content: str
     ) -> Tuple[str, str, int, bool]:
         """
         Compress content repeatedly until byte-size limit is satisfied or attempts are exhausted.
@@ -435,7 +420,7 @@ class ActionPlanner:
                 proposed_content=candidate_content,
                 max_bytes=self.MAX_COMPRESSED_PROMPT_BYTES,
                 current_bytes=current_bytes,
-                attempt=attempt
+                attempt=attempt,
             )
             attempts_used = attempt
 
@@ -470,12 +455,7 @@ class ActionPlanner:
 
         return candidate_content, merged_summary, attempts_used, within_limit
 
-    def _create_metamodel_rules_plan_prompt(
-        self,
-        target: str,
-        target_type: str,
-        actions: List[Dict[str, Any]]
-    ) -> str:
+    def _create_metamodel_rules_plan_prompt(self, target: str, target_type: str, actions: List[Dict[str, Any]]) -> str:
         """Create prompt for extract_rules or prohibit_rules target."""
         rule_type = target_type  # "extract_rules" or "prohibit_rules"
 
@@ -486,17 +466,19 @@ class ActionPlanner:
 
         # Format current rules
         if current_rules:
-            current_rules_list = "\n".join([f"{i+1}. {rule}" for i, rule in enumerate(current_rules)])
+            current_rules_list = "\n".join([f"{i + 1}. {rule}" for i, rule in enumerate(current_rules)])
         else:
             current_rules_list = "(no rules currently defined)"
 
         # Format suggested changes
-        suggested_changes_list = "\n\n".join([
-            f"**Change {i+1}** (Priority: {action.get('priority', 'unknown')})\n"
-            f"Reason: {action.get('reason', '')}\n"
-            f"Suggested: {action.get('suggested_changes', '')}"
-            for i, action in enumerate(actions)
-        ])
+        suggested_changes_list = "\n\n".join(
+            [
+                f"**Change {i + 1}** (Priority: {action.get('priority', 'unknown')})\n"
+                f"Reason: {action.get('reason', '')}\n"
+                f"Suggested: {action.get('suggested_changes', '')}"
+                for i, action in enumerate(actions)
+            ]
+        )
 
         # Replace placeholders
         prompt = fill_prompt_template(
@@ -506,17 +488,13 @@ class ActionPlanner:
             target_description=description,
             entity_type=entity_type,
             current_rules_list=current_rules_list,
-            suggested_changes_list=suggested_changes_list
+            suggested_changes_list=suggested_changes_list,
         )
 
         return prompt
 
     async def _generate_proposal_async(
-        self,
-        target_type: str,
-        target: str,
-        actions: List[Dict[str, Any]],
-        semaphore: asyncio.Semaphore
+        self, target_type: str, target: str, actions: List[Dict[str, Any]], semaphore: asyncio.Semaphore
     ) -> Dict[str, Any]:
         """
         Generate a proposal for a single target (with concurrency control).
@@ -573,11 +551,16 @@ class ActionPlanner:
                             f"(initial {initial_bytes} bytes, limit {self.MAX_COMPRESSED_PROMPT_BYTES})..."
                         )
                     try:
-                        compressed_content, compression_summary, _, _ = await self._compress_custom_prompt_until_limit_async(
+                        (
+                            compressed_content,
+                            compression_summary,
+                            _,
+                            _,
+                        ) = await self._compress_custom_prompt_until_limit_async(
                             target=target,
                             actions=actions,
                             original_content=current_content if isinstance(current_content, str) else "",
-                            proposed_content=updated_content
+                            proposed_content=updated_content,
                         )
                         if compressed_content.strip():
                             updated_content = compressed_content
@@ -606,10 +589,10 @@ class ActionPlanner:
                         {
                             "reason": action.get("reason", ""),
                             "suggested_changes": action.get("suggested_changes", ""),
-                            "priority": action.get("priority", "")
+                            "priority": action.get("priority", ""),
                         }
                         for action in actions
-                    ]
+                    ],
                 }
 
                 return proposal
@@ -639,16 +622,13 @@ class ActionPlanner:
                 "strategy_plan_file": self.strategy_plan_file,
                 "total_actions": total_actions,
                 "filtered_actions": 0,
-                "proposals": []
+                "proposals": [],
             }
 
         # Group by target
         grouped_actions = self._group_actions_by_target(valid_actions)
         selected_target_keys = self._select_target_keys(grouped_actions)
-        selected_actions_by_target = {
-            key: grouped_actions[key]
-            for key in selected_target_keys
-        }
+        selected_actions_by_target = {key: grouped_actions[key] for key in selected_target_keys}
 
         grouped_count = len(grouped_actions)
         selected_count = len(selected_actions_by_target)
@@ -690,7 +670,7 @@ class ActionPlanner:
             "processed_actions": processed_actions,
             "dropped_actions": dropped_actions,
             "max_targets_per_iter": self.MAX_TARGETS_PER_ITER,
-            "proposals": proposals
+            "proposals": proposals,
         }
 
         if self.progress:
@@ -712,39 +692,25 @@ class ActionPlanner:
 
         output_dir.mkdir(parents=True, exist_ok=True)
 
-        timestamp = result['timestamp']
+        timestamp = result["timestamp"]
         output_file = output_dir / f"action_proposals_{timestamp}.json"
 
-        with open(output_file, 'w', encoding='utf-8') as f:
+        with open(output_file, "w", encoding="utf-8") as f:
             json.dump(result, f, indent=2, ensure_ascii=False)
 
         return str(output_file)
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Action Planner - Generates concrete fix proposals from strategy plans")
-    parser.add_argument(
-        "--model",
-        default="gemini-3.1-flash-lite",
-        help="LLM model name (default: gemini-3.1-flash-lite)"
+    parser = argparse.ArgumentParser(
+        description="Action Planner - Generates concrete fix proposals from strategy plans"
     )
     parser.add_argument(
-        "--temperature",
-        type=float,
-        default=0.0,
-        help="LLM temperature (default: 0.0)"
+        "--model", default="gemini-3.1-flash-lite", help="LLM model name (default: gemini-3.1-flash-lite)"
     )
-    parser.add_argument(
-        "--max-concurrency",
-        type=int,
-        default=8,
-        help="Maximum concurrent LLM calls (default: 8)"
-    )
-    parser.add_argument(
-        "--no-progress",
-        action="store_true",
-        help="Disable progress messages"
-    )
+    parser.add_argument("--temperature", type=float, default=0.0, help="LLM temperature (default: 0.0)")
+    parser.add_argument("--max-concurrency", type=int, default=8, help="Maximum concurrent LLM calls (default: 8)")
+    parser.add_argument("--no-progress", action="store_true", help="Disable progress messages")
 
     args = parser.parse_args()
 
@@ -755,7 +721,7 @@ if __name__ == "__main__":
             model=args.model,
             temperature=args.temperature,
             max_concurrency=args.max_concurrency,
-            progress=not args.no_progress
+            progress=not args.no_progress,
         )
 
         # Generate proposals
@@ -768,9 +734,9 @@ if __name__ == "__main__":
         print(f"[ActionPlanner] Result saved to: {output_file}")
 
         # Print summary
-        proposals = result.get('proposals', [])
-        total_actions = result.get('total_actions', 0)
-        filtered_actions = result.get('filtered_actions', 0)
+        proposals = result.get("proposals", [])
+        total_actions = result.get("total_actions", 0)
+        filtered_actions = result.get("filtered_actions", 0)
 
         print(f"\n[ActionPlanner] Summary:")
         print(f"  Total actions in strategy plan: {total_actions}")
@@ -780,9 +746,9 @@ if __name__ == "__main__":
         if proposals:
             print(f"\n[ActionPlanner] Proposals:")
             for i, proposal in enumerate(proposals, 1):
-                target_type = proposal.get('target_type', '?')
-                target = proposal.get('target', '?')
-                num_actions = len(proposal.get('actions_addressed', []))
+                target_type = proposal.get("target_type", "?")
+                target = proposal.get("target", "?")
+                num_actions = len(proposal.get("actions_addressed", []))
                 print(f"  {i}. {target_type}:{target} ({num_actions} actions)")
 
     except FileNotFoundError as e:
@@ -791,5 +757,6 @@ if __name__ == "__main__":
     except Exception as e:
         print(f"\n[ActionPlanner] Unexpected error: {e}")
         import traceback
+
         traceback.print_exc()
         sys.exit(1)

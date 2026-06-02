@@ -66,9 +66,7 @@ class BaseImageAnalyzer(Runnable):
         )
 
         # Resolve app_dir (go up 4 levels from src/extract/image/)
-        self.app_dir = os.path.dirname(
-            os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
-        )
+        self.app_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
 
         # Load description prompt and schema
         self.description_prompt = self._load_description_prompt()
@@ -136,7 +134,7 @@ class BaseImageAnalyzer(Runnable):
         image: Image.Image,
         image_id: str,
         semaphore: asyncio.Semaphore,
-        progress_callback: Optional[callable] = None
+        progress_callback: Optional[callable] = None,
     ) -> Dict[str, Any]:
         """Generate LLM description for a single image (async).
 
@@ -194,7 +192,7 @@ class BaseImageAnalyzer(Runnable):
                     "description": description,
                     "structural_description": structural if structural else None,
                     "has_structural_content": has_structural,
-                    "status": status
+                    "status": status,
                 }
 
                 if progress_callback:
@@ -208,7 +206,7 @@ class BaseImageAnalyzer(Runnable):
                     "description": "",
                     "structural_description": None,
                     "has_structural_content": False,
-                    "status": f"failed ({exc})"
+                    "status": f"failed ({exc})",
                 }
 
                 if progress_callback:

@@ -21,15 +21,12 @@ def load_source_raw(project: str, snapshot_id: str, output_dir: str = "/workspac
     if not snapshot_path.exists():
         return None
 
-    with open(snapshot_path, 'r', encoding='utf-8') as f:
+    with open(snapshot_path, "r", encoding="utf-8") as f:
         return json.load(f)
 
 
 def detect_source_changes(
-    before_snapshot_id: str,
-    after_snapshot_id: str,
-    project: str,
-    output_dir: str = "/workspace/app/output"
+    before_snapshot_id: str, after_snapshot_id: str, project: str, output_dir: str = "/workspace/app/output"
 ) -> dict:
     """Compare source_raw.json between two snapshots.
 
@@ -58,12 +55,7 @@ def detect_source_changes(
 
     # If no source_raw.json in either snapshot, return empty changes
     if not before_raw and not after_raw:
-        return {
-            "new_items": [],
-            "modified_items": [],
-            "deleted_items": [],
-            "source_type": "none"
-        }
+        return {"new_items": [], "modified_items": [], "deleted_items": [], "source_type": "none"}
 
     # Handle case where only one has source_raw
     if not before_raw:
@@ -102,7 +94,7 @@ def detect_source_changes(
         "new_items": [after_items[id] for id in new_ids],
         "modified_items": [after_items[id] for id in modified_ids],
         "deleted_items": [before_items[id] for id in deleted_ids],
-        "source_type": source_type
+        "source_type": source_type,
     }
 
 

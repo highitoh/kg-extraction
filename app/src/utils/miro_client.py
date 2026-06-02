@@ -57,10 +57,12 @@ class MiroClient:
         self.max_retries = max_retries
         self.timeout = timeout
         self.session = requests.Session()
-        self.session.headers.update({
-            "Authorization": f"Bearer {self.api_key}",
-            "Accept": "application/json",
-        })
+        self.session.headers.update(
+            {
+                "Authorization": f"Bearer {self.api_key}",
+                "Accept": "application/json",
+            }
+        )
 
     def _make_request(
         self,
@@ -83,8 +85,8 @@ class MiroClient:
             ValueError: For authentication/permission errors with clear messages
         """
         # Ensure base_url ends with / and endpoint doesn't start with / for proper joining
-        base = self.base_url.rstrip('/') + '/'
-        endpoint_clean = endpoint.lstrip('/')
+        base = self.base_url.rstrip("/") + "/"
+        endpoint_clean = endpoint.lstrip("/")
         url = urljoin(base, endpoint_clean)
         kwargs.setdefault("timeout", self.timeout)
 
@@ -95,23 +97,22 @@ class MiroClient:
                 # Handle specific error codes with clear messages
                 if response.status_code == 401:
                     raise ValueError(
-                        "Invalid or missing MIRO_API_KEY. "
-                        "Check your access token at https://developers.miro.com/"
+                        "Invalid or missing MIRO_API_KEY. Check your access token at https://developers.miro.com/"
                     )
                 elif response.status_code == 403:
-                    raise ValueError(
-                        f"No access to requested resource. Check board permissions and API token scopes."
-                    )
+                    raise ValueError(f"No access to requested resource. Check board permissions and API token scopes.")
                 elif response.status_code == 404:
                     board_id = endpoint.split("/")[2] if "/boards/" in endpoint else "unknown"
                     raise ValueError(f"Board or resource not found: {board_id}")
                 elif response.status_code == 429:
                     # Rate limit - retry with exponential backoff
                     if attempt < self.max_retries:
-                        retry_after = int(response.headers.get("Retry-After", 2 ** attempt))
+                        retry_after = int(response.headers.get("Retry-After", 2**attempt))
                         jitter = 0.1 * retry_after  # 10% jitter
                         sleep_time = retry_after + jitter
-                        print(f"Rate limited (429). Retrying in {sleep_time:.2f}s (attempt {attempt + 1}/{self.max_retries})")
+                        print(
+                            f"Rate limited (429). Retrying in {sleep_time:.2f}s (attempt {attempt + 1}/{self.max_retries})"
+                        )
                         time.sleep(sleep_time)
                         continue
                     else:
@@ -154,7 +155,9 @@ class MiroClient:
         endpoint = f"/boards/{board_id}"
         return self._make_request("GET", endpoint)
 
-    def get_board_items(self, board_id: str, limit: int = 50, parent_item_id: str = None, item_type: str = None) -> list[dict]:
+    def get_board_items(
+        self, board_id: str, limit: int = 50, parent_item_id: str = None, item_type: str = None
+    ) -> list[dict]:
         """Fetch items from a board.
 
         Args:

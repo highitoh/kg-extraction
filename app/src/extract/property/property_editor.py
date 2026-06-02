@@ -26,12 +26,14 @@ class PropertyEditor(Runnable):
     4. Integrate ACCEPT/REJECT/corrected REVIEW and output
     """
 
-    def __init__(self,
-                 model: str = "gemini-3.1-flash-lite",
-                 temperature: float = 0.0,
-                 progress: bool = True,
-                 max_concurrency: int = 8,
-                 log_dir: str = "/workspace/app/log/property_editor"):
+    def __init__(
+        self,
+        model: str = "gemini-3.1-flash-lite",
+        temperature: float = 0.0,
+        progress: bool = True,
+        max_concurrency: int = 8,
+        log_dir: str = "/workspace/app/log/property_editor",
+    ):
         self.model = model
         self.temperature = temperature
         self.reasoning_effort = "low"
@@ -61,8 +63,7 @@ class PropertyEditor(Runnable):
 
         app_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
 
-        schema_path = os.path.join(app_dir, "schemas",
-                                   "property-editor", "llm.schema.json")
+        schema_path = os.path.join(app_dir, "schemas", "property-editor", "llm.schema.json")
         with open(schema_path, "r", encoding="utf-8") as f:
             schema = json.load(f)
 
@@ -78,8 +79,7 @@ class PropertyEditor(Runnable):
 
         app_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
 
-        metamodel_path = os.path.join(app_dir, "metamodel",
-                                      "metamodel.json")
+        metamodel_path = os.path.join(app_dir, "metamodel", "metamodel.json")
         with open(metamodel_path, "r", encoding="utf-8") as f:
             return json.load(f)
 
@@ -106,8 +106,7 @@ class PropertyEditor(Runnable):
 
         app_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
 
-        prompt_path = os.path.join(app_dir, "prompts",
-                                   "property_editor.txt")
+        prompt_path = os.path.join(app_dir, "prompts", "property_editor.txt")
         with open(prompt_path, "r", encoding="utf-8") as f:
             return f.read()
 
@@ -132,8 +131,10 @@ class PropertyEditor(Runnable):
         reject_properties = [p for p in properties if p.get("judgment") == "REJECT"]
 
         if self.progress:
-            print(f"[PropertyEditor] Total {len(properties)} properties "
-                  f"[ACCEPT: {len(accept_properties)}, REVIEW: {len(review_properties)}, REJECT: {len(reject_properties)}]")
+            print(
+                f"[PropertyEditor] Total {len(properties)} properties "
+                f"[ACCEPT: {len(accept_properties)}, REVIEW: {len(review_properties)}, REJECT: {len(reject_properties)}]"
+            )
 
         if not review_properties:
             # If no REVIEW properties, return as is
@@ -161,8 +162,10 @@ class PropertyEditor(Runnable):
             # Aggregate correction results breakdown
             corrected_review_count = sum(1 for p in corrected_properties if p.get("judgment") == "REVIEW")
             corrected_reject_count = sum(1 for p in corrected_properties if p.get("judgment") == "REJECT")
-            print(f"[PropertyEditor] Completed: Processed {len(review_properties)} REVIEW properties "
-                  f"[REVIEW: {corrected_review_count}, REJECT: {corrected_reject_count}]")
+            print(
+                f"[PropertyEditor] Completed: Processed {len(review_properties)} REVIEW properties "
+                f"[REVIEW: {corrected_review_count}, REJECT: {corrected_reject_count}]"
+            )
 
         self.logger.save_log(output, filename_prefix="property_editor_output_")
 
@@ -176,7 +179,9 @@ class PropertyEditor(Runnable):
         lock = asyncio.Lock()
 
         if self.progress:
-            print(f"[PropertyEditor] Starting parallel processing: {total} property types (concurrency={self.max_concurrency})")
+            print(
+                f"[PropertyEditor] Starting parallel processing: {total} property types (concurrency={self.max_concurrency})"
+            )
 
         async def _wrapped(property_iri: str, property_instances: list) -> list:
             nonlocal counter
@@ -191,9 +196,11 @@ class PropertyEditor(Runnable):
                         # Aggregate correction results breakdown
                         review_count = sum(1 for p in corrected if p.get("judgment") == "REVIEW")
                         reject_count = sum(1 for p in corrected if p.get("judgment") == "REJECT")
-                        print(f"[{counter}/{total}] PropertyEditor: {property_name} processed "
-                              f"({len(property_instances)} instances) "
-                              f"[REVIEW: {review_count}, REJECT: {reject_count}]")
+                        print(
+                            f"[{counter}/{total}] PropertyEditor: {property_name} processed "
+                            f"({len(property_instances)} instances) "
+                            f"[REVIEW: {review_count}, REJECT: {reject_count}]"
+                        )
 
                 return corrected
 
@@ -237,13 +244,8 @@ class PropertyEditor(Runnable):
 
         schema = self._build_schema(len(properties))
         llm_json = llm.bind(
-            response_format={
-                "type": "json_schema",
-                "json_schema": {
-                    "name": "property_editor",
-                    "schema": schema
-                }
-            })
+            response_format={"type": "json_schema", "json_schema": {"name": "property_editor", "schema": schema}}
+        )
 
         # Build input data for LLM
         input_data = []
@@ -253,14 +255,16 @@ class PropertyEditor(Runnable):
             if "sources" in p and p["sources"]:
                 source_text = p["sources"][0]
 
-            input_data.append({
-                "src_label": p.get("src_label", ""),
-                "property_iri": p.get("property_iri", ""),
-                "dest_label": p.get("dest_label", ""),
-                "strength": p.get("strength", 0),
-                "source": source_text,
-                "justification": p.get("justification", "")
-            })
+            input_data.append(
+                {
+                    "src_label": p.get("src_label", ""),
+                    "property_iri": p.get("property_iri", ""),
+                    "dest_label": p.get("dest_label", ""),
+                    "strength": p.get("strength", 0),
+                    "source": source_text,
+                    "justification": p.get("justification", ""),
+                }
+            )
 
         input_json = json.dumps(input_data, ensure_ascii=False, indent=2)
 
@@ -268,11 +272,7 @@ class PropertyEditor(Runnable):
         prohibit_rules = self._get_prohibit_rules(property_iri)
 
         # Build prompt with rule sections and input data
-        prompt = fill_prompt_template(
-            self.prompt_template,
-            prohibit_rules=prohibit_rules,
-            input_data=input_json
-        )
+        prompt = fill_prompt_template(self.prompt_template, prohibit_rules=prohibit_rules, input_data=input_json)
 
         # Execute strength correction with LLM (with retry)
         response = await call_with_retry(

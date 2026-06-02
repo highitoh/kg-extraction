@@ -19,7 +19,7 @@ class DocTextExtractor(TextExtractor):
         if not os.path.exists(pdf_path):
             raise FileNotFoundError(f"PDF file not found: {pdf_path}")
 
-        if not pdf_path.lower().endswith('.pdf'):
+        if not pdf_path.lower().endswith(".pdf"):
             raise ValueError("Not a PDF file")
 
         text = ""
@@ -45,11 +45,9 @@ class DocTextExtractor(TextExtractor):
 
         # Split text by line
         sentences = []
-        for line_text in extracted_text.split('\n'):
+        for line_text in extracted_text.split("\n"):
             if line_text.strip():  # Exclude empty lines
-                sentences.append({
-                    "text": line_text.strip()
-                })
+                sentences.append({"text": line_text.strip()})
 
         output = self.build_output(file_path, sentences)
 

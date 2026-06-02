@@ -20,13 +20,15 @@ class ClassChainWithReview(Runnable):
     - If REVIEW remains after maximum iterations, converts to ACCEPT
     """
 
-    def __init__(self,
-                 extractor: ClassExtractor,
-                 class_reviewer: ClassReviewer,
-                 corrector: ClassEditor,
-                 consolidator: ClassConsolidator,
-                 max_review_iterations: int = 2,
-                 progress: bool = True):
+    def __init__(
+        self,
+        extractor: ClassExtractor,
+        class_reviewer: ClassReviewer,
+        corrector: ClassEditor,
+        consolidator: ClassConsolidator,
+        max_review_iterations: int = 2,
+        progress: bool = True,
+    ):
         """
         Args:
             extractor: ClassExtractor instance
@@ -59,11 +61,7 @@ class ClassChainWithReview(Runnable):
         Classes matched by should_replace are replaced from reviewed_classes.
         If no reviewed match is found, the class is treated as rejected and dropped.
         """
-        reviewed_by_id = {
-            c.get("id"): c
-            for c in reviewed_classes
-            if c.get("id")
-        }
+        reviewed_by_id = {c.get("id"): c for c in reviewed_classes if c.get("id")}
         reviewed_by_key = {}
         for c in reviewed_classes:
             if c.get("id"):
@@ -132,11 +130,12 @@ class ClassChainWithReview(Runnable):
         if existing_classes:
             if self.progress:
                 print(f"\n=== ClassConsolidator - Stage 2: Match Against Existing ===")
-                print(f"Matching {len(result.get('classes', []))} consolidated new classes against {len(existing_classes)} existing classes")
+                print(
+                    f"Matching {len(result.get('classes', []))} consolidated new classes against {len(existing_classes)} existing classes"
+                )
 
             result = self.consolidator.invoke_stage2_match_with_frozen(
-                new_classes=result.get("classes", []),
-                frozen_classes=existing_classes
+                new_classes=result.get("classes", []), frozen_classes=existing_classes
             )
         # else: no existing classes, Stage 1 result is final
 
@@ -218,7 +217,9 @@ class ClassChainWithReview(Runnable):
             if c.get("judgment") == "REVIEW":
                 c_copy = c.copy()
                 c_copy["judgment"] = "ACCEPT"
-                c_copy["justification"] = f"Maximum review iterations ({self.max_review_iterations}) reached. Auto-accepted. {c.get('justification', '')}"
+                c_copy["justification"] = (
+                    f"Maximum review iterations ({self.max_review_iterations}) reached. Auto-accepted. {c.get('justification', '')}"
+                )
                 final_classes.append(c_copy)
                 accepted_review_count += 1
             else:
@@ -259,8 +260,9 @@ def create_class_chain(model: str = None, max_review_iterations: int = 2, progre
         corrector=corrector,
         consolidator=consolidator,
         max_review_iterations=max_review_iterations,
-        progress=progress
+        progress=progress,
     )
+
 
 if __name__ == "__main__":
     import json
@@ -275,24 +277,19 @@ if __name__ == "__main__":
                         {
                             "file_id": "file-abc",
                             "line": 1,
-                            "text": "The customer management system handles user registration and authentication"
+                            "text": "The customer management system handles user registration and authentication",
                         }
-                    ]
+                    ],
                 },
                 {
                     "type": "system_component",
                     "texts": [
-                        {
-                            "file_id": "file-abc",
-                            "line": 2,
-                            "text": "Implementation of database connection module"
-                        }
-                    ]
-                }
+                        {"file_id": "file-abc", "line": 2, "text": "Implementation of database connection module"}
+                    ],
+                },
             ]
         },
-        "metamodel": {
-        },
+        "metamodel": {},
     }
 
     result = chain.invoke(sample_input)

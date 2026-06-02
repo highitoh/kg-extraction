@@ -15,11 +15,13 @@ from pydantic import BaseModel, ConfigDict
 from src.utils.logger import Logger
 from src.utils.llm_factory import LLMFactory
 
+
 class FileTypeClassifierLLMSchema(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     is_presentation: bool
     justification: str
+
 
 class FileTypeClassifier(Runnable):
     """Runnable that determines file type and adds it to input"""
@@ -85,7 +87,10 @@ class FileTypeClassifier(Runnable):
             usage = meta.get("usage") or meta.get("token_usage")
             if isinstance(usage, dict):
                 return usage
-            if any(k in meta for k in ("prompt_tokens", "completion_tokens", "total_tokens", "input_tokens", "output_tokens")):
+            if any(
+                k in meta
+                for k in ("prompt_tokens", "completion_tokens", "total_tokens", "input_tokens", "output_tokens")
+            ):
                 return meta
 
         usage = getattr(response, "usage", None)
@@ -154,7 +159,7 @@ class FileTypeClassifier(Runnable):
                 "file_path": file_path,
                 "file_type": file_type,
                 "is_presentation": False,
-                "justification": "GitHub repository URL detected"
+                "justification": "GitHub repository URL detected",
             }
             self.logger.save_log(log_data, "file_type_classifier_output_")
             return {**input, "file_type": file_type}
@@ -171,7 +176,7 @@ class FileTypeClassifier(Runnable):
                 "file_type": file_type,
                 "miro_board_url": miro_board_url,
                 "is_presentation": False,
-                "justification": "PDF with Miro board URL detected"
+                "justification": "PDF with Miro board URL detected",
             }
             self.logger.save_log(log_data, "file_type_classifier_output_")
             return {**input, "file_type": file_type}
@@ -219,7 +224,7 @@ class FileTypeClassifier(Runnable):
                 "file_path": file_path,
                 "file_type": file_type,
                 "is_presentation": is_presentation,
-                "justification": justification
+                "justification": justification,
             }
             self.logger.save_log(log_data, "file_type_classifier_output_")
 
@@ -233,17 +238,12 @@ class FileTypeClassifier(Runnable):
 
 if __name__ == "__main__":
     # Sample data for testing
-    sample_input = {
-        "files": [{"path": "../doc/sample.pdf"}]
-    }
+    sample_input = {"files": [{"path": "../doc/sample.pdf"}]}
 
     print("FileTypeClassifier test starting...")
 
     # Create FileTypeClassifier instance
-    classifier = FileTypeClassifier(
-        model="gemini-3.1-flash-lite",
-        temperature=0.0
-    )
+    classifier = FileTypeClassifier(model="gemini-3.1-flash-lite", temperature=0.0)
 
     try:
         # Execute test
@@ -257,4 +257,5 @@ if __name__ == "__main__":
     except Exception as e:
         print(f"\nTest execution error: {e}")
         import traceback
+
         traceback.print_exc()

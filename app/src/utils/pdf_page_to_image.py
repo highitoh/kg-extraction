@@ -10,7 +10,7 @@ from PIL import Image
 def convert_pdf_page_to_image(
     pdf_path: str,
     page_number: int,
-    max_pixels: int = 2073600  # Full HD equivalent (1920x1080)
+    max_pixels: int = 2073600,  # Full HD equivalent (1920x1080)
 ) -> Image.Image:
     """Convert a single PDF page to PIL Image with pixel count limit.
 

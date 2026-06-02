@@ -51,17 +51,12 @@ class IssueCategorizer:
         self.issue_classification_data = self._load_json(self.issue_classification_file)
 
         # Extract metadata
-        self.validator_result_file = self.issue_classification_data.get('validator_result_file', '')
-        self.knowledge_file = self.issue_classification_data.get('knowledge_file', '')
-        self.extraction_result_file = self.issue_classification_data.get('extraction_result_file', '')
+        self.validator_result_file = self.issue_classification_data.get("validator_result_file", "")
+        self.knowledge_file = self.issue_classification_data.get("knowledge_file", "")
+        self.extraction_result_file = self.issue_classification_data.get("extraction_result_file", "")
 
         # Create LLM instance
-        self.llm = LLMFactory.create_llm(
-            model=model,
-            temperature=temperature,
-            timeout=180.0,
-            reasoning_effort="medium"
-        )
+        self.llm = LLMFactory.create_llm(model=model, temperature=temperature, timeout=180.0, reasoning_effort="medium")
 
         # Load schema (path: /workspace/app/schemas/issue-categorizer/)
         self.schemas_dir = Path(__file__).parent.parent.parent / "schemas" / "issue-categorizer"
@@ -71,11 +66,7 @@ class IssueCategorizer:
         self.llm_bound = self.llm.bind(
             response_format={
                 "type": "json_schema",
-                "json_schema": {
-                    "name": "issue_categorization_response",
-                    "schema": self.llm_schema,
-                    "strict": True
-                }
+                "json_schema": {"name": "issue_categorization_response", "schema": self.llm_schema, "strict": True},
             }
         )
 
@@ -85,18 +76,18 @@ class IssueCategorizer:
     def _load_schema(self, schema_name: str) -> Dict[str, Any]:
         """Load a JSON schema file."""
         schema_path = self.schemas_dir / schema_name
-        with open(schema_path, 'r', encoding='utf-8') as f:
+        with open(schema_path, "r", encoding="utf-8") as f:
             return json.load(f)
 
     def _load_prompt(self, prompt_filename: str) -> str:
         """Load a prompt template."""
         prompt_path = Path(__file__).parent.parent.parent / "prompts" / prompt_filename
-        with open(prompt_path, 'r', encoding='utf-8') as f:
+        with open(prompt_path, "r", encoding="utf-8") as f:
             return f.read()
 
     def _load_json(self, file_path: str) -> Dict[str, Any]:
         """Load a JSON file."""
-        with open(file_path, 'r', encoding='utf-8') as f:
+        with open(file_path, "r", encoding="utf-8") as f:
             return json.load(f)
 
     def _resolve_issue_classification_path(self, output_base_dir: str) -> str:
@@ -116,9 +107,7 @@ class IssueCategorizer:
 
         # Check if optimize directory exists
         if not optimize_dir.exists():
-            raise FileNotFoundError(
-                f"Optimize directory not found: {optimize_dir}"
-            )
+            raise FileNotFoundError(f"Optimize directory not found: {optimize_dir}")
 
         # Find most recent issue_classification file
         issue_classification_pattern = str(optimize_dir / "issue_classification_*.json")
@@ -145,41 +134,39 @@ class IssueCategorizer:
         Returns:
             Tuple of (class_issue_labels, property_issue_labels)
         """
-        class_validations = self.issue_classification_data.get('class_validations', [])
-        property_validations = self.issue_classification_data.get('property_validations', [])
+        class_validations = self.issue_classification_data.get("class_validations", [])
+        property_validations = self.issue_classification_data.get("property_validations", [])
 
         # Extract unique class issue labels
         class_issue_labels = set()
         for validation in class_validations:
-            labels = validation.get('issue_labels', [])
+            labels = validation.get("issue_labels", [])
             class_issue_labels.update(labels)
 
         # Extract unique property issue labels
         property_issue_labels = set()
         for validation in property_validations:
-            labels = validation.get('issue_labels', [])
+            labels = validation.get("issue_labels", [])
             property_issue_labels.update(labels)
 
         # Sort for consistent output
         return sorted(class_issue_labels), sorted(property_issue_labels)
 
-    def _create_categorization_prompt(
-        self,
-        class_issue_labels: List[str],
-        property_issue_labels: List[str]
-    ) -> str:
+    def _create_categorization_prompt(self, class_issue_labels: List[str], property_issue_labels: List[str]) -> str:
         """Create categorization prompt with all issue labels."""
         # Format class issue labels
-        class_labels_text = "\n".join([f"- {label}" for label in class_issue_labels]) if class_issue_labels else "(None)"
+        class_labels_text = (
+            "\n".join([f"- {label}" for label in class_issue_labels]) if class_issue_labels else "(None)"
+        )
 
         # Format property issue labels
-        property_labels_text = "\n".join([f"- {label}" for label in property_issue_labels]) if property_issue_labels else "(None)"
+        property_labels_text = (
+            "\n".join([f"- {label}" for label in property_issue_labels]) if property_issue_labels else "(None)"
+        )
 
         # Replace placeholders in template
         prompt = fill_prompt_template(
-            self.prompt_template,
-            class_issue_labels=class_labels_text,
-            property_issue_labels=property_labels_text
+            self.prompt_template, class_issue_labels=class_labels_text, property_issue_labels=property_labels_text
         )
 
         return prompt
@@ -201,7 +188,7 @@ class IssueCategorizer:
             return {
                 "timestamp": datetime.now().strftime("%Y%m%d%H%M%S"),
                 "issue_classification_file": self.issue_classification_file,
-                "categories": []
+                "categories": [],
             }
 
         # Create categorization prompt
@@ -221,17 +208,17 @@ class IssueCategorizer:
             if isinstance(response.content, str):
                 result = json.loads(response.content)
             elif isinstance(response.content, list) and len(response.content) > 0:
-                text_record = next((item for item in response.content if item.get('type') == 'text'), None)
+                text_record = next((item for item in response.content if item.get("type") == "text"), None)
                 if text_record is None:
                     raise ValueError(f"No text record found in response.content: {response.content}")
-                result = json.loads(text_record.get('text', '{}'))
+                result = json.loads(text_record.get("text", "{}"))
             else:
                 raise ValueError(f"Unexpected response format: {type(response.content)}")
 
-            if 'categories' not in result:
+            if "categories" not in result:
                 raise ValueError(f"Expected 'categories' in response, got: {result.keys()}")
 
-            categories = result['categories']
+            categories = result["categories"]
             print(f"[IssueCategorizer] LLM created {len(categories)} categories")
 
             # Map validations to categories
@@ -255,48 +242,52 @@ class IssueCategorizer:
         Returns:
             Complete categorization output with validations
         """
-        class_validations = self.issue_classification_data.get('class_validations', [])
-        property_validations = self.issue_classification_data.get('property_validations', [])
+        class_validations = self.issue_classification_data.get("class_validations", [])
+        property_validations = self.issue_classification_data.get("property_validations", [])
 
         # Build category output with validations
         categorized = []
 
         for category in categories:
-            category_name = category.get('category', 'Unknown')
-            category_description = category.get('description', '')
-            category_labels = set(category.get('issue_labels', []))
+            category_name = category.get("category", "Unknown")
+            category_description = category.get("description", "")
+            category_labels = set(category.get("issue_labels", []))
 
             # Find all class validations that have at least one label in this category
             matching_class_validations = []
             for validation in class_validations:
-                validation_labels = set(validation.get('issue_labels', []))
+                validation_labels = set(validation.get("issue_labels", []))
                 if validation_labels & category_labels:  # Intersection check
                     matching_class_validations.append(validation)
 
             # Find all property validations that have at least one label in this category
             matching_property_validations = []
             for validation in property_validations:
-                validation_labels = set(validation.get('issue_labels', []))
+                validation_labels = set(validation.get("issue_labels", []))
                 if validation_labels & category_labels:  # Intersection check
                     matching_property_validations.append(validation)
 
-            print(f"[IssueCategorizer] Category '{category_name}': {len(matching_class_validations)} classes, {len(matching_property_validations)} properties")
+            print(
+                f"[IssueCategorizer] Category '{category_name}': {len(matching_class_validations)} classes, {len(matching_property_validations)} properties"
+            )
 
-            categorized.append({
-                "category": category_name,
-                "description": category_description,
-                "issue_labels": list(category_labels),
-                "validations": {
-                    "class_validations": matching_class_validations,
-                    "property_validations": matching_property_validations
+            categorized.append(
+                {
+                    "category": category_name,
+                    "description": category_description,
+                    "issue_labels": list(category_labels),
+                    "validations": {
+                        "class_validations": matching_class_validations,
+                        "property_validations": matching_property_validations,
+                    },
                 }
-            })
+            )
 
         timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
         return {
             "timestamp": timestamp,
             "issue_classification_file": self.issue_classification_file,
-            "categories": categorized
+            "categories": categorized,
         }
 
     def categorize(self) -> Dict[str, Any]:
@@ -313,21 +304,21 @@ class IssueCategorizer:
 
         output_dir.mkdir(parents=True, exist_ok=True)
 
-        timestamp = report['timestamp']
+        timestamp = report["timestamp"]
         output_file = output_dir / f"issue_category_{timestamp}.json"
 
-        with open(output_file, 'w', encoding='utf-8') as f:
+        with open(output_file, "w", encoding="utf-8") as f:
             json.dump(report, f, indent=2, ensure_ascii=False)
 
         return str(output_file)
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Issue Categorizer - Categorizes similar issue labels into canonical categories")
+    parser = argparse.ArgumentParser(
+        description="Issue Categorizer - Categorizes similar issue labels into canonical categories"
+    )
     parser.add_argument(
-        "--model",
-        default="gemini-3.1-flash-lite",
-        help="LLM model name (default: gemini-3.1-flash-lite)"
+        "--model", default="gemini-3.1-flash-lite", help="LLM model name (default: gemini-3.1-flash-lite)"
     )
 
     args = parser.parse_args()
@@ -335,9 +326,7 @@ if __name__ == "__main__":
     try:
         # Create categorizer
         print(f"[IssueCategorizer] Initializing IssueCategorizer with model: {args.model}")
-        categorizer = IssueCategorizer(
-            model=args.model
-        )
+        categorizer = IssueCategorizer(model=args.model)
 
         # Run categorization
         print("[IssueCategorizer] Starting categorization process...")
@@ -354,5 +343,6 @@ if __name__ == "__main__":
     except Exception as e:
         print(f"\n[IssueCategorizer] Unexpected error: {e}")
         import traceback
+
         traceback.print_exc()
         sys.exit(1)

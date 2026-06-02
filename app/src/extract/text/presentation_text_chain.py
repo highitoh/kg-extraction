@@ -7,6 +7,7 @@ from .presentation_text_extractor import PresentationTextExtractor
 from .text_filter import TextFilter
 from .text_transformer import TextTransformer
 
+
 class PresentationTextChain(Runnable):
     """Presentation text extraction chain"""
 
@@ -17,7 +18,7 @@ class PresentationTextChain(Runnable):
             progress: Progress display flag
         """
         self.extractor = PresentationTextExtractor()
-        #self.filter = TextFilter()
+        # self.filter = TextFilter()
         self.model = model
         self.progress = progress
 
@@ -28,13 +29,11 @@ class PresentationTextChain(Runnable):
         extracted = self.extractor.invoke(input, config)
 
         # Step 2: Filtering
-        #filtered = self.filter.invoke({"source": extracted, "filter": {"name": "dummy"}}, config)
+        # filtered = self.filter.invoke({"source": extracted, "filter": {"name": "dummy"}}, config)
         return extracted
 
 
 if __name__ == "__main__":
     chain = PresentationTextChain()
-    result = chain.invoke({
-        "files": [{"path": "../doc/presentation_sample.pdf"}]
-    })
+    result = chain.invoke({"files": [{"path": "../doc/presentation_sample.pdf"}]})
     print(result)

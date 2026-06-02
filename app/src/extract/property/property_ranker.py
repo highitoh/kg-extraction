@@ -38,7 +38,12 @@ class PropertyRanker(Runnable):
             reasoning_effort="low",
         )
         self.llm_schema = self._load_llm_schema()
-        self.llm_json = self.llm.bind(response_format={"type": "json_schema", "json_schema": {"name": "property_ranker", "schema": self.llm_schema}})
+        self.llm_json = self.llm.bind(
+            response_format={
+                "type": "json_schema",
+                "json_schema": {"name": "property_ranker", "schema": self.llm_schema},
+            }
+        )
         self.max_concurrency = max_concurrency
         self.progress = progress
         self.batch_size = batch_size
@@ -150,7 +155,7 @@ class PropertyRanker(Runnable):
                     prop.get("name", ""),
                     prop.get("description", ""),
                     prop.get("src_class", ""),
-                    prop.get("dest_class", "")
+                    prop.get("dest_class", ""),
                 )
         return "", "", "", ""
 
@@ -182,10 +187,7 @@ class PropertyRanker(Runnable):
         return "\n".join(lines)
 
     async def _rank_batch(
-        self,
-        batch: List[Dict[str, Any]],
-        class_index: Dict[str, Dict[str, Any]],
-        property_iri: str
+        self, batch: List[Dict[str, Any]], class_index: Dict[str, Dict[str, Any]], property_iri: str
     ) -> List[Dict[str, Any]]:
         """Evaluate strength of one batch of candidates with LLM"""
 
@@ -225,7 +227,7 @@ class PropertyRanker(Runnable):
             property_candidates=property_candidates_text,
             src_instances=src_instances_text,
             dest_instances=dest_instances_text,
-            custom_rules=self.custom_rules
+            custom_rules=self.custom_rules,
         )
 
         msg = HumanMessage(content=[{"type": "text", "text": prompt_filled}])
@@ -244,19 +246,19 @@ class PropertyRanker(Runnable):
 
         results: List[Dict[str, Any]] = []
         for r in data.get("relations", []):
-            results.append({
-                "src_id": r.get("src_id", ""),
-                "dest_id": r.get("dest_id", ""),
-                "strength": r.get("strength", 0),
-                "justification": r.get("justification", "")
-            })
+            results.append(
+                {
+                    "src_id": r.get("src_id", ""),
+                    "dest_id": r.get("dest_id", ""),
+                    "strength": r.get("strength", 0),
+                    "justification": r.get("justification", ""),
+                }
+            )
 
         return results
 
     async def _rank_properties_async(
-        self,
-        properties: List[Dict[str, Any]],
-        class_index: Dict[str, Dict[str, Any]]
+        self, properties: List[Dict[str, Any]], class_index: Dict[str, Dict[str, Any]]
     ) -> Dict[str, Dict[str, Any]]:
         """Execute strength evaluation of all properties asynchronously"""
 
@@ -268,14 +270,16 @@ class PropertyRanker(Runnable):
         lock = asyncio.Lock()
 
         if self.progress:
-            print(f"[PropertyRanker] Starting parallel processing: {total} property types (concurrency={self.max_concurrency})")
+            print(
+                f"[PropertyRanker] Starting parallel processing: {total} property types (concurrency={self.max_concurrency})"
+            )
 
         # Create tasks by dividing each group into batches
         async def _wrapped_group(property_iri: str, props: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
             nonlocal counter
             batch_results = []
             for i in range(0, len(props), self.batch_size):
-                batch = props[i:i + self.batch_size]
+                batch = props[i : i + self.batch_size]
                 result = await self._rank_batch(batch, class_index, property_iri)
                 batch_results.extend(result)
 
@@ -342,7 +346,7 @@ class PropertyRanker(Runnable):
                 "property_iri": prop.get("property_iri", ""),
                 "dest_id": prop.get("dest_id", ""),
                 "strength": strength,
-                "ranker_justification": ranking_result.get("justification", "")
+                "ranker_justification": ranking_result.get("justification", ""),
             }
             # Preserve internal freeze flags for PropertyChain optimization.
             if "_frozen_from_existing_accept" in prop:
@@ -357,12 +361,14 @@ class PropertyRanker(Runnable):
             src_class = class_index.get(prop.get("src_id", ""), {})
             dest_class = class_index.get(prop.get("dest_id", ""), {})
 
-            ranked_properties_with_labels.append({
-                **ranked_prop,
-                "src_label": src_class.get("label", ""),
-                "dest_label": dest_class.get("label", ""),
-                "justification": ranking_result.get("justification", "")
-            })
+            ranked_properties_with_labels.append(
+                {
+                    **ranked_prop,
+                    "src_label": src_class.get("label", ""),
+                    "dest_label": dest_class.get("label", ""),
+                    "justification": ranking_result.get("justification", ""),
+                }
+            )
 
         output = {"properties": ranked_properties}
 
@@ -372,7 +378,9 @@ class PropertyRanker(Runnable):
             for prop in ranked_properties:
                 strength_counts[prop["strength"]] += 1
             print(f"[PropertyRanker] Completed: ranked {len(ranked_properties)} properties")
-            print(f"[PropertyRanker] Strength distribution: 0={strength_counts[0]}, 1={strength_counts[1]}, 2={strength_counts[2]}")
+            print(
+                f"[PropertyRanker] Strength distribution: 0={strength_counts[0]}, 1={strength_counts[1]}, 2={strength_counts[2]}"
+            )
 
         # Log output (with label information and evaluation information)
         log_output = {"properties": ranked_properties_with_labels}
@@ -388,7 +396,9 @@ if __name__ == "__main__":
     ranker = PropertyRanker()
 
     # Load the latest PropertyExtractor output JSON
-    property_files = sorted(glob.glob("/workspace/app/log/property_extractor/property_extractor_output_*.json"), reverse=True)
+    property_files = sorted(
+        glob.glob("/workspace/app/log/property_extractor/property_extractor_output_*.json"), reverse=True
+    )
 
     if not property_files:
         print("Error: No PropertyExtractor output files found in log/property_extractor/")
@@ -401,7 +411,9 @@ if __name__ == "__main__":
         property_candidates = json.load(f)
 
     # Load the latest ClassConsolidator output JSON
-    class_files = sorted(glob.glob("/workspace/app/log/class_consolidator/class_consolidator_output_*.json"), reverse=True)
+    class_files = sorted(
+        glob.glob("/workspace/app/log/class_consolidator/class_consolidator_output_*.json"), reverse=True
+    )
 
     if not class_files:
         print("Error: No ClassConsolidator output files found in log/class_consolidator/")
@@ -414,15 +426,12 @@ if __name__ == "__main__":
         class_info = json.load(f)
 
     # Prepare input data for PropertyRanker
-    sample_input = {
-        "property_candidates": property_candidates,
-        "class_info": class_info
-    }
+    sample_input = {"property_candidates": property_candidates, "class_info": class_info}
 
     print("=== PropertyRanker Test ===")
     print(f"Input: {len(property_candidates.get('properties', []))} properties to rank")
     print(f"Input: {len(class_info.get('classes', []))} classes loaded")
-    print("\n" + "="*50 + "\n")
+    print("\n" + "=" * 50 + "\n")
 
     try:
         # Execute PropertyRanker
@@ -447,4 +456,5 @@ if __name__ == "__main__":
     except Exception as e:
         print(f"Error: {e}")
         import traceback
+
         traceback.print_exc()

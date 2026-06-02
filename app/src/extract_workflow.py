@@ -24,7 +24,16 @@ from src.extract.core.state import KnowledgeExtractionState
 from src.utils.snapshot_manager import SnapshotManager
 
 
-def run_knowledge_extraction(pdf_path: str, output_dir: str = "/workspace/app/output", model: str = None, project: str = "default", create_snapshot: bool = True, date: str = None, miro_board_url: str = None, timestamp: str = None) -> Dict[str, Any]:
+def run_knowledge_extraction(
+    pdf_path: str,
+    output_dir: str = "/workspace/app/output",
+    model: str = None,
+    project: str = "default",
+    create_snapshot: bool = True,
+    date: str = None,
+    miro_board_url: str = None,
+    timestamp: str = None,
+) -> Dict[str, Any]:
     """
     Execute knowledge extraction from PDF file
 
@@ -49,7 +58,7 @@ def run_knowledge_extraction(pdf_path: str, output_dir: str = "/workspace/app/ou
         "files": [{"path": pdf_path}],
         "output_dir": output_dir,
         "project": project,
-        "errors": []
+        "errors": [],
     }
 
     # Add model to State if specified
@@ -91,7 +100,7 @@ def run_knowledge_extraction(pdf_path: str, output_dir: str = "/workspace/app/ou
                 trigger_type="extraction",
                 source_pdf=pdf_path if not raw_source_data else None,
                 raw_source_data=raw_source_data,
-                extraction_result_file=output_json
+                extraction_result_file=output_json,
             )
             result["snapshot"] = snapshot_result
             print(f"  - Snapshot created: {snapshot_result['snapshot_id']}")
@@ -105,15 +114,34 @@ def run_knowledge_extraction(pdf_path: str, output_dir: str = "/workspace/app/ou
 
 if __name__ == "__main__":
     # Parse command line arguments
-    parser = argparse.ArgumentParser(description="Extract knowledge from PDF files and generate Turtle and Neo4j CSV files")
+    parser = argparse.ArgumentParser(
+        description="Extract knowledge from PDF files and generate Turtle and Neo4j CSV files"
+    )
     parser.add_argument("pdf_path", nargs="?", default="../doc/sample.pdf", help="PDF file path to extract from")
-    parser.add_argument("--model", type=str, default=None, help="LLM model name to use (default: default model for each node)")
-    parser.add_argument("--output-dir", type=str, default="/workspace/app/output", help="Output directory (default: /workspace/app/output)")
+    parser.add_argument(
+        "--model", type=str, default=None, help="LLM model name to use (default: default model for each node)"
+    )
+    parser.add_argument(
+        "--output-dir",
+        type=str,
+        default="/workspace/app/output",
+        help="Output directory (default: /workspace/app/output)",
+    )
     parser.add_argument("--project", type=str, default="default", help="Project name (default: default)")
     parser.add_argument("--no-snapshot", action="store_true", help="Skip snapshot creation (default: create snapshot)")
-    parser.add_argument("--date", type=str, default=None, help="Extract from GitHub at specific date in YYYYMMDD format (e.g., 20230115)")
+    parser.add_argument(
+        "--date",
+        type=str,
+        default=None,
+        help="Extract from GitHub at specific date in YYYYMMDD format (e.g., 20230115)",
+    )
     parser.add_argument("--miro-url", type=str, default=None, help="Miro board URL (for PDF exports of Miro boards)")
-    parser.add_argument("--timestamp", type=str, default=None, help="Manual snapshot timestamp in YYYYMMDD format (e.g., 20260531). Must be later than the latest existing snapshot.")
+    parser.add_argument(
+        "--timestamp",
+        type=str,
+        default=None,
+        help="Manual snapshot timestamp in YYYYMMDD format (e.g., 20260531). Must be later than the latest existing snapshot.",
+    )
 
     args = parser.parse_args()
     pdf_path = args.pdf_path
@@ -144,7 +172,16 @@ if __name__ == "__main__":
 
     try:
         create_snapshot = not args.no_snapshot
-        result = run_knowledge_extraction(pdf_path, output_dir=args.output_dir, model=args.model, project=args.project, create_snapshot=create_snapshot, date=args.date, miro_board_url=args.miro_url, timestamp=args.timestamp)
+        result = run_knowledge_extraction(
+            pdf_path,
+            output_dir=args.output_dir,
+            model=args.model,
+            project=args.project,
+            create_snapshot=create_snapshot,
+            date=args.date,
+            miro_board_url=args.miro_url,
+            timestamp=args.timestamp,
+        )
 
         # Check for errors
         if result.get("errors"):
@@ -178,5 +215,6 @@ if __name__ == "__main__":
     except Exception as e:
         print(f"Error during extraction: {e}")
         import traceback
+
         traceback.print_exc()
         sys.exit(1)

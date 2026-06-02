@@ -70,12 +70,7 @@ class StrategyPlanner:
             self.previous_strategies = []
 
         # Create LLM instance with high reasoning effort for strategic planning
-        self.llm = LLMFactory.create_llm(
-            model=model,
-            temperature=0.0,
-            timeout=300.0,
-            reasoning_effort="low"
-        )
+        self.llm = LLMFactory.create_llm(model=model, temperature=0.0, timeout=300.0, reasoning_effort="low")
 
         # Load schema (path: /workspace/app/schemas/strategy-planner/)
         self.schemas_dir = Path(__file__).parent.parent.parent / "schemas" / "strategy-planner"
@@ -86,11 +81,7 @@ class StrategyPlanner:
         self.llm_bound = self.llm.bind(
             response_format={
                 "type": "json_schema",
-                "json_schema": {
-                    "name": "strategy_planner_response",
-                    "schema": self.llm_schema,
-                    "strict": True
-                }
+                "json_schema": {"name": "strategy_planner_response", "schema": self.llm_schema, "strict": True},
             }
         )
 
@@ -103,40 +94,40 @@ class StrategyPlanner:
     def _load_schema(self, schema_name: str) -> Dict[str, Any]:
         """Load a JSON schema file."""
         schema_path = self.schemas_dir / schema_name
-        with open(schema_path, 'r', encoding='utf-8') as f:
+        with open(schema_path, "r", encoding="utf-8") as f:
             return json.load(f)
 
     def _load_prompt(self, prompt_filename: str) -> str:
         """Load a prompt template."""
         prompt_path = Path(__file__).parent.parent.parent / "prompts" / prompt_filename
-        with open(prompt_path, 'r', encoding='utf-8') as f:
+        with open(prompt_path, "r", encoding="utf-8") as f:
             return f.read()
 
     def _load_metamodel(self) -> Dict[str, Any]:
         """Load metamodel from metamodel.json."""
         metamodel_path = Path(__file__).parent.parent.parent / "metamodel" / "metamodel.json"
-        with open(metamodel_path, 'r', encoding='utf-8') as f:
+        with open(metamodel_path, "r", encoding="utf-8") as f:
             return json.load(f)
 
     def _create_classes_list(self) -> str:
         """Create a simple list of metamodel class names."""
-        classes = self.metamodel.get('classes', [])
+        classes = self.metamodel.get("classes", [])
 
         # Extract class names and format as comma-separated list
-        class_names = [cls.get('name', '') for cls in classes]
+        class_names = [cls.get("name", "") for cls in classes]
 
         # Format as a readable list
-        return ', '.join(f'"{name}"' for name in class_names)
+        return ", ".join(f'"{name}"' for name in class_names)
 
     def _create_properties_list(self) -> str:
         """Create a simple list of metamodel property names."""
-        properties = self.metamodel.get('properties', [])
+        properties = self.metamodel.get("properties", [])
 
         # Extract property names and format as comma-separated list
-        property_names = [prop.get('name', '') for prop in properties]
+        property_names = [prop.get("name", "") for prop in properties]
 
         # Format as a readable list
-        return ', '.join(f'"{name}"' for name in property_names)
+        return ", ".join(f'"{name}"' for name in property_names)
 
     # ---- Strategy history log (scoped by run_id) ----
 
@@ -157,10 +148,10 @@ class StrategyPlanner:
             return []
 
         try:
-            with open(history_path, 'r', encoding='utf-8') as f:
+            with open(history_path, "r", encoding="utf-8") as f:
                 data = json.load(f)
             return data.get("history", [])
-        except (json.JSONDecodeError, IOError):
+        except json.JSONDecodeError, IOError:
             return []
 
     def _save_strategy_history(self, recommended_actions: List[Dict[str, Any]]) -> None:
@@ -202,7 +193,7 @@ class StrategyPlanner:
             "run_id": self.run_id,
             "history": history,
         }
-        with open(history_path, 'w', encoding='utf-8') as f:
+        with open(history_path, "w", encoding="utf-8") as f:
             json.dump(data, f, indent=2, ensure_ascii=False)
 
         if self.progress:
@@ -241,27 +232,27 @@ class StrategyPlanner:
         class_iri_to_name: Dict[str, str] = {}
         prop_iri_to_name: Dict[str, str] = {}
         if metamodel:
-            for cls in metamodel.get('classes', []):
-                class_iri_to_name[cls.get('iri', '')] = cls.get('name', '')
-            for prop in metamodel.get('properties', []):
-                prop_iri_to_name[prop.get('iri', '')] = prop.get('name', '')
+            for cls in metamodel.get("classes", []):
+                class_iri_to_name[cls.get("iri", "")] = cls.get("name", "")
+            for prop in metamodel.get("properties", []):
+                prop_iri_to_name[prop.get("iri", "")] = prop.get("name", "")
 
         def _resolve_class_name(iri: str) -> str:
             if iri in class_iri_to_name:
                 return class_iri_to_name[iri]
-            return iri.rsplit('#', 1)[-1] if '#' in iri else iri
+            return iri.rsplit("#", 1)[-1] if "#" in iri else iri
 
         def _resolve_prop_name(iri: str) -> str:
             if iri in prop_iri_to_name:
                 return prop_iri_to_name[iri]
-            return iri.rsplit('#', 1)[-1] if '#' in iri else iri
+            return iri.rsplit("#", 1)[-1] if "#" in iri else iri
 
-        categories = issue_category_data.get('categories', [])
+        categories = issue_category_data.get("categories", [])
         stats = []
         for cat in categories:
-            validations = cat.get('validations', {})
-            class_vals = validations.get('class_validations', [])
-            prop_vals = validations.get('property_validations', [])
+            validations = cat.get("validations", {})
+            class_vals = validations.get("class_validations", [])
+            prop_vals = validations.get("property_validations", [])
             count = len(class_vals) + len(prop_vals)
 
             entry: Dict[str, Any] = {
@@ -273,21 +264,17 @@ class StrategyPlanner:
             if class_vals:
                 class_counts: Dict[str, int] = {}
                 for cv in class_vals:
-                    name = _resolve_class_name(cv.get('class_iri', ''))
+                    name = _resolve_class_name(cv.get("class_iri", ""))
                     class_counts[name] = class_counts.get(name, 0) + 1
-                entry["class_breakdown"] = dict(
-                    sorted(class_counts.items(), key=lambda x: x[1], reverse=True)
-                )
+                entry["class_breakdown"] = dict(sorted(class_counts.items(), key=lambda x: x[1], reverse=True))
 
             # Property breakdown by metamodel property type
             if prop_vals:
                 prop_counts: Dict[str, int] = {}
                 for pv in prop_vals:
-                    name = _resolve_prop_name(pv.get('property_iri', ''))
+                    name = _resolve_prop_name(pv.get("property_iri", ""))
                     prop_counts[name] = prop_counts.get(name, 0) + 1
-                entry["property_breakdown"] = dict(
-                    sorted(prop_counts.items(), key=lambda x: x[1], reverse=True)
-                )
+                entry["property_breakdown"] = dict(sorted(prop_counts.items(), key=lambda x: x[1], reverse=True))
 
             stats.append(entry)
 
@@ -308,11 +295,11 @@ class StrategyPlanner:
 
         # Generate reason instruction based on verbose flag
         if self.verbose:
-            reason_instruction = '- **reason**: Why this edit will address the quality issues (reference specific issue categories/labels)'
+            reason_instruction = "- **reason**: Why this edit will address the quality issues (reference specific issue categories/labels)"
             reason_example = '\n      "reason": "Multiple instances of RELATIONSHIP_STRENGTH_OVERESTIMATION suggest the ranker is assigning strength=3 to weak dependencies. Need clearer criteria for distinguishing strong vs weak relationships.",'
         else:
-            reason_instruction = ''
-            reason_example = ''
+            reason_instruction = ""
+            reason_example = ""
 
         # Replace all placeholders in template
         prompt = fill_prompt_template(
@@ -347,7 +334,7 @@ class StrategyPlanner:
                     "previous_strategies_count": len(self.previous_strategies),
                     "previous_rewards": self.previous_rewards,
                 },
-                "recommended_actions": []
+                "recommended_actions": [],
             }
 
         # Create planning prompt
@@ -368,30 +355,30 @@ class StrategyPlanner:
             if isinstance(response.content, str):
                 result = json.loads(response.content)
             elif isinstance(response.content, list) and len(response.content) > 0:
-                text_record = next((item for item in response.content if item.get('type') == 'text'), None)
+                text_record = next((item for item in response.content if item.get("type") == "text"), None)
                 if text_record is None:
                     raise ValueError(f"No text record found in response.content: {response.content}")
-                result = json.loads(text_record.get('text', '{}'))
+                result = json.loads(text_record.get("text", "{}"))
             else:
                 raise ValueError(f"Unexpected response format: {type(response.content)}")
 
-            if 'recommended_actions' not in result:
+            if "recommended_actions" not in result:
                 raise ValueError(f"Expected 'recommended_actions' in response, got: {result.keys()}")
 
-            recommended_actions = result['recommended_actions']
+            recommended_actions = result["recommended_actions"]
 
             # Normalize compact format: inject empty reason for downstream compatibility
             if not self.verbose:
                 for action in recommended_actions:
-                    if 'reason' not in action:
-                        action['reason'] = ''
+                    if "reason" not in action:
+                        action["reason"] = ""
 
             if self.progress:
                 print(f"[StrategyPlanner] LLM generated {len(recommended_actions)} recommended actions")
                 for i, action in enumerate(recommended_actions, 1):
-                    priority = action.get('priority', 'unknown')
-                    target_type = action.get('target_type', 'unknown')
-                    target = action.get('target', 'unknown')
+                    priority = action.get("priority", "unknown")
+                    target_type = action.get("target_type", "unknown")
+                    target = action.get("target", "unknown")
                     print(f"  {i}. [{priority.upper()}] {target_type}:{target}")
 
             # Build output
@@ -403,7 +390,7 @@ class StrategyPlanner:
                     "previous_strategies_count": len(self.previous_strategies),
                     "previous_rewards": self.previous_rewards,
                 },
-                "recommended_actions": recommended_actions
+                "recommended_actions": recommended_actions,
             }
 
             if self.progress:
@@ -430,14 +417,14 @@ class StrategyPlanner:
 
         output_dir.mkdir(parents=True, exist_ok=True)
 
-        timestamp = result['timestamp']
+        timestamp = result["timestamp"]
         output_file = output_dir / f"strategy_plan_{timestamp}.json"
 
-        with open(output_file, 'w', encoding='utf-8') as f:
+        with open(output_file, "w", encoding="utf-8") as f:
             json.dump(result, f, indent=2, ensure_ascii=False)
 
         # Append to strategy history log (scoped by run_id)
-        self._save_strategy_history(result.get('recommended_actions', []))
+        self._save_strategy_history(result.get("recommended_actions", []))
 
         return str(output_file)
 
@@ -459,30 +446,25 @@ def _find_latest_issue_category(optimize_dir: str = "/workspace/app/output/optim
 
     if not files:
         raise FileNotFoundError(
-            f"No issue_category_*.json files found in: {optimize_dir}\n"
-            f"Please run IssueCategorizer first."
+            f"No issue_category_*.json files found in: {optimize_dir}\nPlease run IssueCategorizer first."
         )
 
     return files[0]
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Strategy Planner - Creates improvement plans by analyzing categorized issues")
-    parser.add_argument(
-        "--model",
-        default="gemini-3.1-flash-lite",
-        help="LLM model name (default: gemini-3.1-flash-lite)"
+    parser = argparse.ArgumentParser(
+        description="Strategy Planner - Creates improvement plans by analyzing categorized issues"
     )
     parser.add_argument(
-        "--no-progress",
-        action="store_true",
-        help="Disable progress messages"
+        "--model", default="gemini-3.1-flash-lite", help="LLM model name (default: gemini-3.1-flash-lite)"
     )
+    parser.add_argument("--no-progress", action="store_true", help="Disable progress messages")
     parser.add_argument(
         "--verbose",
         action="store_true",
         default=False,
-        help="Output reason field for each action (default: omit to reduce tokens)"
+        help="Output reason field for each action (default: omit to reduce tokens)",
     )
 
     args = parser.parse_args()
@@ -491,11 +473,11 @@ if __name__ == "__main__":
         # Load issue_category file and compute statistics for standalone mode
         issue_category_file = _find_latest_issue_category()
         print(f"[StrategyPlanner] Loading issue categories from: {issue_category_file}")
-        with open(issue_category_file, 'r', encoding='utf-8') as f:
+        with open(issue_category_file, "r", encoding="utf-8") as f:
             issue_category_data = json.load(f)
         # Load metamodel for IRI-to-name resolution in statistics
         metamodel_path = Path(__file__).parent.parent.parent / "metamodel" / "metamodel.json"
-        with open(metamodel_path, 'r', encoding='utf-8') as f:
+        with open(metamodel_path, "r", encoding="utf-8") as f:
             metamodel_data = json.load(f)
         issue_stats = StrategyPlanner.compute_issue_statistics(issue_category_data, metamodel=metamodel_data)
         print(f"[StrategyPlanner] Computed {len(issue_stats)} issue category statistics")
@@ -521,12 +503,12 @@ if __name__ == "__main__":
         print(f"[StrategyPlanner] Result saved to: {output_file}")
 
         # Print summary
-        actions = result.get('recommended_actions', [])
+        actions = result.get("recommended_actions", [])
         if actions:
             print(f"\n[StrategyPlanner] Summary: {len(actions)} recommended actions")
             for i, action in enumerate(actions, 1):
-                target_type = action.get('target_type', '?')
-                target = action.get('target', '?')
+                target_type = action.get("target_type", "?")
+                target = action.get("target", "?")
                 print(f"  {i}. [{action.get('priority', '?').upper()}] {target_type}:{target}")
         else:
             print("\n[StrategyPlanner] No recommended actions generated.")
@@ -537,5 +519,6 @@ if __name__ == "__main__":
     except Exception as e:
         print(f"\n[StrategyPlanner] Unexpected error: {e}")
         import traceback
+
         traceback.print_exc()
         sys.exit(1)

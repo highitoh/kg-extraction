@@ -22,7 +22,7 @@ class LLMFactory:
 
         try:
             return int(value)
-        except (TypeError, ValueError):
+        except TypeError, ValueError:
             return None
 
     @staticmethod
@@ -34,9 +34,7 @@ class LLMFactory:
             return provider
 
         supported_values = ", ".join(sorted(_SUPPORTED_LLM_PROVIDERS))
-        raise ValueError(
-            f"Unsupported LLM provider {provider!r}. Supported values: {supported_values}"
-        )
+        raise ValueError(f"Unsupported LLM provider {provider!r}. Supported values: {supported_values}")
 
     @staticmethod
     def create_llm(
@@ -88,9 +86,7 @@ class LLMFactory:
         provider = LLMFactory._normalize_provider(os.getenv("LLM_PROVIDER"))
         if provider is None:
             supported_values = ", ".join(sorted(_SUPPORTED_LLM_PROVIDERS))
-            raise ValueError(
-                f"LLM_PROVIDER must be set. Supported values: {supported_values}"
-            )
+            raise ValueError(f"LLM_PROVIDER must be set. Supported values: {supported_values}")
 
         try:
             if provider in {"gemini_api", "gcp_vertexai"}:
@@ -145,8 +141,6 @@ class LLMFactory:
                     max_retries=0,  # Disable SDK retries; handled by call_with_retry
                 )
         except Exception as exc:
-            raise RuntimeError(
-                f"Failed to initialize LLM provider {provider!r}: {exc}"
-            ) from exc
+            raise RuntimeError(f"Failed to initialize LLM provider {provider!r}: {exc}") from exc
 
         raise ValueError(f"Unsupported LLM provider: {provider}")

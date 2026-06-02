@@ -79,8 +79,7 @@ class PropertyValidator(Runnable):
 
         if src_class_iri != expected_src_class:
             return False, (
-                f"src class_iri mismatch: expected '{expected_src_class}', "
-                f"got '{src_class_iri}' (src_id: {src_id})"
+                f"src class_iri mismatch: expected '{expected_src_class}', got '{src_class_iri}' (src_id: {src_id})"
             )
 
         if dest_class_iri != expected_dest_class:
@@ -135,10 +134,7 @@ class PropertyValidator(Runnable):
             if is_valid:
                 valid_properties.append(prop)
             else:
-                invalid_properties.append({
-                    "property": prop,
-                    "reason": reason
-                })
+                invalid_properties.append({"property": prop, "reason": reason})
 
         # Build output
         output: Dict[str, Any] = {"properties": valid_properties}
@@ -155,7 +151,7 @@ class PropertyValidator(Runnable):
                 "total": len(properties),
                 "valid": len(valid_properties),
                 "invalid": len(invalid_properties),
-                "invalid_properties": invalid_properties
+                "invalid_properties": invalid_properties,
             }
             self.logger.save_log(log_data, filename_prefix="property_validator_output_")
 
@@ -219,7 +215,7 @@ if __name__ == "__main__":
         print(f"- Valid properties: {len(result.get('properties', []))}")
 
         # Display valid properties
-        if result.get('properties'):
+        if result.get("properties"):
             print("\nValid properties:")
             idx = {c["id"]: c for c in class_info.get("classes", [])}
             for i, p in enumerate(result.get("properties", []), 1):
@@ -230,7 +226,9 @@ if __name__ == "__main__":
                 print(f"  {i:02d}. {s_label} --[{p['property_iri']}]--> {d_label}")
 
         # Load and display log file if available
-        log_files = sorted(glob.glob("/workspace/app/log/property_validator/property_validator_output_*.json"), reverse=True)
+        log_files = sorted(
+            glob.glob("/workspace/app/log/property_validator/property_validator_output_*.json"), reverse=True
+        )
         if log_files:
             with open(log_files[0], "r", encoding="utf-8") as f:
                 log_data = json.load(f)
@@ -247,4 +245,5 @@ if __name__ == "__main__":
     except Exception as e:
         print(f"Error: {e}")
         import traceback
+
         traceback.print_exc()

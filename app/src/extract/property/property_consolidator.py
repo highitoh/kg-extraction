@@ -34,7 +34,7 @@ class PropertyConsolidator(Runnable):
         temperature: float = 0.0,
         max_concurrency: int = 8,
         progress: bool = True,
-        log_dir: str = "/workspace/app/log/property_consolidator"
+        log_dir: str = "/workspace/app/log/property_consolidator",
     ):
         self.llm = llm or LLMFactory.create_llm(
             model=model,
@@ -142,7 +142,9 @@ class PropertyConsolidator(Runnable):
         class_info = input.get("class_info", {})
 
         if self.progress:
-            print(f"[PropertyConsolidator] Processing {len(new_properties)} new + {len(existing_properties)} existing properties")
+            print(
+                f"[PropertyConsolidator] Processing {len(new_properties)} new + {len(existing_properties)} existing properties"
+            )
 
         # Return new properties as-is if no existing properties
         if not existing_properties:
@@ -169,10 +171,12 @@ class PropertyConsolidator(Runnable):
                 valid_normalized.append(prop)
             else:
                 # Track invalid properties for logging
-                invalid_properties.append({
-                    "property": prop,
-                    "reason": f"src_id or dest_id not in current classes (src_id={src_id}, dest_id={dest_id})"
-                })
+                invalid_properties.append(
+                    {
+                        "property": prop,
+                        "reason": f"src_id or dest_id not in current classes (src_id={src_id}, dest_id={dest_id})",
+                    }
+                )
 
         if invalid_properties and self.progress:
             print(f"[PropertyConsolidator] Filtered {len(invalid_properties)} properties with invalid class references")
@@ -190,15 +194,15 @@ class PropertyConsolidator(Runnable):
             print(f"[PropertyConsolidator] {len(property_groups)} property types found")
 
         # Execute consolidation in parallel for each property
-        all_consolidated_properties = asyncio.run(
-            self._process_properties_parallel(property_groups, class_info)
-        )
+        all_consolidated_properties = asyncio.run(self._process_properties_parallel(property_groups, class_info))
 
         # Build output
         output = {"properties": all_consolidated_properties}
 
         if self.progress:
-            print(f"[PropertyConsolidator] Completed: {len(all_properties)} -> {len(all_consolidated_properties)} properties")
+            print(
+                f"[PropertyConsolidator] Completed: {len(all_properties)} -> {len(all_consolidated_properties)} properties"
+            )
 
         self.logger.save_log(output, filename_prefix="property_consolidator_output_")
 
@@ -229,9 +233,7 @@ class PropertyConsolidator(Runnable):
         return mapping
 
     def _normalize_property_ids(
-        self,
-        properties: List[Dict[str, Any]],
-        class_mapping: Dict[str, str]
+        self, properties: List[Dict[str, Any]], class_mapping: Dict[str, str]
     ) -> List[Dict[str, Any]]:
         """
         Normalize src_id/dest_id of properties
@@ -240,14 +242,8 @@ class PropertyConsolidator(Runnable):
         normalized = []
         for prop in properties:
             normalized_prop = prop.copy()
-            normalized_prop["src_id"] = class_mapping.get(
-                prop.get("src_id", ""),
-                prop.get("src_id", "")
-            )
-            normalized_prop["dest_id"] = class_mapping.get(
-                prop.get("dest_id", ""),
-                prop.get("dest_id", "")
-            )
+            normalized_prop["src_id"] = class_mapping.get(prop.get("src_id", ""), prop.get("src_id", ""))
+            normalized_prop["dest_id"] = class_mapping.get(prop.get("dest_id", ""), prop.get("dest_id", ""))
             normalized.append(normalized_prop)
         return normalized
 
@@ -269,9 +265,7 @@ class PropertyConsolidator(Runnable):
         return property_iri.split("#")[-1] if "#" in property_iri else property_iri
 
     async def _process_properties_parallel(
-        self,
-        property_groups: Dict[str, List[Dict[str, Any]]],
-        class_info: Dict[str, Any]
+        self, property_groups: Dict[str, List[Dict[str, Any]]], class_info: Dict[str, Any]
     ) -> List[Dict[str, Any]]:
         """Process property groups in parallel"""
         sem = asyncio.Semaphore(self.max_concurrency)
@@ -280,27 +274,27 @@ class PropertyConsolidator(Runnable):
         lock = asyncio.Lock()
 
         if self.progress:
-            print(f"[PropertyConsolidator] Starting parallel processing: {total} property types (concurrency={self.max_concurrency})")
+            print(
+                f"[PropertyConsolidator] Starting parallel processing: {total} property types (concurrency={self.max_concurrency})"
+            )
 
         async def _wrapped(property_iri: str, properties: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
             nonlocal counter
             async with sem:
                 property_name = self._get_property_name_from_iri(property_iri)
 
-                consolidated = await self._consolidate_properties_async(
-                    properties, property_iri, class_info
-                )
+                consolidated = await self._consolidate_properties_async(properties, property_iri, class_info)
 
                 async with lock:
                     counter += 1
                     if self.progress:
-                        print(f"[{counter}/{total}] PropertyConsolidator: {property_name} processed ({len(properties)} -> {len(consolidated)} properties)")
+                        print(
+                            f"[{counter}/{total}] PropertyConsolidator: {property_name} processed ({len(properties)} -> {len(consolidated)} properties)"
+                        )
 
                 return consolidated
 
-        results = await asyncio.gather(
-            *[_wrapped(iri, props) for iri, props in property_groups.items()]
-        )
+        results = await asyncio.gather(*[_wrapped(iri, props) for iri, props in property_groups.items()])
 
         # Flatten results
         all_consolidated = []
@@ -310,10 +304,7 @@ class PropertyConsolidator(Runnable):
         return all_consolidated
 
     async def _consolidate_properties_async(
-        self,
-        properties: List[Dict[str, Any]],
-        property_iri: str,
-        class_info: Dict[str, Any]
+        self, properties: List[Dict[str, Any]], property_iri: str, class_info: Dict[str, Any]
     ) -> List[Dict[str, Any]]:
         """
         Consolidate property list with the same property_iri (async version)
@@ -338,9 +329,7 @@ class PropertyConsolidator(Runnable):
 
         # Detect similar properties with LLM
         try:
-            similar_groups = await self._detect_similar_properties_async(
-                properties, property_iri, class_index
-            )
+            similar_groups = await self._detect_similar_properties_async(properties, property_iri, class_index)
         except Exception as e:
             if self.progress:
                 print(f"[PropertyConsolidator] LLM detection failed for {property_iri}: {e}")
@@ -374,10 +363,7 @@ class PropertyConsolidator(Runnable):
         return consolidated_properties
 
     async def _detect_similar_properties_async(
-        self,
-        properties: List[Dict[str, Any]],
-        property_iri: str,
-        class_index: Dict[str, Dict[str, Any]]
+        self, properties: List[Dict[str, Any]], property_iri: str, class_index: Dict[str, Dict[str, Any]]
     ) -> List[List[int]]:
         """
         Detect similar properties using LLM
@@ -392,9 +378,7 @@ class PropertyConsolidator(Runnable):
             Example: [[0, 2, 5], [1, 3], [4]] - 0,2,5 are similar, 1,3 are similar, 4 is independent
         """
         # Format property information
-        property_list_text = self._format_properties_for_llm(
-            properties, property_iri, class_index
-        )
+        property_list_text = self._format_properties_for_llm(properties, property_iri, class_index)
 
         # Build prompt
         property_name = self._get_property_name_from_iri(property_iri)
@@ -404,19 +388,13 @@ class PropertyConsolidator(Runnable):
             property_name=property_name,
             extraction_rules=extraction_rules,
             custom_rules=self.custom_rules,
-            property_list=property_list_text
+            property_list=property_list_text,
         )
 
         # Build LLM schema
         schema = self._build_schema()
         llm_json = self.llm.bind(
-            response_format={
-                "type": "json_schema",
-                "json_schema": {
-                    "name": "property_consolidator",
-                    "schema": schema
-                }
-            }
+            response_format={"type": "json_schema", "json_schema": {"name": "property_consolidator", "schema": schema}}
         )
 
         msg = HumanMessage(content=[{"type": "text", "text": prompt}])
@@ -450,10 +428,7 @@ class PropertyConsolidator(Runnable):
         return similar_groups
 
     def _format_properties_for_llm(
-        self,
-        properties: List[Dict[str, Any]],
-        property_iri: str,
-        class_index: Dict[str, Dict[str, Any]]
+        self, properties: List[Dict[str, Any]], property_iri: str, class_index: Dict[str, Dict[str, Any]]
     ) -> str:
         """Format property list for LLM"""
         lines = []
@@ -498,11 +473,7 @@ class PropertyConsolidator(Runnable):
             return group_properties[0]
 
         # Sort by strength (descending)
-        sorted_props = sorted(
-            group_properties,
-            key=lambda p: p.get("strength", 0),
-            reverse=True
-        )
+        sorted_props = sorted(group_properties, key=lambda p: p.get("strength", 0), reverse=True)
 
         # Return property with highest strength
         return sorted_props[0].copy()
@@ -580,7 +551,7 @@ if __name__ == "__main__":
         "id": property_data.get("id", "test-id"),
         "properties": property_data.get("properties", []),
         "existing_properties": existing_property_data.get("properties", []),
-        "class_info": class_data
+        "class_info": class_data,
     }
 
     print(f"\nInput data:")

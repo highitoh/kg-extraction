@@ -23,6 +23,7 @@ from utils.prompt_utils import fill_prompt_template
 
 class KnowledgeValidator:
     """Validates knowledge quality using LLM with parallel execution."""
+
     MAX_PROPERTY_CONTEXT_SOURCES = 3
     MAX_SOURCE_CHARS = 200
 
@@ -61,20 +62,13 @@ class KnowledgeValidator:
         self.extraction_result_data = self._load_json(self.extraction_result_file)
 
         # Cache metamodel data for heuristics / prompts
-        self.metamodel_data = self.extraction_result_data.get('metamodel', {})
+        self.metamodel_data = self.extraction_result_data.get("metamodel", {})
         self.metamodel_property_map = {
-            prop.get('iri'): prop
-            for prop in self.metamodel_data.get('properties', [])
-            if prop.get('iri')
+            prop.get("iri"): prop for prop in self.metamodel_data.get("properties", []) if prop.get("iri")
         }
 
         # Create LLM instance (only after files are validated)
-        self.llm = LLMFactory.create_llm(
-            model=model,
-            temperature=temperature,
-            timeout=300.0,
-            reasoning_effort="low"
-        )
+        self.llm = LLMFactory.create_llm(model=model, temperature=temperature, timeout=300.0, reasoning_effort="low")
 
         # Load schemas (path: /workspace/app/schemas/knowledge-validator/)
         self.schemas_dir = Path(__file__).parent.parent.parent / "schemas" / "knowledge-validator"
@@ -87,22 +81,14 @@ class KnowledgeValidator:
         self.llm_class = self.llm.bind(
             response_format={
                 "type": "json_schema",
-                "json_schema": {
-                    "name": "class_validation_response",
-                    "schema": self.class_schema,
-                    "strict": True
-                }
+                "json_schema": {"name": "class_validation_response", "schema": self.class_schema, "strict": True},
             }
         )
 
         self.llm_property = self.llm.bind(
             response_format={
                 "type": "json_schema",
-                "json_schema": {
-                    "name": "property_validation_response",
-                    "schema": self.property_schema,
-                    "strict": True
-                }
+                "json_schema": {"name": "property_validation_response", "schema": self.property_schema, "strict": True},
             }
         )
 
@@ -113,18 +99,18 @@ class KnowledgeValidator:
     def _load_schema(self, schema_name: str) -> Dict[str, Any]:
         """Load a JSON schema file."""
         schema_path = self.schemas_dir / schema_name
-        with open(schema_path, 'r', encoding='utf-8') as f:
+        with open(schema_path, "r", encoding="utf-8") as f:
             return json.load(f)
 
     def _load_prompt(self, prompt_filename: str) -> str:
         """Load a prompt template."""
         prompt_path = Path(__file__).parent.parent.parent / "prompts" / prompt_filename
-        with open(prompt_path, 'r', encoding='utf-8') as f:
+        with open(prompt_path, "r", encoding="utf-8") as f:
             return f.read()
 
     def _load_json(self, file_path: str) -> Dict[str, Any]:
         """Load a JSON file."""
-        with open(file_path, 'r', encoding='utf-8') as f:
+        with open(file_path, "r", encoding="utf-8") as f:
             return json.load(f)
 
     @staticmethod
@@ -138,13 +124,9 @@ class KnowledgeValidator:
         if isinstance(raw_sources, str):
             raw_sources = [raw_sources]
 
-        cleaned = [
-            src.strip()
-            for src in raw_sources
-            if isinstance(src, str) and src.strip()
-        ]
-        limited = cleaned[:self.MAX_PROPERTY_CONTEXT_SOURCES]
-        truncated = [src[:self.MAX_SOURCE_CHARS] for src in limited]
+        cleaned = [src.strip() for src in raw_sources if isinstance(src, str) and src.strip()]
+        limited = cleaned[: self.MAX_PROPERTY_CONTEXT_SOURCES]
+        truncated = [src[: self.MAX_SOURCE_CHARS] for src in limited]
         return truncated if truncated else ["(no source available)"]
 
     def _format_context_sources(self, sources: List[str]) -> str:
@@ -178,8 +160,7 @@ class KnowledgeValidator:
         knowledge_file = project_dir / "knowledge.json"
         if not knowledge_file.exists():
             raise FileNotFoundError(
-                f"knowledge.json not found in project directory: {project_dir}\n"
-                f"Expected file: {knowledge_file}"
+                f"knowledge.json not found in project directory: {project_dir}\nExpected file: {knowledge_file}"
             )
 
         # Find most recent extraction_result file
@@ -206,14 +187,14 @@ class KnowledgeValidator:
         if not class_group:
             raise ValueError("class_group cannot be empty")
 
-        class_iri = class_group[0].get('class_iri', 'Unknown')
+        class_iri = class_group[0].get("class_iri", "Unknown")
 
         # Format class instances
         class_instances_parts = []
         for idx, class_data in enumerate(class_group, 1):
-            class_id = class_data.get('id', 'Unknown')
-            class_label = class_data.get('label', 'Unknown')
-            sources = class_data.get('sources', [])[:3]
+            class_id = class_data.get("id", "Unknown")
+            class_label = class_data.get("label", "Unknown")
+            sources = class_data.get("sources", [])[:3]
 
             instance_info = f"""
 **Class {idx}:**
@@ -284,7 +265,7 @@ Output ONLY the scores using the metrics IDs (S11-S16) as keys."""
             self.class_prompt_template,
             class_iri=class_iri,
             class_instances=class_instances,
-            justification_instruction=justification_instruction
+            justification_instruction=justification_instruction,
         )
 
         return prompt
@@ -317,19 +298,19 @@ Output ONLY the scores using the metrics IDs (S11-S16) as keys."""
         """
         # Build mapping: class_id -> {class_iri, label}
         class_map = {
-            cls.get('id', ''): {
-                'class_iri': cls.get('class_iri', 'Unknown'),
-                'class_label': cls.get('label', 'Unknown'),
+            cls.get("id", ""): {
+                "class_iri": cls.get("class_iri", "Unknown"),
+                "class_label": cls.get("label", "Unknown"),
             }
             for cls in class_group
         }
 
         for validation in validations:
             # Resolve class_iri and class_label from input
-            class_id = validation.get('class_id', '')
+            class_id = validation.get("class_id", "")
             class_info = class_map.get(class_id, {})
-            validation['class_iri'] = class_info.get('class_iri', 'Unknown')
-            validation['class_label'] = class_info.get('class_label', 'Unknown')
+            validation["class_iri"] = class_info.get("class_iri", "Unknown")
+            validation["class_label"] = class_info.get("class_label", "Unknown")
 
             # Normalize compact format (S11-S16) to standard nested format
             if not self.verbose:
@@ -340,20 +321,20 @@ Output ONLY the scores using the metrics IDs (S11-S16) as keys."""
         return validations
 
     def _create_property_validation_prompt(
-        self,
-        property_group: List[Dict[str, Any]],
-        class_index: Dict[str, Dict[str, Any]]
+        self, property_group: List[Dict[str, Any]], class_index: Dict[str, Dict[str, Any]]
     ) -> str:
         """Create validation prompt for a group of properties with the same property_iri."""
         if not property_group:
             raise ValueError("property_group cannot be empty")
 
-        property_iri = property_group[0].get('property_iri', 'Unknown')
+        property_iri = property_group[0].get("property_iri", "Unknown")
 
         # Find property definition in metamodel (name, description, src_class, dest_class only)
         property_def = self.metamodel_property_map.get(property_iri)
         if property_def:
-            filtered_def = {k: property_def[k] for k in ('name', 'description', 'src_class', 'dest_class') if k in property_def}
+            filtered_def = {
+                k: property_def[k] for k in ("name", "description", "src_class", "dest_class") if k in property_def
+            }
             property_def_str = f"**Property Definition:** {json.dumps(filtered_def, indent=2, ensure_ascii=False)}"
         else:
             property_def_str = ""
@@ -361,12 +342,12 @@ Output ONLY the scores using the metrics IDs (S11-S16) as keys."""
         # Format property instances
         property_instances_parts = []
         for idx, property_data in enumerate(property_group, 1):
-            property_id = property_data.get('id', 'Unknown')
-            src_label = property_data.get('src_label', 'Unknown')
-            dest_label = property_data.get('dest_label', 'Unknown')
-            src_id = property_data.get('src_id', '')
-            dest_id = property_data.get('dest_id', '')
-            strength = property_data.get('strength', 0)
+            property_id = property_data.get("id", "Unknown")
+            src_label = property_data.get("src_label", "Unknown")
+            dest_label = property_data.get("dest_label", "Unknown")
+            src_id = property_data.get("src_id", "")
+            dest_id = property_data.get("dest_id", "")
+            strength = property_data.get("strength", 0)
             src_class = class_index.get(src_id, {})
             dest_class = class_index.get(dest_id, {})
             src_sources = self._get_truncated_sources(src_class)
@@ -439,7 +420,7 @@ Output ONLY the scores using the metrics IDs (S21-S24) as keys."""
             property_iri=property_iri,
             property_def=property_def_str,
             property_instances=property_instances,
-            justification_instruction=justification_instruction
+            justification_instruction=justification_instruction,
         )
 
         return prompt
@@ -470,21 +451,21 @@ Output ONLY the scores using the metrics IDs (S21-S24) as keys."""
         """
         # Build mapping: property_id -> {src_label, property_iri, dest_label}
         property_map = {
-            prop.get('id', ''): {
-                'src_label': prop.get('src_label', 'Unknown'),
-                'property_iri': prop.get('property_iri', 'Unknown'),
-                'dest_label': prop.get('dest_label', 'Unknown'),
+            prop.get("id", ""): {
+                "src_label": prop.get("src_label", "Unknown"),
+                "property_iri": prop.get("property_iri", "Unknown"),
+                "dest_label": prop.get("dest_label", "Unknown"),
             }
             for prop in property_group
         }
 
         for validation in validations:
             # Resolve src_label, property_iri, dest_label from input
-            property_id = validation.get('property_id', '')
+            property_id = validation.get("property_id", "")
             property_info = property_map.get(property_id, {})
-            validation['src_label'] = property_info.get('src_label', 'Unknown')
-            validation['property_iri'] = property_info.get('property_iri', 'Unknown')
-            validation['dest_label'] = property_info.get('dest_label', 'Unknown')
+            validation["src_label"] = property_info.get("src_label", "Unknown")
+            validation["property_iri"] = property_info.get("property_iri", "Unknown")
+            validation["dest_label"] = property_info.get("dest_label", "Unknown")
 
             # Normalize compact format (S21-S24) to standard nested format
             if not self.verbose:
@@ -499,7 +480,7 @@ Output ONLY the scores using the metrics IDs (S21-S24) as keys."""
         if not class_group:
             return []
 
-        class_iri = class_group[0].get('class_iri', 'Unknown')
+        class_iri = class_group[0].get("class_iri", "Unknown")
         prompt = self._create_class_validation_prompt(class_group)
 
         try:
@@ -515,16 +496,16 @@ Output ONLY the scores using the metrics IDs (S21-S24) as keys."""
                 result = json.loads(response.content)
             elif isinstance(response.content, list) and len(response.content) > 0:
                 # Find the record whose type is "text"
-                text_record = next((item for item in response.content if item.get('type') == 'text'), None)
+                text_record = next((item for item in response.content if item.get("type") == "text"), None)
                 if text_record is None:
                     raise ValueError(f"No text record found in response.content: {response.content}")
-                result = json.loads(text_record.get('text', '{}'))
+                result = json.loads(text_record.get("text", "{}"))
             else:
                 raise ValueError(f"Unexpected response format: {type(response.content)}")
 
             # Return the validations array
-            if 'class_validations' in result:
-                validations = result['class_validations']
+            if "class_validations" in result:
+                validations = result["class_validations"]
             else:
                 raise ValueError(f"Expected 'class_validations' in response, got: {result.keys()}")
 
@@ -535,34 +516,34 @@ Output ONLY the scores using the metrics IDs (S21-S24) as keys."""
             # Return default validations for all classes in the group
             return [
                 {
-                    "class_id": cls.get('id', 'Unknown'),
-                    "class_iri": cls.get('class_iri', 'Unknown'),
-                    "class_label": cls.get('label', 'Unknown'),
+                    "class_id": cls.get("id", "Unknown"),
+                    "class_iri": cls.get("class_iri", "Unknown"),
+                    "class_label": cls.get("label", "Unknown"),
                     "necessity": {"score": 0, "justification": f"Error: {str(e)}"},
                     "understandability": {"score": 0, "justification": f"Error: {str(e)}"},
                     "unity": {"score": 0, "justification": f"Error: {str(e)}"},
                     "boundary_suitability": {"score": 0, "justification": f"Error: {str(e)}"},
                     "structural_validity": {"score": 0, "justification": f"Error: {str(e)}"},
-                    "text_grounding": {"score": 0, "justification": f"Error: {str(e)}"}
+                    "text_grounding": {"score": 0, "justification": f"Error: {str(e)}"},
                 }
                 for cls in class_group
             ]
 
     async def _validate_property_async(
-        self,
-        property_group: List[Dict[str, Any]],
-        class_index: Dict[str, Dict[str, Any]]
+        self, property_group: List[Dict[str, Any]], class_index: Dict[str, Dict[str, Any]]
     ) -> List[Dict[str, Any]]:
         """Validate a group of properties with the same property_iri asynchronously."""
         if not property_group:
             return []
 
-        property_iri = property_group[0].get('property_iri', 'Unknown')
+        property_iri = property_group[0].get("property_iri", "Unknown")
         prompt = self._create_property_validation_prompt(property_group, class_index)
 
         try:
             # Invoke LLM with property schema
-            print(f"[KnowledgeValidator] Invoking LLM for property validation: {property_iri} ({len(property_group)} instances)")
+            print(
+                f"[KnowledgeValidator] Invoking LLM for property validation: {property_iri} ({len(property_group)} instances)"
+            )
             response = await call_with_retry(
                 lambda: self.llm_property.ainvoke(prompt),
                 timeout=300.0,
@@ -573,16 +554,16 @@ Output ONLY the scores using the metrics IDs (S21-S24) as keys."""
                 result = json.loads(response.content)
             elif isinstance(response.content, list) and len(response.content) > 0:
                 # Find the record whose type is "text"
-                text_record = next((item for item in response.content if item.get('type') == 'text'), None)
+                text_record = next((item for item in response.content if item.get("type") == "text"), None)
                 if text_record is None:
                     raise ValueError(f"No text record found in response.content: {response.content}")
-                result = json.loads(text_record.get('text', '{}'))
+                result = json.loads(text_record.get("text", "{}"))
             else:
                 raise ValueError(f"Unexpected response format: {type(response.content)}")
 
             # Return the validations array
-            if 'property_validations' in result:
-                validations = result['property_validations']
+            if "property_validations" in result:
+                validations = result["property_validations"]
             else:
                 raise ValueError(f"Expected 'property_validations' in response, got: {result.keys()}")
 
@@ -593,30 +574,31 @@ Output ONLY the scores using the metrics IDs (S21-S24) as keys."""
             # Return default validations for all properties in the group
             return [
                 {
-                    "property_id": prop.get('id', 'Unknown'),
-                    "src_label": prop.get('src_label', 'Unknown'),
-                    "property_iri": prop.get('property_iri', 'Unknown'),
-                    "dest_label": prop.get('dest_label', 'Unknown'),
+                    "property_id": prop.get("id", "Unknown"),
+                    "src_label": prop.get("src_label", "Unknown"),
+                    "property_iri": prop.get("property_iri", "Unknown"),
+                    "dest_label": prop.get("dest_label", "Unknown"),
                     "relation_applicability": {"score": 0, "justification": f"Error: {str(e)}"},
                     "relation_unity": {"score": 0, "justification": f"Error: {str(e)}"},
                     "strength_validity": {"score": 0, "justification": f"Error: {str(e)}"},
-                    "contextual_grounding": {"score": 0, "justification": f"Error: {str(e)}"}
+                    "contextual_grounding": {"score": 0, "justification": f"Error: {str(e)}"},
                 }
                 for prop in property_group
             ]
 
     async def validate_all_async(self) -> Dict[str, Any]:
         """Validate all classes and properties in parallel (grouped by IRI)."""
-        classes = self.knowledge_data.get('classes', [])
-        properties = self.knowledge_data.get('properties', [])
+        classes = self.knowledge_data.get("classes", [])
+        properties = self.knowledge_data.get("properties", [])
 
         print(f"[KnowledgeValidator] Starting validation: {len(classes)} classes, {len(properties)} properties")
 
         # Group classes by class_iri
         from collections import defaultdict
+
         class_groups = defaultdict(list)
         for cls in classes:
-            class_iri = cls.get('class_iri', 'Unknown')
+            class_iri = cls.get("class_iri", "Unknown")
             class_groups[class_iri].append(cls)
 
         print(f"[KnowledgeValidator] {len(class_groups)} class types found")
@@ -639,8 +621,10 @@ Output ONLY the scores using the metrics IDs (S21-S24) as keys."""
             async with class_lock:
                 class_counter += 1
                 if group:
-                    class_iri = group[0].get('class_iri', 'Unknown')
-                    print(f"[{class_counter}/{total_class_groups}] KnowledgeValidator: {class_iri} validated ({len(group)} instances)")
+                    class_iri = group[0].get("class_iri", "Unknown")
+                    print(
+                        f"[{class_counter}/{total_class_groups}] KnowledgeValidator: {class_iri} validated ({len(group)} instances)"
+                    )
 
             return result
 
@@ -658,7 +642,7 @@ Output ONLY the scores using the metrics IDs (S21-S24) as keys."""
         property_groups = defaultdict(list)
         class_index = self._build_class_index(classes)
         for prop in properties:
-            property_iri = prop.get('property_iri', 'Unknown')
+            property_iri = prop.get("property_iri", "Unknown")
             property_groups[property_iri].append(prop)
 
         print(f"[KnowledgeValidator] {len(property_groups)} property types found")
@@ -681,8 +665,10 @@ Output ONLY the scores using the metrics IDs (S21-S24) as keys."""
             async with property_lock:
                 property_counter += 1
                 if group:
-                    property_iri = group[0].get('property_iri', 'Unknown')
-                    print(f"[{property_counter}/{total_property_groups}] KnowledgeValidator: {property_iri} validated ({len(group)} instances)")
+                    property_iri = group[0].get("property_iri", "Unknown")
+                    print(
+                        f"[{property_counter}/{total_property_groups}] KnowledgeValidator: {property_iri} validated ({len(group)} instances)"
+                    )
 
             return result
 
@@ -704,10 +690,12 @@ Output ONLY the scores using the metrics IDs (S21-S24) as keys."""
             "knowledge_file": self.knowledge_file,
             "extraction_result_file": self.extraction_result_file,
             "class_validations": class_validations,
-            "property_validations": property_validations
+            "property_validations": property_validations,
         }
 
-        print(f"[KnowledgeValidator] Validation completed: {len(class_validations)} classes, {len(property_validations)} properties validated")
+        print(
+            f"[KnowledgeValidator] Validation completed: {len(class_validations)} classes, {len(property_validations)} properties validated"
+        )
 
         return report
 
@@ -725,11 +713,11 @@ Output ONLY the scores using the metrics IDs (S21-S24) as keys."""
 
         output_dir.mkdir(parents=True, exist_ok=True)
 
-        timestamp = report['timestamp']
+        timestamp = report["timestamp"]
         # Changed filename from knowledge_validator to validator_result
         output_file = output_dir / f"validator_result_{timestamp}.json"
 
-        with open(output_file, 'w', encoding='utf-8') as f:
+        with open(output_file, "w", encoding="utf-8") as f:
             json.dump(report, f, indent=2, ensure_ascii=False)
 
         return str(output_file)
@@ -740,24 +728,19 @@ if __name__ == "__main__":
     parser.add_argument(
         "--project",
         default="test",
-        help="Project name (resolves to /workspace/app/output/{project}/) (default: default)"
+        help="Project name (resolves to /workspace/app/output/{project}/) (default: default)",
     )
     parser.add_argument(
-        "--model",
-        default="gemini-3.1-flash-lite",
-        help="LLM model name (default: gemini-3.1-flash-lite)"
+        "--model", default="gemini-3.1-flash-lite", help="LLM model name (default: gemini-3.1-flash-lite)"
     )
     parser.add_argument(
         "--verbose",
         action="store_true",
         default=False,
-        help="Output detailed justifications for each score (default: scores only)"
+        help="Output detailed justifications for each score (default: scores only)",
     )
     parser.add_argument(
-        "--max-concurrency",
-        type=int,
-        default=4,
-        help="Maximum concurrent validation LLM calls (default: 4)"
+        "--max-concurrency", type=int, default=4, help="Maximum concurrent validation LLM calls (default: 4)"
     )
 
     args = parser.parse_args()
@@ -787,5 +770,6 @@ if __name__ == "__main__":
     except Exception as e:
         print(f"\nUnexpected error: {e}")
         import traceback
+
         traceback.print_exc()
         sys.exit(1)

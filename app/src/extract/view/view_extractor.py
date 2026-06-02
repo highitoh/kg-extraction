@@ -17,6 +17,7 @@ from src.utils.prompt_utils import fill_prompt_template
 from src.utils.llm_retry import call_with_retry
 from src.utils.chunk_creator import ChunkCreator
 
+
 class ViewExtractor(Runnable):
     """
     Task to extract view descriptions
@@ -42,7 +43,9 @@ class ViewExtractor(Runnable):
 
         # Load JSON schema
         schema = self._load_schema()
-        self.llm_json = self.llm.bind(response_format={"type": "json_schema", "json_schema": {"name": "view_extractor", "schema": schema}})
+        self.llm_json = self.llm.bind(
+            response_format={"type": "json_schema", "json_schema": {"name": "view_extractor", "schema": schema}}
+        )
         self.max_concurrency = max_concurrency
         self.progress = progress
         self.max_spans_per_label = max_spans_per_label
@@ -121,7 +124,7 @@ class ViewExtractor(Runnable):
         writer = csv.writer(output, quoting=csv.QUOTE_MINIMAL)
 
         # Write header
-        writer.writerow(['id', 'text'])
+        writer.writerow(["id", "text"])
 
         # Track sentence ID to text mapping
         sentence_map = {}
@@ -149,9 +152,7 @@ class ViewExtractor(Runnable):
         # Format the prompt with the CSV input
         prompt_text = fill_prompt_template(self.prompt, csv_input=csv_input)
 
-        msg = HumanMessage(
-            content=[{"type": "text", "text": prompt_text}]
-        )
+        msg = HumanMessage(content=[{"type": "text", "text": prompt_text}])
         ai = await call_with_retry(
             lambda: self.llm_json.ainvoke([msg]),
             timeout=90.0,
@@ -227,7 +228,7 @@ class ViewExtractor(Runnable):
                         spans = await self._extract_spans_for_chunk(c, i)
                         break
                     except Exception:
-                        await asyncio.sleep(min(2 ** attempt, 10))
+                        await asyncio.sleep(min(2**attempt, 10))
                 async with lock:
                     counter += 1
                     total_spans = sum(len(v) for v in spans.values())
@@ -256,16 +257,20 @@ class ViewExtractor(Runnable):
             for result in chunk_results:
                 spans = result["spans"].get(view_type, [])
                 for span in spans:
-                    texts.append({
-                        "file_id": file_id,
-                        "text": span,
-                    })
+                    texts.append(
+                        {
+                            "file_id": file_id,
+                            "text": span,
+                        }
+                    )
 
             if texts:  # Add view only if extracted texts exist
-                views.append({
-                    "type": view_type,
-                    "texts": texts,
-                })
+                views.append(
+                    {
+                        "type": view_type,
+                        "texts": texts,
+                    }
+                )
 
         output: Dict[str, Any] = {"views": views}
 
@@ -284,15 +289,10 @@ if __name__ == "__main__":
                 {
                     "text": "The system needs to manage customer information. The customer database stores name, address, and phone number."
                 },
-                {
-                    "text": "The project goal is to increase sales. The API server is built with RESTful design."
-                }
-            ]
+                {"text": "The project goal is to increase sales. The API server is built with RESTful design."},
+            ],
         },
-        "metamodel": {
-            "version": "1.0",
-            "domain": "business"
-        }
+        "metamodel": {"version": "1.0", "domain": "business"},
     }
 
     # Create ViewExtractor instance
@@ -301,7 +301,7 @@ if __name__ == "__main__":
         model="gpt-5-nano",
         temperature=0.0,
         max_concurrency=2,  # Limit concurrency for testing
-        max_spans_per_label=2  # Limit for testing
+        max_spans_per_label=2,  # Limit for testing
     )
 
     print(f"Target views: {extractor.views}")
@@ -313,15 +313,16 @@ if __name__ == "__main__":
         print("\n=== Test Results ===")
         print(f"Extracted Views: {len(result['views'])}")
 
-        for view in result['views']:
+        for view in result["views"]:
             print(f"\nView Type: {view['type']}")
             print(f"Extracted Texts: {len(view['texts'])}")
-            for i, text in enumerate(view['texts'][:2]):  # Show only first 2 items
-                print(f"  [{i+1}] {text['text']}")
+            for i, text in enumerate(view["texts"][:2]):  # Show only first 2 items
+                print(f"  [{i + 1}] {text['text']}")
 
         print("\n✅ ViewExtractor test completed")
 
     except Exception as e:
         print(f"\n❌ Test execution error: {e}")
         import traceback
+
         traceback.print_exc()

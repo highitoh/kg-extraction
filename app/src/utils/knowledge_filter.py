@@ -9,8 +9,7 @@ from typing import List, Dict, Any, Tuple
 
 
 def filter_accumulated_knowledge(
-    classes: List[Dict[str, Any]],
-    properties: List[Dict[str, Any]]
+    classes: List[Dict[str, Any]], properties: List[Dict[str, Any]]
 ) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]]]:
     """
     Filter valid classes and properties as accumulated knowledge.
@@ -42,15 +41,9 @@ def filter_accumulated_knowledge(
         1
     """
     # Extract only ACCEPT-judged classes
-    filtered_classes = [
-        cls for cls in classes
-        if cls.get("judgment") == "ACCEPT"
-    ]
+    filtered_classes = [cls for cls in classes if cls.get("judgment") == "ACCEPT"]
 
     # Extract only properties with strength greater than 0
-    filtered_properties = [
-        prop for prop in properties
-        if prop.get("strength", 0) > 0
-    ]
+    filtered_properties = [prop for prop in properties if prop.get("strength", 0) > 0]
 
     return filtered_classes, filtered_properties

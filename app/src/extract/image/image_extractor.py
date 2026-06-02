@@ -5,6 +5,7 @@
   Stage 2 (LLM, parallel): Relevance classification (cheap)
   Stage 3 (LLM, parallel): Description generation for high-relevance images
 """
+
 from typing import Any, Dict, List, Optional, Union
 import asyncio
 import base64
@@ -56,9 +57,7 @@ class ImageExtractor(Runnable):
         )
 
         # Resolve app_dir once (go up 4 levels from src/extract/image/)
-        self.app_dir = os.path.dirname(
-            os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
-        )
+        self.app_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
 
         # Load prompts and schemas (verbose vs non-verbose)
         self.relevance_prompt = self._load_relevance_prompt()
@@ -149,13 +148,15 @@ class ImageExtractor(Runnable):
                     if not img_bytes:
                         byte_extraction_failed += 1
                         continue
-                    candidates.append({
-                        "id": f"image-{uuid.uuid4()}",
-                        "page_number": page_num,
-                        "width": image_dict.get("width"),
-                        "height": image_dict.get("height"),
-                        "bytes": img_bytes,
-                    })
+                    candidates.append(
+                        {
+                            "id": f"image-{uuid.uuid4()}",
+                            "page_number": page_num,
+                            "width": image_dict.get("width"),
+                            "height": image_dict.get("height"),
+                            "bytes": img_bytes,
+                        }
+                    )
 
         if self.progress:
             print(
@@ -176,7 +177,9 @@ class ImageExtractor(Runnable):
         lock = asyncio.Lock()
 
         if self.progress:
-            print(f"[ImageExtractor] Starting Stage 2 (relevance): {total} candidates (concurrency={self.max_concurrency})")
+            print(
+                f"[ImageExtractor] Starting Stage 2 (relevance): {total} candidates (concurrency={self.max_concurrency})"
+            )
 
         async def _wrapped(i: int, candidate: Dict[str, Any]) -> Dict[str, Any]:
             nonlocal counter
@@ -236,7 +239,9 @@ class ImageExtractor(Runnable):
         lock = asyncio.Lock()
 
         if self.progress:
-            print(f"[ImageExtractor] Starting Stage 3 (description): {total} images (concurrency={self.max_concurrency})")
+            print(
+                f"[ImageExtractor] Starting Stage 3 (description): {total} images (concurrency={self.max_concurrency})"
+            )
 
         async def _wrapped(i: int, image_data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
             nonlocal counter
@@ -302,9 +307,7 @@ class ImageExtractor(Runnable):
                         )
                 return chunk
 
-        results = await asyncio.gather(
-            *[_wrapped(i, img) for i, img in enumerate(high_relevance_images)]
-        )
+        results = await asyncio.gather(*[_wrapped(i, img) for i, img in enumerate(high_relevance_images)])
         return [r for r in results if r is not None]
 
     # ---------- Orchestration ----------
@@ -314,9 +317,7 @@ class ImageExtractor(Runnable):
         total_found_after_rule = len(candidates)
 
         classified = await self._classify_relevance_parallel(candidates)
-        high_relevance = [
-            c for c in classified if c.get("relevance_score", 0.0) >= self.relevance_threshold
-        ]
+        high_relevance = [c for c in classified if c.get("relevance_score", 0.0) >= self.relevance_threshold]
 
         image_chunks = await self._generate_descriptions_parallel(high_relevance, file_id)
 
@@ -385,9 +386,10 @@ if __name__ == "__main__":
         print(f"Image chunks: {len(result['image_chunks'])}")
         print(f"Statistics: {result['image_statistics']}")
         for i, chunk in enumerate(result["image_chunks"][:3]):
-            print(f"\n[Chunk {i+1}] page={chunk['page_number']}")
+            print(f"\n[Chunk {i + 1}] page={chunk['page_number']}")
             print(f"  text: {chunk['text'][:200]}...")
     except Exception as e:
         print(f"\nTest error: {e}")
         import traceback
+
         traceback.print_exc()

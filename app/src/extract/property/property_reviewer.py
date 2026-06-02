@@ -15,7 +15,6 @@ from src.utils.llm_retry import call_with_retry
 
 
 class PropertyReviewer(Runnable):
-
     def __init__(
         self,
         model: str = "gemini-3.1-flash-lite",
@@ -159,8 +158,8 @@ class PropertyReviewer(Runnable):
         for idx, p in enumerate(batch, 1):
             src = class_index.get(p.get("src_id", ""), {})
             dest = class_index.get(p.get("dest_id", ""), {})
-            strength = p.get('strength', 0)
-            ranker_justification = p.get('ranker_justification', '')
+            strength = p.get("strength", 0)
+            ranker_justification = p.get("ranker_justification", "")
 
             lines.append(f"Candidate {idx}:")
             lines.append(f"  property_id: {p.get('id', '')}")
@@ -285,7 +284,7 @@ class PropertyReviewer(Runnable):
             nonlocal completed_count
             try:
                 for i in range(0, len(group), self.batch_size):
-                    batch = group[i:i + self.batch_size]
+                    batch = group[i : i + self.batch_size]
                     res = await self._judge_batch(batch, class_index, llm_json)
                     results_all.extend(res)
             except Exception as e:
@@ -295,7 +294,9 @@ class PropertyReviewer(Runnable):
             finally:
                 completed_count += 1
                 if self.progress:
-                    print(f"[{completed_count}/{total_groups}] PropertyReviewer: {property_iri} processed ({len(group)} candidates)")
+                    print(
+                        f"[{completed_count}/{total_groups}] PropertyReviewer: {property_iri} processed ({len(group)} candidates)"
+                    )
 
         sem = asyncio.Semaphore(self.max_concurrency)
 
@@ -304,7 +305,9 @@ class PropertyReviewer(Runnable):
                 await worker(prop_iri, grp)
 
         if self.progress and total_groups > 0:
-            print(f"[PropertyReviewer] Starting parallel processing: {total_groups} property types (concurrency={self.max_concurrency})")
+            print(
+                f"[PropertyReviewer] Starting parallel processing: {total_groups} property types (concurrency={self.max_concurrency})"
+            )
 
         await asyncio.gather(*[sem_task(prop_iri, grp) for prop_iri, grp in groups.items()])
 
@@ -340,35 +343,39 @@ class PropertyReviewer(Runnable):
                 # Final strength value (0 if REJECT, otherwise eval_str)
                 final_strength = 0 if judgment == "REJECT" else eval_str
 
-                all_properties_with_judgment.append({
-                    "id": property_id,  # Preserve original property ID
-                    "src_id": c.get("src_id", ""),
-                    "src_label": src_label,
-                    "property_iri": c.get("property_iri", ""),
-                    "dest_id": c.get("dest_id", ""),
-                    "dest_label": dest_label,
-                    "original_strength": original_strength,  # For logging: original strength
-                    "eval_str": eval_str,  # For logging: re-evaluated strength
-                    "strength": final_strength,  # Final strength
-                    "judgment": judgment,
-                    "justification": r["justification"],
-                })
+                all_properties_with_judgment.append(
+                    {
+                        "id": property_id,  # Preserve original property ID
+                        "src_id": c.get("src_id", ""),
+                        "src_label": src_label,
+                        "property_iri": c.get("property_iri", ""),
+                        "dest_id": c.get("dest_id", ""),
+                        "dest_label": dest_label,
+                        "original_strength": original_strength,  # For logging: original strength
+                        "eval_str": eval_str,  # For logging: re-evaluated strength
+                        "strength": final_strength,  # Final strength
+                        "judgment": judgment,
+                        "justification": r["justification"],
+                    }
+                )
             else:
                 # LLM review error or not reviewed
                 original_strength = c.get("strength", 0)
-                all_properties_with_judgment.append({
-                    "id": property_id,  # Preserve original property ID
-                    "src_id": c.get("src_id", ""),
-                    "src_label": src_label,
-                    "property_iri": c.get("property_iri", ""),
-                    "dest_id": c.get("dest_id", ""),
-                    "dest_label": dest_label,
-                    "original_strength": original_strength,
-                    "eval_str": 0,
-                    "strength": 0,  # 0 because REJECT
-                    "judgment": "REJECT",
-                    "justification": "LLM review error",
-                })
+                all_properties_with_judgment.append(
+                    {
+                        "id": property_id,  # Preserve original property ID
+                        "src_id": c.get("src_id", ""),
+                        "src_label": src_label,
+                        "property_iri": c.get("property_iri", ""),
+                        "dest_id": c.get("dest_id", ""),
+                        "dest_label": dest_label,
+                        "original_strength": original_strength,
+                        "eval_str": 0,
+                        "strength": 0,  # 0 because REJECT
+                        "judgment": "REJECT",
+                        "justification": "LLM review error",
+                    }
+                )
 
         # Filter (accept only ACCEPT/REVIEW, exclude REJECT)
         filtered: List[Dict[str, Any]] = []
@@ -376,17 +383,19 @@ class PropertyReviewer(Runnable):
             judgment = p["judgment"]
             # Pass through non-REJECT (ACCEPT, REVIEW)
             if judgment in ("ACCEPT", "REVIEW"):
-                filtered.append({
-                    "id": p["id"],
-                    "src_id": p["src_id"],
-                    "src_label": p["src_label"],
-                    "property_iri": p["property_iri"],
-                    "dest_id": p["dest_id"],
-                    "dest_label": p["dest_label"],
-                    "strength": p.get("strength", 0),  # Re-evaluated strength (0 if REJECT)
-                    "judgment": p["judgment"],
-                    "justification": p["justification"],
-                })
+                filtered.append(
+                    {
+                        "id": p["id"],
+                        "src_id": p["src_id"],
+                        "src_label": p["src_label"],
+                        "property_iri": p["property_iri"],
+                        "dest_id": p["dest_id"],
+                        "dest_label": p["dest_label"],
+                        "strength": p.get("strength", 0),  # Re-evaluated strength (0 if REJECT)
+                        "judgment": p["judgment"],
+                        "justification": p["justification"],
+                    }
+                )
 
         # Statistics of judgment results
         if self.progress:
@@ -396,11 +405,12 @@ class PropertyReviewer(Runnable):
 
             # Statistics of strength changes
             strength_changed_count = sum(
-                1 for p in all_properties_with_judgment
-                if p.get("original_strength") != p.get("eval_str")
+                1 for p in all_properties_with_judgment if p.get("original_strength") != p.get("eval_str")
             )
 
-            print(f"[PropertyReviewer] Completed: {len(filtered)} properties [ACCEPT: {accept_count}, REVIEW: {review_count}, REJECT: {reject_count}]")
+            print(
+                f"[PropertyReviewer] Completed: {len(filtered)} properties [ACCEPT: {accept_count}, REVIEW: {review_count}, REJECT: {reject_count}]"
+            )
             print(f"[PropertyReviewer] Strength evaluation: {strength_changed_count} candidates had strength changed")
 
         # Save log (all candidates with labels, judgment, justification)
@@ -425,7 +435,9 @@ class PropertyReviewer(Runnable):
 
         if not class_info.get("classes"):
             # Error: cannot reference source without class_info
-            raise ValueError("PropertyReviewer requires class_info with classes for filtering. Cannot proceed without class information.")
+            raise ValueError(
+                "PropertyReviewer requires class_info with classes for filtering. Cannot proceed without class information."
+            )
 
         # Filter with LLM
         llm = self._create_llm()
@@ -513,4 +525,5 @@ if __name__ == "__main__":
     except Exception as e:
         print(f"Error: {e}")
         import traceback
+
         traceback.print_exc()

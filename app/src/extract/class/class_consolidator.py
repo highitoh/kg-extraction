@@ -26,7 +26,7 @@ class ClassConsolidator(Runnable):
         temperature: float = 0.0,
         progress: bool = True,
         max_concurrency: int = 8,
-        log_dir: str = "/workspace/app/log/class_consolidator"
+        log_dir: str = "/workspace/app/log/class_consolidator",
     ):
         self.model = model
         self.temperature = temperature
@@ -154,7 +154,9 @@ class ClassConsolidator(Runnable):
             return {"classes": new_classes}
 
         if self.progress:
-            print(f"[ClassConsolidator Stage 2] Matching {len(new_classes)} new classes against {len(frozen_classes)} frozen classes")
+            print(
+                f"[ClassConsolidator Stage 2] Matching {len(new_classes)} new classes against {len(frozen_classes)} frozen classes"
+            )
 
         # Group by class_iri (only process class_iris that appear in BOTH new and frozen)
         new_by_iri = self._group_classes_by_class_iri(new_classes)
@@ -168,9 +170,7 @@ class ClassConsolidator(Runnable):
 
         # Process all common_iris in parallel
         llm = self._create_llm()
-        matched_results = asyncio.run(self._process_stage2_parallel(
-            common_iris, new_by_iri, frozen_by_iri, llm
-        ))
+        matched_results = asyncio.run(self._process_stage2_parallel(common_iris, new_by_iri, frozen_by_iri, llm))
 
         for matched_result in matched_results:
             all_classes.extend(matched_result)
@@ -188,7 +188,9 @@ class ClassConsolidator(Runnable):
         output = {"classes": all_classes}
 
         if self.progress:
-            print(f"[ClassConsolidator Stage 2] Completed: {len(new_classes)} new + {len(frozen_classes)} frozen → {len(all_classes)} final classes")
+            print(
+                f"[ClassConsolidator Stage 2] Completed: {len(new_classes)} new + {len(frozen_classes)} frozen → {len(all_classes)} final classes"
+            )
 
         self.logger.save_log(output, filename_prefix="class_consolidator_stage2_output_")
 
@@ -221,7 +223,9 @@ class ClassConsolidator(Runnable):
         lock = asyncio.Lock()
 
         if self.progress:
-            print(f"[ClassConsolidator] Starting parallel processing: {total} class types (concurrency={self.max_concurrency})")
+            print(
+                f"[ClassConsolidator] Starting parallel processing: {total} class types (concurrency={self.max_concurrency})"
+            )
 
         async def _wrapped(class_iri: str, class_instances: list) -> list:
             nonlocal counter
@@ -233,7 +237,9 @@ class ClassConsolidator(Runnable):
                 async with lock:
                     counter += 1
                     if self.progress:
-                        print(f"[{counter}/{total}] ClassConsolidator: {class_name} processed ({len(class_instances)} -> {len(consolidated)} instances)")
+                        print(
+                            f"[{counter}/{total}] ClassConsolidator: {class_name} processed ({len(class_instances)} -> {len(consolidated)} instances)"
+                        )
 
                 return consolidated
 
@@ -268,13 +274,7 @@ class ClassConsolidator(Runnable):
         # Build schema
         schema = self._build_schema()
         llm_json = llm.bind(
-            response_format={
-                "type": "json_schema",
-                "json_schema": {
-                    "name": "class_consolidator",
-                    "schema": schema
-                }
-            }
+            response_format={"type": "json_schema", "json_schema": {"name": "class_consolidator", "schema": schema}}
         )
 
         # Create label list
@@ -291,7 +291,7 @@ class ClassConsolidator(Runnable):
             class_name=class_name,
             extraction_rules=extraction_rules,
             label_list=label_list_text,
-            custom_rules=self.custom_rules
+            custom_rules=self.custom_rules,
         )
 
         # Execute consolidation with LLM (with retry)
@@ -342,7 +342,9 @@ class ClassConsolidator(Runnable):
         lock = asyncio.Lock()
 
         if self.progress:
-            print(f"[ClassConsolidator Stage 2] Starting parallel processing: {total} class types (concurrency={self.max_concurrency})")
+            print(
+                f"[ClassConsolidator Stage 2] Starting parallel processing: {total} class types (concurrency={self.max_concurrency})"
+            )
 
         async def _wrapped(class_iri: str) -> list:
             nonlocal counter
@@ -359,14 +361,18 @@ class ClassConsolidator(Runnable):
                 async with lock:
                     counter += 1
                     if self.progress:
-                        print(f"[{counter}/{total}] ClassConsolidator Stage 2: {class_name} processed ({len(new_instances)} new vs {len(frozen_instances)} frozen → {len(matched_result)} final)")
+                        print(
+                            f"[{counter}/{total}] ClassConsolidator Stage 2: {class_name} processed ({len(new_instances)} new vs {len(frozen_instances)} frozen → {len(matched_result)} final)"
+                        )
 
                 return matched_result
 
         results = await asyncio.gather(*[_wrapped(iri) for iri in common_iris])
         return results
 
-    async def _match_new_against_frozen_async(self, llm: Any, new_classes: list, frozen_classes: list, class_iri: str) -> list:
+    async def _match_new_against_frozen_async(
+        self, llm: Any, new_classes: list, frozen_classes: list, class_iri: str
+    ) -> list:
         """
         Stage 2 core logic: Match new classes against frozen classes.
 
@@ -390,10 +396,7 @@ class ClassConsolidator(Runnable):
         llm_json = llm.bind(
             response_format={
                 "type": "json_schema",
-                "json_schema": {
-                    "name": "class_consolidator_stage2",
-                    "schema": schema
-                }
+                "json_schema": {"name": "class_consolidator_stage2", "schema": schema},
             }
         )
 
@@ -432,7 +435,7 @@ class ClassConsolidator(Runnable):
             class_name=class_name,
             extraction_rules=extraction_rules,
             label_list=label_list_text,
-            custom_rules=enhanced_custom_rules
+            custom_rules=enhanced_custom_rules,
         )
 
         # Execute matching with LLM
@@ -484,7 +487,9 @@ class ClassConsolidator(Runnable):
             # If frozen class in group, put it first (base for merge)
             if frozen_indices:
                 frozen_idx = frozen_indices[0]
-                group_classes_reordered = [all_classes[frozen_idx]] + [all_classes[i] for i in indices if i != frozen_idx]
+                group_classes_reordered = [all_classes[frozen_idx]] + [
+                    all_classes[i] for i in indices if i != frozen_idx
+                ]
                 merged = self._merge_classes(group_classes_reordered, canonical_label, reason)
             else:
                 merged = self._merge_classes(group_classes, canonical_label, reason)
@@ -522,7 +527,9 @@ class ClassConsolidator(Runnable):
 
         return "\n".join(extraction_rules) if extraction_rules else []
 
-    def _merge_classes(self, group_classes: List[Dict[str, Any]], canonical_label: str, reason: str = "") -> Dict[str, Any]:
+    def _merge_classes(
+        self, group_classes: List[Dict[str, Any]], canonical_label: str, reason: str = ""
+    ) -> Dict[str, Any]:
         """
         Consolidate class instances within group into one
 
@@ -590,7 +597,9 @@ class ClassConsolidator(Runnable):
             # If lengths differ, align to shorter one (for backward compatibility)
             min_length = min(len(sources), len(file_ids))
             if len(sources) != len(file_ids):
-                print(f"Warning: sources length ({len(sources)}) != file_ids length ({len(file_ids)}) in class {cls.get('id', 'unknown')}")
+                print(
+                    f"Warning: sources length ({len(sources)}) != file_ids length ({len(file_ids)}) in class {cls.get('id', 'unknown')}"
+                )
                 sources = sources[:min_length]
                 file_ids = file_ids[:min_length]
 
@@ -611,7 +620,6 @@ class ClassConsolidator(Runnable):
             merged["file_ids"] = []
 
         return merged
-
 
     @staticmethod
     def _to_text(content: Any) -> str:

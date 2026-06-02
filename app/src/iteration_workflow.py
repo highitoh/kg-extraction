@@ -38,7 +38,7 @@ class IterationWorkflow:
         quality_threshold: float = 2.0,
         model: str = "gemini-3.1-flash-lite",
         apply_changes: bool = True,
-        output_dir: str = "/workspace/app/output"
+        output_dir: str = "/workspace/app/output",
     ):
         """
         Initialize the IterationWorkflow.
@@ -61,10 +61,7 @@ class IterationWorkflow:
 
         # Derive projects from batch file names
         self.state_manager = ProjectStateManager(output_dir)
-        self.projects = [
-            self.state_manager.extract_project_from_batch(bf)
-            for bf in self.batch_files
-        ]
+        self.projects = [self.state_manager.extract_project_from_batch(bf) for bf in self.batch_files]
 
         # Create a mapping from project to batch file
         self.project_batch_map = dict(zip(self.projects, self.batch_files))
@@ -73,11 +70,7 @@ class IterationWorkflow:
         self.run_id = datetime.now().strftime("%Y%m%d%H%M%S")
 
         # Initialize quality tracker
-        self.quality_tracker = QualityTracker(
-            run_id=self.run_id,
-            projects=self.projects,
-            output_dir=output_dir
-        )
+        self.quality_tracker = QualityTracker(run_id=self.run_id, projects=self.projects, output_dir=output_dir)
 
         # State file path
         self.iterations_dir = Path(output_dir) / "iterations" / self.run_id
@@ -90,7 +83,7 @@ class IterationWorkflow:
     def _initialize_state(self) -> Dict[str, Any]:
         """Initialize or load iteration state."""
         if self.state_file.exists():
-            with open(self.state_file, 'r', encoding='utf-8') as f:
+            with open(self.state_file, "r", encoding="utf-8") as f:
                 return json.load(f)
 
         return {
@@ -101,17 +94,17 @@ class IterationWorkflow:
                 "max_iterations": self.max_iterations,
                 "quality_threshold": self.quality_threshold,
                 "model": self.model,
-                "apply_changes": self.apply_changes
+                "apply_changes": self.apply_changes,
             },
             "current_iteration": 0,
             "status": "initialized",
             "iterations": [],
-            "stop_reason": None
+            "stop_reason": None,
         }
 
     def _save_state(self) -> None:
         """Save current state to file."""
-        with open(self.state_file, 'w', encoding='utf-8') as f:
+        with open(self.state_file, "w", encoding="utf-8") as f:
             json.dump(self.state, f, indent=2, ensure_ascii=False)
 
     def _parse_batch_file(self, batch_file: str) -> List[str]:
@@ -127,11 +120,11 @@ class IterationWorkflow:
         batch_dir = Path(batch_file).parent
         pdf_paths = []
 
-        with open(batch_file, 'r', encoding='utf-8') as f:
+        with open(batch_file, "r", encoding="utf-8") as f:
             for line in f:
                 line = line.strip()
                 # Skip empty lines and comments
-                if not line or line.startswith('#'):
+                if not line or line.startswith("#"):
                     continue
 
                 # Resolve path relative to batch file directory
@@ -171,23 +164,13 @@ class IterationWorkflow:
                 print(f"    [{idx}/{len(pdf_paths)}] Processing: {Path(pdf_path).name}")
                 try:
                     result = run_knowledge_extraction(
-                        pdf_path=pdf_path,
-                        output_dir=self.output_dir,
-                        model=self.model,
-                        project=project
+                        pdf_path=pdf_path, output_dir=self.output_dir, model=self.model, project=project
                     )
-                    project_results["files"].append({
-                        "file": pdf_path,
-                        "success": True
-                    })
+                    project_results["files"].append({"file": pdf_path, "success": True})
                     project_results["success_count"] += 1
                     print(f"      Extraction complete")
                 except Exception as e:
-                    project_results["files"].append({
-                        "file": pdf_path,
-                        "success": False,
-                        "error": str(e)
-                    })
+                    project_results["files"].append({"file": pdf_path, "success": False, "error": str(e)})
                     project_results["fail_count"] += 1
                     print(f"      Error: {e}")
 
@@ -215,10 +198,7 @@ class IterationWorkflow:
         for project in self.projects:
             print(f"\n  Evaluating project: {project}")
             try:
-                eval_results = run_evaluation(
-                    project=project,
-                    model=self.model
-                )
+                eval_results = run_evaluation(project=project, model=self.model)
                 results[project] = eval_results
                 print(f"  Project {project} evaluation complete")
             except Exception as e:
@@ -294,6 +274,7 @@ class IterationWorkflow:
             Dictionary mapping project to reward report
         """
         import glob
+
         reports = {}
 
         for project in self.projects:
@@ -302,7 +283,7 @@ class IterationWorkflow:
             files = sorted(glob.glob(pattern), reverse=True)
 
             if files:
-                with open(files[0], 'r', encoding='utf-8') as f:
+                with open(files[0], "r", encoding="utf-8") as f:
                     reports[project] = json.load(f)
             else:
                 reports[project] = {"summary": {}}
@@ -328,7 +309,7 @@ class IterationWorkflow:
             "timestamp": datetime.now().strftime("%Y%m%d%H%M%S"),
             "phases_completed": [],
             "combined_quality_score": None,
-            "proposals_applied": 0
+            "proposals_applied": 0,
         }
 
         # Phase 1: Reset for extraction
@@ -337,9 +318,7 @@ class IterationWorkflow:
             # Archive previous artifacts (if not first iteration)
             if iteration > 1:
                 archive_result = self.state_manager.archive_iteration_artifacts(
-                    run_id=self.run_id,
-                    iteration=iteration - 1,
-                    project=project
+                    run_id=self.run_id, iteration=iteration - 1, project=project
                 )
                 print(f"  Archived {len(archive_result.get('files_archived', []))} files for {project}")
 
@@ -372,10 +351,7 @@ class IterationWorkflow:
         iteration_result["phases_completed"].append("optimize")
 
         # Archive optimization artifacts
-        optimize_archive = self.state_manager.archive_optimize_artifacts(
-            run_id=self.run_id,
-            iteration=iteration
-        )
+        optimize_archive = self.state_manager.archive_optimize_artifacts(run_id=self.run_id, iteration=iteration)
         print(f"  Archived {len(optimize_archive.get('files_archived', []))} optimization files")
         self._save_state()
 
@@ -397,7 +373,7 @@ class IterationWorkflow:
         if iteration > 1:
             improvement = self.quality_tracker.get_improvement(iteration - 1, iteration)
             if improvement:
-                delta = improvement['delta']
+                delta = improvement["delta"]
                 print(f"  Change from iteration {iteration - 1}: {delta:+.2f}")
 
         return iteration_result
@@ -419,8 +395,7 @@ class IterationWorkflow:
 
         # Check quality threshold
         should_stop, reason = self.quality_tracker.should_stop(
-            quality_threshold=self.quality_threshold,
-            degradation_tolerance=2
+            quality_threshold=self.quality_threshold, degradation_tolerance=2
         )
         if should_stop:
             return (True, reason)
@@ -486,8 +461,7 @@ class IterationWorkflow:
 
                 if not cleanup_result.get("success", False):
                     error_details = "; ".join(
-                        f"{err.get('file', 'unknown')}: {err.get('error', 'unknown')}"
-                        for err in errors
+                        f"{err.get('file', 'unknown')}: {err.get('error', 'unknown')}" for err in errors
                     )
                     raise RuntimeError(
                         "Failed to clean optimize artifacts before fresh iteration run: "
@@ -518,6 +492,7 @@ class IterationWorkflow:
             self.state["error"] = str(e)
             print(f"\nError during iteration: {e}")
             import traceback
+
             traceback.print_exc()
 
         self._save_state()
@@ -561,7 +536,7 @@ class IterationWorkflow:
         if not state_file.exists():
             raise FileNotFoundError(f"No iteration state found for run ID: {run_id}")
 
-        with open(state_file, 'r', encoding='utf-8') as f:
+        with open(state_file, "r", encoding="utf-8") as f:
             state = json.load(f)
 
         # Create instance with saved config
@@ -572,7 +547,7 @@ class IterationWorkflow:
             quality_threshold=config.get("quality_threshold", 2.0),
             model=config.get("model", "gemini-3.1-flash-lite"),
             apply_changes=config.get("apply_changes", True),
-            output_dir=output_dir
+            output_dir=output_dir,
         )
 
         # Override run_id and state
@@ -580,11 +555,7 @@ class IterationWorkflow:
         instance.state = state
         instance.iterations_dir = Path(output_dir) / "iterations" / run_id
         instance.state_file = instance.iterations_dir / "iteration_state.json"
-        instance.quality_tracker = QualityTracker(
-            run_id=run_id,
-            projects=instance.projects,
-            output_dir=output_dir
-        )
+        instance.quality_tracker = QualityTracker(run_id=run_id, projects=instance.projects, output_dir=output_dir)
         instance.is_resume_mode = True
 
         return instance
@@ -592,47 +563,24 @@ class IterationWorkflow:
 
 def main():
     """Main entry point for CLI usage."""
-    parser = argparse.ArgumentParser(
-        description="Run iterative extraction-evaluation-optimization workflow"
+    parser = argparse.ArgumentParser(description="Run iterative extraction-evaluation-optimization workflow")
+    parser.add_argument(
+        "--batch", nargs="+", help="One or more batch files (project derived from filename: batch-{project}.txt)"
+    )
+    parser.add_argument("--max-iterations", type=int, default=5, help="Maximum number of iterations (default: 5)")
+    parser.add_argument(
+        "--quality-threshold", type=float, default=2.0, help="Stop when combined score >= threshold (default: 2.0)"
     )
     parser.add_argument(
-        "--batch",
-        nargs="+",
-        help="One or more batch files (project derived from filename: batch-{project}.txt)"
+        "--model", type=str, default="gemini-3.1-flash-lite", help="LLM model name (default: gemini-3.1-flash-lite)"
     )
-    parser.add_argument(
-        "--max-iterations",
-        type=int,
-        default=5,
-        help="Maximum number of iterations (default: 5)"
-    )
-    parser.add_argument(
-        "--quality-threshold",
-        type=float,
-        default=2.0,
-        help="Stop when combined score >= threshold (default: 2.0)"
-    )
-    parser.add_argument(
-        "--model",
-        type=str,
-        default="gemini-3.1-flash-lite",
-        help="LLM model name (default: gemini-3.1-flash-lite)"
-    )
-    parser.add_argument(
-        "--no-apply",
-        action="store_true",
-        help="Dry-run optimization without applying changes"
-    )
-    parser.add_argument(
-        "--resume",
-        type=str,
-        help="Resume from a previous run ID"
-    )
+    parser.add_argument("--no-apply", action="store_true", help="Dry-run optimization without applying changes")
+    parser.add_argument("--resume", type=str, help="Resume from a previous run ID")
     parser.add_argument(
         "--output-dir",
         type=str,
         default="/workspace/app/output",
-        help="Base output directory (default: /workspace/app/output)"
+        help="Base output directory (default: /workspace/app/output)",
     )
 
     args = parser.parse_args()
@@ -641,10 +589,7 @@ def main():
         if args.resume:
             # Resume mode
             print(f"Resuming run: {args.resume}")
-            workflow = IterationWorkflow.resume(
-                run_id=args.resume,
-                output_dir=args.output_dir
-            )
+            workflow = IterationWorkflow.resume(run_id=args.resume, output_dir=args.output_dir)
         else:
             # New run mode
             if not args.batch:
@@ -656,7 +601,7 @@ def main():
                 quality_threshold=args.quality_threshold,
                 model=args.model,
                 apply_changes=not args.no_apply,
-                output_dir=args.output_dir
+                output_dir=args.output_dir,
             )
 
         results = workflow.run()
@@ -674,6 +619,7 @@ def main():
     except Exception as e:
         print(f"\nUnexpected error: {e}")
         import traceback
+
         traceback.print_exc()
         sys.exit(1)
 

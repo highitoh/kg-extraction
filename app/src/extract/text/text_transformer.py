@@ -26,10 +26,10 @@ class TextTransformer(Runnable):
     def __init__(self):
         self.logger = Logger("/workspace/app/log/text_transformer")
         # Definition of sentence end markers and closing brackets
-        self.EOS_CHARS = '。．！？!?'
+        self.EOS_CHARS = "。．！？!?"
         self.CLOSE_CHARS = '」』）】》"\'"'
-        self.EOS_PAT = re.compile(rf'[{re.escape(self.EOS_CHARS)}][{re.escape(self.CLOSE_CHARS)}]*')
-        self.BULLET = re.compile(r'^(\d+[\.\)]|[A-Za-z]\)|[・•\-–—◇◆●■□①-⑩])\s*')
+        self.EOS_PAT = re.compile(rf"[{re.escape(self.EOS_CHARS)}][{re.escape(self.CLOSE_CHARS)}]*")
+        self.BULLET = re.compile(r"^(\d+[\.\)]|[A-Za-z]\)|[・•\-–—◇◆●■□①-⑩])\s*")
 
     def _is_cjk(self, ch: str) -> bool:
         """Determine if character is CJK (Chinese-Japanese-Korean) character"""
@@ -38,10 +38,10 @@ class TextTransformer(Runnable):
         o = ord(ch)
         # Simple detection of Hiragana, Katakana, CJK Unified Ideographs, CJK Compatibility Ideographs, etc.
         return (
-            0x3040 <= o <= 0x30FF or  # Hiragana/Katakana
-            0x3400 <= o <= 0x4DBF or  # CJK Ext-A
-            0x4E00 <= o <= 0x9FFF or  # CJK Unified
-            0xF900 <= o <= 0xFAFF     # CJK Compatibility Ideographs
+            0x3040 <= o <= 0x30FF  # Hiragana/Katakana
+            or 0x3400 <= o <= 0x4DBF  # CJK Ext-A
+            or 0x4E00 <= o <= 0x9FFF  # CJK Unified
+            or 0xF900 <= o <= 0xFAFF  # CJK Compatibility Ideographs
         )
 
     def _needs_space(self, a: str, b: str) -> bool:
@@ -99,7 +99,7 @@ class TextTransformer(Runnable):
             if not buf:
                 buf = cur
             else:
-                if buf.endswith('-'):  # re-\nport → report
+                if buf.endswith("-"):  # re-\nport → report
                     buf = buf[:-1] + cur
                 else:
                     buf += (" " if self._needs_space(buf[-1], cur[0]) else "") + cur
@@ -140,15 +140,13 @@ class TextTransformer(Runnable):
         new_sentences = []
         for normalized_text in normalized_texts:
             if normalized_text.strip():  # Skip empty strings
-                new_sentences.append({
-                    "text": normalized_text
-                })
+                new_sentences.append({"text": normalized_text})
 
         # Build output data
         output_data = {
             "file_id": input_data.get("file_id", ""),
             "file_name": input_data.get("file_name", ""),
-            "sentences": new_sentences
+            "sentences": new_sentences,
         }
 
         return output_data
@@ -188,8 +186,8 @@ if __name__ == "__main__":
             {"text": "• Bullet point item 2"},
             {"text": ""},
             {"text": "English hyphen handling re-"},
-            {"text": "port example text."}
-        ]
+            {"text": "port example text."},
+        ],
     }
 
     transformer = TextTransformer()
@@ -200,5 +198,5 @@ if __name__ == "__main__":
     print(f"Output Sentences: {len(result['sentences'])}")
     print()
     print("Sentences:")
-    for i, sentence in enumerate(result['sentences'], 1):
+    for i, sentence in enumerate(result["sentences"], 1):
         print(f"  {i}. Text: '{sentence['text']}'")

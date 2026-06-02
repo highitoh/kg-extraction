@@ -61,11 +61,7 @@ class MiroBoardImageExtractor(BaseImageAnalyzer):
                 print("[MiroBoardImageExtractor] No page-to-item mappings, skipping image analysis")
             return {
                 "image_chunks": [],
-                "image_statistics": {
-                    "total_mappings": 0,
-                    "images_processed": 0,
-                    "images_generated": 0
-                }
+                "image_statistics": {"total_mappings": 0, "images_processed": 0, "images_generated": 0},
             }
 
         if self.progress:
@@ -88,30 +84,29 @@ class MiroBoardImageExtractor(BaseImageAnalyzer):
                 image = convert_pdf_page_to_image(
                     pdf_path,
                     page_number,
-                    max_pixels=2073600  # Full HD
+                    max_pixels=2073600,  # Full HD
                 )
             except Exception as e:
                 if self.progress:
                     async with lock:
                         counter += 1
-                        print(f"[{counter}/{total}] Page {page_number} → {item_type} {item_id}: failed to convert ({e})")
+                        print(
+                            f"[{counter}/{total}] Page {page_number} → {item_type} {item_id}: failed to convert ({e})"
+                        )
                 return None
 
             # Generate description (uses base class async method)
-            result = await self._generate_description_async(
-                image,
-                item_id,
-                semaphore,
-                progress_callback=None
-            )
+            result = await self._generate_description_async(image, item_id, semaphore, progress_callback=None)
 
             async with lock:
                 counter += 1
                 if self.progress:
                     has_structural = result.get("has_structural_content", False)
                     text_len = len(result.get("description", ""))
-                    print(f"[{counter}/{total}] Page {page_number} → {item_type} {item_id}: "
-                          f"structural={has_structural} text_len={text_len} status={result['status']}")
+                    print(
+                        f"[{counter}/{total}] Page {page_number} → {item_type} {item_id}: "
+                        f"structural={has_structural} text_len={text_len} status={result['status']}"
+                    )
 
             # Skip if failed or empty
             if result["status"] not in ("success",):
@@ -140,16 +135,14 @@ class MiroBoardImageExtractor(BaseImageAnalyzer):
                     "item_type": item_type,
                     "has_structural_content": has_structural,
                     "image_description": description,
-                    "structural_description": structural_description
-                }
+                    "structural_description": structural_description,
+                },
             }
 
             return chunk
 
         # Process all pages in parallel
-        results = await asyncio.gather(
-            *[_process_page(mapping, i) for i, mapping in enumerate(item_page_mappings)]
-        )
+        results = await asyncio.gather(*[_process_page(mapping, i) for i, mapping in enumerate(item_page_mappings)])
 
         image_chunks = [r for r in results if r is not None]
 
@@ -161,8 +154,8 @@ class MiroBoardImageExtractor(BaseImageAnalyzer):
             "image_statistics": {
                 "total_mappings": len(item_page_mappings),
                 "images_processed": len(item_page_mappings),
-                "images_generated": len(image_chunks)
-            }
+                "images_generated": len(image_chunks),
+            },
         }
 
     def invoke(self, input: Dict[str, Any], config=None) -> Dict[str, Any]:
@@ -185,17 +178,18 @@ class MiroBoardImageExtractor(BaseImageAnalyzer):
         item_page_mappings = input["item_page_mappings"]
         file_id = input["file_id"]
 
-        result = asyncio.run(self._run_pipeline(
-            pdf_path,
-            item_page_mappings,
-            file_id,
-        ))
+        result = asyncio.run(
+            self._run_pipeline(
+                pdf_path,
+                item_page_mappings,
+                file_id,
+            )
+        )
 
         # Log results
         if self.logger:
             self.logger.save_log(
-                {"image_chunks": result["image_chunks"]},
-                filename_prefix="miro_board_image_extractor_output_"
+                {"image_chunks": result["image_chunks"]}, filename_prefix="miro_board_image_extractor_output_"
             )
 
         return result

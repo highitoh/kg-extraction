@@ -20,7 +20,7 @@ def generate_changeset(
     after_snapshot_id: str,
     project: str,
     output_dir: str = "/workspace/app/output",
-    model: Optional[str] = None
+    model: Optional[str] = None,
 ) -> str:
     """Generate changeset with automatic driver extraction.
 
@@ -50,9 +50,7 @@ def generate_changeset(
     )
 
     # 3. Extract drivers via LLM clustering
-    drivers = driver_extractor.cluster_and_extract_drivers(
-        source_changes, kg_diff, model=model
-    )
+    drivers = driver_extractor.cluster_and_extract_drivers(source_changes, kg_diff, model=model)
 
     # 4. Map drivers to KG changes and create change objects
     changes = _create_change_objects(kg_diff, drivers)
@@ -66,7 +64,7 @@ def generate_changeset(
         "timestamp": datetime.now().isoformat(),
         "changes": changes,
         "drivers": drivers,  # Store extracted drivers
-        "summary": kg_diff["summary"]
+        "summary": kg_diff["summary"],
     }
 
     # 6. Save changeset
@@ -107,12 +105,11 @@ def _create_change_objects(kg_diff: dict, drivers: List[dict]) -> List[dict]:
     changes = []
 
     # Assign default driver if none extracted
-    default_driver = {
-        "driverId": "default",
-        "type": "Unknown",
-        "description": "No driver identified",
-        "category": "other"
-    } if not drivers else None
+    default_driver = (
+        {"driverId": "default", "type": "Unknown", "description": "No driver identified", "category": "other"}
+        if not drivers
+        else None
+    )
 
     # Create changes for added classes
     for cls in kg_diff.get("added_classes", []):
@@ -123,7 +120,7 @@ def _create_change_objects(kg_diff: dict, drivers: List[dict]) -> List[dict]:
             "beforeNode": None,
             "afterNode": cls,
             "diff": {},
-            "driver": _assign_driver_to_change(cls, drivers, default_driver)
+            "driver": _assign_driver_to_change(cls, drivers, default_driver),
         }
         changes.append(change)
 
@@ -136,7 +133,7 @@ def _create_change_objects(kg_diff: dict, drivers: List[dict]) -> List[dict]:
             "beforeNode": update["before"],
             "afterNode": update["after"],
             "diff": update["diff"],
-            "driver": _assign_driver_to_change(update["after"], drivers, default_driver)
+            "driver": _assign_driver_to_change(update["after"], drivers, default_driver),
         }
         changes.append(change)
 
@@ -149,7 +146,7 @@ def _create_change_objects(kg_diff: dict, drivers: List[dict]) -> List[dict]:
             "beforeNode": cls,
             "afterNode": None,
             "diff": {},
-            "driver": _assign_driver_to_change(cls, drivers, default_driver)
+            "driver": _assign_driver_to_change(cls, drivers, default_driver),
         }
         changes.append(change)
 
@@ -162,7 +159,7 @@ def _create_change_objects(kg_diff: dict, drivers: List[dict]) -> List[dict]:
             "beforeRelationship": None,
             "afterRelationship": prop,
             "diff": {},
-            "driver": _assign_driver_to_change(prop, drivers, default_driver)
+            "driver": _assign_driver_to_change(prop, drivers, default_driver),
         }
         changes.append(change)
 
@@ -175,7 +172,7 @@ def _create_change_objects(kg_diff: dict, drivers: List[dict]) -> List[dict]:
             "beforeRelationship": prop,
             "afterRelationship": None,
             "diff": {},
-            "driver": _assign_driver_to_change(prop, drivers, default_driver)
+            "driver": _assign_driver_to_change(prop, drivers, default_driver),
         }
         changes.append(change)
 
@@ -226,7 +223,7 @@ def _save_changeset(project: str, changeset_id: str, changeset: dict, output_dir
 
     # Save changeset.json
     changeset_file = changeset_dir / "changeset.json"
-    with open(changeset_file, 'w', encoding='utf-8') as f:
+    with open(changeset_file, "w", encoding="utf-8") as f:
         json.dump(changeset, f, ensure_ascii=False, indent=2)
 
     # Update changesets metadata index
@@ -246,7 +243,7 @@ def _update_changesets_metadata(project: str, changeset: dict, output_dir: str):
 
     # Load existing metadata or create new
     if metadata_file.exists():
-        with open(metadata_file, 'r', encoding='utf-8') as f:
+        with open(metadata_file, "r", encoding="utf-8") as f:
             metadata = json.load(f)
     else:
         metadata = {"changesets": []}
@@ -258,11 +255,11 @@ def _update_changesets_metadata(project: str, changeset: dict, output_dir: str):
         "afterSnapshotId": changeset["afterSnapshotId"],
         "timestamp": changeset["timestamp"],
         "total_changes": changeset["summary"]["total_changes"],
-        "drivers_count": len(changeset.get("drivers", []))
+        "drivers_count": len(changeset.get("drivers", [])),
     }
 
     metadata["changesets"].append(changeset_entry)
 
     # Save updated metadata
-    with open(metadata_file, 'w', encoding='utf-8') as f:
+    with open(metadata_file, "w", encoding="utf-8") as f:
         json.dump(metadata, f, ensure_ascii=False, indent=2)

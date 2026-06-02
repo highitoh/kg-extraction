@@ -11,9 +11,8 @@ PROFILES: Dict[str, Dict[str, Any]] = {
         "exclude_patterns": ["node_modules/**", ".github/**", "vendor/**", ".git/**"],
         "include_wiki": False,
         "include_issues": False,
-        "recursive": True
+        "recursive": True,
     },
-
     "full-knowledge": {
         "description": "Documentation + current issues (high API usage)",
         "include_patterns": ["**/*.md", "**/*.rst", "**/*.txt"],
@@ -24,13 +23,13 @@ PROFILES: Dict[str, Dict[str, Any]] = {
             ".github/workflows/**",
             "test/**",
             "tests/**",
-            "__pycache__/**"
+            "__pycache__/**",
         ],
         "include_wiki": True,
         "include_issues": True,
         "max_issues": 100,
-        "recursive": True
-    }
+        "recursive": True,
+    },
 }
 
 
@@ -52,10 +51,7 @@ def get_profile(profile_name: str) -> Dict[str, Any]:
         'README + /docs folder (default)'
     """
     if profile_name not in PROFILES:
-        raise ValueError(
-            f"Unknown profile: {profile_name}. "
-            f"Available profiles: {', '.join(PROFILES.keys())}"
-        )
+        raise ValueError(f"Unknown profile: {profile_name}. Available profiles: {', '.join(PROFILES.keys())}")
 
     return PROFILES[profile_name].copy()
 
@@ -159,5 +155,3 @@ def validate_profile(profile: Dict[str, Any]) -> bool:
         raise ValueError("exclude_patterns must be a list")
 
     return True
-
-

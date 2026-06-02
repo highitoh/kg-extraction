@@ -36,7 +36,7 @@ class SnapshotManager:
         source_pdf: Optional[str] = None,
         extraction_result_file: Optional[str] = None,
         notes: Optional[str] = None,
-        raw_source_data: Optional[dict] = None
+        raw_source_data: Optional[dict] = None,
     ) -> Dict[str, Any]:
         """
         Create a new snapshot of the current knowledge graph.
@@ -61,12 +61,10 @@ class SnapshotManager:
         knowledge_file = project_dir / "knowledge.json"
 
         if not knowledge_file.exists():
-            raise FileNotFoundError(
-                f"No knowledge.json found for project '{project}' at {knowledge_file}"
-            )
+            raise FileNotFoundError(f"No knowledge.json found for project '{project}' at {knowledge_file}")
 
         # Load current knowledge graph
-        with open(knowledge_file, 'r', encoding='utf-8') as f:
+        with open(knowledge_file, "r", encoding="utf-8") as f:
             knowledge = json.load(f)
 
         # Get latest snapshot timestamp for validation
@@ -101,7 +99,7 @@ class SnapshotManager:
         # Store raw source data if provided (e.g., Miro board JSON)
         if raw_source_data:
             raw_data_file = snapshot_dir / "source_raw.json"
-            with open(raw_data_file, 'w', encoding='utf-8') as f:
+            with open(raw_data_file, "w", encoding="utf-8") as f:
                 json.dump(raw_source_data, f, ensure_ascii=False, indent=2)
 
         # Compute counts and statistics
@@ -130,9 +128,7 @@ class SnapshotManager:
             extraction_trigger["sourceName"] = raw_source_data.get("name", "Unnamed Board")
             extraction_trigger["sourceMetadata"] = {
                 "itemCount": len(raw_source_data.get("items", [])),
-                "hash": hashlib.sha256(
-                    json.dumps(raw_source_data, sort_keys=True).encode()
-                ).hexdigest()[:16]
+                "hash": hashlib.sha256(json.dumps(raw_source_data, sort_keys=True).encode()).hexdigest()[:16],
             }
 
         # Handle GitHub repository source
@@ -151,9 +147,7 @@ class SnapshotManager:
                 "profile": raw_source_data.get("profile", "documentation"),
                 "url": raw_source_data.get("url", f"https://github.com/{owner}/{repo}"),
                 "file_count": raw_source_data.get("file_count", 0),
-                "hash": hashlib.sha256(
-                    json.dumps(raw_source_data, sort_keys=True).encode()
-                ).hexdigest()[:16]
+                "hash": hashlib.sha256(json.dumps(raw_source_data, sort_keys=True).encode()).hexdigest()[:16],
             }
 
         if extraction_result_file:
@@ -163,10 +157,10 @@ class SnapshotManager:
         snapshot_metadata = {
             "snapshot_id": snapshot_id,
             "project": project,
-            "timestamp": snapshot_id.split('_')[0],  # Remove microseconds if present
+            "timestamp": snapshot_id.split("_")[0],  # Remove microseconds if present
             "created_at": datetime.now().isoformat(),
             "trigger": extraction_trigger,  # Keep existing field name for compatibility
-            "counts": counts
+            "counts": counts,
         }
 
         if notes:
@@ -174,7 +168,7 @@ class SnapshotManager:
 
         # Save snapshot metadata
         snapshot_metadata_file = snapshot_dir / "snapshot.json"
-        with open(snapshot_metadata_file, 'w', encoding='utf-8') as f:
+        with open(snapshot_metadata_file, "w", encoding="utf-8") as f:
             json.dump(snapshot_metadata, f, ensure_ascii=False, indent=2)
 
         # Update index metadata
@@ -242,7 +236,7 @@ class SnapshotManager:
         return {
             "total_classes": len(classes),
             "total_properties": len(properties),
-            "classes_by_type": dict(classes_by_type)
+            "classes_by_type": dict(classes_by_type),
         }
 
     def _get_latest_snapshot_timestamp(self, snapshots_dir: Path) -> Optional[str]:
@@ -259,17 +253,14 @@ class SnapshotManager:
             return None
 
         # Get all snapshot directories (excluding metadata.json)
-        snapshot_dirs = [
-            d.name for d in snapshots_dir.iterdir()
-            if d.is_dir() and d.name[0].isdigit()
-        ]
+        snapshot_dirs = [d.name for d in snapshots_dir.iterdir() if d.is_dir() and d.name[0].isdigit()]
 
         if not snapshot_dirs:
             return None
 
         # Return the maximum timestamp (lexicographic ordering works for YYYYMMDDHHMMSS)
         # Handle timestamps with microseconds (format: YYYYMMDDHHMMSS_microseconds)
-        timestamps = [s.split('_')[0] for s in snapshot_dirs]
+        timestamps = [s.split("_")[0] for s in snapshot_dirs]
         return max(timestamps)
 
     def _compute_file_hash(self, file_path: str) -> str:
@@ -289,11 +280,7 @@ class SnapshotManager:
                 sha256_hash.update(byte_block)
         return sha256_hash.hexdigest()[:16]
 
-    def _update_metadata_index(
-        self,
-        project: str,
-        snapshot_metadata: Dict[str, Any]
-    ) -> None:
+    def _update_metadata_index(self, project: str, snapshot_metadata: Dict[str, Any]) -> None:
         """
         Update the central metadata index file.
 
@@ -307,7 +294,7 @@ class SnapshotManager:
 
         # Load or initialize metadata
         if metadata_file.exists():
-            with open(metadata_file, 'r', encoding='utf-8') as f:
+            with open(metadata_file, "r", encoding="utf-8") as f:
                 metadata = json.load(f)
         else:
             metadata = {
@@ -315,7 +302,7 @@ class SnapshotManager:
                 "created_at": datetime.now().isoformat(),
                 "last_updated": datetime.now().isoformat(),
                 "total_snapshots": 0,
-                "snapshots": []
+                "snapshots": [],
             }
 
         # Add new snapshot to index
@@ -324,7 +311,7 @@ class SnapshotManager:
             "snapshot_id": snapshot_metadata["snapshot_id"],
             "timestamp": snapshot_metadata["timestamp"],
             "trigger_type": trigger.get("triggerType", trigger.get("type", "unknown")),
-            "counts": snapshot_metadata["counts"]
+            "counts": snapshot_metadata["counts"],
         }
 
         # Add source information based on available fields
@@ -341,5 +328,5 @@ class SnapshotManager:
         metadata["total_snapshots"] = len(metadata["snapshots"])
 
         # Save metadata
-        with open(metadata_file, 'w', encoding='utf-8') as f:
+        with open(metadata_file, "w", encoding="utf-8") as f:
             json.dump(metadata, f, ensure_ascii=False, indent=2)

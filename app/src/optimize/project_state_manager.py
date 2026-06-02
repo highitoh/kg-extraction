@@ -15,10 +15,7 @@ from typing import Dict, List, Any, Optional
 class ProjectStateManager:
     """Manages project state for iterative extraction workflows."""
 
-    def __init__(
-        self,
-        output_dir: str = "/workspace/app/output"
-    ):
+    def __init__(self, output_dir: str = "/workspace/app/output"):
         """
         Initialize the ProjectStateManager.
 
@@ -45,7 +42,7 @@ class ProjectStateManager:
             ValueError: If filename doesn't match expected pattern
         """
         filename = Path(batch_file).stem  # Get filename without extension
-        match = re.match(r'^batch-(.+)$', filename)
+        match = re.match(r"^batch-(.+)$", filename)
 
         if not match:
             raise ValueError(
@@ -81,7 +78,7 @@ class ProjectStateManager:
             "knowledge_file": None,
             "extraction_result_files": [],
             "validator_result_files": [],
-            "reward_calculation_files": []
+            "reward_calculation_files": [],
         }
 
         if not project_dir.exists():
@@ -127,11 +124,7 @@ class ProjectStateManager:
             Dictionary with reset information
         """
         project_dir = self.get_project_dir(project)
-        result = {
-            "project": project,
-            "knowledge_cleared": False,
-            "message": ""
-        }
+        result = {"project": project, "knowledge_cleared": False, "message": ""}
 
         if not project_dir.exists():
             result["message"] = f"Project directory does not exist: {project_dir}"
@@ -148,12 +141,7 @@ class ProjectStateManager:
 
         return result
 
-    def archive_iteration_artifacts(
-        self,
-        run_id: str,
-        iteration: int,
-        project: str
-    ) -> Dict[str, Any]:
+    def archive_iteration_artifacts(self, run_id: str, iteration: int, project: str) -> Dict[str, Any]:
         """
         Archive current project artifacts to iterations directory.
 
@@ -176,7 +164,7 @@ class ProjectStateManager:
             "iteration": iteration,
             "archive_dir": str(archive_dir),
             "files_archived": [],
-            "success": False
+            "success": False,
         }
 
         if not project_dir.exists():
@@ -194,7 +182,7 @@ class ProjectStateManager:
             "relationships.csv",
             "extraction_result_*.json",
             "validator_result_*.json",
-            "reward_calculation_*.json"
+            "reward_calculation_*.json",
         ]
 
         for pattern in files_to_archive:
@@ -216,11 +204,7 @@ class ProjectStateManager:
         result["success"] = True
         return result
 
-    def archive_optimize_artifacts(
-        self,
-        run_id: str,
-        iteration: int
-    ) -> Dict[str, Any]:
+    def archive_optimize_artifacts(self, run_id: str, iteration: int) -> Dict[str, Any]:
         """
         Archive optimization artifacts to iterations directory.
 
@@ -237,12 +221,7 @@ class ProjectStateManager:
         optimize_dir = self.output_dir / "optimize"
         archive_dir = self.output_dir / "iterations" / run_id / f"optimize-{iteration}"
 
-        result = {
-            "iteration": iteration,
-            "archive_dir": str(archive_dir),
-            "files_archived": [],
-            "success": False
-        }
+        result = {"iteration": iteration, "archive_dir": str(archive_dir), "files_archived": [], "success": False}
 
         if not optimize_dir.exists():
             result["error"] = f"Optimize directory does not exist: {optimize_dir}"
@@ -258,7 +237,7 @@ class ProjectStateManager:
             "issue_category_*.json",
             "strategy_plan_*.json",
             "action_proposals_*.json",
-            "action_application_*.json"
+            "action_application_*.json",
         ]
 
         for pattern in files_to_archive:
@@ -271,10 +250,7 @@ class ProjectStateManager:
         result["success"] = True
         return result
 
-    def cleanup_optimize_artifacts(
-        self,
-        keep_last_n: int = 0
-    ) -> Dict[str, Any]:
+    def cleanup_optimize_artifacts(self, keep_last_n: int = 0) -> Dict[str, Any]:
         """
         Remove old optimize workflow artifacts, keeping only the most recent ones.
 
@@ -296,7 +272,7 @@ class ProjectStateManager:
             "files_kept": [],
             "errors": [],
             "no_op": False,
-            "success": False
+            "success": False,
         }
 
         # No optimize directory is a valid no-op state for fresh runs.
@@ -312,7 +288,7 @@ class ProjectStateManager:
             "issue_category_*.json",
             "strategy_plan_*.json",
             "action_proposals_*.json",
-            "action_application_*.json"
+            "action_application_*.json",
         ]
 
         for pattern in patterns:
@@ -328,27 +304,16 @@ class ProjectStateManager:
                     Path(file_path).unlink()
                     result["files_removed"].append(Path(file_path).name)
                 except OSError as e:
-                    result["errors"].append({
-                        "file": Path(file_path).name,
-                        "error": str(e)
-                    })
+                    result["errors"].append({"file": Path(file_path).name, "error": str(e)})
 
-        if (
-            not result["files_removed"] and
-            not result["files_kept"] and
-            not result["errors"]
-        ):
+        if not result["files_removed"] and not result["files_kept"] and not result["errors"]:
             result["no_op"] = True
             result["message"] = "No optimize artifacts found to clean."
 
         result["success"] = len(result["errors"]) == 0
         return result
 
-    def cleanup_old_artifacts(
-        self,
-        project: str,
-        keep_last_n: int = 3
-    ) -> Dict[str, Any]:
+    def cleanup_old_artifacts(self, project: str, keep_last_n: int = 3) -> Dict[str, Any]:
         """
         Remove old timestamped artifacts, keeping only the most recent ones.
 
@@ -360,11 +325,7 @@ class ProjectStateManager:
             Dictionary with cleanup information
         """
         project_dir = self.get_project_dir(project)
-        result = {
-            "project": project,
-            "files_removed": [],
-            "success": False
-        }
+        result = {"project": project, "files_removed": [], "success": False}
 
         if not project_dir.exists():
             result["error"] = f"Project directory does not exist: {project_dir}"
@@ -375,7 +336,7 @@ class ProjectStateManager:
             "extraction_result_*.json",
             "validator_result_*.json",
             "reward_calculation_*.json",
-            "knowledge_graph_*.ttl"
+            "knowledge_graph_*.ttl",
         ]
 
         for pattern in patterns:

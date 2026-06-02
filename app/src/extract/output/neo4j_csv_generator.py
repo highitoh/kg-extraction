@@ -20,20 +20,20 @@ class Neo4jCSVGenerator:
     """
 
     NODE_HEADERS = [
-        "id:ID",             # Class instance ID
-        "iri",               # class_iri (for display/verification)
-        ":LABEL",            # Class local name
-        "label",             # Extracted class label
-        "file_id",           # Source file ID
+        "id:ID",  # Class instance ID
+        "iri",  # class_iri (for display/verification)
+        ":LABEL",  # Class local name
+        "label",  # Extracted class label
+        "file_id",  # Source file ID
     ]
 
     REL_HEADERS = [
-        ":START_ID",         # src_id
-        ":END_ID",           # dest_id
-        ":TYPE",             # Property local name
-        "property_iri",      # Property IRI
-        "id",                # Property ID
-        "strength:int",      # Relationship strength
+        ":START_ID",  # src_id
+        ":END_ID",  # dest_id
+        ":TYPE",  # Property local name
+        "property_iri",  # Property IRI
+        "id",  # Property ID
+        "strength:int",  # Relationship strength
     ]
 
     def __init__(self, output_dir: str = "./output"):
@@ -98,14 +98,16 @@ class Neo4jCSVGenerator:
             # Relationship type (convert property local name to snake case)
             rel_type = self._to_snake_case(self._local_name(property_iri))
 
-            self.relationships.add((
-                src_id,         # :START_ID
-                dest_id,        # :END_ID
-                rel_type,       # :TYPE
-                property_iri,   # property_iri
-                prop_id,        # id
-                strength,       # strength
-            ))
+            self.relationships.add(
+                (
+                    src_id,  # :START_ID
+                    dest_id,  # :END_ID
+                    rel_type,  # :TYPE
+                    property_iri,  # property_iri
+                    prop_id,  # id
+                    strength,  # strength
+                )
+            )
 
     def generate(self, input_data: Dict[str, Any]) -> Dict[str, str]:
         """
@@ -129,10 +131,7 @@ class Neo4jCSVGenerator:
         nodes_path = self._write_nodes_csv()
         relationships_path = self._write_relationships_csv()
 
-        return {
-            "nodes_path": nodes_path,
-            "properties_path": relationships_path
-        }
+        return {"nodes_path": nodes_path, "properties_path": relationships_path}
 
     def _write_nodes_csv(self) -> str:
         """Write nodes CSV"""
@@ -159,15 +158,17 @@ class Neo4jCSVGenerator:
             writer = csv.DictWriter(f, fieldnames=self.REL_HEADERS, quoting=csv.QUOTE_MINIMAL)
             writer.writeheader()
 
-            for (start_id, end_id, rel_type, prop_iri, prop_id, strength) in sorted(self.relationships):
-                writer.writerow({
-                    ":START_ID": start_id,
-                    ":END_ID": end_id,
-                    ":TYPE": rel_type,
-                    "property_iri": prop_iri,
-                    "id": prop_id,
-                    "strength:int": strength,
-                })
+            for start_id, end_id, rel_type, prop_iri, prop_id, strength in sorted(self.relationships):
+                writer.writerow(
+                    {
+                        ":START_ID": start_id,
+                        ":END_ID": end_id,
+                        ":TYPE": rel_type,
+                        "property_iri": prop_iri,
+                        "id": prop_id,
+                        "strength:int": strength,
+                    }
+                )
 
         return rels_path
 
@@ -188,14 +189,14 @@ def main():
                     "id": "class_001",
                     "class_iri": "https://github.com/highitoh/kg-extraction#Stakeholder",
                     "label": "Store Staff",
-                    "file_id": "file_001"
+                    "file_id": "file_001",
                 },
                 {
                     "id": "class_002",
                     "class_iri": "https://github.com/highitoh/kg-extraction#Value",
                     "label": "Reduced Wait Time",
-                    "file_id": "file_001"
-                }
+                    "file_id": "file_001",
+                },
             ]
         },
         "property_info": {
@@ -204,10 +205,10 @@ def main():
                     "id": "prop_001",
                     "src_id": "class_001",
                     "property_iri": "https://github.com/highitoh/kg-extraction#hasValue",
-                    "dest_id": "class_002"
+                    "dest_id": "class_002",
                 }
             ]
-        }
+        },
     }
 
     generator = Neo4jCSVGenerator()

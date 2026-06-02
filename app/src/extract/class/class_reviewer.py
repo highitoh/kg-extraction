@@ -19,12 +19,14 @@ class ClassReviewer(Runnable):
     Filter and process extracted classes using LLM
     """
 
-    def __init__(self,
-                 model: str = "gemini-3.1-flash-lite",
-                 temperature: float = 0.0,
-                 progress: bool = True,
-                 max_concurrency: int = 8,
-                 log_dir: str = "/workspace/app/log/class_reviewer"):
+    def __init__(
+        self,
+        model: str = "gemini-3.1-flash-lite",
+        temperature: float = 0.0,
+        progress: bool = True,
+        max_concurrency: int = 8,
+        log_dir: str = "/workspace/app/log/class_reviewer",
+    ):
         self.model = model
         self.temperature = temperature
         self.reasoning_effort = "low"
@@ -54,8 +56,7 @@ class ClassReviewer(Runnable):
         """
         # Go up 3 levels from src/extract/class/ to /workspace/app/
         app_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
-        schema_path = os.path.join(app_dir, "schemas",
-                                   "class-reviewer", "llm.schema.json")
+        schema_path = os.path.join(app_dir, "schemas", "class-reviewer", "llm.schema.json")
         with open(schema_path, "r", encoding="utf-8") as f:
             schema = json.load(f)
 
@@ -73,8 +74,7 @@ class ClassReviewer(Runnable):
         """
         # Go up 3 levels from src/extract/class/ to /workspace/app/
         app_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
-        schema_path = os.path.join(app_dir, "schemas",
-                                   "class-reviewer", "llm-duplicate.schema.json")
+        schema_path = os.path.join(app_dir, "schemas", "class-reviewer", "llm-duplicate.schema.json")
         with open(schema_path, "r", encoding="utf-8") as f:
             return json.load(f)
 
@@ -82,8 +82,7 @@ class ClassReviewer(Runnable):
         """Load metamodel file"""
         # Go up 3 levels from src/extract/class/ to /workspace/app/
         app_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
-        metamodel_path = os.path.join(app_dir, "metamodel",
-                                      "metamodel.json")
+        metamodel_path = os.path.join(app_dir, "metamodel", "metamodel.json")
         with open(metamodel_path, "r", encoding="utf-8") as f:
             return json.load(f)
 
@@ -109,8 +108,7 @@ class ClassReviewer(Runnable):
         """Load prompt template file and dynamically generate prohibit rules"""
         # Go up 3 levels from src/extract/class/ to /workspace/app/
         app_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
-        prompt_path = os.path.join(app_dir, "prompts",
-                                   "class_reviewer.txt")
+        prompt_path = os.path.join(app_dir, "prompts", "class_reviewer.txt")
         with open(prompt_path, "r", encoding="utf-8") as f:
             template = f.read()
 
@@ -132,8 +130,7 @@ class ClassReviewer(Runnable):
         """Load prompt template file for duplicate detection"""
         # Go up 3 levels from src/extract/class/ to /workspace/app/
         app_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
-        prompt_path = os.path.join(app_dir, "prompts",
-                                   "class_reviewer_duplicate.txt")
+        prompt_path = os.path.join(app_dir, "prompts", "class_reviewer_duplicate.txt")
         with open(prompt_path, "r", encoding="utf-8") as f:
             return f.read()
 
@@ -185,7 +182,7 @@ class ClassReviewer(Runnable):
             result[group_id] = {
                 "class_ids": group.get("class_ids", []),
                 "labels": group.get("labels", []),
-                "reason": group.get("reason", "")
+                "reason": group.get("reason", ""),
             }
 
         return result
@@ -217,18 +214,12 @@ class ClassReviewer(Runnable):
         llm_json = llm.bind(
             response_format={
                 "type": "json_schema",
-                "json_schema": {
-                    "name": "class_reviewer_duplicate",
-                    "schema": schema
-                }
+                "json_schema": {"name": "class_reviewer_duplicate", "schema": schema},
             }
         )
 
         # Extract class IDs and labels
-        class_data = [
-            {"id": c.get("id", ""), "label": c.get("label", "")}
-            for c in classes
-        ]
+        class_data = [{"id": c.get("id", ""), "label": c.get("label", "")} for c in classes]
         class_data_json = json.dumps(class_data, ensure_ascii=False, indent=2)
 
         # Load prompt template
@@ -278,18 +269,14 @@ class ClassReviewer(Runnable):
             print(f"[ClassReviewer] {len(class_groups)} class types found")
 
         # Execute filtering in parallel for each class
-        all_classes_with_judgment, all_filtered_classes = asyncio.run(
-            self._process_classes_parallel(class_groups, llm)
-        )
+        all_classes_with_judgment, all_filtered_classes = asyncio.run(self._process_classes_parallel(class_groups, llm))
 
         # Build output
         output = input.copy()
         output["classes"] = all_filtered_classes
 
         if self.progress:
-            print(
-                f"[ClassReviewer] Completed: {len(classes)} -> {len(all_filtered_classes)} classes"
-            )
+            print(f"[ClassReviewer] Completed: {len(classes)} -> {len(all_filtered_classes)} classes")
 
         log_output = input.copy()
         log_output["classes"] = all_classes_with_judgment
@@ -297,7 +284,9 @@ class ClassReviewer(Runnable):
 
         return output
 
-    def _merge_review_results(self, classes: list, prohibit_judgments: list, duplicate_groups: dict) -> tuple[list, list]:
+    def _merge_review_results(
+        self, classes: list, prohibit_judgments: list, duplicate_groups: dict
+    ) -> tuple[list, list]:
         """Merge results of prohibit rule review and duplicate detection
 
         Args:
@@ -361,7 +350,9 @@ class ClassReviewer(Runnable):
         lock = asyncio.Lock()
 
         if self.progress:
-            print(f"[ClassReviewer] Starting parallel processing: {total} class types (concurrency={self.max_concurrency})")
+            print(
+                f"[ClassReviewer] Starting parallel processing: {total} class types (concurrency={self.max_concurrency})"
+            )
 
         async def _wrapped(class_iri: str, class_instances: list) -> tuple[list, list]:
             nonlocal counter
@@ -370,12 +361,8 @@ class ClassReviewer(Runnable):
 
                 # Run LLM-backed review steps serially to avoid reusing async client
                 # resources concurrently within the same reviewer instance.
-                prohibit_judgments = await self._review_prohibit_rules_async(
-                    llm, class_instances, class_iri
-                )
-                duplicate_groups = await self._detect_duplicates_async(
-                    llm, class_instances, class_iri
-                )
+                prohibit_judgments = await self._review_prohibit_rules_async(llm, class_instances, class_iri)
+                duplicate_groups = await self._detect_duplicates_async(llm, class_instances, class_iri)
 
                 # Merge results
                 all_results, filtered = self._merge_review_results(
@@ -391,10 +378,12 @@ class ClassReviewer(Runnable):
                         reject_count = len(class_instances) - len(filtered)
                         duplicate_count = len(duplicate_groups)
 
-                        print(f"[{counter}/{total}] ClassReviewer: {class_name} processed "
-                              f"({len(class_instances)} -> {len(filtered)} instances) "
-                              f"[ACCEPT: {accept_count}, REVIEW: {review_count}, REJECT: {reject_count}] "
-                              f"[Duplicate groups: {duplicate_count}]")
+                        print(
+                            f"[{counter}/{total}] ClassReviewer: {class_name} processed "
+                            f"({len(class_instances)} -> {len(filtered)} instances) "
+                            f"[ACCEPT: {accept_count}, REVIEW: {review_count}, REJECT: {reject_count}] "
+                            f"[Duplicate groups: {duplicate_count}]"
+                        )
 
                 return all_results, filtered
 
@@ -443,13 +432,8 @@ class ClassReviewer(Runnable):
 
         schema = self._build_schema(len(classes))
         llm_json = llm.bind(
-            response_format={
-                "type": "json_schema",
-                "json_schema": {
-                    "name": "class_reviewer",
-                    "schema": schema
-                }
-            })
+            response_format={"type": "json_schema", "json_schema": {"name": "class_reviewer", "schema": schema}}
+        )
 
         # Format class instances with source excerpts to give reviewer context.
         class_instances_text = self._format_class_instances(classes)

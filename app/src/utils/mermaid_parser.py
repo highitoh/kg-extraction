@@ -19,9 +19,7 @@ _DIRECTIVE_RE = re.compile(
 
 # Node shapes: ID[label], ID(label), ID((label)), ID{label}.
 # Capture the node id and its display label.
-_NODE_DECL_RE = re.compile(
-    r"([A-Za-z0-9_\-./]+)\s*(?:\(\(([^)]*)\)\)|\[([^\]]*)\]|\(([^)]*)\)|\{([^}]*)\})"
-)
+_NODE_DECL_RE = re.compile(r"([A-Za-z0-9_\-./]+)\s*(?:\(\(([^)]*)\)\)|\[([^\]]*)\]|\(([^)]*)\)|\{([^}]*)\})")
 
 # Flowchart edge operators (longest first so e.g. '-.->' wins over '-->').
 _FLOW_OPS = ["-.->", "-.-", "==>", "===", "-->", "---", "--o", "--x"]

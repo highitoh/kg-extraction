@@ -67,35 +67,35 @@ def show_command(args):
         print(f"Created: {metadata['created_at']}")
 
         print(f"\nTrigger:")
-        trigger = metadata.get('trigger', {})
+        trigger = metadata.get("trigger", {})
         # Handle both 'type' and 'triggerType' (camelCase)
-        trigger_type = trigger.get('type') or trigger.get('triggerType', 'unknown')
+        trigger_type = trigger.get("type") or trigger.get("triggerType", "unknown")
         print(f"  Type: {trigger_type}")
 
         # Handle different source field names
-        if trigger.get('source_pdf'):
+        if trigger.get("source_pdf"):
             print(f"  Source PDF: {trigger['source_pdf']}")
-        elif trigger.get('sourceIdentifier'):
+        elif trigger.get("sourceIdentifier"):
             print(f"  Source: {trigger['sourceIdentifier']}")
 
-        if trigger.get('sourceName'):
+        if trigger.get("sourceName"):
             print(f"  Source Name: {trigger['sourceName']}")
 
-        if trigger.get('extraction_result_file') or trigger.get('extractionResultFile'):
-            result_file = trigger.get('extraction_result_file') or trigger.get('extractionResultFile')
+        if trigger.get("extraction_result_file") or trigger.get("extractionResultFile"):
+            result_file = trigger.get("extraction_result_file") or trigger.get("extractionResultFile")
             print(f"  Extraction result: {result_file}")
 
         print(f"\nCounts:")
-        counts = metadata.get('counts', {})
+        counts = metadata.get("counts", {})
         print(f"  Total classes: {counts.get('total_classes', 0)}")
         print(f"  Total properties: {counts.get('total_properties', 0)}")
 
-        if counts.get('classes_by_type'):
+        if counts.get("classes_by_type"):
             print(f"\n  Classes by type:")
-            for class_type, count in counts['classes_by_type'].items():
+            for class_type, count in counts["classes_by_type"].items():
                 print(f"    {class_type}: {count}")
 
-        if metadata.get('notes'):
+        if metadata.get("notes"):
             print(f"\nNotes: {metadata['notes']}")
 
     except FileNotFoundError as e:
@@ -117,28 +117,28 @@ def latest_command(args):
         print(f"Created: {metadata['created_at']}")
 
         print(f"\nTrigger:")
-        trigger = metadata.get('trigger', {})
+        trigger = metadata.get("trigger", {})
         # Handle both 'type' and 'triggerType' (camelCase)
-        trigger_type = trigger.get('type') or trigger.get('triggerType', 'unknown')
+        trigger_type = trigger.get("type") or trigger.get("triggerType", "unknown")
         print(f"  Type: {trigger_type}")
 
         # Handle different source field names
-        if trigger.get('source_pdf'):
+        if trigger.get("source_pdf"):
             print(f"  Source PDF: {trigger['source_pdf']}")
-        elif trigger.get('sourceIdentifier'):
+        elif trigger.get("sourceIdentifier"):
             print(f"  Source: {trigger['sourceIdentifier']}")
 
-        if trigger.get('sourceName'):
+        if trigger.get("sourceName"):
             print(f"  Source Name: {trigger['sourceName']}")
 
         print(f"\nCounts:")
-        counts = metadata.get('counts', {})
+        counts = metadata.get("counts", {})
         print(f"  Total classes: {counts.get('total_classes', 0)}")
         print(f"  Total properties: {counts.get('total_properties', 0)}")
 
-        if counts.get('classes_by_type'):
+        if counts.get("classes_by_type"):
             print(f"\n  Classes by type:")
-            for class_type, count in sorted(counts['classes_by_type'].items()):
+            for class_type, count in sorted(counts["classes_by_type"].items()):
                 print(f"    {class_type}: {count}")
 
     except FileNotFoundError as e:
@@ -153,24 +153,22 @@ def rollback_command(args):
     try:
         # Confirm rollback unless --yes flag is set
         if not args.yes:
-            response = input(f"\nAre you sure you want to rollback project '{args.project}' to snapshot '{args.snapshot}'? (yes/no): ")
-            if response.lower() not in ['yes', 'y']:
+            response = input(
+                f"\nAre you sure you want to rollback project '{args.project}' to snapshot '{args.snapshot}'? (yes/no): "
+            )
+            if response.lower() not in ["yes", "y"]:
                 print("Rollback cancelled.")
                 return
 
         # Perform rollback
-        result = repo.rollback_to_snapshot(
-            args.project,
-            args.snapshot,
-            backup=args.backup
-        )
+        result = repo.rollback_to_snapshot(args.project, args.snapshot, backup=args.backup)
 
         print(f"\n=== Rollback Complete ===")
         print(f"Project: {result['project']}")
         print(f"Snapshot: {result['snapshot_id']}")
         print(f"Timestamp: {result['rollback_timestamp']}")
 
-        if result['backup_created']:
+        if result["backup_created"]:
             print(f"\nBackup created: {result['backup_file']}")
 
         print(f"\nRestored file: {result['restored_file']}")
@@ -187,15 +185,14 @@ def rollback_command(args):
 def main():
     """Main entry point for snapshot CLI."""
     parser = argparse.ArgumentParser(
-        description="Manage knowledge graph snapshots",
-        formatter_class=argparse.RawDescriptionHelpFormatter
+        description="Manage knowledge graph snapshots", formatter_class=argparse.RawDescriptionHelpFormatter
     )
 
     parser.add_argument(
         "--output-dir",
         type=str,
         default="/workspace/app/output",
-        help="Base output directory (default: /workspace/app/output)"
+        help="Base output directory (default: /workspace/app/output)",
     )
 
     subparsers = parser.add_subparsers(dest="command", help="Available commands")
@@ -217,7 +214,9 @@ def main():
     rollback_parser = subparsers.add_parser("rollback", help="Rollback to a specific snapshot")
     rollback_parser.add_argument("--project", required=True, help="Project name")
     rollback_parser.add_argument("--snapshot", required=True, help="Snapshot ID to rollback to")
-    rollback_parser.add_argument("--backup", action="store_true", default=True, help="Create backup before rollback (default: True)")
+    rollback_parser.add_argument(
+        "--backup", action="store_true", default=True, help="Create backup before rollback (default: True)"
+    )
     rollback_parser.add_argument("--no-backup", dest="backup", action="store_false", help="Skip backup creation")
     rollback_parser.add_argument("--yes", "-y", action="store_true", help="Skip confirmation prompt")
 

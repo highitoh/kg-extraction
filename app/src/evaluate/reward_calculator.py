@@ -45,7 +45,7 @@ class RewardCalculator:
 
     def _load_json(self, file_path: str) -> Dict[str, Any]:
         """Load a JSON file."""
-        with open(file_path, 'r', encoding='utf-8') as f:
+        with open(file_path, "r", encoding="utf-8") as f:
             return json.load(f)
 
     def _resolve_validator_result_path(self, project: str, output_base_dir: str) -> str:
@@ -125,12 +125,12 @@ class RewardCalculator:
         text_grounding = validation.get("text_grounding", {}).get("score", 4)
 
         quality_score = (
-            (self._score_to_reward(necessity) * 2) +
-            self._score_to_reward(understandability) +
-            self._score_to_reward(unity) +
-            self._score_to_reward(boundary_suitability) +
-            self._score_to_reward(structural_validity) +
-            self._score_to_reward(text_grounding)
+            (self._score_to_reward(necessity) * 2)
+            + self._score_to_reward(understandability)
+            + self._score_to_reward(unity)
+            + self._score_to_reward(boundary_suitability)
+            + self._score_to_reward(structural_validity)
+            + self._score_to_reward(text_grounding)
         )
 
         return float(quality_score)
@@ -160,10 +160,10 @@ class RewardCalculator:
         contextual_grounding = validation.get("contextual_grounding", {}).get("score", 4)
 
         quality_score = (
-            (self._score_to_reward(relation_applicability) * 2) +
-            self._score_to_reward(relation_unity) +
-            self._score_to_reward(strength_validity) +
-            self._score_to_reward(contextual_grounding)
+            (self._score_to_reward(relation_applicability) * 2)
+            + self._score_to_reward(relation_unity)
+            + self._score_to_reward(strength_validity)
+            + self._score_to_reward(contextual_grounding)
         )
 
         return float(quality_score)
@@ -176,8 +176,8 @@ class RewardCalculator:
             Complete report dictionary with class_scores, property_scores, and summary
         """
         # Extract validations from validator result
-        class_validations = self.validator_data.get('class_validations', [])
-        property_validations = self.validator_data.get('property_validations', [])
+        class_validations = self.validator_data.get("class_validations", [])
+        property_validations = self.validator_data.get("property_validations", [])
 
         # Calculate class scores
         class_scores = []
@@ -196,9 +196,9 @@ class RewardCalculator:
                     "unity": validation.get("unity", {}).get("score", 4),
                     "boundary_suitability": validation.get("boundary_suitability", {}).get("score", 4),
                     "structural_validity": validation.get("structural_validity", {}).get("score", 4),
-                    "text_grounding": validation.get("text_grounding", {}).get("score", 4)
+                    "text_grounding": validation.get("text_grounding", {}).get("score", 4),
                 },
-                "quality_score": quality_score
+                "quality_score": quality_score,
             }
             class_scores.append(class_score)
 
@@ -219,21 +219,29 @@ class RewardCalculator:
                     "relation_applicability": validation.get("relation_applicability", {}).get("score", 4),
                     "relation_unity": validation.get("relation_unity", {}).get("score", 4),
                     "strength_validity": validation.get("strength_validity", {}).get("score", 4),
-                    "contextual_grounding": validation.get("contextual_grounding", {}).get("score", 4)
+                    "contextual_grounding": validation.get("contextual_grounding", {}).get("score", 4),
                 },
-                "quality_score": quality_score
+                "quality_score": quality_score,
             }
             property_scores.append(property_score)
 
         # Calculate summary statistics
         total_classes = len(class_scores)
         total_properties = len(property_scores)
-        property_weight = self.metamodel_class_count / (2 * self.metamodel_property_count) if self.metamodel_property_count > 0 else 1.0
+        property_weight = (
+            self.metamodel_class_count / (2 * self.metamodel_property_count)
+            if self.metamodel_property_count > 0
+            else 1.0
+        )
         combined_total_quality_score = total_class_quality_score + (total_property_quality_score * property_weight)
 
         average_class_score = total_class_quality_score / total_classes if total_classes > 0 else 0.0
         average_property_score = total_property_quality_score / total_properties if total_properties > 0 else 0.0
-        overall_average_score = combined_total_quality_score / (total_classes + total_properties) if (total_classes + total_properties) > 0 else 0.0
+        overall_average_score = (
+            combined_total_quality_score / (total_classes + total_properties)
+            if (total_classes + total_properties) > 0
+            else 0.0
+        )
 
         summary = {
             "total_classes": total_classes,
@@ -244,7 +252,7 @@ class RewardCalculator:
             "combined_total_quality_score": round(combined_total_quality_score, 2),
             "average_class_score": round(average_class_score, 2),
             "average_property_score": round(average_property_score, 2),
-            "overall_average_score": round(overall_average_score, 2)
+            "overall_average_score": round(overall_average_score, 2),
         }
 
         # Build report
@@ -252,7 +260,7 @@ class RewardCalculator:
             "timestamp": datetime.now().strftime("%Y%m%d%H%M%S"),
             "class_scores": class_scores,
             "property_scores": property_scores,
-            "summary": summary
+            "summary": summary,
         }
 
         return report
@@ -279,7 +287,7 @@ class RewardCalculator:
         project_dir.mkdir(parents=True, exist_ok=True)
 
         # Save report
-        with open(output_path, 'w', encoding='utf-8') as f:
+        with open(output_path, "w", encoding="utf-8") as f:
             json.dump(report, f, indent=2, ensure_ascii=False)
 
         print(f"\nReward calculation report saved to: {output_path}")
@@ -318,17 +326,12 @@ def main():
     parser = argparse.ArgumentParser(
         description="Calculate quality scores for extracted knowledge based on validation results."
     )
-    parser.add_argument(
-        "--project",
-        type=str,
-        default="default",
-        help="Project name (default: 'default')"
-    )
+    parser.add_argument("--project", type=str, default="default", help="Project name (default: 'default')")
     parser.add_argument(
         "--output-dir",
         type=str,
         default="/workspace/app/output",
-        help="Base output directory (default: '/workspace/app/output')"
+        help="Base output directory (default: '/workspace/app/output')",
     )
 
     args = parser.parse_args()
@@ -336,10 +339,7 @@ def main():
     try:
         # Initialize calculator
         print(f"Initializing RewardCalculator for project: {args.project}")
-        calculator = RewardCalculator(
-            project=args.project,
-            output_base_dir=args.output_dir
-        )
+        calculator = RewardCalculator(project=args.project, output_base_dir=args.output_dir)
 
         # Calculate scores
         print("\nCalculating quality scores...")
@@ -360,6 +360,7 @@ def main():
     except Exception as e:
         print(f"\nUnexpected error: {e}", file=sys.stderr)
         import traceback
+
         traceback.print_exc()
         sys.exit(1)
 

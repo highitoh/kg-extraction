@@ -24,7 +24,7 @@ def load_knowledge(project: str, snapshot_id: str, output_dir: str = "/workspace
     if not snapshot_path.exists():
         raise FileNotFoundError(f"knowledge.json not found at {snapshot_path}")
 
-    with open(snapshot_path, 'r', encoding='utf-8') as f:
+    with open(snapshot_path, "r", encoding="utf-8") as f:
         return json.load(f)
 
 
@@ -76,11 +76,9 @@ def compute_diff(before_kg: dict, after_kg: dict) -> dict:
         after_cls = after_classes[class_id]
 
         if _class_content_changed(before_cls, after_cls):
-            updated_classes.append({
-                "before": before_cls,
-                "after": after_cls,
-                "diff": _compute_class_diff(before_cls, after_cls)
-            })
+            updated_classes.append(
+                {"before": before_cls, "after": after_cls, "diff": _compute_class_diff(before_cls, after_cls)}
+            )
 
     # Find added/deleted properties
     before_prop_keys = set(before_props.keys())
@@ -95,14 +93,17 @@ def compute_diff(before_kg: dict, after_kg: dict) -> dict:
     # Build summary
     summary = {
         "total_changes": (
-            len(added_classes) + len(updated_classes) + len(deleted_classes) +
-            len(added_properties) + len(deleted_properties)
+            len(added_classes)
+            + len(updated_classes)
+            + len(deleted_classes)
+            + len(added_properties)
+            + len(deleted_properties)
         ),
         "added_classes": len(added_classes),
         "updated_classes": len(updated_classes),
         "deleted_classes": len(deleted_classes),
         "added_properties": len(added_properties),
-        "deleted_properties": len(deleted_properties)
+        "deleted_properties": len(deleted_properties),
     }
 
     return {
@@ -111,7 +112,7 @@ def compute_diff(before_kg: dict, after_kg: dict) -> dict:
         "deleted_classes": deleted_classes,
         "added_properties": added_properties,
         "deleted_properties": deleted_properties,
-        "summary": summary
+        "summary": summary,
     }
 
 
@@ -176,8 +177,4 @@ def _compute_class_diff(before_cls: dict, after_cls: dict) -> dict:
             old_values[field] = before_val
             new_values[field] = after_val
 
-    return {
-        "modified_fields": modified_fields,
-        "old_values": old_values,
-        "new_values": new_values
-    }
+    return {"modified_fields": modified_fields, "old_values": old_values, "new_values": new_values}

@@ -55,7 +55,7 @@ def parse_github_url(url: str) -> Dict[str, Optional[str]]:
 
     # Split path into components
     # Example: /facebook/react/blob/main/README.md -> ['', 'facebook', 'react', 'blob', 'main', 'README.md']
-    path_parts = parsed.path.strip('/').split('/')
+    path_parts = parsed.path.strip("/").split("/")
 
     if len(path_parts) < 2:
         raise ValueError(f"Invalid GitHub URL: {url}. Expected format: github.com/owner/repo[/...]")
@@ -74,7 +74,7 @@ def parse_github_url(url: str) -> Dict[str, Optional[str]]:
             "ref": None,  # Auto-detect default branch
             "profile": profile_override or "documentation",
             "url_type": "root",
-            "original_url": original_url
+            "original_url": original_url,
         }
 
     elif len(path_parts) >= 3 and path_parts[2] == "tree":
@@ -91,7 +91,7 @@ def parse_github_url(url: str) -> Dict[str, Optional[str]]:
 
         ref = path_parts[3]
         # Path is optional - if not provided, extract from root directory
-        dir_path = '/'.join(path_parts[4:]) if len(path_parts) > 4 else ""
+        dir_path = "/".join(path_parts[4:]) if len(path_parts) > 4 else ""
 
         # Determine profile based on directory
         profile = profile_override or _detect_profile_from_path(dir_path) if dir_path else "documentation"
@@ -103,7 +103,7 @@ def parse_github_url(url: str) -> Dict[str, Optional[str]]:
             "ref": ref,
             "profile": profile,
             "url_type": "tree",
-            "original_url": original_url
+            "original_url": original_url,
         }
 
     else:
@@ -137,12 +137,12 @@ def _extract_profile_override(url: str) -> Optional[str]:
         None
     """
     # Extract fragment
-    if '#profile=' not in url:
+    if "#profile=" not in url:
         return None
 
-    fragment = url.split('#')[1]
-    if fragment.startswith('profile='):
-        return fragment.replace('profile=', '')
+    fragment = url.split("#")[1]
+    if fragment.startswith("profile="):
+        return fragment.replace("profile=", "")
 
     return None
 

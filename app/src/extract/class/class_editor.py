@@ -26,12 +26,14 @@ class ClassEditor(Runnable):
     4. Consolidate ACCEPT/REJECT/corrected REVIEW for output
     """
 
-    def __init__(self,
-                 model: str = "gemini-3.1-flash-lite",
-                 temperature: float = 0.0,
-                 progress: bool = True,
-                 max_concurrency: int = 8,
-                 log_dir: str = "/workspace/app/log/class_editor"):
+    def __init__(
+        self,
+        model: str = "gemini-3.1-flash-lite",
+        temperature: float = 0.0,
+        progress: bool = True,
+        max_concurrency: int = 8,
+        log_dir: str = "/workspace/app/log/class_editor",
+    ):
         self.model = model
         self.temperature = temperature
         self.reasoning_effort = "low"
@@ -59,8 +61,7 @@ class ClassEditor(Runnable):
         """
         # Go up 3 levels from src/extract/class/ to /workspace/app/
         app_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
-        schema_path = os.path.join(app_dir, "schemas",
-                                   "class-editor", "llm.schema.json")
+        schema_path = os.path.join(app_dir, "schemas", "class-editor", "llm.schema.json")
         with open(schema_path, "r", encoding="utf-8") as f:
             schema = json.load(f)
 
@@ -74,8 +75,7 @@ class ClassEditor(Runnable):
         """Load metamodel file"""
         # Go up 3 levels from src/extract/class/ to /workspace/app/
         app_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
-        metamodel_path = os.path.join(app_dir, "metamodel",
-                                      "metamodel.json")
+        metamodel_path = os.path.join(app_dir, "metamodel", "metamodel.json")
         with open(metamodel_path, "r", encoding="utf-8") as f:
             return json.load(f)
 
@@ -101,8 +101,7 @@ class ClassEditor(Runnable):
         """Load prompt template file"""
         # Go up 3 levels from src/extract/class/ to /workspace/app/
         app_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
-        prompt_path = os.path.join(app_dir, "prompts",
-                                   "class_editor.txt")
+        prompt_path = os.path.join(app_dir, "prompts", "class_editor.txt")
         with open(prompt_path, "r", encoding="utf-8") as f:
             return f.read()
 
@@ -114,8 +113,7 @@ class ClassEditor(Runnable):
         """
         # Go up 3 levels from src/extract/class/ to /workspace/app/
         app_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
-        schema_path = os.path.join(app_dir, "schemas",
-                                   "class-editor", "llm-duplicate.schema.json")
+        schema_path = os.path.join(app_dir, "schemas", "class-editor", "llm-duplicate.schema.json")
         with open(schema_path, "r", encoding="utf-8") as f:
             return json.load(f)
 
@@ -123,8 +121,7 @@ class ClassEditor(Runnable):
         """Load prompt template file for duplicate fixing"""
         # Go up 3 levels from src/extract/class/ to /workspace/app/
         app_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
-        prompt_path = os.path.join(app_dir, "prompts",
-                                   "class_editor_duplicate.txt")
+        prompt_path = os.path.join(app_dir, "prompts", "class_editor_duplicate.txt")
         with open(prompt_path, "r", encoding="utf-8") as f:
             return f.read()
 
@@ -216,8 +213,10 @@ class ClassEditor(Runnable):
         reject_classes = [c for c in classes if c.get("judgment") == "REJECT"]
 
         if self.progress:
-            print(f"[ClassEditor] Total {len(classes)} classes "
-                  f"[ACCEPT: {len(accept_classes)}, REVIEW: {len(review_classes)}, REJECT: {len(reject_classes)}]")
+            print(
+                f"[ClassEditor] Total {len(classes)} classes "
+                f"[ACCEPT: {len(accept_classes)}, REVIEW: {len(review_classes)}, REJECT: {len(reject_classes)}]"
+            )
 
         if not review_classes:
             # Return as is if no REVIEW classes
@@ -245,8 +244,10 @@ class ClassEditor(Runnable):
             # Aggregate correction result breakdown
             corrected_review_count = sum(1 for c in corrected_classes if c.get("judgment") == "REVIEW")
             corrected_reject_count = sum(1 for c in corrected_classes if c.get("judgment") == "REJECT")
-            print(f"[ClassEditor] Completed: Processed {len(review_classes)} REVIEW classes "
-                  f"[REVIEW: {corrected_review_count}, REJECT: {corrected_reject_count}]")
+            print(
+                f"[ClassEditor] Completed: Processed {len(review_classes)} REVIEW classes "
+                f"[REVIEW: {corrected_review_count}, REJECT: {corrected_reject_count}]"
+            )
 
         self.logger.save_log(output, filename_prefix="class_editor_output_")
 
@@ -294,37 +295,23 @@ class ClassEditor(Runnable):
         for group_id, group_classes in groups.items():
             candidates = []
             for cls in group_classes:
-                candidates.append({
-                    "id": cls.get("id", ""),
-                    "label": cls.get("label", ""),
-                    "sources": cls.get("sources", [])
-                })
+                candidates.append(
+                    {"id": cls.get("id", ""), "label": cls.get("label", ""), "sources": cls.get("sources", [])}
+                )
 
-            duplicate_groups_input.append({
-                "duplicate_group_id": group_id,
-                "candidates": candidates
-            })
+            duplicate_groups_input.append({"duplicate_group_id": group_id, "candidates": candidates})
 
         duplicate_groups_json = json.dumps(duplicate_groups_input, ensure_ascii=False, indent=2)
 
         # Build schema
         schema = self._build_duplicate_fix_schema()
         llm_json = llm.bind(
-            response_format={
-                "type": "json_schema",
-                "json_schema": {
-                    "name": "class_editor_duplicate",
-                    "schema": schema
-                }
-            }
+            response_format={"type": "json_schema", "json_schema": {"name": "class_editor_duplicate", "schema": schema}}
         )
 
         # Build prompt
         prompt_template = self._load_duplicate_fix_prompt_template()
-        prompt = fill_prompt_template(
-            prompt_template,
-            duplicate_groups_json=duplicate_groups_json
-        )
+        prompt = fill_prompt_template(prompt_template, duplicate_groups_json=duplicate_groups_json)
 
         # Execute duplicate fixing with LLM (with retry)
         try:
@@ -348,10 +335,7 @@ class ClassEditor(Runnable):
                 should_merge = resolution.get("should_merge", False)
                 reason = resolution.get("reason", "")
 
-                result[group_id] = {
-                    "should_merge": should_merge,
-                    "reason": reason
-                }
+                result[group_id] = {"should_merge": should_merge, "reason": reason}
 
                 if should_merge:
                     canonical_label = resolution.get("canonical_label", "")
@@ -370,9 +354,7 @@ class ClassEditor(Runnable):
                         group_classes = groups.get(group_id, [])
                         if group_classes:
                             merged_class = self._merge_duplicate_classes(
-                                group_classes,
-                                canonical_label,
-                                merged_class_id
+                                group_classes, canonical_label, merged_class_id
                             )
                             result[group_id]["merged_class"] = merged_class
 
@@ -470,7 +452,9 @@ class ClassEditor(Runnable):
         lock = asyncio.Lock()
 
         if self.progress:
-            print(f"[ClassEditor] Starting parallel processing: {total} class types (concurrency={self.max_concurrency})")
+            print(
+                f"[ClassEditor] Starting parallel processing: {total} class types (concurrency={self.max_concurrency})"
+            )
 
         async def _wrapped(class_iri: str, class_instances: list) -> list:
             nonlocal counter
@@ -479,12 +463,8 @@ class ClassEditor(Runnable):
 
                 # Run LLM-backed correction steps serially to avoid concurrent
                 # reuse of async client resources within the same editor instance.
-                prohibit_fixed = await self._fix_prohibit_violations_async(
-                    llm, class_instances, class_iri
-                )
-                duplicate_resolved = await self._fix_duplicates_async(
-                    llm, class_instances, class_iri
-                )
+                prohibit_fixed = await self._fix_prohibit_violations_async(llm, class_instances, class_iri)
+                duplicate_resolved = await self._fix_duplicates_async(llm, class_instances, class_iri)
 
                 # Merge results
                 merged = self._merge_fix_results(class_instances, prohibit_fixed, duplicate_resolved)
@@ -497,16 +477,15 @@ class ClassEditor(Runnable):
                         reject_count = sum(1 for c in merged if c.get("judgment") == "REJECT")
 
                         # Count merges
-                        merge_count = sum(
-                            1 for res in duplicate_resolved.values()
-                            if res.get("should_merge", False)
-                        )
+                        merge_count = sum(1 for res in duplicate_resolved.values() if res.get("should_merge", False))
                         total_dup_groups = len(duplicate_resolved)
 
-                        print(f"[{counter}/{total}] ClassEditor: {class_name} processed "
-                              f"({len(class_instances)} -> {len(merged)} instances) "
-                              f"[REVIEW: {review_count}, REJECT: {reject_count}] "
-                              f"[Duplicates merged: {merge_count}/{total_dup_groups}]")
+                        print(
+                            f"[{counter}/{total}] ClassEditor: {class_name} processed "
+                            f"({len(class_instances)} -> {len(merged)} instances) "
+                            f"[REVIEW: {review_count}, REJECT: {reject_count}] "
+                            f"[Duplicates merged: {merge_count}/{total_dup_groups}]"
+                        )
 
                 return merged
 
@@ -550,22 +529,19 @@ class ClassEditor(Runnable):
 
         schema = self._build_schema(len(classes))
         llm_json = llm.bind(
-            response_format={
-                "type": "json_schema",
-                "json_schema": {
-                    "name": "class_editor",
-                    "schema": schema
-                }
-            })
+            response_format={"type": "json_schema", "json_schema": {"name": "class_editor", "schema": schema}}
+        )
 
         # Build input data for LLM
         input_data = []
         for c in classes:
-            input_data.append({
-                "label": c.get("label", ""),
-                "source": c.get("sources", [""])[0] if c.get("sources") else "",
-                "justification": c.get("justification", "")
-            })
+            input_data.append(
+                {
+                    "label": c.get("label", ""),
+                    "source": c.get("sources", [""])[0] if c.get("sources") else "",
+                    "justification": c.get("justification", ""),
+                }
+            )
 
         input_json = json.dumps(input_data, ensure_ascii=False, indent=2)
 
@@ -573,11 +549,7 @@ class ClassEditor(Runnable):
         prohibit_rules = self._build_prohibit_rules_section(class_iri)
 
         # Build prompt (embed prohibit rules specific to target class and input data)
-        prompt = fill_prompt_template(
-            self.prompt_template,
-            prohibit_rules=prohibit_rules,
-            input_data=input_json
-        )
+        prompt = fill_prompt_template(self.prompt_template, prohibit_rules=prohibit_rules, input_data=input_json)
 
         # Execute label correction with LLM (with retry)
         response = await call_with_retry(
@@ -636,7 +608,6 @@ class ClassEditor(Runnable):
                 corrected_classes.append(c_rejected)
 
         return corrected_classes
-
 
     @staticmethod
     def _to_text(content: Any) -> str:

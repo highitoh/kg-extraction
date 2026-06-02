@@ -7,12 +7,15 @@ import uuid
 from datetime import datetime
 from typing import Dict, Any, Optional, Tuple
 
+
 # ---------- Utilities ----------
 def _normalize_ws(s: str) -> str:
     return re.sub(r"\s+", " ", s or "").strip()
 
+
 def _uuid8() -> str:
     return str(uuid.uuid4())[:8]
+
 
 def _slug(s: str) -> str:
     s = _normalize_ws(s)
@@ -50,7 +53,7 @@ class TurtleGenerator:
         """
         Escape processing for Turtle string literals
         """
-        return s.replace('\\', '\\\\').replace('"', '\\"').replace('\n', '\\n').replace('\r', '\\r')
+        return s.replace("\\", "\\\\").replace('"', '\\"').replace("\n", "\\n").replace("\r", "\\r")
 
     def _escape_turtle_text(self, s: str) -> str:
         """
@@ -196,7 +199,9 @@ class TurtleGenerator:
 
         return {"turtle": turtle_content}
 
-    def generate_and_save(self, input_data: Dict[str, Any], filename: Optional[str] = None) -> Tuple[str, Dict[str, str]]:
+    def generate_and_save(
+        self, input_data: Dict[str, Any], filename: Optional[str] = None
+    ) -> Tuple[str, Dict[str, str]]:
         """
         Generate a Turtle file and save it to disk
 
@@ -212,12 +217,12 @@ class TurtleGenerator:
         if filename is None:
             filename = "knowledge_graph.ttl"
 
-        if not filename.endswith('.ttl'):
-            filename += '.ttl'
+        if not filename.endswith(".ttl"):
+            filename += ".ttl"
 
         filepath = os.path.join(self.output_dir, filename)
 
-        with open(filepath, 'w', encoding='utf-8') as f:
+        with open(filepath, "w", encoding="utf-8") as f:
             f.write(result["turtle"])
 
         return filepath, result
@@ -229,42 +234,17 @@ if __name__ == "__main__":
     sample_input = {
         "class_info": {
             "classes": [
-                {
-                    "id": "cls-001",
-                    "class_iri": "ex:Stakeholder",
-                    "label": "Store Staff",
-                    "file_id": "doc-001"
-                },
-                {
-                    "id": "cls-002",
-                    "class_iri": "ex:Value",
-                    "label": "Reduced Wait Time",
-                    "file_id": "doc-001"
-                },
-                {
-                    "id": "cls-003",
-                    "class_iri": "ex:Vision",
-                    "label": "No-Wait Store Experience",
-                    "file_id": "doc-001"
-                }
+                {"id": "cls-001", "class_iri": "ex:Stakeholder", "label": "Store Staff", "file_id": "doc-001"},
+                {"id": "cls-002", "class_iri": "ex:Value", "label": "Reduced Wait Time", "file_id": "doc-001"},
+                {"id": "cls-003", "class_iri": "ex:Vision", "label": "No-Wait Store Experience", "file_id": "doc-001"},
             ]
         },
         "property_info": {
             "properties": [
-                {
-                    "id": "prop-001",
-                    "src_id": "cls-001",
-                    "property_iri": "ex:hasValue",
-                    "dest_id": "cls-002"
-                },
-                {
-                    "id": "prop-002",
-                    "src_id": "cls-003",
-                    "property_iri": "ex:realizesValue",
-                    "dest_id": "cls-002"
-                }
+                {"id": "prop-001", "src_id": "cls-001", "property_iri": "ex:hasValue", "dest_id": "cls-002"},
+                {"id": "prop-002", "src_id": "cls-003", "property_iri": "ex:realizesValue", "dest_id": "cls-002"},
             ]
-        }
+        },
     }
 
     generator = TurtleGenerator()

@@ -10,7 +10,9 @@ from src.utils.miro_client import MiroClient
 from src.utils.text_similarity import match_pages_to_items
 
 
-def _process_visual_item(item: Dict[str, Any], item_type: str, parent_to_children: Dict[str, List], analyzer: MiroItemAnalyzer) -> tuple:
+def _process_visual_item(
+    item: Dict[str, Any], item_type: str, parent_to_children: Dict[str, List], analyzer: MiroItemAnalyzer
+) -> tuple:
     """Process a Frame or Diagram item and extract text from its children.
 
     Args:
@@ -47,7 +49,7 @@ def _process_visual_item(item: Dict[str, Any], item_type: str, parent_to_childre
         "item_type": item_type,
         "child_items": children,
         "item_text": child_text,
-        "child_item_types": child_item_types
+        "child_item_types": child_item_types,
     }
 
     return visual_item, analyzed_children
@@ -80,8 +82,7 @@ def parse_board_id_from_url(miro_url: str) -> str:
         return match.group(1)
 
     raise ValueError(
-        f"Invalid Miro URL format: {miro_url}. "
-        "Expected format: https://miro.com/app/board/BOARD_ID or miro:BOARD_ID"
+        f"Invalid Miro URL format: {miro_url}. Expected format: https://miro.com/app/board/BOARD_ID or miro:BOARD_ID"
     )
 
 
@@ -163,30 +164,34 @@ def extract_text_from_miro_board(pdf_path: str, miro_board_url: str) -> Dict[str
 
         # Create a single chunk for all items within this Frame/Diagram
         if visual_item["item_text"]:  # Only create chunk if there's text
-            text_chunks.append({
-                "text": visual_item["item_text"],
-                "file_id": f"miro_board:{board_id}:{visual_item['item_id']}",
-                "metadata": {
-                    "item_id": visual_item["item_id"],
-                    "item_type": visual_item["item_type"],
-                    "child_item_types": visual_item["child_item_types"]
+            text_chunks.append(
+                {
+                    "text": visual_item["item_text"],
+                    "file_id": f"miro_board:{board_id}:{visual_item['item_id']}",
+                    "metadata": {
+                        "item_id": visual_item["item_id"],
+                        "item_type": visual_item["item_type"],
+                        "child_item_types": visual_item["child_item_types"],
+                    },
                 }
-            })
+            )
 
     # Process standalone Documents and Tables (text extraction only, NO image analysis)
     for item in documents + tables:
         analyzed_items = analyzer.analyze({"items": [item]})
         for analyzed in analyzed_items:
             if analyzed.get("content"):
-                text_chunks.append({
-                    "text": analyzed["content"],
-                    "file_id": f"miro_board:{board_id}:{analyzed['item_id']}",
-                    "metadata": {
-                        "item_id": analyzed["item_id"],
-                        "item_type": analyzed["item_type"],
-                        "position": analyzed.get("position")
+                text_chunks.append(
+                    {
+                        "text": analyzed["content"],
+                        "file_id": f"miro_board:{board_id}:{analyzed['item_id']}",
+                        "metadata": {
+                            "item_id": analyzed["item_id"],
+                            "item_type": analyzed["item_type"],
+                            "position": analyzed.get("position"),
+                        },
                     }
-                })
+                )
 
     print(f"Visual items (Frames + Diagrams): {len(visual_items)}")
     print(f"Text chunks created: {len(text_chunks)}")
@@ -211,11 +216,7 @@ def extract_text_from_miro_board(pdf_path: str, miro_board_url: str) -> Dict[str
     # 8. Match PDF pages to Frames/Diagrams via text similarity
     item_page_mappings = []
     if pdf_page_texts and visual_items:
-        item_page_mappings = match_pages_to_items(
-            pdf_page_texts,
-            visual_items,
-            threshold=0.3
-        )
+        item_page_mappings = match_pages_to_items(pdf_page_texts, visual_items, threshold=0.3)
         print(f"Matched {len(item_page_mappings)} pages to Frames/Diagrams")
 
     # 9. Prepare return data
@@ -229,5 +230,5 @@ def extract_text_from_miro_board(pdf_path: str, miro_board_url: str) -> Dict[str
             "name": board_data.get("name", "Unnamed Board"),
             "items": all_items,
             "modifiedAt": board_data.get("modifiedAt"),
-        }
+        },
     }

@@ -55,10 +55,7 @@ class GitHubClient:
         self.session = requests.Session()
 
         # Set headers
-        headers = {
-            "Accept": "application/vnd.github.v3+json",
-            "User-Agent": "KnowledgeExtractor/1.0"
-        }
+        headers = {"Accept": "application/vnd.github.v3+json", "User-Agent": "KnowledgeExtractor/1.0"}
 
         # Add authentication if token is provided
         if self.access_token:
@@ -87,8 +84,8 @@ class GitHubClient:
             ValueError: For authentication/permission errors with clear messages
         """
         # Ensure base_url ends with / and endpoint doesn't start with / for proper joining
-        base = self.base_url.rstrip('/') + '/'
-        endpoint_clean = endpoint.lstrip('/')
+        base = self.base_url.rstrip("/") + "/"
+        endpoint_clean = endpoint.lstrip("/")
         url = urljoin(base, endpoint_clean)
         kwargs.setdefault("timeout", self.timeout)
 
@@ -110,12 +107,10 @@ class GitHubClient:
                         if reset_time:
                             wait_time = reset_time - time.time()
                             raise ValueError(
-                                f"Rate limit exceeded. Resets in {wait_time/60:.1f} minutes. "
+                                f"Rate limit exceeded. Resets in {wait_time / 60:.1f} minutes. "
                                 f"Use GITHUB_TOKEN for higher limits (5,000/hr vs 60/hr)."
                             )
-                    raise ValueError(
-                        f"No access to requested resource. Check repository permissions and token scopes."
-                    )
+                    raise ValueError(f"No access to requested resource. Check repository permissions and token scopes.")
                 elif response.status_code == 404:
                     # Extract meaningful info from endpoint for better error message
                     parts = endpoint.split("/")
@@ -124,10 +119,12 @@ class GitHubClient:
                 elif response.status_code == 429:
                     # Rate limit - retry with exponential backoff
                     if attempt < self.max_retries:
-                        retry_after = int(response.headers.get("Retry-After", 2 ** attempt))
+                        retry_after = int(response.headers.get("Retry-After", 2**attempt))
                         jitter = 0.1 * retry_after  # 10% jitter
                         sleep_time = retry_after + jitter
-                        print(f"Rate limited (429). Retrying in {sleep_time:.2f}s (attempt {attempt + 1}/{self.max_retries})")
+                        print(
+                            f"Rate limited (429). Retrying in {sleep_time:.2f}s (attempt {attempt + 1}/{self.max_retries})"
+                        )
                         time.sleep(sleep_time)
                         continue
                     else:
@@ -320,13 +317,7 @@ class GitHubClient:
         return result
 
     def list_files_recursive(
-        self,
-        owner: str,
-        repo: str,
-        path: str = "",
-        ref: str = None,
-        max_depth: int = 10,
-        _log_progress: bool = True
+        self, owner: str, repo: str, path: str = "", ref: str = None, max_depth: int = 10, _log_progress: bool = True
     ) -> List[Dict[str, Any]]:
         """Recursively list all files in a directory.
 
@@ -363,19 +354,17 @@ class GitHubClient:
             return []
 
         # Count files and subdirectories
-        file_count = sum(1 for item in items if item['type'] == 'file')
-        dir_count = sum(1 for item in items if item['type'] == 'dir')
+        file_count = sum(1 for item in items if item["type"] == "file")
+        dir_count = sum(1 for item in items if item["type"] == "dir")
         if _log_progress:
             print(f"[GitHubClient]   Found {file_count} files, {dir_count} subdirectories")
 
         for item in items:
-            if item['type'] == 'file':
+            if item["type"] == "file":
                 all_files.append(item)
-            elif item['type'] == 'dir':
+            elif item["type"] == "dir":
                 # Recursively list subdirectory
-                sub_files = self.list_files_recursive(
-                    owner, repo, item['path'], ref, max_depth - 1, _log_progress
-                )
+                sub_files = self.list_files_recursive(owner, repo, item["path"], ref, max_depth - 1, _log_progress)
                 all_files.extend(sub_files)
 
         return all_files
@@ -470,13 +459,7 @@ class GitHubClient:
         """
         return self._make_request("GET", f"/repos/{owner}/{repo}/releases/latest")
 
-    def get_issues(
-        self,
-        owner: str,
-        repo: str,
-        state: str = "all",
-        per_page: int = 100
-    ) -> List[Dict[str, Any]]:
+    def get_issues(self, owner: str, repo: str, state: str = "all", per_page: int = 100) -> List[Dict[str, Any]]:
         """Fetch repository issues.
 
         Args:
@@ -499,10 +482,7 @@ class GitHubClient:
             >>> client = GitHubClient()
             >>> issues = client.get_issues("facebook", "react", state="open", per_page=50)
         """
-        params = {
-            "state": state,
-            "per_page": min(per_page, 100)
-        }
+        params = {"state": state, "per_page": min(per_page, 100)}
         return self._make_request("GET", f"/repos/{owner}/{repo}/issues", params=params)
 
     def get_default_branch(self, owner: str, repo: str) -> str:
@@ -523,13 +503,7 @@ class GitHubClient:
         repo_data = self.get_repo(owner, repo)
         return repo_data.get("default_branch", "main")
 
-    def get_commit_at_date(
-        self,
-        owner: str,
-        repo: str,
-        date: str,
-        branch: Optional[str] = None
-    ) -> Dict[str, Any]:
+    def get_commit_at_date(self, owner: str, repo: str, date: str, branch: Optional[str] = None) -> Dict[str, Any]:
         """Find the most recent commit on or before a specific date.
 
         Args:
@@ -559,11 +533,7 @@ class GitHubClient:
 
         # Fetch commits until the specified date
         # GitHub API returns commits in reverse chronological order
-        params = {
-            "sha": branch,
-            "until": date,
-            "per_page": 1
-        }
+        params = {"sha": branch, "until": date, "per_page": 1}
 
         commits = self._make_request("GET", f"/repos/{owner}/{repo}/commits", params=params)
 

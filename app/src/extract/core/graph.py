@@ -24,7 +24,7 @@ from src.extract.core.nodes import (
     cleanup_deleted_items_node,
     save_accumulated_knowledge_node,
     generate_outputs_node,
-    route_by_file_type
+    route_by_file_type,
 )
 
 
@@ -115,7 +115,7 @@ def create_knowledge_extraction_graph():
             "extract_text_miro_board": "extract_text_miro_board",
             "extract_text_document": "extract_text_document",
             "extract_text_presentation": "extract_text_presentation",
-        }
+        },
     )
 
     # detect_github_changes → extract_text_github
@@ -137,7 +137,7 @@ def create_knowledge_extraction_graph():
         {
             "extract_text_miro_board": "extract_text_miro_board",
             "extract_text_miro": "extract_text_miro",
-        }
+        },
     )
 
     # miro_board path: extract_text_miro_board → extract_images_miro_board → transform_to_chunks → merge_chunks
