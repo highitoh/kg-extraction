@@ -1,7 +1,8 @@
-FROM python:3.13
+FROM ghcr.io/astral-sh/uv:python3.14-trixie-slim
 
+# Install dependencies using uv
 COPY requirements.txt /tmp/pip-tmp/
-RUN pip3 install -r /tmp/pip-tmp/requirements.txt \
+RUN uv pip install --system -r /tmp/pip-tmp/requirements.txt \
    && rm -rf /tmp/pip-tmp
 
 # Workspace
