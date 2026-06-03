@@ -103,8 +103,7 @@ class MiroItemAnalyzer:
 
         elif item_type == "document":
             title = data.get("title", "").strip()
-            document_url = data.get("documentUrl", "")
-            # For now, just extract title. Future: fetch document content
+            # For now, just extract title. Future: fetch document content via data.get("documentUrl")
             content = title
 
         elif item_type == "diagram":

@@ -105,11 +105,6 @@ class SnapshotManager:
         # Compute counts and statistics
         counts = self._compute_counts(knowledge)
 
-        # Compute source PDF hash if provided
-        source_pdf_hash = None
-        if source_pdf and os.path.exists(source_pdf):
-            source_pdf_hash = self._compute_file_hash(source_pdf)
-
         # Build extraction trigger metadata (what caused this snapshot to be created)
         # NOTE: "trigger" here means "extraction trigger" (technical), NOT "change driver" (business)
         extraction_trigger = {"triggerType": trigger_type}  # "extraction" or "manual"

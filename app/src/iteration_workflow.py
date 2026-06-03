@@ -161,7 +161,7 @@ class IterationWorkflow:
             for idx, pdf_path in enumerate(pdf_paths, 1):
                 print(f"    [{idx}/{len(pdf_paths)}] Processing: {Path(pdf_path).name}")
                 try:
-                    result = run_knowledge_extraction(
+                    run_knowledge_extraction(
                         pdf_path=pdf_path, output_dir=self.output_dir, model=self.model, project=project
                     )
                     project_results["files"].append({"file": pdf_path, "success": True})
@@ -340,12 +340,12 @@ class IterationWorkflow:
             print("  Warning: Some extractions failed, continuing with available data")
 
         # Phase 3: Evaluation
-        evaluation_results = self._run_evaluation_phase(iteration)
+        self._run_evaluation_phase(iteration)
         iteration_result["phases_completed"].append("evaluate")
         self._save_state()
 
         # Phase 4: Optimization
-        optimization_results = self._run_optimization_phase(iteration)
+        self._run_optimization_phase(iteration)
         iteration_result["phases_completed"].append("optimize")
 
         # Archive optimization artifacts

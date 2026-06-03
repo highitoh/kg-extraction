@@ -56,7 +56,6 @@ def show_command(args):
     try:
         snapshot = repo.get_snapshot(args.project, args.snapshot)
         metadata = snapshot["metadata"]
-        knowledge = snapshot["knowledge"]
 
         print("\n=== Snapshot Details ===")
         print(f"Snapshot ID: {metadata['snapshot_id']}")

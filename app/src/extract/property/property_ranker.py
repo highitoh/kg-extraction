@@ -309,7 +309,6 @@ class PropertyRanker(Runnable):
         class_info = input.get("class_info", {})
 
         properties = property_candidates.get("properties", [])
-        classes = class_info.get("classes", [])
 
         if not properties:
             # If no properties, return as is

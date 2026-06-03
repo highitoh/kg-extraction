@@ -309,11 +309,8 @@ class ClassReviewer(Runnable):
             justification = prohibit_judgments[i].get("justification", "")
 
             # Check if included in duplicate group
-            found_in_duplicate = False
             for group_id, group_info in duplicate_groups.items():
                 if class_id in group_info.get("class_ids", []):
-                    found_in_duplicate = True
-
                     # Process when duplicate is found
                     if judgment != "REVIEW":
                         # If not REVIEW in prohibit rules, change to REVIEW with duplicate reason

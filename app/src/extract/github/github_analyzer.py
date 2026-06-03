@@ -236,7 +236,6 @@ class GitHubAnalyzer:
             >>> analyzer._categorize_file("docs/api.md")
             'doc'
         """
-        path_lower = path.lower()
         filename = path.split("/")[-1].lower()
 
         # README files

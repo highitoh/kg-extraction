@@ -58,7 +58,6 @@ def extract_text_from_github(
     owner = parsed_url["owner"]
     repo = parsed_url["repo"]
     ref = parsed_url["ref"]
-    url_type = parsed_url["url_type"]
     profile_name = profile_override or parsed_url["profile"]
 
     # Get profile

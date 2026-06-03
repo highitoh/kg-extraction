@@ -165,7 +165,6 @@ class ClassConsolidator(Runnable):
 
         # Process each common class_iri: match new against frozen
         all_classes = []
-        processed_new_ids = set()
 
         # Process all common_iris in parallel
         llm = self._create_llm()
