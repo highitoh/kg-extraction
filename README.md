@@ -1,11 +1,13 @@
-# PDF Knowledge Graph Extractor
+# Knowledge Graph Extractor
 
-A LangChain-based application that automatically extracts knowledge from PDF files and generates knowledge graphs in RDF/Turtle format and Neo4j CSV files.
+A LangChain-based application that automatically extracts knowledge from multiple sources and generates knowledge graphs in RDF/Turtle format and Neo4j CSV files.
 
 ## Features
 
+- **Multiple Data Sources**: PDF documents, Miro boards, Jira Cloud projects, GitHub repositories
 - **PDF Analysis**: Automatic classification of document and presentation formats
 - **Knowledge Extraction**: Automated class and property extraction using LLMs
+- **Incremental Extraction**: Only process changed content on subsequent runs
 - **Multi-format Output**: Simultaneous generation of RDF/Turtle and Neo4j CSV
 - **Metamodel-driven**: Structured extraction management using JSON schemas
 - **Pipeline Processing**: Consistent workflow from text extraction to graph generation
@@ -13,11 +15,18 @@ A LangChain-based application that automatically extracts knowledge from PDF fil
 ## Architecture
 
 ```
-PDF Input → File Type Classification → Text Extraction → View Extraction
+Input → File Type Classification → Text Extraction → View Extraction
   → Class Extraction → Property Extraction → Output Generation
                                               ├─ Turtle (.ttl)
-                                              └─ Neo4j CSV
+                                              ├─ Neo4j CSV
+                                              └─ Knowledge JSON
 ```
+
+**Supported Data Sources:**
+- **PDF**: Documents and presentations with automatic format detection
+- **Miro**: Visual boards with API-based content extraction
+- **Jira Cloud**: Project tickets (title, description, comments)
+- **GitHub**: Repository files and documentation
 
 ## Prerequisites
 
@@ -107,6 +116,17 @@ cd app
 
 > **Note:** Export the PDF from Miro as **Vector** (a paid Miro plan feature).
 > If exported as an image, image analysis is skipped.
+
+### Jira Project Extraction
+
+Extract knowledge from Jira Cloud tickets (title, description, comments):
+
+```bash
+cd app
+
+# Extract entire project
+./extract.sh "https://your-instance.atlassian.net/browse/PROJ" --project my-jira-project
+```
 
 ## Project Structure
 

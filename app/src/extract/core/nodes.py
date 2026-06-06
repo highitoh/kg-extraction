@@ -298,8 +298,8 @@ def detect_github_changes_node(state: KnowledgeExtractionState) -> KnowledgeExtr
     Only runs for GitHub file_type.
     """
     try:
-        from src.utils.snapshot_repository import SnapshotRepository
         from src.extract.github.github_url_parser import parse_github_url
+        from src.utils.snapshot_repository import SnapshotRepository
 
         github_url = state["files"][0]["path"]
         parsed = parse_github_url(github_url)
@@ -441,6 +441,169 @@ def extract_text_github_node(state: KnowledgeExtractionState) -> KnowledgeExtrac
         traceback.print_exc()
         state.setdefault("errors", [])
         state["errors"].append(f"GitHub text extraction failed: {e}")
+        state["sentences"] = []
+        state["current_stage"] = "text_extraction_failed"
+
+    return state
+
+
+def detect_jira_changes_node(state: KnowledgeExtractionState) -> KnowledgeExtractionState:
+    """
+    Node that detects changes in Jira project.
+    Sets incremental mode and identifies changed/deleted issues.
+    Only runs for jira_project file_type.
+    """
+    try:
+        from src.extract.jira.jira_url_parser import get_project_identifier, parse_jira_url
+        from src.utils.snapshot_repository import SnapshotRepository
+
+        jira_url = state["files"][0]["path"]
+        parsed = parse_jira_url(jira_url)
+        domain = parsed["domain"]
+        project_key = parsed["project_key"]
+
+        project_identifier = get_project_identifier(domain, project_key)
+        project = state.get("project", "default")
+        output_dir = state.get("output_dir", "/workspace/app/output")
+
+        # Find previous snapshot for this Jira project
+        repo = SnapshotRepository(output_dir=output_dir)
+
+        try:
+            snapshots = repo.list_snapshots(project)
+            prev_snapshot_id = None
+
+            for snapshot in snapshots:
+                trigger = snapshot.get("trigger", {})
+                source_id = trigger.get("sourceIdentifier", "")
+                if source_id == project_identifier:
+                    prev_snapshot_id = snapshot["snapshot_id"]
+                    break
+
+            if not prev_snapshot_id:
+                print("[DetectJiraChanges] No previous snapshot found, doing full extraction")
+                state["incremental_mode"] = False
+                return state
+
+            print(f"[DetectJiraChanges] Found previous snapshot: {prev_snapshot_id}")
+            state["previous_snapshot_id"] = prev_snapshot_id
+            state["incremental_mode"] = True
+            state["current_stage"] = "jira_changes_detected"
+
+        except FileNotFoundError:
+            print("[DetectJiraChanges] No snapshots directory, doing full extraction")
+            state["incremental_mode"] = False
+
+    except Exception as e:
+        print(f"[DetectJiraChanges] Error: {e}, falling back to full extraction")
+        state["incremental_mode"] = False
+        state["current_stage"] = "jira_change_detection_failed"
+
+    return state
+
+
+def extract_text_jira_node(state: KnowledgeExtractionState) -> KnowledgeExtractionState:
+    """
+    Node that extracts text from Jira project.
+    Supports incremental mode (only extract changed issues).
+    jira_url -> text_chunks, jira_raw_data
+    """
+    try:
+        from src.extract.jira.jira_text_extractor import extract_text_from_jira
+        from src.utils.source_change_detector import load_source_raw
+
+        jira_url = state["files"][0]["path"]
+        chunks = extract_text_from_jira(jira_url)
+
+        # Extract jira_raw_data from first chunk
+        jira_raw_data = chunks[0].pop("_jira_raw_data", None) if chunks else None
+
+        # Apply incremental filtering if enabled
+        if state.get("incremental_mode") and jira_raw_data:
+            prev_snapshot_id = state.get("previous_snapshot_id")
+            project = state.get("project", "default")
+            output_dir = state.get("output_dir", "/workspace/app/output")
+
+            # Load previous snapshot data
+            prev_raw = load_source_raw(project, prev_snapshot_id, output_dir)
+
+            if prev_raw and "issue_map" in prev_raw:
+                prev_issue_map = prev_raw.get("issue_map", {})
+                curr_issue_map = jira_raw_data.get("issue_map", {})
+
+                prev_ids = set(prev_issue_map.keys())
+                curr_ids = set(curr_issue_map.keys())
+
+                new_ids = curr_ids - prev_ids
+                deleted_ids = prev_ids - curr_ids
+
+                # Find modified issues (check updated timestamp changes)
+                modified_ids = set()
+                for issue_key in prev_ids & curr_ids:
+                    prev_updated = prev_issue_map[issue_key].get("updated", "")
+                    curr_updated = curr_issue_map[issue_key].get("updated", "")
+                    # Compare timestamps (Jira format: "2026-06-01T10:30:00.000+0000")
+                    if prev_updated != curr_updated:
+                        modified_ids.add(issue_key)
+
+                changed_ids = new_ids | modified_ids
+
+                # Filter chunks to only changed issues
+                filtered_chunks = [
+                    chunk for chunk in chunks if chunk.get("metadata", {}).get("issue_key") in changed_ids
+                ]
+
+                print(
+                    f"[ExtractTextJiraNode] Incremental mode: "
+                    f"new={len(new_ids)}, modified={len(modified_ids)}, "
+                    f"deleted={len(deleted_ids)}, processing={len(filtered_chunks)} chunks"
+                )
+
+                # Store deleted/changed issue IDs for cleanup and merging
+                state["deleted_item_ids"] = list(deleted_ids)
+                state["changed_item_ids"] = list(changed_ids)
+
+                chunks = filtered_chunks
+            else:
+                print("[ExtractTextJiraNode] Could not load previous data, using full extraction")
+                state["incremental_mode"] = False
+
+        # Convert chunks to sentences format expected by downstream nodes
+        sentences = []
+
+        for chunk in chunks:
+            if chunk.get("text"):
+                sentences.append(
+                    {
+                        "text": chunk["text"],
+                        "metadata": chunk.get("metadata", {}),
+                        "file_id": chunk.get("file_id"),  # Preserve issue-level file_id
+                    }
+                )
+
+        # Store results in State
+        state["sentences"] = sentences
+        state["file_id"] = chunks[0].get("file_id", "") if chunks else ""
+
+        # Extract domain and project_key for file_name
+        if jira_raw_data:
+            domain = jira_raw_data.get("domain", "unknown")
+            project_key = jira_raw_data.get("project_key", "unknown")
+            state["file_name"] = f"Jira:{domain}:{project_key}"
+        else:
+            state["file_name"] = "Jira Project"
+
+        state["jira_raw_data"] = jira_raw_data
+        state["current_stage"] = "text_extracted_jira"
+
+        print(f"[ExtractTextJiraNode] Extracted {len(sentences)} issues from Jira project")
+
+    except Exception as e:
+        import traceback
+
+        traceback.print_exc()
+        state.setdefault("errors", [])
+        state["errors"].append(f"Jira text extraction failed: {e}")
         state["sentences"] = []
         state["current_stage"] = "text_extraction_failed"
 
@@ -731,8 +894,9 @@ def extract_properties_node(state: KnowledgeExtractionState) -> KnowledgeExtract
 
 def cleanup_deleted_items_node(state: KnowledgeExtractionState) -> KnowledgeExtractionState:
     """
-    Node that removes knowledge from deleted Miro items.
+    Node that removes knowledge from deleted items.
     Runs only in incremental mode when items were deleted.
+    Supports Miro, GitHub, and Jira sources.
     """
     try:
         # Only run in incremental mode with deletions
@@ -743,13 +907,32 @@ def cleanup_deleted_items_node(state: KnowledgeExtractionState) -> KnowledgeExtr
         if not deleted_item_ids:
             return state
 
-        from src.extract.miro.miro_text_extractor import parse_board_id_from_url
+        file_type = state.get("file_type")
 
-        miro_url = state["files"][0]["path"]
-        board_id = parse_board_id_from_url(miro_url)
+        # Build file_ids for deleted items based on source type
+        if file_type == "miro_board":
+            from src.extract.miro.miro_text_extractor import parse_board_id_from_url
 
-        # Build file_ids for deleted items
-        deleted_file_ids = {f"miro:{board_id}:{item_id}" for item_id in deleted_item_ids}
+            miro_url = state["files"][0]["path"]
+            board_id = parse_board_id_from_url(miro_url)
+            deleted_file_ids = {f"miro:{board_id}:{item_id}" for item_id in deleted_item_ids}
+
+        elif file_type == "jira_project":
+            from src.extract.jira.jira_url_parser import get_issue_identifier, parse_jira_url
+
+            jira_url = state["files"][0]["path"]
+            parsed = parse_jira_url(jira_url)
+            domain = parsed["domain"]
+            # deleted_item_ids are issue keys like "PROJ-123"
+            deleted_file_ids = {get_issue_identifier(domain, issue_key) for issue_key in deleted_item_ids}
+
+        elif file_type == "github_repo":
+            # Deleted file_ids already in format "github:owner:repo:path:sha"
+            deleted_file_ids = set(deleted_item_ids)
+
+        else:
+            print(f"[CleanupDeletedItems] Unsupported file_type: {file_type}, skipping")
+            return state
 
         print(f"[CleanupDeletedItems] Removing knowledge from {len(deleted_file_ids)} deleted items")
 

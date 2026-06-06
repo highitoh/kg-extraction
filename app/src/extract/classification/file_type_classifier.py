@@ -1,19 +1,19 @@
-from typing import Any, Dict, Optional, Union, List
 import base64
 import csv
-import os
 import json
+import os
 import tempfile
 from datetime import datetime
-from pypdf import PdfReader, PdfWriter
+from typing import Any, Dict, List, Optional, Union
 
 from langchain_core.language_models.chat_models import BaseChatModel
 from langchain_core.messages import HumanMessage
 from langchain_core.runnables import Runnable
 from pydantic import BaseModel, ConfigDict
+from pypdf import PdfReader, PdfWriter
 
-from src.utils.logger import Logger
 from src.utils.llm_factory import LLMFactory
+from src.utils.logger import Logger
 
 
 class FileTypeClassifierLLMSchema(BaseModel):
@@ -160,6 +160,21 @@ class FileTypeClassifier(Runnable):
                 "file_type": file_type,
                 "is_presentation": False,
                 "justification": "GitHub repository URL detected",
+            }
+            self.logger.save_log(log_data, "file_type_classifier_output_")
+            return {**input, "file_type": file_type}
+
+        # Check if this is a Jira URL
+        if ".atlassian.net/browse/" in file_path or file_path.startswith("jira:"):
+            file_type = "jira_project"
+            print(f"File: {file_path}, Type: {file_type}")
+
+            # Save log
+            log_data = {
+                "file_path": file_path,
+                "file_type": file_type,
+                "is_presentation": False,
+                "justification": "Jira Cloud URL detected",
             }
             self.logger.save_log(log_data, "file_type_classifier_output_")
             return {**input, "file_type": file_type}

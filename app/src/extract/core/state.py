@@ -3,7 +3,7 @@ LangGraph State Definition for Knowledge Extraction
 LangGraph State definition for knowledge extraction processing
 """
 
-from typing import TypedDict, List, Dict, Any, Optional
+from typing import Any, Dict, List, Optional, TypedDict
 
 
 class KnowledgeExtractionState(TypedDict, total=False):
@@ -63,6 +63,18 @@ class KnowledgeExtractionState(TypedDict, total=False):
     previous_snapshot_id: Optional[str]  # Previous snapshot for comparison
     changed_item_ids: Optional[List[str]]  # Item IDs to process (new/modified)
     deleted_item_ids: Optional[List[str]]  # Item IDs deleted from board
+
+    # ========== Jira-Specific Fields ==========
+    jira_instance_url: Optional[str]  # Jira instance URL (e.g., "https://company.atlassian.net")
+    jira_project_key: Optional[str]  # Project key (e.g., "PROJ")
+    jira_raw_data: Optional[Dict[str, Any]]  # Raw Jira project data (for Jira sources)
+    # Raw data structure: {
+    #   "domain": str,
+    #   "project_key": str,
+    #   "issue_map": Dict[str, Any],  # issue_key → issue metadata for change tracking
+    #   "total_issues": int,
+    #   "fetched_at": str  # ISO timestamp
+    # }
 
     # ========== GitHub-Specific Fields ==========
     date: Optional[str]  # Date in YYYYMMDD format for GitHub extraction at specific point in time

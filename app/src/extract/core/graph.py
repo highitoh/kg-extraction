@@ -3,28 +3,31 @@ LangGraph Graph Construction for Knowledge Extraction
 LangGraph graph definition for knowledge extraction processing
 """
 
-from langgraph.graph import StateGraph, END
-from src.extract.core.state import KnowledgeExtractionState
+from langgraph.graph import END, StateGraph
+
 from src.extract.core.nodes import (
     classify_file_type_node,
-    detect_miro_changes_node,
-    detect_github_changes_node,
-    extract_text_document_node,
-    extract_text_presentation_node,
-    extract_text_miro_node,
-    extract_text_miro_board_node,
-    extract_images_miro_board_node,
-    extract_text_github_node,
-    transform_to_chunks_node,
-    extract_images_node,
-    merge_chunks_node,
-    extract_views_node,
-    extract_classes_node,
-    extract_properties_node,
     cleanup_deleted_items_node,
-    save_accumulated_knowledge_node,
+    detect_github_changes_node,
+    detect_jira_changes_node,
+    detect_miro_changes_node,
+    extract_classes_node,
+    extract_images_miro_board_node,
+    extract_images_node,
+    extract_properties_node,
+    extract_text_document_node,
+    extract_text_github_node,
+    extract_text_jira_node,
+    extract_text_miro_board_node,
+    extract_text_miro_node,
+    extract_text_presentation_node,
+    extract_views_node,
     generate_outputs_node,
+    merge_chunks_node,
+    save_accumulated_knowledge_node,
+    transform_to_chunks_node,
 )
+from src.extract.core.state import KnowledgeExtractionState
 
 
 def create_knowledge_extraction_graph():
@@ -68,12 +71,14 @@ def create_knowledge_extraction_graph():
     workflow.add_node("classify_file_type", classify_file_type_node)
     workflow.add_node("detect_miro_changes", detect_miro_changes_node)
     workflow.add_node("detect_github_changes", detect_github_changes_node)
+    workflow.add_node("detect_jira_changes", detect_jira_changes_node)
     workflow.add_node("extract_text_document", extract_text_document_node)
     workflow.add_node("extract_text_presentation", extract_text_presentation_node)
     workflow.add_node("extract_text_miro", extract_text_miro_node)
     workflow.add_node("extract_text_miro_board", extract_text_miro_board_node)
     workflow.add_node("extract_images_miro_board", extract_images_miro_board_node)
     workflow.add_node("extract_text_github", extract_text_github_node)
+    workflow.add_node("extract_text_jira", extract_text_jira_node)
     workflow.add_node("transform_to_chunks", transform_to_chunks_node)
     workflow.add_node("extract_images", extract_images_node)
     workflow.add_node("merge_chunks", merge_chunks_node)
@@ -95,6 +100,8 @@ def create_knowledge_extraction_graph():
         file_type = state.get("file_type")
         if file_type == "github_repo":
             return "detect_github_changes"
+        elif file_type == "jira_project":
+            return "detect_jira_changes"
         elif file_type == "miro_board":
             # Both PDF+API and URL-only modes go through change detection
             return "detect_miro_changes"
@@ -110,6 +117,7 @@ def create_knowledge_extraction_graph():
         route_after_classify,
         {
             "detect_github_changes": "detect_github_changes",
+            "detect_jira_changes": "detect_jira_changes",
             "detect_miro_changes": "detect_miro_changes",
             "extract_text_miro_board": "extract_text_miro_board",
             "extract_text_document": "extract_text_document",
@@ -119,6 +127,9 @@ def create_knowledge_extraction_graph():
 
     # detect_github_changes → extract_text_github
     workflow.add_edge("detect_github_changes", "extract_text_github")
+
+    # detect_jira_changes → extract_text_jira
+    workflow.add_edge("detect_jira_changes", "extract_text_jira")
 
     # detect_miro_changes → route based on mode (PDF+URL vs URL-only)
     def route_after_miro_changes(state):
@@ -149,6 +160,7 @@ def create_knowledge_extraction_graph():
     workflow.add_edge("extract_text_presentation", "transform_to_chunks")
     workflow.add_edge("extract_text_miro", "transform_to_chunks")
     workflow.add_edge("extract_text_github", "transform_to_chunks")
+    workflow.add_edge("extract_text_jira", "transform_to_chunks")
 
     # Image path (parallel to text chunking): text extracted → extract images → merge
     # Fan out from both text-extraction nodes so image extraction runs after file_id is known
@@ -156,6 +168,7 @@ def create_knowledge_extraction_graph():
     workflow.add_edge("extract_text_presentation", "extract_images")
     workflow.add_edge("extract_text_miro", "extract_images")
     workflow.add_edge("extract_text_github", "extract_images")
+    workflow.add_edge("extract_text_jira", "extract_images")
 
     # Both paths converge at merge_chunks
     workflow.add_edge("transform_to_chunks", "merge_chunks")

@@ -91,8 +91,10 @@ def run_knowledge_extraction(
         try:
             snapshot_mgr = SnapshotManager(output_dir=output_dir, timestamp=timestamp)
 
-            # Check if Miro or GitHub data exists in result
-            raw_source_data = result.get("miro_raw_data") or result.get("github_raw_data")
+            # Check if Miro, GitHub, or Jira data exists in result
+            raw_source_data = (
+                result.get("miro_raw_data") or result.get("jira_raw_data") or result.get("github_raw_data")
+            )
 
             snapshot_result = snapshot_mgr.create_snapshot(
                 project=project,
