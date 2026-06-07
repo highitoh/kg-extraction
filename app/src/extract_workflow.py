@@ -78,8 +78,8 @@ def run_knowledge_extraction(
     # Persist extraction result for downstream evaluation/reward pipeline
     project_output_dir = os.path.join(output_dir, project)
     os.makedirs(project_output_dir, exist_ok=True)
-    timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
-    output_json = os.path.join(project_output_dir, f"extraction_result_{timestamp}.json")
+    result_timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
+    output_json = os.path.join(project_output_dir, f"extraction_result_{result_timestamp}.json")
     with open(output_json, "w", encoding="utf-8") as f:
         result_copy = result.copy()
         # Exclude turtle content because it can be very large

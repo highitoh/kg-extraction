@@ -145,6 +145,20 @@ class SnapshotManager:
                 "hash": hashlib.sha256(json.dumps(raw_source_data, sort_keys=True).encode()).hexdigest()[:16],
             }
 
+        # Handle Jira project source
+        if raw_source_data and "domain" in raw_source_data and "project_key" in raw_source_data:
+            domain = raw_source_data.get("domain")
+            project_key = raw_source_data.get("project_key")
+            extraction_trigger["sourceIdentifier"] = f"jira:{domain}:{project_key}"
+            extraction_trigger["sourceName"] = f"{domain}/{project_key}"
+            extraction_trigger["sourceMetadata"] = {
+                "domain": domain,
+                "project_key": project_key,
+                "total_issues": raw_source_data.get("total_issues", 0),
+                "watermark": raw_source_data.get("watermark"),
+                "hash": hashlib.sha256(json.dumps(raw_source_data, sort_keys=True).encode()).hexdigest()[:16],
+            }
+
         if extraction_result_file:
             extraction_trigger["extractionResultFile"] = extraction_result_file
 

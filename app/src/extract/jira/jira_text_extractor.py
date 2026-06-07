@@ -3,23 +3,26 @@
 import hashlib
 import json
 from datetime import datetime
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 from src.extract.jira.jira_url_parser import get_issue_identifier, parse_jira_url
 from src.utils.jira_client import JiraClient
 
 
-def extract_text_from_jira(jira_url: str) -> List[Dict[str, Any]]:
+def extract_text_from_jira(jira_url: str, since_watermark: Optional[str] = None) -> List[Dict[str, Any]]:
     """Extract text content from Jira project.
 
     Main extraction function that orchestrates:
     1. URL parsing
-    2. API calls to fetch all issues
+    2. API calls to fetch all issues (or only updated issues if since_watermark is provided)
     3. ADF to Markdown conversion
     4. Structuring for downstream processing
 
     Args:
         jira_url: Jira project URL or identifier
+        since_watermark: Optional Jira "updated" timestamp (tz-aware ISO8601, e.g.
+            "2026-06-08T06:31:16.064+0900") to fetch only issues updated since this time
+            (incremental mode). This is a Jira-native value, so no timezone conversion is needed.
 
     Returns:
         List of text chunks with metadata:
@@ -56,10 +59,16 @@ def extract_text_from_jira(jira_url: str) -> List[Dict[str, Any]]:
     # Initialize Jira client
     client = JiraClient(instance_domain=domain)
 
-    # Fetch all issues from project
-    all_issues = _fetch_all_issues(client, project_key)
+    # Fetch all issues from project (or only updated issues in incremental mode)
+    all_issues = _fetch_all_issues(client, project_key, since_watermark)
 
-    print(f"[JiraExtractor] Fetched {len(all_issues)} issues from project {project_key}")
+    if since_watermark:
+        print(
+            f"[JiraExtractor] Fetched {len(all_issues)} updated issues from project {project_key} "
+            f"(since {since_watermark})"
+        )
+    else:
+        print(f"[JiraExtractor] Fetched {len(all_issues)} issues from project {project_key}")
 
     # Transform issues to chunks
     chunks = []
@@ -80,17 +89,32 @@ def extract_text_from_jira(jira_url: str) -> List[Dict[str, Any]]:
     return chunks
 
 
-def _fetch_all_issues(client: JiraClient, project_key: str) -> List[Dict[str, Any]]:
+def _fetch_all_issues(
+    client: JiraClient, project_key: str, since_watermark: Optional[str] = None
+) -> List[Dict[str, Any]]:
     """Fetch all issues from a Jira project with pagination.
 
     Args:
         client: JiraClient instance
         project_key: Project key (e.g., "PROJ")
+        since_watermark: Optional Jira "updated" timestamp (tz-aware ISO8601) to fetch only
+            issues updated since this time
 
     Returns:
-        List of all issue objects
+        List of all issue objects (or only updated issues if since_watermark is provided)
     """
-    jql = f"project = {project_key} ORDER BY updated DESC"
+    if since_watermark:
+        # The watermark is a Jira-native "updated" value, which is timezone-aware
+        # (e.g. "2026-06-08T06:31:16.064+0900"). JQL interprets bare timestamps in the
+        # instance's timezone, so we format the watermark's own local wall-clock time.
+        # Parsing with fromisoformat preserves the offset, and strftime renders that same
+        # local time -- no manual timezone conversion or DST handling is needed.
+        watermark_dt = datetime.fromisoformat(since_watermark)
+        jql_timestamp = watermark_dt.strftime("%Y-%m-%d %H:%M")
+
+        jql = f"project = {project_key} AND updated >= '{jql_timestamp}' ORDER BY updated DESC"
+    else:
+        jql = f"project = {project_key} ORDER BY updated DESC"
     all_issues = []
     start_at = 0
     max_results = 50
@@ -255,14 +279,17 @@ def _build_raw_data(domain: str, project_key: str, issues: List[Dict[str, Any]])
         issues: List of all issues
 
     Returns:
-        Raw data dict with issue_map for change detection
+        Raw data dict with issue_map and watermark for change detection
     """
     issue_map = {}
+    updated_timestamps = []
 
     for issue in issues:
         issue_key = issue["key"]
         fields = issue.get("fields", {})
         updated = fields.get("updated", "")
+        if updated:
+            updated_timestamps.append(updated)
 
         # Compute content hash for change detection
         # Use summary, description, updated timestamp, and comment count
@@ -277,10 +304,17 @@ def _build_raw_data(domain: str, project_key: str, issues: List[Dict[str, Any]])
 
         issue_map[issue_key] = {"updated": updated, "sha": content_hash}
 
+    # Watermark: the latest Jira "updated" timestamp among fetched issues.
+    # Used as the incremental cutoff on the next run. Because it is a Jira-native,
+    # timezone-aware value, it can be fed straight back into JQL without conversion.
+    # Sorting ISO8601 strings with the same offset works lexicographically; mixed
+    # offsets are rare within one instance, so this is sufficient in practice.
+    watermark = max(updated_timestamps) if updated_timestamps else None
+
     return {
         "domain": domain,
         "project_key": project_key,
         "issue_map": issue_map,
         "total_issues": len(issues),
-        "fetched_at": datetime.now().isoformat(),
+        "watermark": watermark,
     }

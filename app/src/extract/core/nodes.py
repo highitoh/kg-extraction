@@ -474,8 +474,9 @@ def detect_jira_changes_node(state: KnowledgeExtractionState) -> KnowledgeExtrac
             prev_snapshot_id = None
 
             for snapshot in snapshots:
+                # Check both old format (trigger.sourceIdentifier) and new format (source)
                 trigger = snapshot.get("trigger", {})
-                source_id = trigger.get("sourceIdentifier", "")
+                source_id = trigger.get("sourceIdentifier", "") or snapshot.get("source", "")
                 if source_id == project_identifier:
                     prev_snapshot_id = snapshot["snapshot_id"]
                     break
@@ -513,20 +514,29 @@ def extract_text_jira_node(state: KnowledgeExtractionState) -> KnowledgeExtracti
         from src.utils.source_change_detector import load_source_raw
 
         jira_url = state["files"][0]["path"]
-        chunks = extract_text_from_jira(jira_url)
+
+        # Load previous snapshot data if in incremental mode
+        since_watermark = None
+        prev_raw = None
+        if state.get("incremental_mode"):
+            prev_snapshot_id = state.get("previous_snapshot_id")
+            project = state.get("project", "default")
+            output_dir = state.get("output_dir", "/workspace/app/output")
+            prev_raw = load_source_raw(project, prev_snapshot_id, output_dir)
+
+            if prev_raw and prev_raw.get("watermark"):
+                since_watermark = prev_raw["watermark"]
+                print(f"[ExtractTextJiraNode] Incremental mode: fetching issues updated since {since_watermark}")
+            else:
+                print("[ExtractTextJiraNode] Previous snapshot has no watermark, falling back to full fetch")
+
+        chunks = extract_text_from_jira(jira_url, since_watermark=since_watermark)
 
         # Extract jira_raw_data from first chunk
         jira_raw_data = chunks[0].pop("_jira_raw_data", None) if chunks else None
 
         # Apply incremental filtering if enabled
         if state.get("incremental_mode") and jira_raw_data:
-            prev_snapshot_id = state.get("previous_snapshot_id")
-            project = state.get("project", "default")
-            output_dir = state.get("output_dir", "/workspace/app/output")
-
-            # Load previous snapshot data
-            prev_raw = load_source_raw(project, prev_snapshot_id, output_dir)
-
             if prev_raw and "issue_map" in prev_raw:
                 prev_issue_map = prev_raw.get("issue_map", {})
                 curr_issue_map = jira_raw_data.get("issue_map", {})
@@ -534,18 +544,12 @@ def extract_text_jira_node(state: KnowledgeExtractionState) -> KnowledgeExtracti
                 prev_ids = set(prev_issue_map.keys())
                 curr_ids = set(curr_issue_map.keys())
 
+                # The incremental fetch only returns issues updated since the watermark,
+                # so curr_issue_map contains just the changed/new issues -- it is NOT the
+                # full project state. Deletion detection is therefore not possible here
+                # (an absent issue may simply be unchanged), and is out of scope for now.
                 new_ids = curr_ids - prev_ids
-                deleted_ids = prev_ids - curr_ids
-
-                # Find modified issues (check updated timestamp changes)
-                modified_ids = set()
-                for issue_key in prev_ids & curr_ids:
-                    prev_updated = prev_issue_map[issue_key].get("updated", "")
-                    curr_updated = curr_issue_map[issue_key].get("updated", "")
-                    # Compare timestamps (Jira format: "2026-06-01T10:30:00.000+0000")
-                    if prev_updated != curr_updated:
-                        modified_ids.add(issue_key)
-
+                modified_ids = curr_ids & prev_ids
                 changed_ids = new_ids | modified_ids
 
                 # Filter chunks to only changed issues
@@ -556,17 +560,35 @@ def extract_text_jira_node(state: KnowledgeExtractionState) -> KnowledgeExtracti
                 print(
                     f"[ExtractTextJiraNode] Incremental mode: "
                     f"new={len(new_ids)}, modified={len(modified_ids)}, "
-                    f"deleted={len(deleted_ids)}, processing={len(filtered_chunks)} chunks"
+                    f"processing={len(filtered_chunks)} chunks"
                 )
 
-                # Store deleted/changed issue IDs for cleanup and merging
-                state["deleted_item_ids"] = list(deleted_ids)
+                # Store changed issue IDs for downstream merging
                 state["changed_item_ids"] = list(changed_ids)
+
+                # Merge the new issue_map over the previous one so the snapshot keeps the
+                # full project baseline (unchanged issues are carried forward). The watermark
+                # advances to the latest "updated" seen across the merged set.
+                merged_issue_map = {**prev_issue_map, **curr_issue_map}
+                jira_raw_data["issue_map"] = merged_issue_map
+                jira_raw_data["total_issues"] = len(merged_issue_map)
+                merged_watermark = max(
+                    (entry.get("updated", "") for entry in merged_issue_map.values() if entry.get("updated")),
+                    default=jira_raw_data.get("watermark"),
+                )
+                jira_raw_data["watermark"] = merged_watermark
 
                 chunks = filtered_chunks
             else:
                 print("[ExtractTextJiraNode] Could not load previous data, using full extraction")
                 state["incremental_mode"] = False
+        elif state.get("incremental_mode") and not jira_raw_data and prev_raw:
+            # Incremental run that fetched zero changed issues: no new chunks, so
+            # jira_raw_data is None. Carry the previous snapshot's baseline forward
+            # (issue_map + watermark) so the snapshot chain stays intact for next time.
+            jira_raw_data = prev_raw
+            state["changed_item_ids"] = []
+            print("[ExtractTextJiraNode] Incremental mode: no changes, carrying forward previous baseline")
 
         # Convert chunks to sentences format expected by downstream nodes
         sentences = []
