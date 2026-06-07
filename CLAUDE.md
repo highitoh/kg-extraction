@@ -7,6 +7,11 @@ A LangChain-based application that extracts knowledge from PDF files and generat
 - **Language**: All code comments, commit messages, documentation, and Claude Code outputs must be in English
 - **Tone**: Use a friendly, casual, and polite tone in all responses. Be conversational and approachable while maintaining professionalism
 - **Code Comments**: Do not include "NEW" or time-conscious descriptions (e.g., "recently added", "old version") in code comments. Comments should describe what the code does, not when it was added or modified
+- **Code Quality**: After modifying Python files, ALWAYS run the following commands to ensure code quality:
+  ```bash
+  cd app && uv run ruff check
+  cd app && uv run ruff format
+  ```
 - **Git Commits**: **CRITICAL RULE** - NEVER commit code to the git repository without explicit user permission. ALWAYS ask the user "Should I commit these changes?" and wait for explicit approval before running `git commit`. This applies to ALL commits, no exceptions
 
 ## Development Environment
@@ -20,21 +25,6 @@ A LangChain-based application that extracts knowledge from PDF files and generat
 /workspace/
 ├── app/                    # Main application
 │   ├── src/               # Source code (stage-based architecture)
-│   │   ├── extract_workflow.py     # Entry point
-│   │   ├── extract/       # Extract workflow modules
-│   │   │   ├── core/      # Application core (graph.py, nodes.py, state.py)
-│   │   │   ├── classification/  # File classification stage
-│   │   │   ├── text/      # Text extraction stage (document/presentation)
-│   │   │   ├── view/      # View extraction stage
-│   │   │   ├── class/     # Class extraction stage
-│   │   │   ├── property/  # Property extraction stage
-│   │   │   └── output/    # Output generation stage (turtle_generator.py, neo4j_csv_generator.py)
-│   │   ├── evaluate/      # Evaluation workflow modules
-│   │   ├── optimize/      # Optimization workflow modules
-│   │   └── utils/         # Common utilities (logger.py, llm_factory.py, chunk_creator.py)
-│   ├── schemas/           # Input/output schema definitions
-│   │   ├── *-chain/
-│   │   └── common/        # Common schemas
 │   ├── prompts/           # Prompt text for tasks
 │   ├── metamodel/         # Metamodel definitions
 │   ├── output/            # Generated file output directory
@@ -45,12 +35,7 @@ A LangChain-based application that extracts knowledge from PDF files and generat
 ```
 
 ## Schema Structure
-`/workspace/app/schemas/` defines JSON schemas for the input/output of each chain and LLM. To improve reusability, schemas are defined by reference when the input/output is the same as the parent level.
-- **Chains**: doc-text-chain, view-chain, class-chain, property-chain
-- **Extractors**: text-extractor, view-extractor, class-extractor, property-extractor
-- **Filters**: text-filter, view-filter
-- **Generators**: turtle-generator, neo4j-csv-generator
-- **Common**: Shared schema definitions (metamodel.schema.json)
+`/workspace/app/schemas/` defines JSON schemas for the input/output of each chain and LLM.
 
 ## Prompt Templates
 `/workspace/app/prompts/` contains the prompt text used by the LLM
@@ -72,14 +57,7 @@ cd app && ./extract.sh [PDF_PATH] --project [PROJECT_NAME]
 cd app && uv run python src/extract_workflow.py [PDF_PATH] --project [PROJECT_NAME] --model [MODEL_NAME] --output-dir [OUTPUT_DIR] --timestamp [YYYYMMDD]
 
 # Miro board extraction
-cd app && uv run python src/extract_workflow.py "https://miro.com/app/board/BOARD_ID" --project [PROJECT_NAME]
 cd app && ./extract.sh "https://miro.com/app/board/BOARD_ID" --project [PROJECT_NAME]
-
-# Run specific chain (for development/debugging)
-cd app && uv run python -c "import sys; sys.path.insert(0, '.'); from src.extract.text.doc_text_chain import *"
-cd app && uv run python -c "import sys; sys.path.insert(0, '.'); from src.extract.view.view_chain import *"
-cd app && uv run python -c "import sys; sys.path.insert(0, '.'); from src.extract.class.class_chain import *"
-cd app && uv run python -c "import sys; sys.path.insert(0, '.'); from src.extract.property.property_chain import *"
 ```
 
 ### Batch Extraction
@@ -181,9 +159,6 @@ Output files are managed by project, specified with the `--project` parameter.
 - **Turtle files**: `knowledge_graph_*.ttl` - Knowledge graph in RDF/Turtle format
 - **Neo4j CSV files**: `nodes.csv`, `relationships.csv` - CSV files for Neo4j import
 - **Knowledge JSON**: `knowledge.json` - Accumulated knowledge (lightweight version, used as input for next execution)
-  - Only ACCEPT-judged classes
-  - Only properties with strength > 0
-  - Automatically accumulated across multiple executions
 - **Result JSON**: `extraction_result_YYYYMMDD_HHMMSS.json` - Complete processing results for each execution (with timestamp, for history/audit)
 
 ## Snapshot Management
@@ -211,7 +186,7 @@ cd app && ./extract.sh ../doc/sample.pdf --project myproject
 
 Disable snapshots with `--no-snapshot` flag:
 ```bash
-cd app && python src/extract_workflow.py ../doc/sample.pdf --no-snapshot
+cd app && ./extract.sh ../doc/sample.pdf --no-snapshot
 ```
 
 ### Snapshot Management Commands
@@ -229,20 +204,6 @@ cd app && python src/extract_workflow.py ../doc/sample.pdf --no-snapshot
 # Rollback to a snapshot (creates backup first)
 ./snapshot.sh rollback --project myproject --snapshot 20260425120000 --backup
 ```
-
-### Use Cases
-
-- **Historical Review**: View knowledge graph state at any point in time
-- **Rollback**: Restore to a previous state if extraction goes wrong
-- **Comparison**: Compare knowledge.json from different snapshots manually
-- **Audit**: Track which source (PDF, Miro board) added which knowledge
-
-### Storage
-
-- Each snapshot stores full knowledge.json (~50-200 KB)
-- For Miro boards: also stores source_raw.json with complete board state
-- 100 snapshots ≈ 6-25 MB (PDF) or 10-50 MB (Miro with raw data)
-- Old snapshots can be manually deleted if needed
 
 ## Changeset Management
 
@@ -274,14 +235,6 @@ Track changes between knowledge graph snapshots with automatic business driver e
 ./changeset.sh show --project myproject --changeset cs_20260501_120000
 ```
 
-### What's in a Changeset
-
-Each changeset contains:
-- **Changes**: Added/updated/deleted classes and properties
-- **Drivers**: Automatically extracted business drivers (e.g., "New GDPR requirement", "Customer feedback #123")
-- **Summary**: Counts of each change type
-- **Source Changes**: Miro board item changes that triggered KG changes
-
 ## Key Dependencies
 - langchain: LLM chain construction
 - langchain-openai: OpenAI API integration
@@ -297,19 +250,3 @@ Each changeset contains:
 - Neo4j data is persisted (`./neo4j/data`)
 - Schema definitions clarify input/output specifications for each chain/task
 - Prompt text is managed in external files for easy adjustment and maintenance
-
-## Command Line Arguments
-```bash
-python src/extract_workflow.py [PDF_PATH] [OPTIONS]
-
-Arguments:
-  PDF_PATH              Target PDF file path or URL (default: ../doc/sample.pdf)
-
-Options:
-  --project PROJECT     Project name (default: default)
-  --model MODEL         LLM model name (e.g., gemini-3.1-flash-lite, gpt-5-nano)
-  --output-dir DIR      Output directory (default: /workspace/app/output)
-  --date YYYYMMDD       Extract from GitHub at specific date (e.g., 20230115)
-  --timestamp YYYYMMDD  Manual snapshot timestamp (e.g., 20260531). Must be later than latest snapshot.
-  --no-snapshot         Skip snapshot creation (default: create snapshot)
-```

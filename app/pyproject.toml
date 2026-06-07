@@ -23,9 +23,15 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = [
+    "pre-commit",
     "ruff",
 ]
 
 [tool.ruff]
 line-length = 120
+indent-width = 4
 target-version = "py314"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "B", "I"]
+ignore = []

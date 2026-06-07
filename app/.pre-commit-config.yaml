@@ -1,0 +1,25 @@
+repos:
+# Ruff
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.15.16
+    hooks:
+      # Run the linter.
+      - id: ruff
+        name: ruff
+        description: "Run 'ruff' for extremely fast Python linting"
+        entry: ruff check
+        language: python
+        types_or: [python, pyi]
+        args: [--fix]
+        additional_dependencies: []
+        minimum_pre_commit_version: "4.6.0"
+      # Run the formatter.
+      - id: ruff-format
+        name: ruff-format
+        description: "Run 'ruff format' for extremely fast Python formatting"
+        entry: ruff format
+        language: python
+        types_or: [python, pyi]
+        args: []
+        additional_dependencies: []
+        minimum_pre_commit_version: "4.6.0"
