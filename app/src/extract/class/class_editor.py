@@ -1,15 +1,15 @@
-from typing import Dict, Any
 import asyncio
 import json
 import os
+from typing import Any, Dict
 
 from langchain_core.messages import HumanMessage
 from langchain_core.runnables import Runnable
 
-from src.utils.logger import Logger
 from src.utils.llm_factory import LLMFactory
-from src.utils.prompt_utils import fill_prompt_template
 from src.utils.llm_retry import call_with_retry
+from src.utils.logger import Logger
+from src.utils.prompt_utils import fill_prompt_template
 
 
 class ClassEditor(Runnable):
@@ -174,7 +174,7 @@ class ClassEditor(Runnable):
             file_ids = file_ids[:min_length]
 
             # Collect as (source, file_id) pairs
-            for source, file_id in zip(sources, file_ids):
+            for source, file_id in zip(sources, file_ids, strict=True):
                 all_pairs.append((source, file_id))
 
         # Remove duplicates while preserving order
@@ -182,7 +182,7 @@ class ClassEditor(Runnable):
 
         # Split pairs back to sources and file_ids
         if unique_pairs:
-            base_class["sources"], base_class["file_ids"] = zip(*unique_pairs)
+            base_class["sources"], base_class["file_ids"] = zip(*unique_pairs, strict=True)
             base_class["sources"] = list(base_class["sources"])
             base_class["file_ids"] = list(base_class["file_ids"])
         else:
@@ -567,7 +567,7 @@ class ClassEditor(Runnable):
 
             # Apply correction results to each class
             corrected_classes = []
-            for c, correction_obj in zip(classes, corrections):
+            for c, correction_obj in zip(classes, corrections, strict=True):
                 c_corrected = c.copy()
 
                 should_reject = correction_obj.get("should_reject", False)

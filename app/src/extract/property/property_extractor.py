@@ -1,17 +1,17 @@
-from typing import Dict, Any, List, Union
 import asyncio
 import json
 import os
+from typing import Any, Dict, List, Union
 
-from langchain_core.runnables import Runnable
 from langchain_core.messages import HumanMessage
+from langchain_core.runnables import Runnable
 from langchain_openai import ChatOpenAI
 
-from src.utils.logger import Logger
-from src.utils.llm_factory import LLMFactory
-from src.utils.prompt_utils import fill_prompt_template
-from src.utils.llm_retry import call_with_retry
 from src.utils.id_generator import generate_property_id
+from src.utils.llm_factory import LLMFactory
+from src.utils.llm_retry import call_with_retry
+from src.utils.logger import Logger
+from src.utils.prompt_utils import fill_prompt_template
 
 
 def _normalize_label(label: str) -> str:
@@ -328,7 +328,8 @@ class PropertyExtractor(Runnable):
 
         if self.progress:
             print(
-                f"[PropertyExtractor] Starting parallel processing: {total} property types (concurrency={self.max_concurrency})"
+                f"[PropertyExtractor] Starting parallel processing: {total} property types "
+                f"(concurrency={self.max_concurrency})"
             )
 
         # Parallel processing for each property type
@@ -341,7 +342,8 @@ class PropertyExtractor(Runnable):
                 counter += 1
                 if self.progress:
                     print(
-                        f"[{counter}/{total}] PropertyExtractor: {property_name} processed (extracted {len(result)} items)"
+                        f"[{counter}/{total}] PropertyExtractor: {property_name} processed "
+                        f"(extracted {len(result)} items)"
                     )
 
             return result

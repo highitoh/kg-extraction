@@ -1,16 +1,16 @@
-from typing import Dict, Any, List, Union
 import asyncio
 import glob
 import json
 import os
+from typing import Any, Dict, List, Union
 
-from langchain_core.runnables import Runnable
 from langchain_core.messages import HumanMessage
+from langchain_core.runnables import Runnable
 
-from src.utils.logger import Logger
 from src.utils.llm_factory import LLMFactory
-from src.utils.prompt_utils import fill_prompt_template
 from src.utils.llm_retry import call_with_retry
+from src.utils.logger import Logger
+from src.utils.prompt_utils import fill_prompt_template
 
 
 class PropertyReviewer(Runnable):
@@ -294,7 +294,8 @@ class PropertyReviewer(Runnable):
                 completed_count += 1
                 if self.progress:
                     print(
-                        f"[{completed_count}/{total_groups}] PropertyReviewer: {property_iri} processed ({len(group)} candidates)"
+                        f"[{completed_count}/{total_groups}] PropertyReviewer: {property_iri} processed "
+                        f"({len(group)} candidates)"
                     )
 
         sem = asyncio.Semaphore(self.max_concurrency)
@@ -305,7 +306,8 @@ class PropertyReviewer(Runnable):
 
         if self.progress and total_groups > 0:
             print(
-                f"[PropertyReviewer] Starting parallel processing: {total_groups} property types (concurrency={self.max_concurrency})"
+                f"[PropertyReviewer] Starting parallel processing: {total_groups} property types "
+                f"(concurrency={self.max_concurrency})"
             )
 
         await asyncio.gather(*[sem_task(prop_iri, grp) for prop_iri, grp in groups.items()])
@@ -408,7 +410,8 @@ class PropertyReviewer(Runnable):
             )
 
             print(
-                f"[PropertyReviewer] Completed: {len(filtered)} properties [ACCEPT: {accept_count}, REVIEW: {review_count}, REJECT: {reject_count}]"
+                f"[PropertyReviewer] Completed: {len(filtered)} properties "
+                f"[ACCEPT: {accept_count}, REVIEW: {review_count}, REJECT: {reject_count}]"
             )
             print(f"[PropertyReviewer] Strength evaluation: {strength_changed_count} candidates had strength changed")
 
@@ -435,7 +438,8 @@ class PropertyReviewer(Runnable):
         if not class_info.get("classes"):
             # Error: cannot reference source without class_info
             raise ValueError(
-                "PropertyReviewer requires class_info with classes for filtering. Cannot proceed without class information."
+                "PropertyReviewer requires class_info with classes for filtering. "
+                "Cannot proceed without class information."
             )
 
         # Filter with LLM

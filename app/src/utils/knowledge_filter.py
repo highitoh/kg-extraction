@@ -5,7 +5,7 @@ Provides filtering logic for accumulated knowledge.
 Extracts only ACCEPT-judged classes and properties with strength > 0.
 """
 
-from typing import List, Dict, Any, Tuple
+from typing import Any, Dict, List, Tuple
 
 
 def filter_accumulated_knowledge(

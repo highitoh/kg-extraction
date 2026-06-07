@@ -174,7 +174,8 @@ def create_knowledge_extraction_graph():
     workflow.add_edge("transform_to_chunks", "merge_chunks")
     workflow.add_edge("extract_images", "merge_chunks")
 
-    # Merged chunks → View extraction → Class extraction → Property extraction → Cleanup deleted → Accumulated save → Output generation
+    # Merged chunks → View extraction → Class extraction → Property extraction → Cleanup deleted →
+    # Accumulated save → Output generation
     workflow.add_edge("merge_chunks", "extract_views")
     workflow.add_edge("extract_views", "extract_classes")
     workflow.add_edge("extract_classes", "extract_properties")

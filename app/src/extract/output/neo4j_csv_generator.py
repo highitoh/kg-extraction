@@ -5,10 +5,10 @@ Generates CSV files for Neo4j Bulk Import from JSON input.
 Retrieves information from JSON schema and generates CSV, based on the logic in bk/rdf_to_property_graph.py.
 """
 
-import os
 import csv
 import json
-from typing import Dict, Set, Tuple, Any
+import os
+from typing import Any, Dict, Set, Tuple
 
 
 class Neo4jCSVGenerator:

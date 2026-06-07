@@ -141,7 +141,8 @@ if __name__ == "__main__":
         "--timestamp",
         type=str,
         default=None,
-        help="Manual snapshot timestamp in YYYYMMDD format (e.g., 20260531). Must be later than the latest existing snapshot.",
+        help="Manual snapshot timestamp in YYYYMMDD format (e.g., 20260531). Must be later than the latest "
+        "existing snapshot.",
     )
 
     args = parser.parse_args()

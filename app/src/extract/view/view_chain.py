@@ -1,4 +1,5 @@
-from typing import Dict, Any
+from typing import Any, Dict
+
 from langchain_core.runnables import Runnable
 
 from .view_extractor import ViewExtractor

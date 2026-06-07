@@ -62,7 +62,7 @@ class IterationWorkflow:
         self.projects = [self.state_manager.extract_project_from_batch(bf) for bf in self.batch_files]
 
         # Create a mapping from project to batch file
-        self.project_batch_map = dict(zip(self.projects, self.batch_files))
+        self.project_batch_map = dict(zip(self.projects, self.batch_files, strict=True))
 
         # Generate run ID
         self.run_id = datetime.now().strftime("%Y%m%d%H%M%S")

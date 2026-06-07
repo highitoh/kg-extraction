@@ -1,4 +1,4 @@
-from typing import Dict, Any, List, Tuple
+from typing import Any, Dict, List, Tuple
 
 from langchain_core.runnables import Runnable
 
@@ -128,7 +128,8 @@ class ViewFilter(Runnable):
             original_count = sum(len(v.get("texts", [])) for v in views)
             filtered_count = sum(len(v.get("texts", [])) for v in filtered_views)
             print(
-                f"ViewFilter: {original_count} -> {filtered_count} texts (removed {original_count - filtered_count} duplicates)"
+                f"ViewFilter: {original_count} -> {filtered_count} texts "
+                f"(removed {original_count - filtered_count} duplicates)"
             )
 
         # Log ViewChainOutput using Logger

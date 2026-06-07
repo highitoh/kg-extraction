@@ -1,15 +1,14 @@
 """Issue Classifier - Classifies issues in poor extractions using LLM with parallel execution."""
 
+import argparse
 import asyncio
+import glob
 import json
 import sys
-import argparse
+import uuid
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, List, Any, Optional, Tuple
-import uuid
-import glob
-
+from typing import Any, Dict, List, Optional, Tuple
 
 # Add src directory to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent))
@@ -377,7 +376,8 @@ class IssueClassifier:
         try:
             # Invoke LLM with class schema
             print(
-                f"[IssueClassifier] Invoking LLM for class issue classification: {class_iri} ({len(class_group)} instances)"
+                f"[IssueClassifier] Invoking LLM for class issue classification: {class_iri} "
+                f"({len(class_group)} instances)"
             )
             response = await call_with_retry(
                 lambda: self.llm_class.ainvoke(prompt),
@@ -418,7 +418,8 @@ class IssueClassifier:
         try:
             # Invoke LLM with property schema
             print(
-                f"[IssueClassifier] Invoking LLM for property issue classification: {class_iri} ({len(property_group)} instances)"
+                f"[IssueClassifier] Invoking LLM for property issue classification: {class_iri} "
+                f"({len(property_group)} instances)"
             )
             response = await call_with_retry(
                 lambda: self.llm_property.ainvoke(prompt),
@@ -476,7 +477,8 @@ class IssueClassifier:
         property_validations = self.validator_result_data.get("property_validations", [])
 
         print(
-            f"[IssueClassifier] Total validations: {len(class_validations)} classes, {len(property_validations)} properties"
+            f"[IssueClassifier] Total validations: {len(class_validations)} classes, "
+            f"{len(property_validations)} properties"
         )
 
         # Filter poor extractions (score ≤ 3)
@@ -509,7 +511,8 @@ class IssueClassifier:
             async with group_lock:
                 group_counter += 1
                 print(
-                    f"[{group_counter}/{total_groups}] IssueClassifier: {class_iri} classified ({len(classes)} classes, {len(properties)} properties)"
+                    f"[{group_counter}/{total_groups}] IssueClassifier: {class_iri} classified "
+                    f"({len(classes)} classes, {len(properties)} properties)"
                 )
 
             return class_iri, class_issues, property_issues
@@ -523,7 +526,7 @@ class IssueClassifier:
         class_issue_map = {}  # class_id -> issue_labels
         property_issue_map = {}  # property_id -> issue_labels
 
-        for iri, class_issues, property_issues in classification_results:
+        for _iri, class_issues, property_issues in classification_results:
             for issue in class_issues:
                 class_id = issue.get("class_id")
                 issue_labels = issue.get("issue_labels", [])
@@ -537,7 +540,8 @@ class IssueClassifier:
                     property_issue_map[property_id] = issue_labels
 
         print(
-            f"[IssueClassifier] Classification completed: {len(class_issue_map)} classes, {len(property_issue_map)} properties with issue labels"
+            f"[IssueClassifier] Classification completed: {len(class_issue_map)} classes, "
+            f"{len(property_issue_map)} properties with issue labels"
         )
 
         # Merge issue labels into original validation data

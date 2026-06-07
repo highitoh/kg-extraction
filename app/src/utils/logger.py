@@ -1,8 +1,8 @@
 import csv
-import os
 import json
-from typing import Any, Dict
+import os
 from datetime import datetime
+from typing import Any, Dict
 
 
 class Logger:

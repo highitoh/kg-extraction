@@ -1,10 +1,10 @@
 """Extract text content from GitHub repositories."""
 
-from typing import Dict, List, Any, Optional
+from typing import Any, Dict, List, Optional
 
 from src.extract.github.github_analyzer import GitHubAnalyzer
 from src.extract.github.github_profiles import get_profile
-from src.extract.github.github_url_parser import parse_github_url, get_file_identifier
+from src.extract.github.github_url_parser import get_file_identifier, parse_github_url
 from src.utils.github_client import GitHubClient
 
 

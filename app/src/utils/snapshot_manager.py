@@ -5,14 +5,14 @@ Creates and manages snapshots of knowledge graphs after each extraction.
 Provides version history and enables rollback capabilities.
 """
 
-import os
-import json
-import shutil
 import hashlib
+import json
+import os
+import shutil
+from collections import defaultdict
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, Any, Optional
-from collections import defaultdict
+from typing import Any, Dict, Optional
 
 
 class SnapshotManager:

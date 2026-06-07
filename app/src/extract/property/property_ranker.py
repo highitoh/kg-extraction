@@ -1,17 +1,17 @@
-from typing import Dict, Any, List, Union
 import asyncio
 import json
 import os
 import uuid
+from typing import Any, Dict, List, Union
 
-from langchain_core.runnables import Runnable
 from langchain_core.messages import HumanMessage
+from langchain_core.runnables import Runnable
 from langchain_openai import ChatOpenAI
 
-from src.utils.logger import Logger
 from src.utils.llm_factory import LLMFactory
-from src.utils.prompt_utils import fill_prompt_template
 from src.utils.llm_retry import call_with_retry
+from src.utils.logger import Logger
+from src.utils.prompt_utils import fill_prompt_template
 
 
 class PropertyRanker(Runnable):
@@ -270,7 +270,8 @@ class PropertyRanker(Runnable):
 
         if self.progress:
             print(
-                f"[PropertyRanker] Starting parallel processing: {total} property types (concurrency={self.max_concurrency})"
+                f"[PropertyRanker] Starting parallel processing: {total} property types "
+                f"(concurrency={self.max_concurrency})"
             )
 
         # Create tasks by dividing each group into batches
@@ -377,7 +378,8 @@ class PropertyRanker(Runnable):
                 strength_counts[prop["strength"]] += 1
             print(f"[PropertyRanker] Completed: ranked {len(ranked_properties)} properties")
             print(
-                f"[PropertyRanker] Strength distribution: 0={strength_counts[0]}, 1={strength_counts[1]}, 2={strength_counts[2]}"
+                f"[PropertyRanker] Strength distribution: 0={strength_counts[0]}, 1={strength_counts[1]}, "
+                f"2={strength_counts[2]}"
             )
 
         # Log output (with label information and evaluation information)

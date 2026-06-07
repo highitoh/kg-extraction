@@ -1,20 +1,20 @@
-from typing import Dict, Any, List, Union, Tuple
 import asyncio
+import csv
+import io
 import json
 import os
 import uuid
-import csv
-import io
+from typing import Any, Dict, List, Tuple, Union
 
-from langchain_core.runnables import Runnable
 from langchain_core.messages import HumanMessage
+from langchain_core.runnables import Runnable
 from langchain_openai import ChatOpenAI
 
-from src.utils.logger import Logger
-from src.utils.llm_factory import LLMFactory
-from src.utils.prompt_utils import fill_prompt_template
-from src.utils.llm_retry import call_with_retry
 from src.utils.chunk_creator import ChunkCreator
+from src.utils.llm_factory import LLMFactory
+from src.utils.llm_retry import call_with_retry
+from src.utils.logger import Logger
+from src.utils.prompt_utils import fill_prompt_template
 
 
 class ViewExtractor(Runnable):
@@ -286,7 +286,8 @@ if __name__ == "__main__":
             "file_id": "sample_file",
             "chunks": [
                 {
-                    "text": "The system needs to manage customer information. The customer database stores name, address, and phone number."
+                    "text": "The system needs to manage customer information. The customer database stores "
+                    "name, address, and phone number."
                 },
                 {"text": "The project goal is to increase sales. The API server is built with RESTful design."},
             ],

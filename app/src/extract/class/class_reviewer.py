@@ -1,15 +1,15 @@
-from typing import Dict, Any
 import asyncio
 import json
 import os
+from typing import Any, Dict
 
 from langchain_core.messages import HumanMessage
 from langchain_core.runnables import Runnable
 
-from src.utils.logger import Logger
 from src.utils.llm_factory import LLMFactory
-from src.utils.prompt_utils import fill_prompt_template
 from src.utils.llm_retry import call_with_retry
+from src.utils.logger import Logger
+from src.utils.prompt_utils import fill_prompt_template
 
 
 class ClassReviewer(Runnable):
@@ -346,7 +346,8 @@ class ClassReviewer(Runnable):
 
         if self.progress:
             print(
-                f"[ClassReviewer] Starting parallel processing: {total} class types (concurrency={self.max_concurrency})"
+                f"[ClassReviewer] Starting parallel processing: {total} class types "
+                f"(concurrency={self.max_concurrency})"
             )
 
         async def _wrapped(class_iri: str, class_instances: list) -> tuple[list, list]:
@@ -487,8 +488,8 @@ class ClassReviewer(Runnable):
 
 
 if __name__ == "__main__":
-    import json
     import glob
+    import json
     import os
 
     # Find the latest ClassExtractor log file

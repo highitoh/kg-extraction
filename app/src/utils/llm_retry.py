@@ -7,7 +7,7 @@ import random
 from datetime import datetime
 from typing import Awaitable, Callable, Optional
 
-from openai import APIConnectionError, RateLimitError, APIError
+from openai import APIConnectionError, APIError, RateLimitError
 
 from src.utils.logger import Logger
 

@@ -2,7 +2,7 @@
 
 import os
 import time
-from typing import Optional, List, Dict, Any
+from typing import Any, Dict, List, Optional
 from urllib.parse import urljoin
 
 import requests
@@ -123,7 +123,8 @@ class GitHubClient:
                         jitter = 0.1 * retry_after  # 10% jitter
                         sleep_time = retry_after + jitter
                         print(
-                            f"Rate limited (429). Retrying in {sleep_time:.2f}s (attempt {attempt + 1}/{self.max_retries})"
+                            f"Rate limited (429). Retrying in {sleep_time:.2f}s "
+                            f"(attempt {attempt + 1}/{self.max_retries})"
                         )
                         time.sleep(sleep_time)
                         continue

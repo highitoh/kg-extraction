@@ -1,15 +1,15 @@
-from typing import Dict, Any
 import asyncio
 import json
 import os
+from typing import Any, Dict
 
 from langchain_core.messages import HumanMessage
 from langchain_core.runnables import Runnable
 
-from src.utils.logger import Logger
 from src.utils.llm_factory import LLMFactory
-from src.utils.prompt_utils import fill_prompt_template
 from src.utils.llm_retry import call_with_retry
+from src.utils.logger import Logger
+from src.utils.prompt_utils import fill_prompt_template
 
 
 class PropertyEditor(Runnable):
@@ -131,8 +131,8 @@ class PropertyEditor(Runnable):
 
         if self.progress:
             print(
-                f"[PropertyEditor] Total {len(properties)} properties "
-                f"[ACCEPT: {len(accept_properties)}, REVIEW: {len(review_properties)}, REJECT: {len(reject_properties)}]"
+                f"[PropertyEditor] Total {len(properties)} properties [ACCEPT: {len(accept_properties)}, "
+                f"REVIEW: {len(review_properties)}, REJECT: {len(reject_properties)}]"
             )
 
         if not review_properties:
@@ -179,7 +179,8 @@ class PropertyEditor(Runnable):
 
         if self.progress:
             print(
-                f"[PropertyEditor] Starting parallel processing: {total} property types (concurrency={self.max_concurrency})"
+                f"[PropertyEditor] Starting parallel processing: {total} property types "
+                f"(concurrency={self.max_concurrency})"
             )
 
         async def _wrapped(property_iri: str, property_instances: list) -> list:
@@ -290,7 +291,7 @@ class PropertyEditor(Runnable):
 
             # Apply correction results to each property
             corrected_properties = []
-            for p, correction_obj in zip(properties, corrections):
+            for p, correction_obj in zip(properties, corrections, strict=True):
                 p_corrected = p.copy()
 
                 revised_strength = correction_obj.get("revised_strength", 0)

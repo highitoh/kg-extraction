@@ -783,7 +783,8 @@ def extract_classes_node(state: KnowledgeExtractionState) -> KnowledgeExtraction
                         existing_classes.append(c_copy)
                     if existing_classes:
                         print(
-                            f"[ExtractClassesNode] Loaded {len(existing_classes)} existing ACCEPT'ed classes from previous extraction"
+                            f"[ExtractClassesNode] Loaded {len(existing_classes)} existing ACCEPT'ed classes "
+                            f"from previous extraction"
                         )
             except (json.JSONDecodeError, KeyError) as e:
                 print(
@@ -860,11 +861,13 @@ def extract_properties_node(state: KnowledgeExtractionState) -> KnowledgeExtract
                         existing_properties.append(p_copy)
                     if existing_properties:
                         print(
-                            f"[ExtractPropertiesNode] Loaded {len(existing_properties)} existing properties (strength > 0) from previous extraction"
+                            f"[ExtractPropertiesNode] Loaded {len(existing_properties)} existing properties "
+                            f"(strength > 0) from previous extraction"
                         )
             except (json.JSONDecodeError, KeyError) as e:
                 print(
-                    f"[ExtractPropertiesNode] Warning: Could not load existing properties from {extraction_result_path}: {e}"
+                    f"[ExtractPropertiesNode] Warning: Could not load existing properties from "
+                    f"{extraction_result_path}: {e}"
                 )
                 existing_properties = []
 
@@ -956,11 +959,13 @@ def cleanup_deleted_items_node(state: KnowledgeExtractionState) -> KnowledgeExtr
             sources = cls.get("sources", [])
 
             # Filter out deleted file_ids (maintain alignment with sources)
-            filtered_pairs = [(src, fid) for src, fid in zip(sources, file_ids) if fid not in deleted_file_ids]
+            filtered_pairs = [
+                (src, fid) for src, fid in zip(sources, file_ids, strict=True) if fid not in deleted_file_ids
+            ]
 
             if filtered_pairs:
                 # Class still has sources from non-deleted items
-                new_sources, new_file_ids = zip(*filtered_pairs)
+                new_sources, new_file_ids = zip(*filtered_pairs, strict=True)
                 cls["sources"] = list(new_sources)
                 cls["file_ids"] = list(new_file_ids)
                 cleaned_classes.append(cls)
@@ -1048,9 +1053,9 @@ def save_accumulated_knowledge_node(state: KnowledgeExtractionState) -> Knowledg
                 # Combine sources and file_ids
                 # Use dict to deduplicate by file_id while preserving source mapping
                 source_file_map = {}
-                for src, fid in zip(old_sources, old_file_ids):
+                for src, fid in zip(old_sources, old_file_ids, strict=True):
                     source_file_map[fid] = src
-                for src, fid in zip(new_sources, new_file_ids):
+                for src, fid in zip(new_sources, new_file_ids, strict=True):
                     source_file_map[fid] = src  # New sources override old if same file_id
 
                 # Rebuild arrays
@@ -1226,7 +1231,8 @@ def extract_text_miro_board_node(state: KnowledgeExtractionState) -> KnowledgeEx
                 changed_ids = new_ids | modified_ids
 
                 print(
-                    f"[ExtractTextMiroBoard] Changes detected: {len(new_ids)} new, {len(modified_ids)} modified, {len(deleted_ids)} deleted"
+                    f"[ExtractTextMiroBoard] Changes detected: {len(new_ids)} new, {len(modified_ids)} modified, "
+                    f"{len(deleted_ids)} deleted"
                 )
 
                 if changed_ids:

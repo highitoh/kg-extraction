@@ -4,7 +4,7 @@ import os
 from typing import Optional
 
 from langchain_core.language_models.chat_models import BaseChatModel
-from langchain_openai import ChatOpenAI, AzureChatOpenAI
+from langchain_openai import AzureChatOpenAI, ChatOpenAI
 
 DEFAULT_LLM_MODEL = "gemini-3.1-flash-lite"
 _SUPPORTED_LLM_PROVIDERS = {"gemini_api", "gcp_vertexai", "openai_api", "azure_openai"}

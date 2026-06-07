@@ -1,16 +1,16 @@
-from typing import Dict, Any, List, Union
 import asyncio
 import json
 import os
+from typing import Any, Dict, List, Union
 
-from langchain_core.runnables import Runnable
 from langchain_core.messages import HumanMessage
+from langchain_core.runnables import Runnable
 from langchain_openai import ChatOpenAI
 
-from src.utils.logger import Logger
 from src.utils.llm_factory import LLMFactory
-from src.utils.prompt_utils import fill_prompt_template
 from src.utils.llm_retry import call_with_retry
+from src.utils.logger import Logger
+from src.utils.prompt_utils import fill_prompt_template
 
 
 class PropertyConsolidator(Runnable):
@@ -142,7 +142,8 @@ class PropertyConsolidator(Runnable):
 
         if self.progress:
             print(
-                f"[PropertyConsolidator] Processing {len(new_properties)} new + {len(existing_properties)} existing properties"
+                f"[PropertyConsolidator] Processing {len(new_properties)} new + "
+                f"{len(existing_properties)} existing properties"
             )
 
         # Return new properties as-is if no existing properties
@@ -200,7 +201,8 @@ class PropertyConsolidator(Runnable):
 
         if self.progress:
             print(
-                f"[PropertyConsolidator] Completed: {len(all_properties)} -> {len(all_consolidated_properties)} properties"
+                f"[PropertyConsolidator] Completed: {len(all_properties)} -> "
+                f"{len(all_consolidated_properties)} properties"
             )
 
         self.logger.save_log(output, filename_prefix="property_consolidator_output_")
@@ -274,7 +276,8 @@ class PropertyConsolidator(Runnable):
 
         if self.progress:
             print(
-                f"[PropertyConsolidator] Starting parallel processing: {total} property types (concurrency={self.max_concurrency})"
+                f"[PropertyConsolidator] Starting parallel processing: {total} property types "
+                f"(concurrency={self.max_concurrency})"
             )
 
         async def _wrapped(property_iri: str, properties: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
@@ -288,7 +291,8 @@ class PropertyConsolidator(Runnable):
                     counter += 1
                     if self.progress:
                         print(
-                            f"[{counter}/{total}] PropertyConsolidator: {property_name} processed ({len(properties)} -> {len(consolidated)} properties)"
+                            f"[{counter}/{total}] PropertyConsolidator: {property_name} processed "
+                            f"({len(properties)} -> {len(consolidated)} properties)"
                         )
 
                 return consolidated

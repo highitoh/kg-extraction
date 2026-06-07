@@ -1,14 +1,13 @@
 """Issue Categorizer - Categorizes similar issue labels into canonical categories using LLM."""
 
+import argparse
 import asyncio
+import glob
 import json
 import sys
-import argparse
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, List, Any, Optional
-import glob
-
+from typing import Any, Dict, List, Optional
 
 # Add src directory to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent))
@@ -266,7 +265,8 @@ class IssueCategorizer:
                     matching_property_validations.append(validation)
 
             print(
-                f"[IssueCategorizer] Category '{category_name}': {len(matching_class_validations)} classes, {len(matching_property_validations)} properties"
+                f"[IssueCategorizer] Category '{category_name}': {len(matching_class_validations)} classes, "
+                f"{len(matching_property_validations)} properties"
             )
 
             categorized.append(

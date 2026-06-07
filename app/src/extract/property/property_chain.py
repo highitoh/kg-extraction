@@ -1,11 +1,12 @@
-from typing import Dict, Any
+from typing import Any, Dict
+
 from langchain_core.runnables import Runnable, RunnableSequence
 
-from .property_extractor import PropertyExtractor
 from .property_consolidator import PropertyConsolidator
+from .property_editor import PropertyEditor
+from .property_extractor import PropertyExtractor
 from .property_ranker import PropertyRanker
 from .property_reviewer import PropertyReviewer
-from .property_editor import PropertyEditor
 from .property_validator import PropertyValidator
 
 
@@ -88,7 +89,8 @@ class EditorToFilterAdapter(Runnable):
 class PropertyChainWithReview(Runnable):
     """
     Property extraction chain with iterative review loop:
-      PropertyExtractor -> PropertyConsolidator -> PropertyRanker -> PropertyReviewer -> (PropertyEditor -> PropertyReviewer)* -> PropertyValidator
+      PropertyExtractor -> PropertyConsolidator -> PropertyRanker -> PropertyReviewer ->
+      (PropertyEditor -> PropertyReviewer)* -> PropertyValidator
 
     Loop logic:
     - Properties judged as REVIEW by PropertyReviewer are corrected by PropertyEditor
@@ -303,7 +305,8 @@ class PropertyChainWithReview(Runnable):
             if self.progress:
                 print(f"\n--- PropertyReviewer (iteration {iteration + 1}) ---")
                 print(
-                    f"Re-reviewing {len(review_only)} REVIEW properties (skipping {len(accepted_properties)} already accepted)"
+                    f"Re-reviewing {len(review_only)} REVIEW properties "
+                    f"(skipping {len(accepted_properties)} already accepted)"
                 )
             adapter_loop = EditorToFilterAdapter(self.original_input)
             filter_input = adapter_loop.invoke({"properties": review_only})
@@ -320,7 +323,8 @@ class PropertyChainWithReview(Runnable):
                 p_copy = p.copy()
                 p_copy["judgment"] = "ACCEPT"
                 p_copy["justification"] = (
-                    f"Maximum review iterations ({self.max_review_iterations}) reached. Auto-accepted. {p.get('justification', '')}"
+                    f"Maximum review iterations ({self.max_review_iterations}) reached. Auto-accepted. "
+                    f"{p.get('justification', '')}"
                 )
                 final_properties.append(p_copy)
                 accepted_review_count += 1
@@ -382,8 +386,10 @@ def create_property_chain(
 ) -> Runnable:
     """
     Property extraction chain:
-      - enable_review=True: PropertyExtractor -> PropertyConsolidator -> PropertyRanker -> PropertyReviewer -> (PropertyEditor -> PropertyReviewer)* -> PropertyValidator
-      - enable_review=False: PropertyExtractor -> PropertyConsolidator -> PropertyRanker -> PropertyReviewer -> PropertyValidator
+      - enable_review=True: PropertyExtractor -> PropertyConsolidator -> PropertyRanker -> PropertyReviewer ->
+        (PropertyEditor -> PropertyReviewer)* -> PropertyValidator
+      - enable_review=False: PropertyExtractor -> PropertyConsolidator -> PropertyRanker -> PropertyReviewer ->
+        PropertyValidator
 
     Args:
         model: LLM model name (if None, use default for each component)

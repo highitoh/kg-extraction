@@ -150,7 +150,8 @@ def rollback_command(args):
         # Confirm rollback unless --yes flag is set
         if not args.yes:
             response = input(
-                f"\nAre you sure you want to rollback project '{args.project}' to snapshot '{args.snapshot}'? (yes/no): "
+                f"\nAre you sure you want to rollback project '{args.project}' to snapshot '{args.snapshot}'? "
+                f"(yes/no): "
             )
             if response.lower() not in ["yes", "y"]:
                 print("Rollback cancelled.")

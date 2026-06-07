@@ -1,17 +1,16 @@
 """Action Applicator - Applies action proposals to target files."""
 
-import json
-import sys
 import argparse
+import glob
+import json
 import shutil
+import sys
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, Any, Optional
-import glob
+from typing import Any, Dict, Optional
 
 # Add src directory to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent))
-
 
 
 class ActionApplicator:

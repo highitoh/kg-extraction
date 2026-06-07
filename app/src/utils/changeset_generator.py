@@ -8,9 +8,7 @@ from typing import List, Optional
 
 from dotenv import load_dotenv
 
-from src.utils import change_diff_engine
-from src.utils import driver_extractor
-from src.utils import source_change_detector
+from src.utils import change_diff_engine, driver_extractor, source_change_detector
 
 load_dotenv()
 

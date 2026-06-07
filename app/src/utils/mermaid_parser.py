@@ -9,7 +9,6 @@ than raising, so unsupported diagram types degrade gracefully to "no edges".
 import re
 from typing import Any, Dict, List
 
-
 # Diagram-type headers and other non-edge lines to skip outright.
 _DIRECTIVE_RE = re.compile(
     r"^\s*(flowchart|graph|classDiagram|sequenceDiagram|stateDiagram(-v2)?|"

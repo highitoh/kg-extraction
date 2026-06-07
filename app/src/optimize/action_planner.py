@@ -1,15 +1,14 @@
 """Action Planner - Generates concrete fix proposals from strategy plans using LLM."""
 
+import argparse
 import asyncio
+import glob
 import json
 import sys
-import argparse
+from collections import defaultdict
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, List, Any, Optional, Tuple
-import glob
-from collections import defaultdict
-
+from typing import Any, Dict, List, Optional, Tuple
 
 # Add src directory to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent))
@@ -155,7 +154,8 @@ class ActionPlanner:
 
         if self.progress:
             print(
-                f"[ActionPlanner] Filtered actions: {len(valid_actions)}/{len(actions)} (high/medium priority with suggestions)"
+                f"[ActionPlanner] Filtered actions: {len(valid_actions)}/{len(actions)} "
+                f"(high/medium priority with suggestions)"
             )
 
         return valid_actions
@@ -317,8 +317,10 @@ class ActionPlanner:
             "class_extractor_custom.txt": "Guidance for extracting class instances from text",
             "class_reviewer_custom.txt": "Validation criteria for class extraction decisions",
             "class_consolidator_custom.txt": "Criteria for selecting canonical labels when merging duplicate classes",
-            "property_extractor_custom.txt": "Guides which property (relationship) candidates to extract from class pairs",
-            "property_ranker_custom.txt": "Guidelines for evaluating relationship strength (0-2 textual explicitness scale)",
+            "property_extractor_custom.txt": "Guides which property (relationship) candidates to extract "
+            "from class pairs",
+            "property_ranker_custom.txt": "Guidelines for evaluating relationship strength "
+            "(0-2 textual explicitness scale)",
             "property_reviewer_custom.txt": "Validation criteria for property extraction decisions",
             "property_consolidator_custom.txt": "Criteria for grouping duplicate/similar properties",
         }
@@ -460,7 +462,7 @@ class ActionPlanner:
         try:
             current_rules, description, entity_type = self._get_metamodel_rules(target, rule_type)
         except ValueError as e:
-            raise ValueError(f"Cannot create prompt for {target_type}:{target} - {e}")
+            raise ValueError(f"Cannot create prompt for {target_type}:{target} - {e}") from e
 
         # Format current rules
         if current_rules:

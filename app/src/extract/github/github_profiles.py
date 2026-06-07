@@ -1,7 +1,6 @@
 """Extraction profiles for different GitHub repository types."""
 
-from typing import Dict, Any, List
-
+from typing import Any, Dict, List
 
 # Pre-defined extraction profiles
 PROFILES: Dict[str, Dict[str, Any]] = {

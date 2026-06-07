@@ -1,15 +1,14 @@
 """Knowledge Validator - Validates classes and properties using LLM with parallel execution."""
 
+import argparse
 import asyncio
+import glob
 import json
 import sys
-import argparse
+import uuid
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, List, Any, Optional, Tuple
-import uuid
-import glob
-
+from typing import Any, Dict, List, Optional, Tuple
 
 # Add src directory to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent))
@@ -239,7 +238,8 @@ class KnowledgeValidator:
 }
 ```
 
-Provide clear, specific, and actionable justifications for each score. Reference specific aspects of the class and how they relate to the evaluation criteria."""
+Provide clear, specific, and actionable justifications for each score. Reference specific aspects of the class
+and how they relate to the evaluation criteria."""
         else:
             justification_instruction = """```json
 {
@@ -395,7 +395,8 @@ Output ONLY the scores using the metrics IDs (S11-S16) as keys."""
 }
 ```
 
-Provide clear, specific, and actionable justifications for each score. Reference specific aspects of the property and how they relate to the evaluation criteria."""
+Provide clear, specific, and actionable justifications for each score. Reference specific aspects of the
+property and how they relate to the evaluation criteria."""
         else:
             justification_instruction = """```json
 {
@@ -540,7 +541,8 @@ Output ONLY the scores using the metrics IDs (S21-S24) as keys."""
         try:
             # Invoke LLM with property schema
             print(
-                f"[KnowledgeValidator] Invoking LLM for property validation: {property_iri} ({len(property_group)} instances)"
+                f"[KnowledgeValidator] Invoking LLM for property validation: {property_iri} "
+                f"({len(property_group)} instances)"
             )
             response = await call_with_retry(
                 lambda: self.llm_property.ainvoke(prompt),
@@ -621,7 +623,8 @@ Output ONLY the scores using the metrics IDs (S21-S24) as keys."""
                 if group:
                     class_iri = group[0].get("class_iri", "Unknown")
                     print(
-                        f"[{class_counter}/{total_class_groups}] KnowledgeValidator: {class_iri} validated ({len(group)} instances)"
+                        f"[{class_counter}/{total_class_groups}] KnowledgeValidator: {class_iri} validated "
+                        f"({len(group)} instances)"
                     )
 
             return result
@@ -665,7 +668,8 @@ Output ONLY the scores using the metrics IDs (S21-S24) as keys."""
                 if group:
                     property_iri = group[0].get("property_iri", "Unknown")
                     print(
-                        f"[{property_counter}/{total_property_groups}] KnowledgeValidator: {property_iri} validated ({len(group)} instances)"
+                        f"[{property_counter}/{total_property_groups}] KnowledgeValidator: {property_iri} validated "
+                        f"({len(group)} instances)"
                     )
 
             return result
@@ -692,7 +696,8 @@ Output ONLY the scores using the metrics IDs (S21-S24) as keys."""
         }
 
         print(
-            f"[KnowledgeValidator] Validation completed: {len(class_validations)} classes, {len(property_validations)} properties validated"
+            f"[KnowledgeValidator] Validation completed: {len(class_validations)} classes, "
+            f"{len(property_validations)} properties validated"
         )
 
         return report

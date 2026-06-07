@@ -6,11 +6,11 @@
   Stage 3 (LLM, parallel): Description generation for high-relevance images
 """
 
-from typing import Any, Dict, List, Optional, Union
 import asyncio
 import json
 import os
 import uuid
+from typing import Any, Dict, List, Optional, Union
 
 import pdfplumber
 from langchain_core.language_models.chat_models import BaseChatModel
@@ -177,7 +177,8 @@ class ImageExtractor(Runnable):
 
         if self.progress:
             print(
-                f"[ImageExtractor] Starting Stage 2 (relevance): {total} candidates (concurrency={self.max_concurrency})"
+                f"[ImageExtractor] Starting Stage 2 (relevance): {total} candidates "
+                f"(concurrency={self.max_concurrency})"
             )
 
         async def _wrapped(i: int, candidate: Dict[str, Any]) -> Dict[str, Any]:

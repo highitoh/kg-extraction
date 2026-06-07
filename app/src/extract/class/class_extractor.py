@@ -1,18 +1,19 @@
 from __future__ import annotations
-from dataclasses import dataclass, asdict
-from typing import Dict, Any, List, Optional
+
 import asyncio
 import json
 import os
+from dataclasses import asdict, dataclass
+from typing import Any, Dict, List, Optional
 
 from langchain_core.messages import HumanMessage
 from langchain_core.runnables import Runnable
 
-from src.utils.logger import Logger
-from src.utils.llm_factory import LLMFactory
-from src.utils.prompt_utils import fill_prompt_template
-from src.utils.llm_retry import call_with_retry
 from src.utils.id_generator import generate_class_id
+from src.utils.llm_factory import LLMFactory
+from src.utils.llm_retry import call_with_retry
+from src.utils.logger import Logger
+from src.utils.prompt_utils import fill_prompt_template
 
 VIEW_TYPES = [
     "value_analysis",
@@ -210,7 +211,8 @@ class ClassExtractor(Runnable):
                     counter += 1
                     if self.progress:
                         print(
-                            f"[{counter}/{total}] ClassExtractor: {view_type} processed (extracted {len(label_items)} items)"
+                            f"[{counter}/{total}] ClassExtractor: {view_type} processed "
+                            f"(extracted {len(label_items)} items)"
                         )
 
                 return {"view_type": view_type, "label_items": label_items}
@@ -243,8 +245,8 @@ class ClassExtractor(Runnable):
             - csv_string: CSV format with "ID,Text" header and rows
             - text_map: {text_id: {"text": str, "file_id": str}}
         """
-        import io
         import csv
+        import io
 
         output = io.StringIO()
         writer = csv.writer(output, quoting=csv.QUOTE_MINIMAL)

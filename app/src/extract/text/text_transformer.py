@@ -12,10 +12,11 @@ Features:
 - Finalizes sentences at sentence end markers (。．！？!?) + closing brackets (」』）】》"'")
 """
 
-from typing import Any, Dict, List
 import re
+from typing import Any, Dict, List
 
 from langchain_core.runnables import Runnable
+
 from src.utils.logger import Logger
 
 

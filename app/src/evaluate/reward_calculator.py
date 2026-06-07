@@ -1,12 +1,12 @@
 """Reward Calculator - Calculates quality scores for extracted classes and properties."""
 
+import argparse
+import glob
 import json
 import sys
-import argparse
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, Any
-import glob
+from typing import Any, Dict
 
 # Add src directory to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent))

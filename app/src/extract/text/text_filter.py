@@ -1,8 +1,9 @@
 # text_filter.py (modified version: removes table of contents and page numbers)
 
 from __future__ import annotations
-from typing import Any, Dict, List, Tuple
+
 import re
+from typing import Any, Dict, List, Tuple
 
 from langchain_core.runnables import Runnable
 from langchain_core.runnables.config import RunnableConfig

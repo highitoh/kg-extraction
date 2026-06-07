@@ -1,14 +1,13 @@
 """Strategy Planner - Creates improvement plans using issue statistics, strategy history, and reward history."""
 
+import argparse
 import asyncio
+import glob
 import json
 import sys
-import argparse
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, List, Any, Optional
-import glob
-
+from typing import Any, Dict, List, Optional
 
 # Add src directory to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent))
@@ -293,8 +292,15 @@ class StrategyPlanner:
 
         # Generate reason instruction based on verbose flag
         if self.verbose:
-            reason_instruction = "- **reason**: Why this edit will address the quality issues (reference specific issue categories/labels)"
-            reason_example = '\n      "reason": "Multiple instances of RELATIONSHIP_STRENGTH_OVERESTIMATION suggest the ranker is assigning strength=3 to weak dependencies. Need clearer criteria for distinguishing strong vs weak relationships.",'
+            reason_instruction = (
+                "- **reason**: Why this edit will address the quality issues "
+                "(reference specific issue categories/labels)"
+            )
+            reason_example = (
+                '\n      "reason": "Multiple instances of RELATIONSHIP_STRENGTH_OVERESTIMATION suggest the ranker '
+                "is assigning strength=3 to weak dependencies. Need clearer criteria for distinguishing strong vs "
+                'weak relationships.",'
+            )
         else:
             reason_instruction = ""
             reason_example = ""

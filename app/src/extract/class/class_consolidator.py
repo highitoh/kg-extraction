@@ -1,16 +1,16 @@
-from typing import Dict, Any, List
 import asyncio
 import json
 import os
+from typing import Any, Dict, List
 
 from langchain_core.messages import HumanMessage
 from langchain_core.runnables import Runnable
 
-from src.utils.logger import Logger
-from src.utils.llm_factory import LLMFactory
-from src.utils.prompt_utils import fill_prompt_template
-from src.utils.llm_retry import call_with_retry
 from src.utils.id_generator import generate_class_id
+from src.utils.llm_factory import LLMFactory
+from src.utils.llm_retry import call_with_retry
+from src.utils.logger import Logger
+from src.utils.prompt_utils import fill_prompt_template
 
 
 class ClassConsolidator(Runnable):
@@ -154,7 +154,8 @@ class ClassConsolidator(Runnable):
 
         if self.progress:
             print(
-                f"[ClassConsolidator Stage 2] Matching {len(new_classes)} new classes against {len(frozen_classes)} frozen classes"
+                f"[ClassConsolidator Stage 2] Matching {len(new_classes)} new classes against "
+                f"{len(frozen_classes)} frozen classes"
             )
 
         # Group by class_iri (only process class_iris that appear in BOTH new and frozen)
@@ -187,7 +188,8 @@ class ClassConsolidator(Runnable):
 
         if self.progress:
             print(
-                f"[ClassConsolidator Stage 2] Completed: {len(new_classes)} new + {len(frozen_classes)} frozen → {len(all_classes)} final classes"
+                f"[ClassConsolidator Stage 2] Completed: {len(new_classes)} new + {len(frozen_classes)} frozen "
+                f"→ {len(all_classes)} final classes"
             )
 
         self.logger.save_log(output, filename_prefix="class_consolidator_stage2_output_")
@@ -222,7 +224,8 @@ class ClassConsolidator(Runnable):
 
         if self.progress:
             print(
-                f"[ClassConsolidator] Starting parallel processing: {total} class types (concurrency={self.max_concurrency})"
+                f"[ClassConsolidator] Starting parallel processing: {total} class types "
+                f"(concurrency={self.max_concurrency})"
             )
 
         async def _wrapped(class_iri: str, class_instances: list) -> list:
@@ -236,7 +239,8 @@ class ClassConsolidator(Runnable):
                     counter += 1
                     if self.progress:
                         print(
-                            f"[{counter}/{total}] ClassConsolidator: {class_name} processed ({len(class_instances)} -> {len(consolidated)} instances)"
+                            f"[{counter}/{total}] ClassConsolidator: {class_name} processed "
+                            f"({len(class_instances)} -> {len(consolidated)} instances)"
                         )
 
                 return consolidated
@@ -341,7 +345,8 @@ class ClassConsolidator(Runnable):
 
         if self.progress:
             print(
-                f"[ClassConsolidator Stage 2] Starting parallel processing: {total} class types (concurrency={self.max_concurrency})"
+                f"[ClassConsolidator Stage 2] Starting parallel processing: {total} class types "
+                f"(concurrency={self.max_concurrency})"
             )
 
         async def _wrapped(class_iri: str) -> list:
@@ -360,7 +365,9 @@ class ClassConsolidator(Runnable):
                     counter += 1
                     if self.progress:
                         print(
-                            f"[{counter}/{total}] ClassConsolidator Stage 2: {class_name} processed ({len(new_instances)} new vs {len(frozen_instances)} frozen → {len(matched_result)} final)"
+                            f"[{counter}/{total}] ClassConsolidator Stage 2: {class_name} processed "
+                            f"({len(new_instances)} new vs {len(frozen_instances)} frozen → "
+                            f"{len(matched_result)} final)"
                         )
 
                 return matched_result
@@ -596,13 +603,14 @@ class ClassConsolidator(Runnable):
             min_length = min(len(sources), len(file_ids))
             if len(sources) != len(file_ids):
                 print(
-                    f"Warning: sources length ({len(sources)}) != file_ids length ({len(file_ids)}) in class {cls.get('id', 'unknown')}"
+                    f"Warning: sources length ({len(sources)}) != file_ids length ({len(file_ids)}) "
+                    f"in class {cls.get('id', 'unknown')}"
                 )
                 sources = sources[:min_length]
                 file_ids = file_ids[:min_length]
 
             # Collect as (source, file_id) pairs
-            for source, file_id in zip(sources, file_ids):
+            for source, file_id in zip(sources, file_ids, strict=True):
                 all_source_file_pairs.append((source, file_id))
 
         # Remove duplicates while preserving order
@@ -610,7 +618,7 @@ class ClassConsolidator(Runnable):
 
         # Split pairs back to sources and file_ids
         if unique_pairs:
-            merged["sources"], merged["file_ids"] = zip(*unique_pairs)
+            merged["sources"], merged["file_ids"] = zip(*unique_pairs, strict=True)
             merged["sources"] = list(merged["sources"])
             merged["file_ids"] = list(merged["file_ids"])
         else:

@@ -1,7 +1,7 @@
 """Analyze and transform GitHub API data into structured extraction items."""
 
 import fnmatch
-from typing import Dict, Any, List, Optional
+from typing import Any, Dict, List, Optional
 
 
 class GitHubAnalyzer:

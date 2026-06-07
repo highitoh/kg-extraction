@@ -1,10 +1,11 @@
-from typing import Dict, Any
+from typing import Any, Dict
+
 from langchain_core.runnables import Runnable
 
+from .class_consolidator import ClassConsolidator
+from .class_editor import ClassEditor
 from .class_extractor import ClassExtractor
 from .class_reviewer import ClassReviewer
-from .class_editor import ClassEditor
-from .class_consolidator import ClassConsolidator
 
 
 class ClassChainWithReview(Runnable):
@@ -131,7 +132,8 @@ class ClassChainWithReview(Runnable):
             if self.progress:
                 print("\n=== ClassConsolidator - Stage 2: Match Against Existing ===")
                 print(
-                    f"Matching {len(result.get('classes', []))} consolidated new classes against {len(existing_classes)} existing classes"
+                    f"Matching {len(result.get('classes', []))} consolidated new classes against "
+                    f"{len(existing_classes)} existing classes"
                 )
 
             result = self.consolidator.invoke_stage2_match_with_frozen(
@@ -218,7 +220,8 @@ class ClassChainWithReview(Runnable):
                 c_copy = c.copy()
                 c_copy["judgment"] = "ACCEPT"
                 c_copy["justification"] = (
-                    f"Maximum review iterations ({self.max_review_iterations}) reached. Auto-accepted. {c.get('justification', '')}"
+                    f"Maximum review iterations ({self.max_review_iterations}) reached. Auto-accepted. "
+                    f"{c.get('justification', '')}"
                 )
                 final_classes.append(c_copy)
                 accepted_review_count += 1

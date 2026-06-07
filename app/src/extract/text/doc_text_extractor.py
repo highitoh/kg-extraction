@@ -1,8 +1,9 @@
-from typing import Any, Dict
 import os
+from typing import Any, Dict
 
-from langchain_core.runnables.config import RunnableConfig
 import pdfplumber
+from langchain_core.runnables.config import RunnableConfig
+
 from .text_extractor import TextExtractor
 
 
