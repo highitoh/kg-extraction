@@ -179,6 +179,21 @@ class FileTypeClassifier(Runnable):
             self.logger.save_log(log_data, "file_type_classifier_output_")
             return {**input, "file_type": file_type}
 
+        # Check if this is a Confluence URL
+        if ".atlassian.net/wiki/" in file_path or file_path.startswith("confluence:"):
+            file_type = "confluence_space"
+            print(f"File: {file_path}, Type: {file_type}")
+
+            # Save log
+            log_data = {
+                "file_path": file_path,
+                "file_type": file_type,
+                "is_presentation": False,
+                "justification": "Confluence Cloud URL detected",
+            }
+            self.logger.save_log(log_data, "file_type_classifier_output_")
+            return {**input, "file_type": file_type}
+
         # Check if miro_board_url is provided
         miro_board_url = input.get("miro_board_url")
         if miro_board_url and file_path.endswith(".pdf"):

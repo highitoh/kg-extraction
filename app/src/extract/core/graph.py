@@ -8,6 +8,7 @@ from langgraph.graph import END, StateGraph
 from src.extract.core.nodes import (
     classify_file_type_node,
     cleanup_deleted_items_node,
+    detect_confluence_changes_node,
     detect_github_changes_node,
     detect_jira_changes_node,
     detect_miro_changes_node,
@@ -15,6 +16,7 @@ from src.extract.core.nodes import (
     extract_images_miro_board_node,
     extract_images_node,
     extract_properties_node,
+    extract_text_confluence_node,
     extract_text_document_node,
     extract_text_github_node,
     extract_text_jira_node,
@@ -72,6 +74,7 @@ def create_knowledge_extraction_graph():
     workflow.add_node("detect_miro_changes", detect_miro_changes_node)
     workflow.add_node("detect_github_changes", detect_github_changes_node)
     workflow.add_node("detect_jira_changes", detect_jira_changes_node)
+    workflow.add_node("detect_confluence_changes", detect_confluence_changes_node)
     workflow.add_node("extract_text_document", extract_text_document_node)
     workflow.add_node("extract_text_presentation", extract_text_presentation_node)
     workflow.add_node("extract_text_miro", extract_text_miro_node)
@@ -79,6 +82,7 @@ def create_knowledge_extraction_graph():
     workflow.add_node("extract_images_miro_board", extract_images_miro_board_node)
     workflow.add_node("extract_text_github", extract_text_github_node)
     workflow.add_node("extract_text_jira", extract_text_jira_node)
+    workflow.add_node("extract_text_confluence", extract_text_confluence_node)
     workflow.add_node("transform_to_chunks", transform_to_chunks_node)
     workflow.add_node("extract_images", extract_images_node)
     workflow.add_node("merge_chunks", merge_chunks_node)
@@ -102,6 +106,8 @@ def create_knowledge_extraction_graph():
             return "detect_github_changes"
         elif file_type == "jira_project":
             return "detect_jira_changes"
+        elif file_type == "confluence_space":
+            return "detect_confluence_changes"
         elif file_type == "miro_board":
             # Both PDF+API and URL-only modes go through change detection
             return "detect_miro_changes"
@@ -118,6 +124,7 @@ def create_knowledge_extraction_graph():
         {
             "detect_github_changes": "detect_github_changes",
             "detect_jira_changes": "detect_jira_changes",
+            "detect_confluence_changes": "detect_confluence_changes",
             "detect_miro_changes": "detect_miro_changes",
             "extract_text_miro_board": "extract_text_miro_board",
             "extract_text_document": "extract_text_document",
@@ -130,6 +137,9 @@ def create_knowledge_extraction_graph():
 
     # detect_jira_changes → extract_text_jira
     workflow.add_edge("detect_jira_changes", "extract_text_jira")
+
+    # detect_confluence_changes → extract_text_confluence
+    workflow.add_edge("detect_confluence_changes", "extract_text_confluence")
 
     # detect_miro_changes → route based on mode (PDF+URL vs URL-only)
     def route_after_miro_changes(state):
@@ -161,6 +171,7 @@ def create_knowledge_extraction_graph():
     workflow.add_edge("extract_text_miro", "transform_to_chunks")
     workflow.add_edge("extract_text_github", "transform_to_chunks")
     workflow.add_edge("extract_text_jira", "transform_to_chunks")
+    workflow.add_edge("extract_text_confluence", "transform_to_chunks")
 
     # Image path (parallel to text chunking): text extracted → extract images → merge
     # Fan out from both text-extraction nodes so image extraction runs after file_id is known
@@ -169,6 +180,7 @@ def create_knowledge_extraction_graph():
     workflow.add_edge("extract_text_miro", "extract_images")
     workflow.add_edge("extract_text_github", "extract_images")
     workflow.add_edge("extract_text_jira", "extract_images")
+    workflow.add_edge("extract_text_confluence", "extract_images")
 
     # Both paths converge at merge_chunks
     workflow.add_edge("transform_to_chunks", "merge_chunks")

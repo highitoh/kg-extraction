@@ -159,6 +159,25 @@ class SnapshotManager:
                 "hash": hashlib.sha256(json.dumps(raw_source_data, sort_keys=True).encode()).hexdigest()[:16],
             }
 
+        # Handle Confluence space source
+        if (
+            raw_source_data
+            and "domain" in raw_source_data
+            and "space_key" in raw_source_data
+            and "page_map" in raw_source_data
+        ):
+            domain = raw_source_data.get("domain")
+            space_key = raw_source_data.get("space_key")
+            extraction_trigger["sourceIdentifier"] = f"confluence:{domain}:{space_key}"
+            extraction_trigger["sourceName"] = f"{domain}/wiki/spaces/{space_key}"
+            extraction_trigger["sourceMetadata"] = {
+                "domain": domain,
+                "space_key": space_key,
+                "total_pages": raw_source_data.get("total_pages", 0),
+                "watermark": raw_source_data.get("watermark"),
+                "hash": hashlib.sha256(json.dumps(raw_source_data, sort_keys=True).encode()).hexdigest()[:16],
+            }
+
         if extraction_result_file:
             extraction_trigger["extractionResultFile"] = extraction_result_file
 

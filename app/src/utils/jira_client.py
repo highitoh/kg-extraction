@@ -16,7 +16,8 @@ class JiraClient:
     """Client for interacting with Jira Cloud REST API v3.
 
     Authentication:
-        Uses email + API token from JIRA_EMAIL and JIRA_API_TOKEN environment variables.
+        Uses email + API token from ATLASSIAN_EMAIL and ATLASSIAN_API_TOKEN environment variables.
+        Falls back to JIRA_EMAIL and JIRA_API_TOKEN for backward compatibility.
         API tokens can be generated at: https://id.atlassian.com/manage-profile/security/api-tokens
 
     Rate Limiting:
@@ -41,29 +42,31 @@ class JiraClient:
         """Initialize Jira Cloud API client.
 
         Args:
-            email: Jira account email (defaults to JIRA_EMAIL env var)
-            api_token: Jira API token (defaults to JIRA_API_TOKEN env var)
-            instance_domain: Jira instance domain (defaults to JIRA_INSTANCE_DOMAIN env var)
-                            e.g., "your-company.atlassian.net"
+            email: Atlassian account email (defaults to ATLASSIAN_EMAIL, falls back to JIRA_EMAIL)
+            api_token: Atlassian API token (defaults to ATLASSIAN_API_TOKEN, falls back to JIRA_API_TOKEN)
+            instance_domain: Atlassian instance domain (defaults to ATLASSIAN_INSTANCE_DOMAIN,
+                            falls back to JIRA_INSTANCE_DOMAIN), e.g., "your-company.atlassian.net"
             max_retries: Maximum number of retries for rate limiting (default: 3)
             timeout: Request timeout in seconds (default: 30.0)
 
         Note:
             All three credentials (email, api_token, instance_domain) are required.
         """
-        self.email = email or os.getenv("JIRA_EMAIL")
-        self.api_token = api_token or os.getenv("JIRA_API_TOKEN")
-        self.instance_domain = instance_domain or os.getenv("JIRA_INSTANCE_DOMAIN")
+        self.email = email or os.getenv("ATLASSIAN_EMAIL") or os.getenv("JIRA_EMAIL")
+        self.api_token = api_token or os.getenv("ATLASSIAN_API_TOKEN") or os.getenv("JIRA_API_TOKEN")
+        self.instance_domain = (
+            instance_domain or os.getenv("ATLASSIAN_INSTANCE_DOMAIN") or os.getenv("JIRA_INSTANCE_DOMAIN")
+        )
 
         if not self.email or not self.api_token:
             raise ValueError(
-                "Missing Jira credentials. Set JIRA_EMAIL and JIRA_API_TOKEN environment variables. "
+                "Missing Atlassian credentials. Set ATLASSIAN_EMAIL and ATLASSIAN_API_TOKEN environment variables "
                 "Generate API token at: https://id.atlassian.com/manage-profile/security/api-tokens"
             )
 
         if not self.instance_domain:
             raise ValueError(
-                "Missing Jira instance domain. Set JIRA_INSTANCE_DOMAIN environment variable "
+                "Missing Atlassian instance domain. Set ATLASSIAN_INSTANCE_DOMAIN environment variable "
                 "(e.g., 'your-company.atlassian.net')"
             )
 

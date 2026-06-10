@@ -632,6 +632,179 @@ def extract_text_jira_node(state: KnowledgeExtractionState) -> KnowledgeExtracti
     return state
 
 
+def detect_confluence_changes_node(state: KnowledgeExtractionState) -> KnowledgeExtractionState:
+    """
+    Node that detects changes in Confluence space.
+    Sets incremental mode and identifies changed/deleted pages.
+    Only runs for confluence_space file_type.
+    """
+    try:
+        from src.extract.confluence.confluence_url_parser import get_space_identifier, parse_confluence_url
+        from src.utils.snapshot_repository import SnapshotRepository
+
+        confluence_url = state["files"][0]["path"]
+        parsed = parse_confluence_url(confluence_url)
+        domain = parsed["domain"]
+        space_key = parsed["space_key"]
+
+        space_identifier = get_space_identifier(domain, space_key)
+        project = state.get("project", "default")
+        output_dir = state.get("output_dir", "/workspace/app/output")
+
+        # Find previous snapshot for this Confluence space
+        repo = SnapshotRepository(output_dir=output_dir)
+
+        try:
+            snapshots = repo.list_snapshots(project)
+            prev_snapshot_id = None
+
+            for snapshot in snapshots:
+                # Check both old format (trigger.sourceIdentifier) and new format (source)
+                trigger = snapshot.get("trigger", {})
+                source_id = trigger.get("sourceIdentifier", "") or snapshot.get("source", "")
+                if source_id == space_identifier:
+                    prev_snapshot_id = snapshot["snapshot_id"]
+                    break
+
+            if not prev_snapshot_id:
+                print("[DetectConfluenceChanges] No previous snapshot found, doing full extraction")
+                state["incremental_mode"] = False
+                return state
+
+            print(f"[DetectConfluenceChanges] Found previous snapshot: {prev_snapshot_id}")
+            state["previous_snapshot_id"] = prev_snapshot_id
+            state["incremental_mode"] = True
+            state["current_stage"] = "confluence_changes_detected"
+
+        except FileNotFoundError:
+            print("[DetectConfluenceChanges] No snapshots directory, doing full extraction")
+            state["incremental_mode"] = False
+
+    except Exception as e:
+        print(f"[DetectConfluenceChanges] Error: {e}, falling back to full extraction")
+        state["incremental_mode"] = False
+        state["current_stage"] = "confluence_change_detection_failed"
+
+    return state
+
+
+def extract_text_confluence_node(state: KnowledgeExtractionState) -> KnowledgeExtractionState:
+    """
+    Node that extracts text from Confluence space.
+    Supports incremental mode (only extract changed pages).
+    confluence_url -> sentences (line-level), confluence_raw_data
+    """
+    try:
+        from src.extract.confluence.confluence_text_extractor import extract_text_from_confluence
+        from src.utils.source_change_detector import load_source_raw
+
+        confluence_url = state["files"][0]["path"]
+
+        # Load previous snapshot data if in incremental mode
+        since_watermark = None
+        prev_raw = None
+        if state.get("incremental_mode"):
+            prev_snapshot_id = state.get("previous_snapshot_id")
+            project = state.get("project", "default")
+            output_dir = state.get("output_dir", "/workspace/app/output")
+            prev_raw = load_source_raw(project, prev_snapshot_id, output_dir)
+
+            if prev_raw and prev_raw.get("watermark"):
+                since_watermark = prev_raw["watermark"]
+                print(f"[ExtractTextConfluenceNode] Incremental mode: fetching pages updated since {since_watermark}")
+            else:
+                print("[ExtractTextConfluenceNode] Previous snapshot has no watermark, falling back to full fetch")
+
+        sentences = extract_text_from_confluence(confluence_url, since_watermark=since_watermark)
+
+        # Extract confluence_raw_data from first sentence
+        confluence_raw_data = sentences[0].pop("_confluence_raw_data", None) if sentences else None
+
+        # Apply incremental filtering if enabled
+        if state.get("incremental_mode") and confluence_raw_data:
+            if prev_raw and "page_map" in prev_raw:
+                prev_page_map = prev_raw.get("page_map", {})
+                curr_page_map = confluence_raw_data.get("page_map", {})
+
+                prev_ids = set(prev_page_map.keys())
+                curr_ids = set(curr_page_map.keys())
+
+                # The incremental fetch only returns pages updated since the watermark,
+                # so curr_page_map contains just the changed/new pages -- it is NOT the
+                # full space state. Deletion detection is therefore not possible here
+                # (an absent page may simply be unchanged).
+                new_ids = curr_ids - prev_ids
+                modified_ids = curr_ids & prev_ids
+                changed_ids = new_ids | modified_ids
+
+                # Filter sentences to only changed pages (by page_id in metadata)
+                filtered_sentences = [
+                    sentence for sentence in sentences if sentence.get("metadata", {}).get("page_id") in changed_ids
+                ]
+
+                print(
+                    f"[ExtractTextConfluenceNode] Incremental mode: "
+                    f"new={len(new_ids)}, modified={len(modified_ids)}, "
+                    f"processing={len(filtered_sentences)} sentences from {len(changed_ids)} pages"
+                )
+
+                # Store changed page IDs for downstream merging
+                state["changed_item_ids"] = list(changed_ids)
+
+                # Merge the new page_map over the previous one so the snapshot keeps the
+                # full space baseline (unchanged pages are carried forward). The watermark
+                # advances to the latest "updated" seen across the merged set.
+                merged_page_map = {**prev_page_map, **curr_page_map}
+                confluence_raw_data["page_map"] = merged_page_map
+                confluence_raw_data["total_pages"] = len(merged_page_map)
+                merged_watermark = max(
+                    (entry.get("updated", "") for entry in merged_page_map.values() if entry.get("updated")),
+                    default=confluence_raw_data.get("watermark"),
+                )
+                confluence_raw_data["watermark"] = merged_watermark
+
+                sentences = filtered_sentences
+            else:
+                print("[ExtractTextConfluenceNode] Could not load previous data, using full extraction")
+                state["incremental_mode"] = False
+        elif state.get("incremental_mode") and not confluence_raw_data and prev_raw:
+            # Incremental run that fetched zero changed pages: no new sentences, so
+            # confluence_raw_data is None. Carry the previous snapshot's baseline forward
+            # (page_map + watermark) so the snapshot chain stays intact for next time.
+            confluence_raw_data = prev_raw
+            state["changed_item_ids"] = []
+            print("[ExtractTextConfluenceNode] Incremental mode: no changes, carrying forward previous baseline")
+
+        # Store results in State (sentences already in correct format - line-level)
+        state["sentences"] = sentences
+
+        # Generate file_id for space
+        if confluence_raw_data:
+            domain = confluence_raw_data.get("domain", "unknown")
+            space_key = confluence_raw_data.get("space_key", "unknown")
+            state["file_id"] = f"confluence:{domain}:{space_key}"
+            state["file_name"] = f"{domain}/wiki/spaces/{space_key}"
+        else:
+            state["file_id"] = "confluence:unknown"
+            state["file_name"] = "Confluence Space"
+
+        state["confluence_raw_data"] = confluence_raw_data
+        state["current_stage"] = "text_extracted_confluence"
+
+        print(f"[ExtractTextConfluenceNode] Extracted {len(sentences)} sentences from Confluence space")
+
+    except Exception as e:
+        import traceback
+
+        traceback.print_exc()
+        state.setdefault("errors", [])
+        state["errors"].append(f"Confluence text extraction failed: {e}")
+        state["sentences"] = []
+        state["current_stage"] = "text_extraction_failed"
+
+    return state
+
+
 def transform_to_chunks_node(state: KnowledgeExtractionState) -> KnowledgeExtractionState:
     """
     Node that splits extracted text into chunks

@@ -76,6 +76,17 @@ class KnowledgeExtractionState(TypedDict, total=False):
     #   "fetched_at": str  # ISO timestamp
     # }
 
+    # ========== Confluence-Specific Fields ==========
+    confluence_space_key: Optional[str]  # Space key (e.g., "DOCS")
+    confluence_raw_data: Optional[Dict[str, Any]]  # Raw Confluence space data (for Confluence sources)
+    # Raw data structure: {
+    #   "domain": str,
+    #   "space_key": str,
+    #   "page_map": Dict[str, Any],  # page_id → page metadata for change tracking
+    #   "total_pages": int,
+    #   "watermark": str  # Latest lastModified timestamp
+    # }
+
     # ========== GitHub-Specific Fields ==========
     date: Optional[str]  # Date in YYYYMMDD format for GitHub extraction at specific point in time
     github_scope: Optional[str]  # Extraction scope: "readme-only", "documentation", "diff", etc.

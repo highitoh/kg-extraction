@@ -58,6 +58,9 @@ cd app && uv run python src/extract_workflow.py [PDF_PATH] --project [PROJECT_NA
 
 # Miro board extraction
 cd app && ./extract.sh "https://miro.com/app/board/BOARD_ID" --project [PROJECT_NAME]
+
+# Confluence space extraction
+cd app && ./extract.sh "https://company.atlassian.net/wiki/spaces/DOCS" --project [PROJECT_NAME]
 ```
 
 ### Batch Extraction
