@@ -6,7 +6,7 @@ LangGraph node function definitions for knowledge extraction processing
 import importlib
 import json
 import os
-from typing import Any, Dict, Set, Tuple
+from typing import Any, Dict, List, Set, Tuple
 
 from src.extract.classification.file_type_classifier import FileTypeClassifier
 from src.extract.core.state import KnowledgeExtractionState
@@ -71,6 +71,57 @@ def _detect_miro_item_changes(
             modified_ids.add(item_id)
 
     return new_ids, modified_ids, deleted_ids
+
+
+def _create_chunks_by_source(sentences: List[Dict[str, Any]], file_type: str) -> List[str]:
+    """Create chunks by grouping sentences by source (page/issue/file).
+
+    For Confluence, Jira, and GitHub extractions, sentences are grouped by their
+    source identifier (page_id, issue_id, or file_path) to ensure that content
+    from different sources is not mixed in the same chunk.
+
+    If a source's content is large, it will be split into multiple chunks
+    using ChunkCreator (with overlap to preserve context).
+
+    Args:
+        sentences: List of sentence dicts with metadata
+        file_type: File type (confluence_space, jira_project, github_repo)
+
+    Returns:
+        List of chunk texts (one or more chunks per source)
+    """
+    from collections import defaultdict
+
+    # Determine metadata key based on file type
+    if file_type == "confluence_space":
+        key_name = "page_id"
+    elif file_type == "jira_project":
+        key_name = "issue_id"
+    elif file_type == "github_repo":
+        key_name = "file_path"
+    else:
+        key_name = "page_id"
+
+    # Group sentences by source
+    source_groups = defaultdict(list)
+    for sentence in sentences:
+        metadata = sentence.get("metadata", {})
+        source_id = metadata.get(key_name, "unknown")
+        source_groups[source_id].append(sentence["text"])
+
+    # Create chunks for each source using ChunkCreator
+    chunk_creator = ChunkCreator(chunk_mode="char", max_chars=2000, overlap_chars=100)
+    chunks = []
+
+    for source_id in sorted(source_groups.keys()):
+        source_sentences = source_groups[source_id]
+        # Combine sentences with space (same as standard char mode)
+        source_text = " ".join(source_sentences)
+        # Split using ChunkCreator (handles long text automatically)
+        source_chunks = chunk_creator.create(source_text)
+        chunks.extend(source_chunks)
+
+    return chunks
 
 
 # ========== Node Function Definitions ==========
@@ -814,36 +865,59 @@ def transform_to_chunks_node(state: KnowledgeExtractionState) -> KnowledgeExtrac
         file_type = state["file_type"]
         sentences = state.get("sentences", []) or []
 
-        # Select chunk mode based on file type
-        if file_type == "presentation":
-            chunk_mode = "page"
-            chunk_creator = ChunkCreator(chunk_mode=chunk_mode)
-            combined_text = "\n".join([s["text"] for s in sentences])
-        else:
-            chunk_mode = "char"
-            chunk_creator = ChunkCreator(chunk_mode=chunk_mode)
-            combined_text = " ".join([s["text"] for s in sentences])
+        # For Confluence/Jira/GitHub, group sentences by page/issue/file and create chunks per source
+        if file_type in ("confluence_space", "jira_project", "github_repo"):
+            chunk_texts = _create_chunks_by_source(sentences, file_type)
+            state["chunks"] = [{"text": chunk} for chunk in chunk_texts]
+            state["current_stage"] = "chunks_created"
 
-        print(
-            f"[TransformToChunksNode] Starting chunk creation: "
-            f"file_type={file_type} mode={chunk_mode} sentences={len(sentences)} "
-            f"combined_chars={len(combined_text)}"
-        )
-
-        # Split into chunks
-        chunk_texts = chunk_creator.create(combined_text)
-        state["chunks"] = [{"text": chunk} for chunk in chunk_texts]
-        state["current_stage"] = "chunks_created"
-
-        if chunk_texts:
-            chunk_lens = [len(c) for c in chunk_texts]
-            avg_len = sum(chunk_lens) / len(chunk_lens)
+            total_sentences = len(sentences)
             print(
-                f"[TransformToChunksNode] done: chunks={len(chunk_texts)} "
-                f"avg_chars={avg_len:.0f} min_chars={min(chunk_lens)} max_chars={max(chunk_lens)}"
+                f"[TransformToChunksNode] Starting chunk creation: "
+                f"file_type={file_type} mode=by_source sentences={total_sentences}"
             )
+
+            if chunk_texts:
+                chunk_lens = [len(c) for c in chunk_texts]
+                avg_len = sum(chunk_lens) / len(chunk_lens)
+                print(
+                    f"[TransformToChunksNode] done: chunks={len(chunk_texts)} "
+                    f"avg_chars={avg_len:.0f} min_chars={min(chunk_lens)} max_chars={max(chunk_lens)}"
+                )
+            else:
+                print("[TransformToChunksNode] done: chunks=0 (no sentences to split)")
+
         else:
-            print("[TransformToChunksNode] done: chunks=0 (no sentences to split)")
+            # Select chunk mode based on file type
+            if file_type == "presentation":
+                chunk_mode = "page"
+                chunk_creator = ChunkCreator(chunk_mode=chunk_mode)
+                combined_text = "\n".join([s["text"] for s in sentences])
+            else:
+                chunk_mode = "char"
+                chunk_creator = ChunkCreator(chunk_mode=chunk_mode)
+                combined_text = " ".join([s["text"] for s in sentences])
+
+            print(
+                f"[TransformToChunksNode] Starting chunk creation: "
+                f"file_type={file_type} mode={chunk_mode} sentences={len(sentences)} "
+                f"combined_chars={len(combined_text)}"
+            )
+
+            # Split into chunks
+            chunk_texts = chunk_creator.create(combined_text)
+            state["chunks"] = [{"text": chunk} for chunk in chunk_texts]
+            state["current_stage"] = "chunks_created"
+
+            if chunk_texts:
+                chunk_lens = [len(c) for c in chunk_texts]
+                avg_len = sum(chunk_lens) / len(chunk_lens)
+                print(
+                    f"[TransformToChunksNode] done: chunks={len(chunk_texts)} "
+                    f"avg_chars={avg_len:.0f} min_chars={min(chunk_lens)} max_chars={max(chunk_lens)}"
+                )
+            else:
+                print("[TransformToChunksNode] done: chunks=0 (no sentences to split)")
 
     except Exception as e:
         state.setdefault("errors", [])

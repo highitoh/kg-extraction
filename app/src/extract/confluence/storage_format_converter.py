@@ -33,12 +33,27 @@ class StorageFormatConverter:
             text = storage_html
 
             # Convert headings
-            text = re.sub(r"<h1>(.*?)</h1>", r"# \1\n", text, flags=re.DOTALL)
-            text = re.sub(r"<h2>(.*?)</h2>", r"## \1\n", text, flags=re.DOTALL)
-            text = re.sub(r"<h3>(.*?)</h3>", r"### \1\n", text, flags=re.DOTALL)
-            text = re.sub(r"<h4>(.*?)</h4>", r"#### \1\n", text, flags=re.DOTALL)
-            text = re.sub(r"<h5>(.*?)</h5>", r"##### \1\n", text, flags=re.DOTALL)
-            text = re.sub(r"<h6>(.*?)</h6>", r"###### \1\n", text, flags=re.DOTALL)
+            text = re.sub(r"<h1>(.*?)</h1>", r"# \1\n\n", text, flags=re.DOTALL)
+            text = re.sub(r"<h2>(.*?)</h2>", r"## \1\n\n", text, flags=re.DOTALL)
+            text = re.sub(r"<h3>(.*?)</h3>", r"### \1\n\n", text, flags=re.DOTALL)
+            text = re.sub(r"<h4>(.*?)</h4>", r"#### \1\n\n", text, flags=re.DOTALL)
+            text = re.sub(r"<h5>(.*?)</h5>", r"##### \1\n\n", text, flags=re.DOTALL)
+            text = re.sub(r"<h6>(.*?)</h6>", r"###### \1\n\n", text, flags=re.DOTALL)
+
+            # Convert lists (add line breaks around list items)
+            text = re.sub(r"<li>(.*?)</li>", r"- \1\n", text, flags=re.DOTALL)
+            text = re.sub(r"<ul>", r"\n", text)
+            text = re.sub(r"</ul>", r"\n", text)
+            text = re.sub(r"<ol>", r"\n", text)
+            text = re.sub(r"</ol>", r"\n", text)
+
+            # Convert tables (add line breaks)
+            text = re.sub(r"<tr>", r"", text)
+            text = re.sub(r"</tr>", r"\n", text)
+            text = re.sub(r"<td>(.*?)</td>", r"\1 | ", text, flags=re.DOTALL)
+            text = re.sub(r"<th>(.*?)</th>", r"**\1** | ", text, flags=re.DOTALL)
+            text = re.sub(r"<table[^>]*>", r"\n", text)
+            text = re.sub(r"</table>", r"\n", text)
 
             # Convert bold and italic
             text = re.sub(r"<strong>(.*?)</strong>", r"**\1**", text, flags=re.DOTALL)
@@ -52,14 +67,22 @@ class StorageFormatConverter:
             # Convert line breaks
             text = re.sub(r"<br\s*/?>", "\n", text)
 
+            # Convert divs (block elements should have line breaks)
+            text = re.sub(r"<div[^>]*>", r"\n", text)
+            text = re.sub(r"</div>", r"\n", text)
+
             # Convert code blocks
             text = re.sub(r"<code>(.*?)</code>", r"`\1`", text, flags=re.DOTALL)
 
             # Remove remaining HTML tags
             text = re.sub(r"<[^>]+>", "", text)
 
+            # Post-processing: improve sentence segmentation
+            text = re.sub(r"([。！？]|[.!?]\s+(?=[A-Z]))\s*(?=[^\n])", r"\1\n", text)
+
             # Clean up extra whitespace
             text = re.sub(r"\n\n\n+", "\n\n", text)
+            text = re.sub(r"  +", " ", text)  # Multiple spaces to single space
             text = text.strip()
 
             return text
