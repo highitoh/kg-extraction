@@ -8,6 +8,10 @@ from typing import Any, Dict, List, Optional
 from src.extract.confluence.confluence_url_parser import parse_confluence_url
 from src.extract.confluence.storage_format_converter import StorageFormatConverter
 from src.utils.confluence_client import ConfluenceClient
+from src.utils.table_extractor import extract_tables_from_xhtml
+
+# Page-level context window length (chars) attached to structured table blocks.
+CONTEXT_WINDOW_CHARS = 200
 
 
 def extract_text_from_confluence(confluence_url: str, since_watermark: Optional[str] = None) -> List[Dict[str, Any]]:
@@ -77,11 +81,27 @@ def extract_text_from_confluence(confluence_url: str, since_watermark: Optional[
             # Continue processing other pages
             continue
 
-    # Attach raw data to first sentence for snapshot tracking
+    # Build structured table blocks per page, preserving table structure before
+    # the line-level flattening above. Consumed downstream for class candidates
+    # (table headers) and deterministic property edges (filled cells).
+    all_blocks = []
+    for page in all_pages:
+        try:
+            all_blocks.extend(_page_to_structured_blocks(converter, page, domain, space_key))
+        except Exception as e:
+            page_id_or_title = page.get("id", page.get("title", "unknown"))
+            print(f"[ConfluenceExtractor] Error extracting tables from page {page_id_or_title}: {e}")
+            continue
+
+    # Attach raw data + structured blocks to first sentence for the node to pick up
     if all_sentences:
         all_sentences[0]["_confluence_raw_data"] = _build_raw_data(domain, space_key, all_pages)
+        all_sentences[0]["_confluence_structured_blocks"] = all_blocks
 
-    print(f"[ConfluenceExtractor] Extracted {len(all_sentences)} sentences from {len(all_pages)} pages")
+    print(
+        f"[ConfluenceExtractor] Extracted {len(all_sentences)} sentences and "
+        f"{len(all_blocks)} table blocks from {len(all_pages)} pages"
+    )
 
     return all_sentences
 
@@ -234,6 +254,55 @@ def _page_to_sentences(
         )
 
     return sentences
+
+
+def _page_to_structured_blocks(
+    converter: StorageFormatConverter,
+    page: Dict[str, Any],
+    domain: str,
+    space_key: str,
+) -> List[Dict[str, Any]]:
+    """Extract structured table blocks from a Confluence page.
+
+    Parses the page's storage-format (XHTML) body into normalized table cores and
+    wraps each with source-dependent context. Context is page-level for now:
+    section_path = page title, context_window = a bounded prefix of the page text.
+    (Per-table heading/window positioning is a future refinement.)
+
+    Returns:
+        List of structured blocks (see KnowledgeExtractionState.structured_blocks).
+    """
+    body = page.get("body", {}).get("storage", {})
+    body_storage = body.get("value", "") if body else ""
+    if not body_storage:
+        return []
+
+    tables = extract_tables_from_xhtml(body_storage)
+    if not tables:
+        return []
+
+    page_id = page["id"]
+    page_title = page.get("title", "")
+
+    # Page-level context window: a bounded prefix of the converted page text.
+    body_markdown = converter.convert(body_storage)
+    context_window = " ".join(body_markdown.split())[:CONTEXT_WINDOW_CHARS]
+
+    file_id = f"confluence:{domain}:{space_key}:{page_id}"
+
+    blocks = []
+    for table in tables:
+        blocks.append(
+            {
+                "block_type": "table",
+                "file_id": file_id,
+                "scope_ref": page_id,
+                "section_path": page_title,
+                "context_window": context_window,
+                "table": table,
+            }
+        )
+    return blocks
 
 
 def _extract_comments(converter: StorageFormatConverter, comments: List[Dict[str, Any]]) -> List[Dict[str, str]]:

@@ -19,6 +19,7 @@ from src.extract.text.presentation_text_chain import PresentationTextChain
 from src.extract.view.view_chain import create_view_chain
 from src.utils.chunk_creator import ChunkCreator
 from src.utils.mermaid_parser import build_extracted_structure
+from src.utils.table_structure import build_table_edges
 
 # Note: 'class' is a reserved keyword, so we use importlib for this import
 _class_chain_module = importlib.import_module("src.extract.class.class_chain")
@@ -768,8 +769,9 @@ def extract_text_confluence_node(state: KnowledgeExtractionState) -> KnowledgeEx
 
         sentences = extract_text_from_confluence(confluence_url, since_watermark=since_watermark)
 
-        # Extract confluence_raw_data from first sentence
+        # Extract confluence_raw_data and structured table blocks from first sentence
         confluence_raw_data = sentences[0].pop("_confluence_raw_data", None) if sentences else None
+        structured_blocks = sentences[0].pop("_confluence_structured_blocks", []) if sentences else []
 
         # Apply incremental filtering if enabled
         if state.get("incremental_mode") and confluence_raw_data:
@@ -792,6 +794,9 @@ def extract_text_confluence_node(state: KnowledgeExtractionState) -> KnowledgeEx
                 filtered_sentences = [
                     sentence for sentence in sentences if sentence.get("metadata", {}).get("page_id") in changed_ids
                 ]
+
+                # Filter structured blocks to only changed pages (by scope_ref=page_id)
+                structured_blocks = [b for b in structured_blocks if b.get("scope_ref") in changed_ids]
 
                 print(
                     f"[ExtractTextConfluenceNode] Incremental mode: "
@@ -828,6 +833,7 @@ def extract_text_confluence_node(state: KnowledgeExtractionState) -> KnowledgeEx
 
         # Store results in State (sentences already in correct format - line-level)
         state["sentences"] = sentences
+        state["structured_blocks"] = structured_blocks
 
         # Generate file_id for space
         if confluence_raw_data:
@@ -851,6 +857,7 @@ def extract_text_confluence_node(state: KnowledgeExtractionState) -> KnowledgeEx
         state.setdefault("errors", [])
         state["errors"].append(f"Confluence text extraction failed: {e}")
         state["sentences"] = []
+        state["structured_blocks"] = []
         state["current_stage"] = "text_extraction_failed"
 
     return state
@@ -1070,6 +1077,7 @@ def extract_classes_node(state: KnowledgeExtractionState) -> KnowledgeExtraction
             "view_info": {"views": state["views"]},
             "metamodel": state["metamodel"],
             "existing_classes": existing_classes,  # Add existing classes
+            "structured_blocks": state.get("structured_blocks", []),  # Table header candidates (step A)
         }
 
         result = class_chain.invoke(input_data)
@@ -1142,11 +1150,19 @@ def extract_properties_node(state: KnowledgeExtractionState) -> KnowledgeExtract
 
         property_chain = create_property_chain(model=state.get("model"), existing_properties=existing_properties)
 
+        # Combine diagram-derived structural edges with deterministic table edges
+        # (non-empty matrix cells -> row_header x col_header). Both flow through the
+        # same structure resolution (label -> class, pair_map for the property type).
+        table_edges = build_table_edges(state.get("structured_blocks", []))
+        extracted_structure = list(state.get("extracted_structure", []) or []) + table_edges
+        if table_edges:
+            print(f"[ExtractPropertiesNode] Added {len(table_edges)} table-derived structural edges")
+
         # Match PropertyChain input format
         input_data = {
             "class_info": {"classes": state["classes"]},
             "metamodel": state["metamodel"],
-            "extracted_structure": state.get("extracted_structure", []),
+            "extracted_structure": extracted_structure,
         }
 
         result = property_chain.invoke(input_data)

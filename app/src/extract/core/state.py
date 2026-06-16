@@ -123,6 +123,26 @@ class KnowledgeExtractionState(TypedDict, total=False):
     # PropertyExtractor to derive deterministic relationship candidates.
     # record: {"src_label": str, "dest_label": str, "edge_label": str, "file_id": str}
 
+    # ========== Intermediate Results: Structured Block Stage (tables) ==========
+    structured_blocks: List[Dict[str, Any]]  # Structured blocks (tables) preserved before flattening
+    # Each block nests a source-independent table core under "table" while the
+    # surrounding source-dependent context (file_id/section_path/context_window)
+    # is supplied by the source extractor. Consumed by ClassExtractor (class
+    # candidates from headers) and build_table_edges (deterministic property edges).
+    # block: {
+    #   "block_type": "table",
+    #   "file_id": str,
+    #   "scope_ref": str,          # e.g. page_id (provenance/context)
+    #   "section_path": str,       # heading path above the table
+    #   "context_window": str,     # surrounding text (a few hundred chars)
+    #   "table": {                 # source-independent core (table_extractor output)
+    #     "row_headers": List[str],
+    #     "col_headers": List[str],
+    #     "cells": List[List[str]],   # row-major; "" = empty cell
+    #     "caption": Optional[str]
+    #   }
+    # }
+
     # ========== Intermediate Results: View Extraction Stage ==========
     views: List[Dict[str, Any]]  # View description extraction results
     # view: {

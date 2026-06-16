@@ -1,0 +1,32 @@
+Assign a knowledge-graph [Class] type to each table header listed in [Headers].
+A header that is NOT a domain entity (a marker, value, unit, count, date, or an
+attribute column) must be "none". Use the [Context] and [Grid] to judge whether a
+header denotes an entity, but the candidates are ONLY the listed headers.
+
+[Classes]
+<<CLASS_DEFINITIONS>>
+
+<<CUSTOM_RULES>>
+
+[Context]
+<<CONTEXT>>
+
+[Headers]
+<<HEADERS>>
+
+[Grid]
+The grid shows cell values for judging entity-ness only. Do NOT extract anything
+from the cells; only the headers above are candidates.
+<<GRID>>
+
+[Rules]
+- Output exactly one entry per header id (both R* and C*).
+- class must be a name from [Classes], or "none" when no class clearly fits.
+- Do not invent headers and do not output cell contents.
+
+[Output Format (JSON only)]
+{
+  "headers": [
+    { "header_id": "R0", "class": "<class name from [Classes] or none>" }
+  ]
+}

@@ -74,6 +74,16 @@ class ClassExtractor(Runnable):
         # Load custom rules
         self.custom_rules = self._load_custom_rules()
 
+        # Structured-block (table) header typing: separate prompt + schema
+        structured_schema = self._load_structured_schema()
+        self.llm_json_structured = self.llm.bind(
+            response_format={
+                "type": "json_schema",
+                "json_schema": {"name": "class_extractor_structured", "schema": structured_schema},
+            }
+        )
+        self.prompt_template_structured = self._load_structured_prompt_template()
+
     def _load_schema(self) -> dict:
         """Load JSON schema file"""
         # Go up 3 levels from src/extract/class/ to /workspace/app/
@@ -101,6 +111,20 @@ class ClassExtractor(Runnable):
         with open(custom_path, "r", encoding="utf-8") as f:
             content = f.read().strip()
             return "\n" + content if content else ""
+
+    def _load_structured_schema(self) -> dict:
+        """Load JSON schema for structured-block (table) header typing"""
+        app_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
+        schema_path = os.path.join(app_dir, "schemas", "class-extractor", "llm-structured.schema.json")
+        with open(schema_path, "r", encoding="utf-8") as f:
+            return json.load(f)
+
+    def _load_structured_prompt_template(self) -> str:
+        """Load prompt template for structured-block (table) header typing"""
+        app_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
+        prompt_path = os.path.join(app_dir, "prompts", "class_extractor_structured.txt")
+        with open(prompt_path, "r", encoding="utf-8") as f:
+            return f.read()
 
     def invoke(self, input_data: Dict[str, Any], config: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         """
@@ -144,6 +168,19 @@ class ClassExtractor(Runnable):
                         sources=sources,
                         file_ids=file_ids,
                     )
+                )
+
+        # Structured blocks (tables): type headers into class candidates and merge
+        # into the same pool so the downstream Consolidator/Reviewer handle them uniformly.
+        structured_blocks = input_data.get("structured_blocks", []) or []
+        if structured_blocks:
+            structured_classes = asyncio.run(self._extract_classes_from_blocks_async(structured_blocks, metamodel))
+            classes.extend(structured_classes)
+            if self.progress:
+                table_count = sum(1 for b in structured_blocks if b.get("block_type") == "table")
+                print(
+                    f"[ClassExtractor] Structured blocks: {table_count} tables -> "
+                    f"{len(structured_classes)} class candidates"
                 )
 
         # ---- Output (conforms to ClassChainOutput) -----------------------------------------
@@ -425,6 +462,181 @@ class ClassExtractor(Runnable):
                 if isinstance(part, dict) and part.get("type") == "text":
                     return part.get("text", "")
         return ""
+
+    def _get_all_class_definitions(self, metamodel: Dict[str, Any]) -> str:
+        """Build view-independent class definitions (name: description) for all types.
+
+        Used for structured-block (table) header typing: a single matrix can span
+        multiple views, so the candidate type set cannot be pre-scoped by view.
+        """
+        if not metamodel or "classes" not in metamodel:
+            return ""
+        definitions = []
+        for cls in metamodel.get("classes", []):
+            name = cls.get("name", "")
+            description = cls.get("description", "")
+            definitions.append(f"- {name}: {description}")
+        return "\n".join(definitions)
+
+    def _resolve_class_iri_by_name(self, class_name: str, metamodel: Dict[str, Any]) -> str:
+        """Resolve a metamodel class IRI by class name (view-independent)."""
+        for cls in metamodel.get("classes", []):
+            if cls.get("name") == class_name:
+                return cls.get("iri", "")
+        return ""
+
+    @staticmethod
+    def _render_block_context(block: Dict[str, Any]) -> str:
+        """Build the [Context] text (section path / caption / surrounding window)."""
+        table = block.get("table", {})
+        parts = []
+        section_path = block.get("section_path", "")
+        if section_path:
+            parts.append(f"Section: {section_path}")
+        caption = table.get("caption")
+        if caption:
+            parts.append(f"Caption: {caption}")
+        window = block.get("context_window", "")
+        if window:
+            parts.append(f"Surrounding text: {window}")
+        return "\n".join(parts)
+
+    @staticmethod
+    def _render_headers(row_headers: List[str], col_headers: List[str]) -> tuple[str, Dict[str, str]]:
+        """Build [Headers] text and a {header_id: verbatim label} map."""
+        header_map: Dict[str, str] = {}
+        rows_lines = []
+        for i, h in enumerate(row_headers):
+            label = (h or "").strip()
+            if not label:
+                continue
+            hid = f"R{i}"
+            header_map[hid] = label
+            rows_lines.append(f"  {hid}: {label}")
+        cols_lines = []
+        for j, h in enumerate(col_headers):
+            label = (h or "").strip()
+            if not label:
+                continue
+            hid = f"C{j}"
+            header_map[hid] = label
+            cols_lines.append(f"  {hid}: {label}")
+        headers_text = "Rows:\n" + "\n".join(rows_lines) + "\nColumns:\n" + "\n".join(cols_lines)
+        return headers_text, header_map
+
+    @staticmethod
+    def _render_grid(col_headers: List[str], cells: List[List[str]], max_rows: int = 20, max_cell: int = 20) -> str:
+        """Render cell values (capped) as context for entity-ness judgment."""
+        lines = []
+        for i, row in enumerate(cells[:max_rows]):
+            parts = []
+            for j, val in enumerate(row):
+                if j >= len(col_headers):
+                    break
+                v = (val or "").strip()
+                parts.append(f"C{j}={v[:max_cell]}")
+            lines.append(f"R{i}: " + "  ".join(parts))
+        return "\n".join(lines)
+
+    async def _type_table_headers(
+        self, block: Dict[str, Any], class_definitions: str, valid_class_names: set, metamodel: Dict[str, Any]
+    ) -> List[ExtractedClass]:
+        """Type a single table's headers into class candidates (verbatim labels)."""
+        table = block.get("table", {})
+        row_headers = table.get("row_headers", []) or []
+        col_headers = table.get("col_headers", []) or []
+        cells = table.get("cells", []) or []
+
+        headers_text, header_map = self._render_headers(row_headers, col_headers)
+        if not header_map:
+            return []
+
+        context_text = self._render_block_context(block)
+        grid_text = self._render_grid(col_headers, cells)
+
+        prompt = fill_prompt_template(
+            self.prompt_template_structured,
+            class_definitions=class_definitions,
+            custom_rules=self.custom_rules,
+            context=context_text,
+            headers=headers_text,
+            grid=grid_text,
+        )
+
+        try:
+            response = await call_with_retry(
+                lambda: self.llm_json_structured.ainvoke([HumanMessage(content=prompt)]),
+                timeout=90.0,
+                label="ClassExtractor-Structured",
+            )
+            result_text = self._to_text(response.content)
+        except Exception as e:
+            if self.progress:
+                print(f"[ClassExtractor] Structured typing error: {e}")
+            return []
+
+        try:
+            parsed = json.loads(result_text)
+        except json.JSONDecodeError:
+            if self.progress:
+                print(f"[ClassExtractor] Structured JSON parse error: {result_text}")
+            return []
+
+        # Source envelope shared by all headers of this table (downstream context)
+        source = context_text or block.get("section_path", "")
+        file_id = block.get("file_id", "")
+
+        classes: List[ExtractedClass] = []
+        seen_ids = set()
+        for item in parsed.get("headers", []):
+            if not isinstance(item, dict):
+                continue
+            header_id = item.get("header_id", "")
+            class_name = item.get("class", "")
+            if header_id not in header_map:
+                continue
+            if not class_name or class_name == "none" or class_name not in valid_class_names:
+                continue
+            label = header_map[header_id]  # verbatim from parser
+            class_iri = self._resolve_class_iri_by_name(class_name, metamodel)
+            if not class_iri:
+                continue
+            cid = generate_class_id(class_iri, label, source)
+            if cid in seen_ids:
+                continue
+            seen_ids.add(cid)
+            classes.append(
+                ExtractedClass(
+                    id=cid,
+                    class_iri=class_iri,
+                    label=label,
+                    sources=[source],
+                    file_ids=[file_id],
+                )
+            )
+        return classes
+
+    async def _extract_classes_from_blocks_async(
+        self, blocks: List[Dict[str, Any]], metamodel: Dict[str, Any]
+    ) -> List[ExtractedClass]:
+        """Type table headers across all structured blocks in parallel."""
+        table_blocks = [b for b in blocks if b.get("block_type") == "table"]
+        if not table_blocks:
+            return []
+
+        class_definitions = self._get_all_class_definitions(metamodel)
+        valid_class_names = {c.get("name") for c in metamodel.get("classes", [])}
+        sem = asyncio.Semaphore(self.max_concurrency)
+
+        async def _wrapped(block: Dict[str, Any]) -> List[ExtractedClass]:
+            async with sem:
+                return await self._type_table_headers(block, class_definitions, valid_class_names, metamodel)
+
+        results = await asyncio.gather(*[_wrapped(b) for b in table_blocks])
+        out: List[ExtractedClass] = []
+        for r in results:
+            out.extend(r)
+        return out
 
     def _resolve_class_iri(
         self,

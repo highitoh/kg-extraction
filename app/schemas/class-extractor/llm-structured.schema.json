@@ -1,0 +1,30 @@
+{
+  "$id": "https://github.com/highitoh/kg-extraction/schemas/class-extractor/llm-structured.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ClassExtractorStructuredLLMOutput",
+  "description": "LLM output schema for ClassExtractor structured-block (table) header typing",
+  "type": "object",
+  "properties": {
+    "headers": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "header_id": {
+            "type": "string",
+            "description": "Header id from input (format: R0, R1, C0, C1, ...)"
+          },
+          "class": {
+            "type": "string",
+            "description": "Class type name from [Classes], or \"none\" if not a domain entity"
+          }
+        },
+        "required": ["header_id", "class"],
+        "additionalProperties": false
+      },
+      "description": "Type assignment per table header"
+    }
+  },
+  "required": ["headers"],
+  "additionalProperties": false
+}
