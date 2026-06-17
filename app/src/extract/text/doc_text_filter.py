@@ -67,6 +67,11 @@ class DocTextFilter(Runnable):
             "file_name": file_name,
             "sentences": [{"text": s} for s in sentences if s.strip()],
         }
+
+        # Preserve structured blocks from source (PDF pattern)
+        if "_pdf_structured_blocks" in src:
+            output["_pdf_structured_blocks"] = src["_pdf_structured_blocks"]
+
         try:
             self.logger.save_log(output, "doc_text_filter_output_")
         except Exception:

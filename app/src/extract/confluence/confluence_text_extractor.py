@@ -265,13 +265,15 @@ def _page_to_structured_blocks(
     """Extract structured table blocks from a Confluence page.
 
     Parses the page's storage-format (XHTML) body into normalized table cores and
-    wraps each with source-dependent context. Context is page-level for now:
-    section_path = page title, context_window = a bounded prefix of the page text.
-    (Per-table heading/window positioning is a future refinement.)
+    wraps each with source-dependent context using the shared structured block builder.
+    Context is page-level for now: section_path = page title, context_window = a bounded
+    prefix of the page text. (Per-table heading/window positioning is a future refinement.)
 
     Returns:
         List of structured blocks (see KnowledgeExtractionState.structured_blocks).
     """
+    from src.utils.structured_block_builder import build_table_blocks
+
     body = page.get("body", {}).get("storage", {})
     body_storage = body.get("value", "") if body else ""
     if not body_storage:
@@ -284,25 +286,17 @@ def _page_to_structured_blocks(
     page_id = page["id"]
     page_title = page.get("title", "")
 
-    # Page-level context window: a bounded prefix of the converted page text.
+    # Build metadata
+    file_id = f"confluence:{domain}:{space_key}:{page_id}"
+    scope_ref = page_id
+    section_path = page_title
+
+    # Extract context: page-level context window (bounded prefix of converted page text)
     body_markdown = converter.convert(body_storage)
     context_window = " ".join(body_markdown.split())[:CONTEXT_WINDOW_CHARS]
 
-    file_id = f"confluence:{domain}:{space_key}:{page_id}"
-
-    blocks = []
-    for table in tables:
-        blocks.append(
-            {
-                "block_type": "table",
-                "file_id": file_id,
-                "scope_ref": page_id,
-                "section_path": page_title,
-                "context_window": context_window,
-                "table": table,
-            }
-        )
-    return blocks
+    # Use shared utility to build structured blocks
+    return build_table_blocks(tables, file_id, scope_ref, section_path, context_window)
 
 
 def _extract_comments(converter: StorageFormatConverter, comments: List[Dict[str, Any]]) -> List[Dict[str, str]]:

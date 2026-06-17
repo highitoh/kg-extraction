@@ -163,7 +163,7 @@ def classify_file_type_node(state: KnowledgeExtractionState) -> KnowledgeExtract
 def extract_text_document_node(state: KnowledgeExtractionState) -> KnowledgeExtractionState:
     """
     Node that extracts text from documents
-    file_path -> sentences, file_id, file_name
+    file_path -> sentences, file_id, file_name, structured_blocks
     """
     try:
         doc_chain = DocTextChain(model=state.get("model"))
@@ -173,16 +173,21 @@ def extract_text_document_node(state: KnowledgeExtractionState) -> KnowledgeExtr
 
         result = doc_chain.invoke(input_data)
 
+        # Extract structured blocks from result (PDF pattern)
+        structured_blocks = result.pop("_pdf_structured_blocks", [])
+
         # Store results in State
         state["sentences"] = result["sentences"]
         state["file_id"] = result["file_id"]
         state["file_name"] = result["file_name"]
+        state["structured_blocks"] = structured_blocks
         state["current_stage"] = "text_extracted_document"
 
     except Exception as e:
         state.setdefault("errors", [])
         state["errors"].append(f"Document text extraction failed: {e}")
         state["sentences"] = []
+        state["structured_blocks"] = []
         state["current_stage"] = "text_extraction_failed"
 
     return state
@@ -205,12 +210,14 @@ def extract_text_presentation_node(state: KnowledgeExtractionState) -> Knowledge
         state["sentences"] = result["sentences"]
         state["file_id"] = result["file_id"]
         state["file_name"] = result["file_name"]
+        state["structured_blocks"] = []
         state["current_stage"] = "text_extracted_presentation"
 
     except Exception as e:
         state.setdefault("errors", [])
         state["errors"].append(f"Presentation text extraction failed: {e}")
         state["sentences"] = []
+        state["structured_blocks"] = []
         state["current_stage"] = "text_extraction_failed"
 
     return state
@@ -330,6 +337,7 @@ def extract_text_miro_node(state: KnowledgeExtractionState) -> KnowledgeExtracti
         state["file_id"] = chunks[0].get("file_id", "") if chunks else ""
         state["file_name"] = miro_raw_data.get("name", "Miro Board") if miro_raw_data else "Miro Board"
         state["miro_raw_data"] = miro_raw_data
+        state["structured_blocks"] = []
         state["current_stage"] = "text_extracted_miro"
 
         print(f"[ExtractTextMiroNode] Extracted {len(sentences)} items from Miro board")
@@ -338,6 +346,7 @@ def extract_text_miro_node(state: KnowledgeExtractionState) -> KnowledgeExtracti
         state.setdefault("errors", [])
         state["errors"].append(f"Miro text extraction failed: {e}")
         state["sentences"] = []
+        state["structured_blocks"] = []
         state["current_stage"] = "text_extraction_failed"
 
     return state
@@ -483,6 +492,7 @@ def extract_text_github_node(state: KnowledgeExtractionState) -> KnowledgeExtrac
             f"{github_raw_data['owner']}/{github_raw_data['repo']}" if github_raw_data else "GitHub Repository"
         )
         state["github_raw_data"] = github_raw_data
+        state["structured_blocks"] = []
         state["current_stage"] = "text_extracted_github"
 
         print(f"[ExtractTextGitHubNode] Extracted {len(sentences)} items from GitHub repository")
@@ -494,6 +504,7 @@ def extract_text_github_node(state: KnowledgeExtractionState) -> KnowledgeExtrac
         state.setdefault("errors", [])
         state["errors"].append(f"GitHub text extraction failed: {e}")
         state["sentences"] = []
+        state["structured_blocks"] = []
         state["current_stage"] = "text_extraction_failed"
 
     return state
@@ -668,6 +679,7 @@ def extract_text_jira_node(state: KnowledgeExtractionState) -> KnowledgeExtracti
             state["file_name"] = "Jira Project"
 
         state["jira_raw_data"] = jira_raw_data
+        state["structured_blocks"] = []
         state["current_stage"] = "text_extracted_jira"
 
         print(f"[ExtractTextJiraNode] Extracted {len(sentences)} issues from Jira project")
@@ -679,6 +691,7 @@ def extract_text_jira_node(state: KnowledgeExtractionState) -> KnowledgeExtracti
         state.setdefault("errors", [])
         state["errors"].append(f"Jira text extraction failed: {e}")
         state["sentences"] = []
+        state["structured_blocks"] = []
         state["current_stage"] = "text_extraction_failed"
 
     return state

@@ -200,6 +200,89 @@ def extract_tables_from_xhtml(xhtml: str) -> List[Dict[str, Any]]:
     return result
 
 
+def extract_tables_from_pdf(page) -> List[Dict[str, Any]]:
+    """Parse all tables in a PDF page into normalized table cores.
+
+    Uses pdfplumber's table extraction to detect tables in the PDF page,
+    then normalizes them to the source-independent format. Unlike XHTML tables,
+    PDF tables have no semantic structure (no colspan/rowspan, no caption elements),
+    so we make standard assumptions: first row = column headers, first column = row headers.
+
+    Args:
+        page: pdfplumber Page object
+
+    Returns:
+        List of normalized table cores (see module docstring). Degenerate tables
+        (smaller than 2x2) are omitted. Returns [] if no tables found or on error.
+
+    Examples:
+        >>> import pdfplumber
+        >>> with pdfplumber.open("sample.pdf") as pdf:
+        ...     tables = extract_tables_from_pdf(pdf.pages[0])
+        ...     if tables:
+        ...         print(f"Found {len(tables)} tables")
+    """
+    if page is None:
+        return []
+
+    try:
+        # Extract tables using pdfplumber (returns list of list of lists)
+        raw_tables = page.extract_tables()
+        if not raw_tables:
+            return []
+    except Exception:
+        # Guard against pathological PDFs or pdfplumber errors
+        return []
+
+    result: List[Dict[str, Any]] = []
+    for raw_table in raw_tables:
+        try:
+            # Normalize None to empty string and strip whitespace
+            normalized_grid = []
+            for row in raw_table:
+                normalized_row = []
+                for cell in row:
+                    # pdfplumber returns None for empty cells
+                    cell_text = "" if cell is None else str(cell).strip()
+                    normalized_row.append(cell_text)
+                normalized_grid.append(normalized_row)
+
+            # Check minimum 2x2 shape (at least 1 header row + 1 header col + 1 body cell)
+            if len(normalized_grid) < 2:
+                continue
+            if any(len(row) < 2 for row in normalized_grid):
+                continue
+
+            # Extract headers and body
+            # First row (skip [0][0] corner) = column headers
+            col_headers = normalized_grid[0][1:]
+
+            # First column (from row 1 onwards) = row headers
+            row_headers = [row[0] for row in normalized_grid[1:]]
+
+            # Remaining cells = body (from [1:][1:])
+            cells = [row[1:] for row in normalized_grid[1:]]
+
+            # PDFs don't have semantic caption elements
+            caption = None
+
+            # Build normalized table core
+            table_core = {
+                "row_headers": row_headers,
+                "col_headers": col_headers,
+                "cells": cells,
+                "caption": caption,
+            }
+
+            result.append(table_core)
+
+        except Exception:
+            # Skip malformed tables, continue with others
+            continue
+
+    return result
+
+
 if __name__ == "__main__":
     import json
 
