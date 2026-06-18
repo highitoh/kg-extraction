@@ -123,10 +123,10 @@ class TextTransformer(Runnable):
         Format input data and generate output data
 
         Args:
-            input_data: Input data in DocTextChainOutput format
+            input_data: Input data in PdfTextChainOutput format
 
         Returns:
-            Output data in formatted DocTextChainOutput format
+            Output data in formatted PdfTextChainOutput format
         """
         sentences = input_data.get("sentences", [])
 

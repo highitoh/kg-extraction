@@ -7,11 +7,11 @@ from langchain_core.runnables.config import RunnableConfig
 from .text_extractor import TextExtractor
 
 
-class DocTextExtractor(TextExtractor):
-    """Task to extract text from document files"""
+class PdfTextExtractor(TextExtractor):
+    """Task to extract text from PDF files"""
 
     def __init__(self):
-        super().__init__("/workspace/app/log/doc_text_extractor")
+        super().__init__("/workspace/app/log/pdf_text_extractor")
 
     def _extract_text(self, pdf_path: str) -> str:
         """
@@ -46,7 +46,7 @@ class DocTextExtractor(TextExtractor):
             List of structured blocks (see KnowledgeExtractionState.structured_blocks)
 
         Examples:
-            >>> extractor = DocTextExtractor()
+            >>> extractor = PdfTextExtractor()
             >>> blocks = extractor._extract_table_blocks("../doc/sample.pdf")
             >>> len(blocks) > 0  # If PDF has tables
             True
@@ -83,8 +83,8 @@ class DocTextExtractor(TextExtractor):
         return all_blocks
 
     def invoke(self, input: Dict[str, Any], config: RunnableConfig = None) -> Dict[str, Any]:
-        # input: DocTextExtractorInput
-        # output: DocTextExtractorOutput
+        # input: PdfTextExtractorInput
+        # output: PdfTextExtractorOutput
 
         file_path = input["files"][0]["path"]
 
@@ -107,12 +107,12 @@ class DocTextExtractor(TextExtractor):
             output["_pdf_structured_blocks"] = all_blocks
 
         # Save output JSON to log
-        self.logger.save_log(output, "doc_text_extractor_output_")
+        self.logger.save_log(output, "pdf_text_extractor_output_")
 
         return output
 
 
 if __name__ == "__main__":
-    extractor = DocTextExtractor()
+    extractor = PdfTextExtractor()
     result = extractor.invoke({"files": [{"path": "../doc/sample.pdf"}]})
     print(f"Processing result: {result}")

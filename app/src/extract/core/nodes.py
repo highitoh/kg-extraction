@@ -14,7 +14,7 @@ from src.extract.image.image_extractor import ImageExtractor
 from src.extract.output.neo4j_csv_generator import Neo4jCSVGenerator
 from src.extract.output.turtle_generator import TurtleGenerator
 from src.extract.property.property_chain import create_property_chain
-from src.extract.text.doc_text_chain import DocTextChain
+from src.extract.text.pdf_text_chain import PdfTextChain
 from src.extract.text.presentation_text_chain import PresentationTextChain
 from src.extract.view.view_chain import create_view_chain
 from src.utils.chunk_creator import ChunkCreator
@@ -166,12 +166,12 @@ def extract_text_document_node(state: KnowledgeExtractionState) -> KnowledgeExtr
     file_path -> sentences, file_id, file_name, structured_blocks
     """
     try:
-        doc_chain = DocTextChain(model=state.get("model"))
+        pdf_chain = PdfTextChain(model=state.get("model"))
 
-        # Match DocTextChain input format
+        # Match PdfTextChain input format
         input_data = {"files": state["files"]}
 
-        result = doc_chain.invoke(input_data)
+        result = pdf_chain.invoke(input_data)
 
         # Extract structured blocks from result (PDF pattern)
         structured_blocks = result.pop("_pdf_structured_blocks", [])

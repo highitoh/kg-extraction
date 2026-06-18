@@ -1,4 +1,4 @@
-# doc_text_filter.py (modified version: removes table of contents and page numbers)
+# pdf_text_filter.py (modified version: removes table of contents and page numbers)
 
 from __future__ import annotations
 
@@ -25,7 +25,7 @@ except Exception:
     ChunkCreator = None
 
 
-class DocTextFilter(Runnable):
+class PdfTextFilter(Runnable):
     BULLET_PATTERNS = [
         r"^\s*[\u2022\u30fb\-\–\—\*▶・•]\s+",
         r"^\s*\(\d+\)\s+",
@@ -44,7 +44,7 @@ class DocTextFilter(Runnable):
     ]
 
     def __init__(self):
-        self.logger = Logger("/workspace/app/log/doc_text_filter")
+        self.logger = Logger("/workspace/app/log/pdf_text_filter")
 
     def invoke(self, input: Dict[str, Any], config: RunnableConfig = None) -> Dict[str, Any]:
         self._validate_input_minimally(input)
@@ -73,7 +73,7 @@ class DocTextFilter(Runnable):
             output["_pdf_structured_blocks"] = src["_pdf_structured_blocks"]
 
         try:
-            self.logger.save_log(output, "doc_text_filter_output_")
+            self.logger.save_log(output, "pdf_text_filter_output_")
         except Exception:
             pass
         return output
@@ -203,13 +203,13 @@ if __name__ == "__main__":
         ],
     }
 
-    # Initialize DocTextFilter
-    filter_instance = DocTextFilter()
+    # Initialize PdfTextFilter
+    filter_instance = PdfTextFilter()
 
     # Execute filter
     result = filter_instance.invoke({"source": source, "filter": {"name": "sentence_extraction", "params": {}}})
 
     # Verify output
-    print("=== DocTextFilter Output Result ===")
+    print("=== PdfTextFilter Output Result ===")
     for idx, s in enumerate(result["sentences"], 1):
         print(f"{idx:02d}: {s['text']}")
