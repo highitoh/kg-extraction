@@ -18,7 +18,13 @@ class KnowledgeExtractionState(TypedDict, total=False):
     # ========== Input Information ==========
     files: List[Dict[str, str]]  # [{"path": "/path/to/file.pdf"}]
     file_path: str  # File path to process (value extracted from files)
-    file_type: str  # "document" | "presentation" | "miro_board" | "github_repo"
+
+    # Classification fields (two-dimensional)
+    source_type: (
+        str  # Information source: "pdf_file" | "miro_board" | "github_repo" | "jira_project" | "confluence_space"
+    )
+    content_type: Optional[str]  # Content structure (optional): "document" | "presentation" | None
+    # Only set for file sources (PDFs) that need layout-specific processing
 
     # ========== Metamodel ==========
     metamodel: Dict[str, Any]  # Metamodel definition (referenced by all nodes)

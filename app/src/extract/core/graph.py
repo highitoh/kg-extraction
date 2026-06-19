@@ -97,26 +97,39 @@ def create_knowledge_extraction_graph():
     workflow.set_entry_point("classify_file_type")
 
     # ========== Add Conditional Edges ==========
-    # Select text extraction node based on file type
-    # For Miro board with PDF+URL, route directly to new path
-    # For old Miro URL-only mode, route to change detection first
+    # Select text extraction node based on source_type and content_type
     def route_after_classify(state):
-        file_type = state.get("file_type")
-        if file_type == "github_repo":
+        """
+        Route based on source_type and content_type.
+
+        Priority:
+        1. Check source_type for API sources (GitHub, Jira, Confluence, Miro)
+        2. For pdf_file source, route by content_type (document vs presentation)
+        """
+        source_type = state.get("source_type")
+        content_type = state.get("content_type")
+
+        # Route API sources by source_type
+        if source_type == "github_repo":
             return "detect_github_changes"
-        elif file_type == "jira_project":
+        elif source_type == "jira_project":
             return "detect_jira_changes"
-        elif file_type == "confluence_space":
+        elif source_type == "confluence_space":
             return "detect_confluence_changes"
-        elif file_type == "miro_board":
+        elif source_type == "miro_board":
             # Both PDF+API and URL-only modes go through change detection
             return "detect_miro_changes"
-        elif file_type == "document":
-            return "extract_text_document"
-        elif file_type == "presentation":
-            return "extract_text_presentation"
+
+        # Route PDF files by content_type
+        elif source_type == "pdf_file":
+            if content_type == "presentation":
+                return "extract_text_presentation"
+            else:  # content_type == "document" or None
+                return "extract_text_document"
+
+        # Default fallback
         else:
-            return "extract_text_document"  # default
+            return "extract_text_document"
 
     workflow.add_conditional_edges(
         "classify_file_type",

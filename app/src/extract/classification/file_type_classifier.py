@@ -151,65 +151,69 @@ class FileTypeClassifier(Runnable):
 
         # Check if this is a GitHub repository URL
         if "github.com/" in file_path:
-            file_type = "github_repo"
-            print(f"File: {file_path}, Type: {file_type}")
+            source_type = "github_repo"
+            content_type = None
+            print(f"File: {file_path}, Source: {source_type}, Content: {content_type}")
 
             # Save log
             log_data = {
                 "file_path": file_path,
-                "file_type": file_type,
-                "is_presentation": False,
+                "source_type": source_type,
+                "content_type": content_type,
                 "justification": "GitHub repository URL detected",
             }
             self.logger.save_log(log_data, "file_type_classifier_output_")
-            return {**input, "file_type": file_type}
+            return {**input, "source_type": source_type, "content_type": content_type}
 
         # Check if this is a Jira URL
         if ".atlassian.net/browse/" in file_path or file_path.startswith("jira:"):
-            file_type = "jira_project"
-            print(f"File: {file_path}, Type: {file_type}")
+            source_type = "jira_project"
+            content_type = None
+            print(f"File: {file_path}, Source: {source_type}, Content: {content_type}")
 
             # Save log
             log_data = {
                 "file_path": file_path,
-                "file_type": file_type,
-                "is_presentation": False,
+                "source_type": source_type,
+                "content_type": content_type,
                 "justification": "Jira Cloud URL detected",
             }
             self.logger.save_log(log_data, "file_type_classifier_output_")
-            return {**input, "file_type": file_type}
+            return {**input, "source_type": source_type, "content_type": content_type}
 
         # Check if this is a Confluence URL
         if ".atlassian.net/wiki/" in file_path or file_path.startswith("confluence:"):
-            file_type = "confluence_space"
-            print(f"File: {file_path}, Type: {file_type}")
+            source_type = "confluence_space"
+            content_type = None
+            print(f"File: {file_path}, Source: {source_type}, Content: {content_type}")
 
             # Save log
             log_data = {
                 "file_path": file_path,
-                "file_type": file_type,
-                "is_presentation": False,
+                "source_type": source_type,
+                "content_type": content_type,
                 "justification": "Confluence Cloud URL detected",
             }
             self.logger.save_log(log_data, "file_type_classifier_output_")
-            return {**input, "file_type": file_type}
+            return {**input, "source_type": source_type, "content_type": content_type}
 
         # Check if miro_board_url is provided
         miro_board_url = input.get("miro_board_url")
         if miro_board_url and file_path.endswith(".pdf"):
-            file_type = "miro_board"
-            print(f"File: {file_path}, Type: {file_type} (Miro URL: {miro_board_url})")
+            source_type = "miro_board"
+            content_type = None
+            print(f"File: {file_path}, Source: {source_type}, Content: {content_type} (Miro URL: {miro_board_url})")
 
             # Save log
             log_data = {
                 "file_path": file_path,
-                "file_type": file_type,
+                "source_type": source_type,
+                "content_type": content_type,
                 "miro_board_url": miro_board_url,
-                "is_presentation": False,
                 "justification": "PDF with Miro board URL detected",
             }
             self.logger.save_log(log_data, "file_type_classifier_output_")
-            return {**input, "file_type": file_type}
+            return {**input, "source_type": source_type, "content_type": content_type}
 
         # Extract first 2 pages to temporary file
         with tempfile.NamedTemporaryFile(suffix=".pdf", delete=False) as tmp_file:
@@ -243,16 +247,18 @@ class FileTypeClassifier(Runnable):
             is_presentation = result_json["is_presentation"]
             justification = result_json["justification"]
 
-            # Determine file_type
-            file_type = "presentation" if is_presentation else "document"
+            # Set classification
+            source_type = "pdf_file"
+            content_type = "presentation" if is_presentation else "document"
 
             # Display classification result
-            print(f"File: {file_path}, Type: {file_type}")
+            print(f"File: {file_path}, Source: {source_type}, Content: {content_type}")
 
             # Save log
             log_data = {
                 "file_path": file_path,
-                "file_type": file_type,
+                "source_type": source_type,
+                "content_type": content_type,
                 "is_presentation": is_presentation,
                 "justification": justification,
             }
@@ -263,7 +269,7 @@ class FileTypeClassifier(Runnable):
             if os.path.exists(temp_pdf_path):
                 os.remove(temp_pdf_path)
 
-        return {**input, "file_type": file_type}
+        return {**input, "source_type": source_type, "content_type": content_type}
 
 
 if __name__ == "__main__":

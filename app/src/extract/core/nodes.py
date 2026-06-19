@@ -74,7 +74,7 @@ def _detect_miro_item_changes(
     return new_ids, modified_ids, deleted_ids
 
 
-def _create_chunks_by_source(sentences: List[Dict[str, Any]], file_type: str) -> List[str]:
+def _create_chunks_by_source(sentences: List[Dict[str, Any]], source_type: str) -> List[str]:
     """Create chunks by grouping sentences by source (page/issue/file).
 
     For Confluence, Jira, and GitHub extractions, sentences are grouped by their
@@ -86,19 +86,19 @@ def _create_chunks_by_source(sentences: List[Dict[str, Any]], file_type: str) ->
 
     Args:
         sentences: List of sentence dicts with metadata
-        file_type: File type (confluence_space, jira_project, github_repo)
+        source_type: Source type (confluence_space, jira_project, github_repo)
 
     Returns:
         List of chunk texts (one or more chunks per source)
     """
     from collections import defaultdict
 
-    # Determine metadata key based on file type
-    if file_type == "confluence_space":
+    # Determine metadata key based on source type
+    if source_type == "confluence_space":
         key_name = "page_id"
-    elif file_type == "jira_project":
+    elif source_type == "jira_project":
         key_name = "issue_id"
-    elif file_type == "github_repo":
+    elif source_type == "github_repo":
         key_name = "file_path"
     else:
         key_name = "page_id"
@@ -130,8 +130,8 @@ def _create_chunks_by_source(sentences: List[Dict[str, Any]], file_type: str) ->
 
 def classify_file_type_node(state: KnowledgeExtractionState) -> KnowledgeExtractionState:
     """
-    Node that determines file type
-    files -> file_type, file_path, metamodel
+    Node that determines source type and content type
+    files -> source_type, content_type, file_path, metamodel
     """
     try:
         classifier = FileTypeClassifier(model=state.get("model"))
@@ -140,8 +140,9 @@ def classify_file_type_node(state: KnowledgeExtractionState) -> KnowledgeExtract
             classifier_input["miro_board_url"] = state["miro_board_url"]
         result = classifier.invoke(classifier_input)
 
-        # Get file_type and file_path
-        state["file_type"] = result.get("file_type", "document")
+        # Get source_type, content_type, and file_path
+        state["source_type"] = result.get("source_type")
+        state["content_type"] = result.get("content_type")
         state["file_path"] = state["files"][0]["path"]
 
         # Load metamodel
@@ -154,7 +155,8 @@ def classify_file_type_node(state: KnowledgeExtractionState) -> KnowledgeExtract
     except Exception as e:
         state.setdefault("errors", [])
         state["errors"].append(f"File type classification failed: {e}")
-        state["file_type"] = "document"  # Fallback to default
+        state["source_type"] = "pdf_file"  # Fallback to default
+        state["content_type"] = "document"
         state["current_stage"] = "file_type_classification_failed"
 
     return state
@@ -882,19 +884,20 @@ def transform_to_chunks_node(state: KnowledgeExtractionState) -> KnowledgeExtrac
     sentences -> chunks
     """
     try:
-        file_type = state["file_type"]
+        source_type = state["source_type"]
+        content_type = state.get("content_type")
         sentences = state.get("sentences", []) or []
 
         # For Confluence/Jira/GitHub, group sentences by page/issue/file and create chunks per source
-        if file_type in ("confluence_space", "jira_project", "github_repo"):
-            chunk_texts = _create_chunks_by_source(sentences, file_type)
+        if source_type in ("confluence_space", "jira_project", "github_repo"):
+            chunk_texts = _create_chunks_by_source(sentences, source_type)
             state["chunks"] = [{"text": chunk} for chunk in chunk_texts]
             state["current_stage"] = "chunks_created"
 
             total_sentences = len(sentences)
             print(
                 f"[TransformToChunksNode] Starting chunk creation: "
-                f"file_type={file_type} mode=by_source sentences={total_sentences}"
+                f"source_type={source_type} mode=by_source sentences={total_sentences}"
             )
 
             if chunk_texts:
@@ -908,8 +911,8 @@ def transform_to_chunks_node(state: KnowledgeExtractionState) -> KnowledgeExtrac
                 print("[TransformToChunksNode] done: chunks=0 (no sentences to split)")
 
         else:
-            # Select chunk mode based on file type
-            if file_type == "presentation":
+            # Select chunk mode based on content type
+            if content_type == "presentation":
                 chunk_mode = "page"
                 chunk_creator = ChunkCreator(chunk_mode=chunk_mode)
                 combined_text = "\n".join([s["text"] for s in sentences])
@@ -920,7 +923,7 @@ def transform_to_chunks_node(state: KnowledgeExtractionState) -> KnowledgeExtrac
 
             print(
                 f"[TransformToChunksNode] Starting chunk creation: "
-                f"file_type={file_type} mode={chunk_mode} sentences={len(sentences)} "
+                f"source_type={source_type} content_type={content_type} mode={chunk_mode} sentences={len(sentences)} "
                 f"combined_chars={len(combined_text)}"
             )
 
