@@ -215,6 +215,22 @@ class FileTypeClassifier(Runnable):
             self.logger.save_log(log_data, "file_type_classifier_output_")
             return {**input, "source_type": source_type, "content_type": content_type}
 
+        # Check if this is a DOCX file
+        if file_path.lower().endswith(".docx"):
+            source_type = "docx_file"
+            content_type = "document"
+            print(f"File: {file_path}, Source: {source_type}, Content: {content_type}")
+
+            # Save log
+            log_data = {
+                "file_path": file_path,
+                "source_type": source_type,
+                "content_type": content_type,
+                "justification": "DOCX file extension detected",
+            }
+            self.logger.save_log(log_data, "file_type_classifier_output_")
+            return {**input, "source_type": source_type, "content_type": content_type}
+
         # Extract first 2 pages to temporary file
         with tempfile.NamedTemporaryFile(suffix=".pdf", delete=False) as tmp_file:
             temp_pdf_path = tmp_file.name

@@ -20,9 +20,8 @@ class KnowledgeExtractionState(TypedDict, total=False):
     file_path: str  # File path to process (value extracted from files)
 
     # Classification fields (two-dimensional)
-    source_type: (
-        str  # Information source: "pdf_file" | "miro_board" | "github_repo" | "jira_project" | "confluence_space"
-    )
+    source_type: str  # Information source: "pdf_file" | "docx_file" | "miro_board" | "github_repo" |
+    # "jira_project" | "confluence_space"
     content_type: Optional[str]  # Content structure (optional): "document" | "presentation" | None
     # Only set for file sources (PDFs) that need layout-specific processing
 

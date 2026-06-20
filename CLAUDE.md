@@ -47,14 +47,14 @@ A LangChain-based application that extracts knowledge from PDF files and generat
 # Install dependencies
 cd app && uv sync
 
-# Run main application (PDF extraction)
-cd app && uv run python src/extract_workflow.py [PDF_PATH]
+# Run main application (PDF or DOCX extraction)
+cd app && uv run python src/extract_workflow.py [FILE_PATH]
 
 # Using the wrapper script (recommended)
-cd app && ./extract.sh [PDF_PATH] --project [PROJECT_NAME]
+cd app && ./extract.sh [FILE_PATH] --project [PROJECT_NAME]
 
 # All options
-cd app && uv run python src/extract_workflow.py [PDF_PATH] --project [PROJECT_NAME] --model [MODEL_NAME] --output-dir [OUTPUT_DIR] --timestamp [YYYYMMDD]
+cd app && uv run python src/extract_workflow.py [FILE_PATH] --project [PROJECT_NAME] --model [MODEL_NAME] --output-dir [OUTPUT_DIR] --timestamp [YYYYMMDD]
 
 # Miro board extraction
 cd app && ./extract.sh "https://miro.com/app/board/BOARD_ID" --project [PROJECT_NAME]
