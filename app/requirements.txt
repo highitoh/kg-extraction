@@ -8,6 +8,7 @@ pdfplumber
 Pillow>=10.0.0
 pypdf
 python-dotenv
+python-pptx>=0.6.21
 PyMuPDF>=1.23.0
 rdflib
 requests>=2.31.0

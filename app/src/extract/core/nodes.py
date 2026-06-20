@@ -260,6 +260,41 @@ def extract_text_docx_node(state: KnowledgeExtractionState) -> KnowledgeExtracti
     return state
 
 
+def extract_text_pptx_node(state: KnowledgeExtractionState) -> KnowledgeExtractionState:
+    """
+    Node that extracts text from PPTX presentations
+    file_path -> sentences, file_id, file_name, structured_blocks
+    """
+    try:
+        from src.extract.text.pptx_text_chain import PptxTextChain
+
+        pptx_chain = PptxTextChain()
+
+        # Match PptxTextChain input format
+        input_data = {"files": state["files"]}
+
+        result = pptx_chain.invoke(input_data)
+
+        # Extract structured blocks from result (PPTX pattern)
+        structured_blocks = result.pop("_pptx_structured_blocks", [])
+
+        # Store results in State
+        state["sentences"] = result["sentences"]
+        state["file_id"] = result["file_id"]
+        state["file_name"] = result["file_name"]
+        state["structured_blocks"] = structured_blocks
+        state["current_stage"] = "text_extracted_pptx"
+
+    except Exception as e:
+        state.setdefault("errors", [])
+        state["errors"].append(f"PPTX text extraction failed: {e}")
+        state["sentences"] = []
+        state["structured_blocks"] = []
+        state["current_stage"] = "text_extraction_failed"
+
+    return state
+
+
 def detect_miro_changes_node(state: KnowledgeExtractionState) -> KnowledgeExtractionState:
     """
     Node that detects changes in Miro board.

@@ -338,6 +338,61 @@ def extract_tables_from_docx(table) -> List[Dict[str, Any]]:
         return []
 
 
+def extract_tables_from_pptx(table) -> List[Dict[str, Any]]:
+    """
+    Extract and normalize tables from python-pptx table object.
+
+    Args:
+        table: python-pptx Table object
+
+    Returns:
+        List of normalized table dictionaries (usually just one)
+        Format: [{"row_headers": [...], "col_headers": [...], "cells": [...], "caption": None}]
+    """
+    try:
+        # Build grid from table cells
+        grid = []
+        for row in table.rows:
+            row_data = []
+            for cell in row.cells:
+                cell_text = cell.text.strip()
+                row_data.append(cell_text)
+            grid.append(row_data)
+
+        # Check minimum 2x2 shape
+        if len(grid) < 2:
+            return []
+        if any(len(row) < 2 for row in grid):
+            return []
+
+        # Extract headers and body
+        # First row (skip [0][0] corner) = column headers
+        col_headers = grid[0][1:]
+
+        # First column (from row 1 onwards) = row headers
+        row_headers = [row[0] for row in grid[1:]]
+
+        # Remaining cells = body (from [1:][1:])
+        cells = [row[1:] for row in grid[1:]]
+
+        # PPTX tables don't have native captions (unlike HTML)
+        caption = None
+
+        # Build normalized table core
+        table_core = {
+            "row_headers": row_headers,
+            "col_headers": col_headers,
+            "cells": cells,
+            "caption": caption,
+        }
+
+        return [table_core]
+
+    except Exception as e:
+        print(f"Error extracting PPTX table: {e}")
+        return []
+
+
 if __name__ == "__main__":
     import json
 

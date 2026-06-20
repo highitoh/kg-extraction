@@ -23,6 +23,7 @@ from src.extract.core.nodes import (
     extract_text_jira_node,
     extract_text_miro_board_node,
     extract_text_miro_node,
+    extract_text_pptx_node,
     extract_text_presentation_node,
     extract_views_node,
     generate_outputs_node,
@@ -77,6 +78,7 @@ def create_knowledge_extraction_graph():
     workflow.add_node("detect_jira_changes", detect_jira_changes_node)
     workflow.add_node("detect_confluence_changes", detect_confluence_changes_node)
     workflow.add_node("extract_text_docx", extract_text_docx_node)
+    workflow.add_node("extract_text_pptx", extract_text_pptx_node)
     workflow.add_node("extract_text_document", extract_text_document_node)
     workflow.add_node("extract_text_presentation", extract_text_presentation_node)
     workflow.add_node("extract_text_miro", extract_text_miro_node)
@@ -123,6 +125,8 @@ def create_knowledge_extraction_graph():
             return "detect_miro_changes"
         elif source_type == "docx_file":
             return "extract_text_docx"
+        elif source_type == "pptx_file":
+            return "extract_text_pptx"
 
         # Route PDF files by content_type
         elif source_type == "pdf_file":
@@ -145,6 +149,7 @@ def create_knowledge_extraction_graph():
             "detect_miro_changes": "detect_miro_changes",
             "extract_text_miro_board": "extract_text_miro_board",
             "extract_text_docx": "extract_text_docx",
+            "extract_text_pptx": "extract_text_pptx",
             "extract_text_document": "extract_text_document",
             "extract_text_presentation": "extract_text_presentation",
         },
@@ -185,6 +190,7 @@ def create_knowledge_extraction_graph():
     # ========== Add Unconditional Edges ==========
     # Text path: extract → chunk
     workflow.add_edge("extract_text_docx", "transform_to_chunks")
+    workflow.add_edge("extract_text_pptx", "transform_to_chunks")
     workflow.add_edge("extract_text_document", "transform_to_chunks")
     workflow.add_edge("extract_text_presentation", "transform_to_chunks")
     workflow.add_edge("extract_text_miro", "transform_to_chunks")
@@ -195,6 +201,7 @@ def create_knowledge_extraction_graph():
     # Image path (parallel to text chunking): text extracted → extract images → merge
     # Fan out from both text-extraction nodes so image extraction runs after file_id is known
     workflow.add_edge("extract_text_docx", "extract_images")
+    workflow.add_edge("extract_text_pptx", "extract_images")
     workflow.add_edge("extract_text_document", "extract_images")
     workflow.add_edge("extract_text_presentation", "extract_images")
     workflow.add_edge("extract_text_miro", "extract_images")
