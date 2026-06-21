@@ -20,8 +20,8 @@ class KnowledgeExtractionState(TypedDict, total=False):
     file_path: str  # File path to process (value extracted from files)
 
     # Classification fields (two-dimensional)
-    source_type: str  # Information source: "pdf_file" | "docx_file" | "pptx_file" | "miro_board" |
-    # "github_repo" | "jira_project" | "confluence_space"
+    source_type: str  # Information source: "pdf_file" | "docx_file" | "pptx_file" | "txt_file" | "md_file" |
+    # "miro_board" | "github_repo" | "jira_project" | "confluence_space"
     content_type: Optional[str]  # Content structure (optional): "document" | "presentation" | None
     # Only set for file sources (PDFs) that need layout-specific processing
 
@@ -39,7 +39,7 @@ class KnowledgeExtractionState(TypedDict, total=False):
     file_id: str  # Stable file ID
     file_name: str  # File name
     sentences: List[Dict[str, Any]]  # List of extracted sentences
-    # sentence: {"text": str, ...}
+    # sentence: {"text": str, "section": str (optional, for MD files), ...}
     miro_raw_data: Optional[Dict[str, Any]]  # Raw Miro board data (for Miro sources)
     github_raw_data: Optional[Dict[str, Any]]  # Raw GitHub repository data (for GitHub sources)
 

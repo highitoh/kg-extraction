@@ -47,7 +47,7 @@ A LangChain-based application that extracts knowledge from PDF files and generat
 # Install dependencies
 cd app && uv sync
 
-# Run main application (PDF or DOCX extraction)
+# Run main application (PDF, DOCX, PPTX, TXT, or Markdown extraction)
 cd app && uv run python src/extract_workflow.py [FILE_PATH]
 
 # Using the wrapper script (recommended)

@@ -295,6 +295,73 @@ def extract_text_pptx_node(state: KnowledgeExtractionState) -> KnowledgeExtracti
     return state
 
 
+def extract_text_txt_node(state: KnowledgeExtractionState) -> KnowledgeExtractionState:
+    """
+    Node that extracts text from TXT files
+    file_path -> sentences, file_id, file_name
+    """
+    try:
+        from src.extract.text.txt_text_chain import TxtTextChain
+
+        txt_chain = TxtTextChain()
+
+        # Match TxtTextChain input format
+        input_data = {"files": state["files"]}
+
+        result = txt_chain.invoke(input_data)
+
+        # Store results in State
+        state["sentences"] = result["sentences"]
+        state["file_id"] = result["file_id"]
+        state["file_name"] = result["file_name"]
+        state["structured_blocks"] = []  # No structured blocks for TXT
+        state["current_stage"] = "text_extracted_txt"
+
+    except Exception as e:
+        state.setdefault("errors", [])
+        state["errors"].append(f"TXT text extraction failed: {e}")
+        state["sentences"] = []
+        state["structured_blocks"] = []
+        state["current_stage"] = "text_extraction_failed"
+
+    return state
+
+
+def extract_text_md_node(state: KnowledgeExtractionState) -> KnowledgeExtractionState:
+    """
+    Node that extracts text and tables from Markdown files
+    file_path -> sentences (with section metadata), file_id, file_name, structured_blocks
+    """
+    try:
+        from src.extract.text.md_text_chain import MdTextChain
+
+        md_chain = MdTextChain()
+
+        # Match MdTextChain input format
+        input_data = {"files": state["files"]}
+
+        result = md_chain.invoke(input_data)
+
+        # Extract optional Markdown table blocks
+        structured_blocks = result.pop("_md_structured_blocks", [])
+
+        # Store results in State
+        state["sentences"] = result["sentences"]
+        state["file_id"] = result["file_id"]
+        state["file_name"] = result["file_name"]
+        state["structured_blocks"] = structured_blocks
+        state["current_stage"] = "text_extracted_md"
+
+    except Exception as e:
+        state.setdefault("errors", [])
+        state["errors"].append(f"Markdown text extraction failed: {e}")
+        state["sentences"] = []
+        state["structured_blocks"] = []
+        state["current_stage"] = "text_extraction_failed"
+
+    return state
+
+
 def detect_miro_changes_node(state: KnowledgeExtractionState) -> KnowledgeExtractionState:
     """
     Node that detects changes in Miro board.
@@ -981,26 +1048,53 @@ def transform_to_chunks_node(state: KnowledgeExtractionState) -> KnowledgeExtrac
                 print("[TransformToChunksNode] done: chunks=0 (no sentences to split)")
 
         else:
+            # Special handling for Markdown files with section metadata
+            if source_type == "md_file":
+                chunk_mode = "char"
+                chunk_creator = ChunkCreator(chunk_mode=chunk_mode)
+
+                print(
+                    f"[TransformToChunksNode] Starting Markdown section-aware chunk creation: "
+                    f"source_type={source_type} sentences={len(sentences)}"
+                )
+
+                # Use section-aware chunking for Markdown
+                chunk_texts = chunk_creator.create_with_section_metadata(sentences)
+                state["chunks"] = [{"text": chunk} for chunk in chunk_texts]
+                state["current_stage"] = "chunks_created"
+
             # Select chunk mode based on content type
-            if content_type == "presentation":
+            elif content_type == "presentation":
                 chunk_mode = "page"
                 chunk_creator = ChunkCreator(chunk_mode=chunk_mode)
                 combined_text = "\n".join([s["text"] for s in sentences])
+
+                print(
+                    f"[TransformToChunksNode] Starting chunk creation: "
+                    f"source_type={source_type} content_type={content_type} mode={chunk_mode} "
+                    f"sentences={len(sentences)} combined_chars={len(combined_text)}"
+                )
+
+                # Split into chunks
+                chunk_texts = chunk_creator.create(combined_text)
+                state["chunks"] = [{"text": chunk} for chunk in chunk_texts]
+                state["current_stage"] = "chunks_created"
+
             else:
                 chunk_mode = "char"
                 chunk_creator = ChunkCreator(chunk_mode=chunk_mode)
                 combined_text = " ".join([s["text"] for s in sentences])
 
-            print(
-                f"[TransformToChunksNode] Starting chunk creation: "
-                f"source_type={source_type} content_type={content_type} mode={chunk_mode} sentences={len(sentences)} "
-                f"combined_chars={len(combined_text)}"
-            )
+                print(
+                    f"[TransformToChunksNode] Starting chunk creation: "
+                    f"source_type={source_type} content_type={content_type} mode={chunk_mode} "
+                    f"sentences={len(sentences)} combined_chars={len(combined_text)}"
+                )
 
-            # Split into chunks
-            chunk_texts = chunk_creator.create(combined_text)
-            state["chunks"] = [{"text": chunk} for chunk in chunk_texts]
-            state["current_stage"] = "chunks_created"
+                # Split into chunks
+                chunk_texts = chunk_creator.create(combined_text)
+                state["chunks"] = [{"text": chunk} for chunk in chunk_texts]
+                state["current_stage"] = "chunks_created"
 
             if chunk_texts:
                 chunk_lens = [len(c) for c in chunk_texts]

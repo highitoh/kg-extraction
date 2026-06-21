@@ -3,6 +3,8 @@
 import html
 import re
 
+from charset_normalizer import from_path
+
 
 def clean_html_text(text: str) -> str:
     """Strip HTML markup from rich-text content.
@@ -36,3 +38,23 @@ def clean_html_text(text: str) -> str:
     text = re.sub(r"\s+", " ", text).strip()
 
     return text
+
+
+def detect_file_encoding(file_path: str) -> str:
+    """
+    Detect file encoding using charset-normalizer
+
+    Args:
+        file_path: Path to the file to analyze
+
+    Returns:
+        Detected encoding name (e.g., 'utf-8', 'shift-jis', 'iso-8859-1')
+        or 'utf-8' as fallback if detection fails
+    """
+    try:
+        result = from_path(file_path).best()
+        if result and result.encoding:
+            return result.encoding
+    except Exception:
+        pass
+    return "utf-8"

@@ -393,6 +393,107 @@ def extract_tables_from_pptx(table) -> List[Dict[str, Any]]:
         return []
 
 
+def extract_tables_from_markdown(markdown_text: str) -> List[Dict[str, Any]]:
+    """
+    Extract tables from Markdown text (GitHub-flavored Markdown pipe-delimited format)
+
+    Args:
+        markdown_text: Markdown content as string
+
+    Returns:
+        List of normalized table dictionaries with:
+        - row_headers: list of row header texts (empty for Markdown tables)
+        - col_headers: list of column header texts
+        - cells: list of data rows (each row is a list of cell values)
+        - caption: table caption (None for Markdown tables)
+        - context: text before the table (for context window)
+
+    Example input:
+        | Feature | Status |
+        |---------|--------|
+        | PDF     | ✓      |
+        | DOCX    | ✓      |
+
+    Returns:
+        [{
+            "row_headers": [],
+            "col_headers": ["Feature", "Status"],
+            "cells": [["PDF", "✓"], ["DOCX", "✓"]],
+            "caption": None,
+            "context": ""
+        }]
+    """
+    tables = []
+
+    # Split by lines
+    lines = markdown_text.split("\n")
+    i = 0
+
+    while i < len(lines):
+        line = lines[i].strip()
+
+        # Check if line is a table row (starts and ends with |)
+        if line.startswith("|") and line.endswith("|"):
+            # Found potential table start
+            table_lines = []
+            context_lines = []
+
+            # Collect context (previous non-empty line)
+            if i > 0:
+                prev_line = lines[i - 1].strip()
+                if prev_line and not prev_line.startswith("|"):
+                    context_lines.append(prev_line)
+
+            # Collect all consecutive table lines
+            j = i
+            while j < len(lines):
+                current_line = lines[j].strip()
+                if current_line.startswith("|") and current_line.endswith("|"):
+                    table_lines.append(current_line)
+                    j += 1
+                else:
+                    break
+
+            # Parse table if we have at least 3 lines (header + alignment + data)
+            if len(table_lines) >= 3:
+                try:
+                    # Extract header row
+                    header_row = table_lines[0]
+                    col_headers = [cell.strip() for cell in header_row.split("|")[1:-1]]
+
+                    # Skip alignment row (second row with dashes)
+                    # alignment_row = table_lines[1]
+
+                    # Extract data rows
+                    cells = []
+                    for data_line in table_lines[2:]:
+                        row_cells = [cell.strip() for cell in data_line.split("|")[1:-1]]
+                        # Ensure row has same number of columns as header
+                        if len(row_cells) == len(col_headers):
+                            cells.append(row_cells)
+
+                    # Only add table if we have data rows
+                    if cells:
+                        table = {
+                            "row_headers": [],  # Markdown tables don't have row headers
+                            "col_headers": col_headers,
+                            "cells": cells,
+                            "caption": None,
+                            "context": " ".join(context_lines) if context_lines else "",
+                        }
+                        tables.append(table)
+
+                except Exception as e:
+                    print(f"Error parsing Markdown table: {e}")
+
+            # Move index past the table
+            i = j
+        else:
+            i += 1
+
+    return tables
+
+
 if __name__ == "__main__":
     import json
 

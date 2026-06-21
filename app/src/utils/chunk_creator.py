@@ -158,3 +158,45 @@ class ChunkCreator:
         chunks = [" ".join(texts) for slide_num, texts in sorted(slide_chunks.items(), key=lambda x: int(x[0]))]
 
         return chunks
+
+    def create_with_section_metadata(self, sentences: List[dict]) -> List[str]:
+        """
+        Create chunks with section prefixes for Markdown files
+
+        Args:
+            sentences: List of sentences with optional "section" metadata
+                       [{"text": "...", "section": "Header > Subheader"}, ...]
+
+        Returns:
+            List of chunks with [[Section: ...]] prefix at the beginning
+        """
+        if not sentences:
+            return []
+
+        # Build text with section markers
+        text_with_markers = []
+        for sent in sentences:
+            section = sent.get("section", "")
+            if section:
+                text_with_markers.append(f"[[SECTION:{section}]]")
+            text_with_markers.append(sent["text"])
+
+        combined = " ".join(text_with_markers)
+
+        # Use existing character-based chunking logic
+        chunks = self._create_char_based(combined)
+
+        # Post-process: convert [[SECTION:...]] markers to proper prefixes
+        result = []
+        for chunk in chunks:
+            # Extract section from first marker in chunk
+            match = re.search(r"\[\[SECTION:([^\]]+)\]\]", chunk)
+            if match:
+                section = match.group(1)
+                # Remove all markers from chunk
+                clean_chunk = re.sub(r"\[\[SECTION:[^\]]+\]\]\s*", "", chunk)
+                result.append(f"[[Section: {section}]] {clean_chunk}")
+            else:
+                result.append(chunk)
+
+        return result
