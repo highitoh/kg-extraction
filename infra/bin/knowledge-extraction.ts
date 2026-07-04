@@ -17,8 +17,11 @@ const env = {
 const accountName = app.node.tryGetContext('accountName') || 'mycompany';
 const environment = app.node.tryGetContext('environment') || 'dev';
 
+// Stack IDs and resource names carry the environment suffix so that
+// dev/staging/prod can coexist in one AWS account and region.
+
 // Stack 1: Storage (S3 + DynamoDB)
-const storageStack = new StorageStack(app, 'KnowledgeExtractionStorage', {
+const storageStack = new StorageStack(app, `KnowledgeExtractionStorage-${environment}`, {
   env,
   accountName,
   environment,
@@ -26,8 +29,9 @@ const storageStack = new StorageStack(app, 'KnowledgeExtractionStorage', {
 });
 
 // Stack 2: Compute (AWS Batch)
-const computeStack = new ComputeStack(app, 'KnowledgeExtractionCompute', {
+const computeStack = new ComputeStack(app, `KnowledgeExtractionCompute-${environment}`, {
   env,
+  environment,
   extractionBucket: storageStack.extractionBucket,
   jobsTable: storageStack.jobsTable,
   classesTable: storageStack.classesTable,
@@ -40,8 +44,9 @@ const computeStack = new ComputeStack(app, 'KnowledgeExtractionCompute', {
 computeStack.addDependency(storageStack);
 
 // Stack 3: API (API Gateway + Lambda + MCP Server)
-const apiStack = new ApiStack(app, 'KnowledgeExtractionApi', {
+const apiStack = new ApiStack(app, `KnowledgeExtractionApi-${environment}`, {
   env,
+  environment,
   extractionBucket: storageStack.extractionBucket,
   jobsTable: storageStack.jobsTable,
   snapshotsTable: storageStack.snapshotsTable,
@@ -58,7 +63,7 @@ const apiStack = new ApiStack(app, 'KnowledgeExtractionApi', {
 apiStack.addDependency(computeStack);
 
 // Stack 4: Events (EventBridge scheduled jobs)
-const eventsStack = new EventsStack(app, 'KnowledgeExtractionEvents', {
+const eventsStack = new EventsStack(app, `KnowledgeExtractionEvents-${environment}`, {
   env,
   jobQueue: computeStack.jobQueue,
   jobDefinition: computeStack.jobDefinition,

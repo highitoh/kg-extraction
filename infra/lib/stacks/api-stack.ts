@@ -8,6 +8,7 @@ import * as batch from 'aws-cdk-lib/aws-batch';
 import { Construct } from 'constructs';
 
 interface ApiStackProps extends cdk.StackProps {
+  environment: string;
   extractionBucket: s3.Bucket;
   jobsTable: dynamodb.Table;
   snapshotsTable: dynamodb.Table;
@@ -77,13 +78,18 @@ export class ApiStack extends cdk.Stack {
       return fn;
     };
 
-    // API Gateway
+    // API Gateway. Every method requires an API key (x-api-key header);
+    // CORS preflight OPTIONS methods are exempt (CDK sets apiKeyRequired
+    // false on them, so browser preflights still work).
     this.api = new apigateway.RestApi(this, 'ExtractionApi', {
-      restApiName: 'Knowledge Extraction API',
+      restApiName: `knowledge-extraction-api-${props.environment}`,
       description: 'API for knowledge extraction from documents',
       defaultCorsPreflightOptions: {
         allowOrigins: apigateway.Cors.ALL_ORIGINS,
         allowMethods: apigateway.Cors.ALL_METHODS,
+      },
+      defaultMethodOptions: {
+        apiKeyRequired: true,
       },
       deployOptions: {
         stageName: 'v1',
@@ -201,6 +207,23 @@ export class ApiStack extends cdk.Stack {
       proxy: true,
     }));
 
+    // API key + usage plan. Without a key the open /extract endpoint lets
+    // anyone spend Gemini tokens and Fargate compute; the usage plan also
+    // gives per-key throttling.
+    const apiKey = this.api.addApiKey('DefaultApiKey', {
+      apiKeyName: `kg-extraction-${props.environment}`,
+    });
+
+    const usagePlan = this.api.addUsagePlan('DefaultUsagePlan', {
+      name: `kg-extraction-${props.environment}`,
+      throttle: {
+        rateLimit: 100,
+        burstLimit: 200,
+      },
+    });
+    usagePlan.addApiStage({ stage: this.api.deploymentStage });
+    usagePlan.addApiKey(apiKey);
+
     // Outputs
     new cdk.CfnOutput(this, 'ApiUrl', {
       value: this.api.url,
@@ -210,6 +233,12 @@ export class ApiStack extends cdk.Stack {
     new cdk.CfnOutput(this, 'McpEndpoint', {
       value: `${this.api.url}mcp`,
       description: 'MCP Server endpoint for Claude Desktop',
+    });
+
+    new cdk.CfnOutput(this, 'ApiKeyId', {
+      value: apiKey.keyId,
+      description:
+        'API key ID; fetch the value with: aws apigateway get-api-key --api-key <id> --include-value',
     });
   }
 }

@@ -10,6 +10,7 @@ import * as secretsmanager from 'aws-cdk-lib/aws-secretsmanager';
 import { Construct } from 'constructs';
 
 interface ComputeStackProps extends cdk.StackProps {
+  environment: string;
   extractionBucket: s3.Bucket;
   jobsTable: dynamodb.Table;
   classesTable: dynamodb.Table;
@@ -27,9 +28,14 @@ export class ComputeStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props: ComputeStackProps) {
     super(scope, id, props);
 
+    const { environment } = props;
+
+    // Resource names carry the environment suffix so multiple environments
+    // can coexist in one account/region.
+
     // ECR Repository for Docker images
     this.ecrRepository = new ecr.Repository(this, 'ExtractionRepository', {
-      repositoryName: 'kg-extraction',
+      repositoryName: `kg-extraction-${environment}`,
       imageScanOnPush: true,
       removalPolicy: cdk.RemovalPolicy.RETAIN,
     });
@@ -54,7 +60,7 @@ export class ComputeStack extends cdk.Stack {
     // Gemini API Key secret, injected into the container as GEMINI_API_KEY
     // (created with a placeholder value; update it after deployment)
     const geminiSecret = new secretsmanager.Secret(this, 'GeminiApiKey', {
-      secretName: 'gemini-api-key',
+      secretName: `gemini-api-key-${environment}`,
       description: 'Gemini API key for knowledge extraction - UPDATE THIS VALUE AFTER DEPLOYMENT',
       secretStringValue: cdk.SecretValue.unsafePlainText('PLACEHOLDER_UPDATE_ME_AFTER_DEPLOYMENT'),
     });
@@ -72,7 +78,7 @@ export class ComputeStack extends cdk.Stack {
 
     // Compute Environment (Fargate Spot)
     const computeEnvironment = new batch.FargateComputeEnvironment(this, 'ExtractionComputeEnv', {
-      computeEnvironmentName: 'extraction-compute-env',
+      computeEnvironmentName: `extraction-compute-env-${environment}`,
       vpc: ec2.Vpc.fromLookup(this, 'DefaultVpc', { isDefault: true }),
       maxvCpus: 16,
       spot: true,
@@ -80,7 +86,7 @@ export class ComputeStack extends cdk.Stack {
 
     // Job Queue
     this.jobQueue = new batch.JobQueue(this, 'ExtractionQueue', {
-      jobQueueName: 'extraction-queue',
+      jobQueueName: `extraction-queue-${environment}`,
       priority: 1,
       computeEnvironments: [
         {
@@ -92,13 +98,16 @@ export class ComputeStack extends cdk.Stack {
 
     // Job Definition
     this.jobDefinition = new batch.EcsJobDefinition(this, 'ExtractionJobDefinition', {
-      jobDefinitionName: 'extraction-job',
+      jobDefinitionName: `extraction-job-${environment}`,
       container: new batch.EcsFargateContainerDefinition(this, 'ExtractionContainer', {
         image: ecs.ContainerImage.fromEcrRepository(this.ecrRepository, 'latest'),
         cpu: 1,
         memory: cdk.Size.mebibytes(2048),
         jobRole,
         executionRole,
+        // The default VPC has public subnets and no NAT gateway; without a
+        // public IP the task cannot pull from ECR or reach the Gemini API
+        assignPublicIp: true,
         environment: {
           STORAGE_BACKEND: 's3',
           BUCKET_NAME: props.extractionBucket.bucketName,

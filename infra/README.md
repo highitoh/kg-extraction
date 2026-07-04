@@ -67,7 +67,7 @@ docker build -t kg-extraction:latest -f infra/docker/Dockerfile .
 # Get ECR repository URI from CDK output (after deploying ComputeStack)
 ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
 REGION=$(aws configure get region)
-ECR_URI="$ACCOUNT_ID.dkr.ecr.$REGION.amazonaws.com/kg-extraction"
+ECR_URI="$ACCOUNT_ID.dkr.ecr.$REGION.amazonaws.com/kg-extraction-dev"
 
 # Login to ECR
 aws ecr get-login-password --region $REGION | docker login --username AWS --password-stdin $ECR_URI
@@ -84,10 +84,10 @@ docker push $ECR_URI:latest
 cdk deploy --all
 
 # Or deploy specific stacks
-cdk deploy KnowledgeExtractionStorage
-cdk deploy KnowledgeExtractionCompute
-cdk deploy KnowledgeExtractionApi
-cdk deploy KnowledgeExtractionEvents
+cdk deploy KnowledgeExtractionStorage-dev
+cdk deploy KnowledgeExtractionCompute-dev
+cdk deploy KnowledgeExtractionApi-dev
+cdk deploy KnowledgeExtractionEvents-dev
 ```
 
 ### 6. Update Gemini API Key Secret
@@ -96,7 +96,7 @@ The secret is automatically created with a placeholder value during deployment. 
 
 ```bash
 aws secretsmanager update-secret \
-  --secret-id gemini-api-key \
+  --secret-id gemini-api-key-dev \
   --secret-string "YOUR_ACTUAL_GEMINI_API_KEY"
 ```
 
@@ -127,10 +127,16 @@ Creates S3 bucket and 8 DynamoDB tables:
 
 Creates AWS Batch resources for extraction workflows:
 
-- **ECR Repository**: Docker image storage (`kg-extraction`)
-- **Compute Environment**: Fargate Spot (max 16 vCPUs)
-- **Job Queue**: `extraction-queue`
-- **Job Definition**: 1 vCPU, 2GB RAM, 2-hour timeout, 2 retry attempts
+- **ECR Repository**: Docker image storage (`kg-extraction-{environment}`)
+- **Compute Environment**: Fargate Spot (max 16 vCPUs), public IPs enabled so
+  tasks in the default VPC can pull from ECR and reach the Gemini API
+- **Job Queue**: `extraction-queue-{environment}`
+- **Job Definition**: 1 vCPU, 2GB RAM, 2-hour timeout, 2 retry attempts,
+  Gemini API key injected from Secrets Manager
+
+Stack IDs and resource names carry the environment suffix
+(`-dev`/`-staging`/`-prod`), so multiple environments can coexist in one
+AWS account and region.
 
 ### ApiStack
 
@@ -224,10 +230,10 @@ cdk deploy --all -c accountName=mycompany -c environment=dev
 cdk deploy --all -c accountName=mycompany -c environment=prod --require-approval broadening
 
 # Deploy specific stack
-cdk deploy KnowledgeExtractionStorage -c accountName=mycompany -c environment=dev
+cdk deploy KnowledgeExtractionStorage-dev -c accountName=mycompany -c environment=dev
 
 # Synthesize CloudFormation template
-cdk synth KnowledgeExtractionStorage
+cdk synth KnowledgeExtractionStorage-dev
 
 # Destroy all resources (⚠️ irreversible)
 cdk destroy --all -c accountName=mycompany -c environment=dev
@@ -241,29 +247,34 @@ cdk destroy --all -c accountName=mycompany -c environment=dev
 # Set API URL
 API_URL="https://xxxxx.execute-api.us-east-1.amazonaws.com/v1"
 
+# Fetch the API key (the key ID is in the ApiStack outputs)
+API_KEY=$(aws apigateway get-api-key --api-key API_KEY_ID --include-value --query 'value' --output text)
+
 # 1. Get upload URL
 RESPONSE=$(curl -X POST $API_URL/upload-url \
+  -H "x-api-key: $API_KEY" \
   -H "Content-Type: application/json" \
   -d '{"filename":"test.pdf","project":"test"}')
 
 JOB_ID=$(echo $RESPONSE | jq -r '.jobId')
 UPLOAD_URL=$(echo $RESPONSE | jq -r '.uploadUrl')
 
-# 2. Upload file
+# 2. Upload file (presigned URL, no API key needed)
 curl -X PUT "$UPLOAD_URL" \
   -H "Content-Type: application/pdf" \
   --upload-file /path/to/test.pdf
 
 # 3. Submit extraction
 curl -X POST $API_URL/extract \
+  -H "x-api-key: $API_KEY" \
   -H "Content-Type: application/json" \
   -d "{\"jobId\":\"$JOB_ID\",\"project\":\"test\"}"
 
 # 4. Poll status (repeat until COMPLETED)
-curl $API_URL/jobs/$JOB_ID
+curl -H "x-api-key: $API_KEY" $API_URL/jobs/$JOB_ID
 
 # 5. Download results
-curl $API_URL/jobs/$JOB_ID/results
+curl -H "x-api-key: $API_KEY" $API_URL/jobs/$JOB_ID/results
 ```
 
 ## Monitoring
@@ -274,7 +285,7 @@ Batch job logs automatically stream to CloudWatch:
 
 ```bash
 # Find latest job
-JOB_ARN=$(aws batch list-jobs --job-queue extraction-queue --job-status RUNNING --query 'jobSummaryList[0].jobArn' --output text)
+JOB_ARN=$(aws batch list-jobs --job-queue extraction-queue-dev --job-status RUNNING --query 'jobSummaryList[0].jobArn' --output text)
 
 # Get log stream
 LOG_STREAM=$(aws batch describe-jobs --jobs $JOB_ARN --query 'jobs[0].container.logStreamName' --output text)
@@ -292,7 +303,7 @@ Monitor job performance:
 aws cloudwatch get-metric-statistics \
   --namespace AWS/Batch \
   --metric-name JobDuration \
-  --dimensions Name=JobQueue,Value=extraction-queue \
+  --dimensions Name=JobQueue,Value=extraction-queue-dev \
   --start-time $(date -u -d '24 hours ago' --iso-8601=seconds) \
   --end-time $(date -u --iso-8601=seconds) \
   --period 3600 \
@@ -329,7 +340,7 @@ Current setup is optimized for cost:
 **Solution**:
 ```bash
 # Check compute environment
-aws batch describe-compute-environments --compute-environments extraction-compute-env
+aws batch describe-compute-environments --compute-environments extraction-compute-env-dev
 
 # Increase max vCPUs in ComputeStack if needed
 ```
@@ -342,7 +353,7 @@ aws batch describe-compute-environments --compute-environments extraction-comput
 ```bash
 # Rotate API key in Secrets Manager
 aws secretsmanager update-secret \
-  --secret-id gemini-api-key \
+  --secret-id gemini-api-key-dev \
   --secret-string "NEW_API_KEY"
 ```
 
@@ -353,18 +364,20 @@ aws secretsmanager update-secret \
 **Solution**:
 ```bash
 # Verify image exists
-aws ecr describe-images --repository-name kg-extraction
+aws ecr describe-images --repository-name kg-extraction-dev
 
 # Re-push image if missing (see Quick Start step 4)
 ```
 
 ## Security
 
+- All API endpoints require an API key (`x-api-key` header); the key is
+  created by the ApiStack with a per-key usage plan (100 req/s, burst 200)
 - All S3 buckets are private (no public access)
 - DynamoDB tables encrypted at rest
-- Secrets stored in AWS Secrets Manager
-- IAM roles follow least privilege principle
-- CloudTrail enabled for audit logging
+- Secrets stored in AWS Secrets Manager, injected into containers at task start
+- Known gap: Lambda IAM grants are broader than needed (all functions share
+  one grant set); tightening to per-function least privilege is planned
 
 ## Documentation
 

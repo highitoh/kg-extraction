@@ -205,12 +205,23 @@ Context variables control environment-specific settings:
 
 ## Security
 
-1. **No API Authentication**: The API is currently open (no authentication required). For production use, add API keys or Cognito user authentication.
+1. **API Key Authentication**: Every API method requires an API Gateway API
+   key (`x-api-key` header) with a per-key usage plan (100 req/s, burst 200).
+   The key is created by the ApiStack; see [api-reference.md](api-reference.md)
+   for how to fetch its value. For per-user identity and authorization, add
+   Cognito on top.
 
-2. **Gemini API Key Secret**: The secret is automatically created during CDK deployment with a placeholder value. You must update it with your actual Gemini API key before running extraction jobs:
+2. **Gemini API Key Secret**: The secret (`gemini-api-key-{environment}`) is
+   created during CDK deployment with a placeholder value and injected into
+   Batch containers as `GEMINI_API_KEY` at task start. You must update it with
+   your actual Gemini API key before running extraction jobs:
    ```bash
    aws secretsmanager update-secret \
-     --secret-id gemini-api-key \
+     --secret-id gemini-api-key-dev \
      --secret-string "YOUR_ACTUAL_GEMINI_API_KEY"
    ```
    The secret is created with placeholder value `PLACEHOLDER_UPDATE_ME_AFTER_DEPLOYMENT`. Jobs will fail until updated.
+
+3. **Known gap**: Lambda IAM grants are broader than needed (all functions
+   share one grant set); tightening to per-function least privilege is
+   planned.

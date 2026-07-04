@@ -8,18 +8,31 @@ All endpoints return JSON. Errors follow standard HTTP status codes.
 
 ### Authentication
 
-**Development**: No authentication required
+All endpoints require an API Gateway API key in the `x-api-key` header:
 
-**Production**: API key required in header:
 ```
-Authorization: Bearer YOUR_API_KEY
+x-api-key: YOUR_API_KEY
 ```
+
+The key is created at deployment (ApiStack output `ApiKeyId`); fetch its
+value with:
+
+```bash
+aws apigateway get-api-key --api-key API_KEY_ID --include-value --query 'value' --output text
+```
+
+Requests without a valid key receive `403 Forbidden`. CORS preflight
+(OPTIONS) requests are exempt. Presigned S3 URLs (upload/download) are
+authorized by their signature and need no API key.
 
 ### Rate Limiting
 
-- Default: 100 requests/second per API key
-- Burst: 200 requests/second
-- Headers: `X-RateLimit-Limit`, `X-RateLimit-Remaining`, `X-RateLimit-Reset`
+Throttling is enforced by the API Gateway usage plan attached to the key:
+
+- Rate: 100 requests/second per key
+- Burst: 200 requests
+- Exceeding the limit returns `429 Too Many Requests` (API Gateway does not
+  emit `X-RateLimit-*` response headers)
 
 ---
 
@@ -558,6 +571,7 @@ Add to `claude_desktop_config.json`:
       "url": "https://api.example.com/v1/mcp",
       "transport": "http",
       "headers": {
+        "x-api-key": "YOUR_API_KEY",
         "x-session-id": "550e8400-e29b-41d4-a716-446655440000"
       }
     }

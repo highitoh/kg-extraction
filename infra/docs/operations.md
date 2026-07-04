@@ -47,16 +47,16 @@ cdk deploy --all -c accountName=mycompany -c environment=dev
 **Deploy specific stack**:
 ```bash
 # Storage only (S3 + DynamoDB)
-cdk deploy KnowledgeExtractionStorage -c accountName=mycompany -c environment=dev
+cdk deploy KnowledgeExtractionStorage-dev -c accountName=mycompany -c environment=dev
 
 # Compute only (AWS Batch)
-cdk deploy KnowledgeExtractionCompute -c accountName=mycompany -c environment=dev
+cdk deploy KnowledgeExtractionCompute-dev -c accountName=mycompany -c environment=dev
 
 # API only (API Gateway + Lambda + MCP)
-cdk deploy KnowledgeExtractionApi -c accountName=mycompany -c environment=dev
+cdk deploy KnowledgeExtractionApi-dev -c accountName=mycompany -c environment=dev
 
 # Events only (EventBridge scheduled jobs)
-cdk deploy KnowledgeExtractionEvents -c accountName=mycompany -c environment=dev
+cdk deploy KnowledgeExtractionEvents-dev -c accountName=mycompany -c environment=dev
 ```
 
 **Preview changes before deployment** (CloudFormation changeset):
@@ -66,7 +66,7 @@ cdk diff --all -c accountName=mycompany -c environment=dev
 
 **Synthesize CloudFormation template** (without deploying):
 ```bash
-cdk synth KnowledgeExtractionStorage -c accountName=mycompany -c environment=dev
+cdk synth KnowledgeExtractionStorage-dev -c accountName=mycompany -c environment=dev
 ```
 
 **Destroy all resources** (⚠️ irreversible):
@@ -86,10 +86,10 @@ docker build -t kg-extraction:latest -f infra/docker/Dockerfile .
 # Tag for ECR
 aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin ACCOUNT-ID.dkr.ecr.us-east-1.amazonaws.com
 
-docker tag kg-extraction:latest ACCOUNT-ID.dkr.ecr.us-east-1.amazonaws.com/kg-extraction:latest
+docker tag kg-extraction:latest ACCOUNT-ID.dkr.ecr.us-east-1.amazonaws.com/kg-extraction-dev:latest
 
 # Push to ECR
-docker push ACCOUNT-ID.dkr.ecr.us-east-1.amazonaws.com/kg-extraction:latest
+docker push ACCOUNT-ID.dkr.ecr.us-east-1.amazonaws.com/kg-extraction-dev:latest
 ```
 
 **Automated in CDK**: ComputeStack creates ECR repository automatically. Use CDK Docker asset for integrated build/push:
@@ -187,7 +187,7 @@ const bucket = new s3.Bucket(this, 'ExtractionBucket', {
 ```bash
 # Find latest running job
 JOB_ARN=$(aws batch list-jobs \
-  --job-queue extraction-queue \
+  --job-queue extraction-queue-dev \
   --job-status RUNNING \
   --query 'jobSummaryList[0].jobArn' \
   --output text)
@@ -227,7 +227,7 @@ aws logs filter-log-events \
 aws cloudwatch get-metric-statistics \
   --namespace AWS/Batch \
   --metric-name JobDuration \
-  --dimensions Name=JobQueue,Value=extraction-queue \
+  --dimensions Name=JobQueue,Value=extraction-queue-dev \
   --start-time $(date -u -d '24 hours ago' --iso-8601=seconds) \
   --end-time $(date -u --iso-8601=seconds) \
   --period 3600 \
@@ -237,7 +237,7 @@ aws cloudwatch get-metric-statistics \
 aws cloudwatch get-metric-statistics \
   --namespace AWS/Batch \
   --metric-name RunningJobs \
-  --dimensions Name=JobQueue,Value=extraction-queue \
+  --dimensions Name=JobQueue,Value=extraction-queue-dev \
   --start-time $(date -u -d '5 minutes ago' --iso-8601=seconds) \
   --end-time $(date -u --iso-8601=seconds) \
   --period 60 \
@@ -260,7 +260,7 @@ dashboard.addWidgets(
       new cloudwatch.Metric({
         namespace: 'AWS/Batch',
         metricName: 'QueueDepth',
-        dimensionsMap: { JobQueue: 'extraction-queue' },
+        dimensionsMap: { JobQueue: 'extraction-queue-dev' },
       })
     ]
   }),
@@ -289,7 +289,7 @@ const failedJobsAlarm = new cloudwatch.Alarm(this, 'FailedJobsAlarm', {
   metric: new cloudwatch.Metric({
     namespace: 'AWS/Batch',
     metricName: 'FailedJobs',
-    dimensionsMap: { JobQueue: 'extraction-queue' },
+    dimensionsMap: { JobQueue: 'extraction-queue-dev' },
     statistic: 'Sum',
     period: cdk.Duration.minutes(5),
   }),
@@ -525,10 +525,10 @@ aws budgets create-budget \
 ```bash
 # Check Fargate capacity
 aws batch describe-compute-environments \
-  --compute-environments extraction-compute-env
+  --compute-environments extraction-compute-env-dev
 
 # Check job queue
-aws batch describe-job-queues --job-queues extraction-queue
+aws batch describe-job-queues --job-queues extraction-queue-dev
 ```
 
 **Solutions**:
@@ -592,7 +592,7 @@ aws cloudwatch get-metric-statistics \
 **Diagnosis**:
 ```bash
 # Check ECR repository
-aws ecr describe-images --repository-name kg-extraction
+aws ecr describe-images --repository-name kg-extraction-dev
 ```
 
 **Solutions**:
@@ -614,13 +614,13 @@ aws ecr describe-images --repository-name kg-extraction
    ```
 3. **Push to ECR**:
    ```bash
-   docker tag kg-extraction:latest ACCOUNT-ID.dkr.ecr.us-east-1.amazonaws.com/kg-extraction:latest
-   docker push ACCOUNT-ID.dkr.ecr.us-east-1.amazonaws.com/kg-extraction:latest
+   docker tag kg-extraction:latest ACCOUNT-ID.dkr.ecr.us-east-1.amazonaws.com/kg-extraction-dev:latest
+   docker push ACCOUNT-ID.dkr.ecr.us-east-1.amazonaws.com/kg-extraction-dev:latest
    ```
 4. **Update job definition** (CDK automatically updates on next deploy)
 5. **Redeploy compute stack**:
    ```bash
-   cdk deploy KnowledgeExtractionCompute
+   cdk deploy KnowledgeExtractionCompute-dev
    ```
 
 ### Rotate GCP API Key
@@ -629,7 +629,7 @@ aws ecr describe-images --repository-name kg-extraction
 2. **Update Secrets Manager**:
    ```bash
    aws secretsmanager update-secret \
-     --secret-id gemini-api-key \
+     --secret-id gemini-api-key-dev \
      --secret-string "new-api-key-value"
    ```
 3. **No redeployment needed** (Batch jobs fetch secret at runtime)
@@ -667,7 +667,7 @@ aws dynamodb create-backup \
 3. **Rotate secrets** regularly (API keys, passwords)
 4. **Enable CloudTrail** for audit logging
 5. **Encrypt all data** (S3, DynamoDB, Secrets Manager)
-6. **Restrict API Gateway** with API keys or Cognito
+6. **API Gateway requires API keys** by default; add Cognito for per-user identity
 7. **Review IAM policies** quarterly (least privilege)
 8. **Enable GuardDuty** for threat detection
 9. **Tag all resources** for cost tracking and access control
