@@ -1,0 +1,215 @@
+import * as cdk from 'aws-cdk-lib';
+import * as apigateway from 'aws-cdk-lib/aws-apigateway';
+import * as lambda from 'aws-cdk-lib/aws-lambda';
+import * as iam from 'aws-cdk-lib/aws-iam';
+import * as s3 from 'aws-cdk-lib/aws-s3';
+import * as dynamodb from 'aws-cdk-lib/aws-dynamodb';
+import * as batch from 'aws-cdk-lib/aws-batch';
+import { Construct } from 'constructs';
+
+interface ApiStackProps extends cdk.StackProps {
+  extractionBucket: s3.Bucket;
+  jobsTable: dynamodb.Table;
+  snapshotsTable: dynamodb.Table;
+  changesetsTable: dynamodb.Table;
+  sessionsTable: dynamodb.Table;
+  classesTable: dynamodb.Table;
+  propertiesTable: dynamodb.Table;
+  instancesTable: dynamodb.Table;
+  projectsTable: dynamodb.Table;
+  jobQueue: batch.JobQueue;
+  jobDefinition: batch.EcsJobDefinition;
+}
+
+export class ApiStack extends cdk.Stack {
+  public readonly api: apigateway.RestApi;
+
+  constructor(scope: Construct, id: string, props: ApiStackProps) {
+    super(scope, id, props);
+
+    // Common Lambda environment variables
+    const commonEnv = {
+      BUCKET_NAME: props.extractionBucket.bucketName,
+      JOBS_TABLE: props.jobsTable.tableName,
+      SNAPSHOTS_TABLE: props.snapshotsTable.tableName,
+      CHANGESETS_TABLE: props.changesetsTable.tableName,
+      SESSIONS_TABLE: props.sessionsTable.tableName,
+      CLASSES_TABLE: props.classesTable.tableName,
+      PROPERTIES_TABLE: props.propertiesTable.tableName,
+      INSTANCES_TABLE: props.instancesTable.tableName,
+      PROJECTS_TABLE: props.projectsTable.tableName,
+      JOB_QUEUE: props.jobQueue.jobQueueName,
+      JOB_DEFINITION: props.jobDefinition.jobDefinitionName,
+    };
+
+    // Lambda code directory
+    const lambdaCode = lambda.Code.fromAsset('../lambda');
+
+    // Helper function to create Lambda with common settings
+    const createLambda = (name: string, handler: string, timeout = 30): lambda.Function => {
+      const fn = new lambda.Function(this, name, {
+        runtime: lambda.Runtime.PYTHON_3_11,
+        code: lambdaCode,
+        handler,
+        environment: commonEnv,
+        timeout: cdk.Duration.seconds(timeout),
+        memorySize: 256,
+        architecture: lambda.Architecture.ARM_64,
+      });
+
+      // Grant permissions
+      props.extractionBucket.grantReadWrite(fn);
+      props.jobsTable.grantReadWriteData(fn);
+      props.snapshotsTable.grantReadWriteData(fn);
+      props.changesetsTable.grantReadWriteData(fn);
+      props.sessionsTable.grantReadWriteData(fn);
+      props.classesTable.grantReadData(fn);
+      props.propertiesTable.grantReadData(fn);
+      props.instancesTable.grantReadData(fn);
+      props.projectsTable.grantReadData(fn);
+
+      // Grant Batch permissions
+      fn.addToRolePolicy(new iam.PolicyStatement({
+        actions: ['batch:SubmitJob', 'batch:DescribeJobs'],
+        resources: [props.jobQueue.jobQueueArn, props.jobDefinition.jobDefinitionArn],
+      }));
+
+      return fn;
+    };
+
+    // API Gateway
+    this.api = new apigateway.RestApi(this, 'ExtractionApi', {
+      restApiName: 'Knowledge Extraction API',
+      description: 'API for knowledge extraction from documents',
+      defaultCorsPreflightOptions: {
+        allowOrigins: apigateway.Cors.ALL_ORIGINS,
+        allowMethods: apigateway.Cors.ALL_METHODS,
+      },
+      deployOptions: {
+        stageName: 'v1',
+        throttlingRateLimit: 100,
+        throttlingBurstLimit: 200,
+        loggingLevel: apigateway.MethodLoggingLevel.INFO,
+        dataTraceEnabled: true,
+      },
+    });
+
+    // Job Management Lambdas
+    const getUploadUrl = createLambda('GetUploadUrl', 'job_management.get_upload_url.handler');
+    const submitExtraction = createLambda('SubmitExtraction', 'job_management.submit_extraction.handler');
+    const getJobStatus = createLambda('GetJobStatus', 'job_management.get_job_status.handler');
+    const downloadResults = createLambda('DownloadResults', 'job_management.download_results.handler');
+
+    // Project Management Lambdas
+    const listProjects = createLambda('ListProjects', 'project_management.list_projects.handler');
+    const getProject = createLambda('GetProject', 'project_management.get_project.handler');
+    const listSnapshots = createLambda('ListSnapshots', 'project_management.list_snapshots.handler');
+    const generateChangeset = createLambda('GenerateChangeset', 'project_management.generate_changeset.handler');
+
+    // Knowledge Graph API Lambdas
+    const getKnowledgeClasses = createLambda('GetKnowledgeClasses', 'knowledge_api.get_knowledge_classes.handler');
+    const getKnowledgeClass = createLambda('GetKnowledgeClass', 'knowledge_api.get_knowledge_class.handler');
+    const getClassProperties = createLambda('GetClassProperties', 'knowledge_api.get_class_properties.handler');
+    const getClassIncoming = createLambda('GetClassIncoming', 'knowledge_api.get_class_incoming.handler');
+    const getKnowledgeProperties = createLambda('GetKnowledgeProperties', 'knowledge_api.get_knowledge_properties.handler');
+    const searchKnowledge = createLambda('SearchKnowledge', 'knowledge_api.search_knowledge.handler');
+    const getKnowledgeStats = createLambda('GetKnowledgeStats', 'knowledge_api.get_knowledge_stats.handler');
+
+    // API Resources - Job Management
+    const uploadUrl = this.api.root.addResource('upload-url');
+    uploadUrl.addMethod('POST', new apigateway.LambdaIntegration(getUploadUrl));
+
+    const extract = this.api.root.addResource('extract');
+    extract.addMethod('POST', new apigateway.LambdaIntegration(submitExtraction));
+
+    const jobs = this.api.root.addResource('jobs');
+    const job = jobs.addResource('{jobId}');
+    job.addMethod('GET', new apigateway.LambdaIntegration(getJobStatus));
+
+    const results = job.addResource('results');
+    results.addMethod('GET', new apigateway.LambdaIntegration(downloadResults));
+
+    // API Resources - Projects
+    const projects = this.api.root.addResource('projects');
+    projects.addMethod('GET', new apigateway.LambdaIntegration(listProjects));
+
+    const project = projects.addResource('{project}');
+    project.addMethod('GET', new apigateway.LambdaIntegration(getProject));
+
+    const snapshots = project.addResource('snapshots');
+    snapshots.addMethod('GET', new apigateway.LambdaIntegration(listSnapshots));
+
+    const changesets = project.addResource('changesets');
+    changesets.addMethod('POST', new apigateway.LambdaIntegration(generateChangeset));
+
+    // API Resources - Knowledge Graph
+    const knowledge = project.addResource('knowledge');
+
+    const classes = knowledge.addResource('classes');
+    classes.addMethod('GET', new apigateway.LambdaIntegration(getKnowledgeClasses));
+
+    // className (normalized) is the identity of a class; classIri is the
+    // shared metamodel type and cannot address a single class.
+    const classByName = classes.addResource('{className}');
+    classByName.addMethod('GET', new apigateway.LambdaIntegration(getKnowledgeClass));
+
+    const properties = classByName.addResource('properties');
+    properties.addMethod('GET', new apigateway.LambdaIntegration(getClassProperties));
+
+    const incoming = classByName.addResource('incoming');
+    incoming.addMethod('GET', new apigateway.LambdaIntegration(getClassIncoming));
+
+    const allProperties = knowledge.addResource('properties');
+    allProperties.addMethod('GET', new apigateway.LambdaIntegration(getKnowledgeProperties));
+
+    const search = knowledge.addResource('search');
+    search.addMethod('GET', new apigateway.LambdaIntegration(searchKnowledge));
+
+    const stats = knowledge.addResource('stats');
+    stats.addMethod('GET', new apigateway.LambdaIntegration(getKnowledgeStats));
+
+    // MCP Server Lambda (with extended timeout for streaming)
+    const mcpLambda = new lambda.Function(this, 'McpServer', {
+      runtime: lambda.Runtime.PYTHON_3_11,
+      handler: 'mcp_server.lambda_handler',
+      code: lambda.Code.fromAsset('../lambda/mcp_server'),
+      timeout: cdk.Duration.minutes(15),
+      environment: commonEnv,
+      architecture: lambda.Architecture.ARM_64,
+      memorySize: 512,
+    });
+
+    // Grant permissions for MCP server
+    props.extractionBucket.grantReadWrite(mcpLambda);
+    props.sessionsTable.grantReadWriteData(mcpLambda);
+    props.jobsTable.grantReadWriteData(mcpLambda);
+    props.snapshotsTable.grantReadWriteData(mcpLambda);
+    props.changesetsTable.grantReadWriteData(mcpLambda);
+    props.classesTable.grantReadData(mcpLambda);
+    props.propertiesTable.grantReadData(mcpLambda);
+    props.instancesTable.grantReadData(mcpLambda);
+    props.projectsTable.grantReadData(mcpLambda);
+
+    mcpLambda.addToRolePolicy(new iam.PolicyStatement({
+      actions: ['batch:SubmitJob', 'batch:DescribeJobs'],
+      resources: [props.jobQueue.jobQueueArn, props.jobDefinition.jobDefinitionArn],
+    }));
+
+    // Add /mcp endpoint
+    const mcpResource = this.api.root.addResource('mcp');
+    mcpResource.addMethod('POST', new apigateway.LambdaIntegration(mcpLambda, {
+      proxy: true,
+    }));
+
+    // Outputs
+    new cdk.CfnOutput(this, 'ApiUrl', {
+      value: this.api.url,
+      description: 'API Gateway URL',
+    });
+
+    new cdk.CfnOutput(this, 'McpEndpoint', {
+      value: `${this.api.url}mcp`,
+      description: 'MCP Server endpoint for Claude Desktop',
+    });
+  }
+}
