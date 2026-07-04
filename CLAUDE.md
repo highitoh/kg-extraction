@@ -8,9 +8,11 @@ A LangChain-based application that extracts knowledge from PDF files and generat
 - **Tone**: Use a friendly, casual, and polite tone in all responses. Be conversational and approachable while maintaining professionalism
 - **Code Comments**: Do not include "NEW" or time-conscious descriptions (e.g., "recently added", "old version") in code comments. Comments should describe what the code does, not when it was added or modified
 - **Code Quality**: After modifying Python files, ALWAYS run the following commands to ensure code quality:
+  - **IMPORTANT**: Change directory to `/workspace/app` first before running ruff commands and run each ruff command separately (one by one), NOT combined with `&&`
   ```bash
-  cd app && uv run ruff check
-  cd app && uv run ruff format
+  cd /workspace/app
+  uv run ruff check
+  uv run ruff format
   ```
 - **Git Commits**: **CRITICAL RULE** - NEVER commit code to the git repository without explicit user permission. ALWAYS ask the user "Should I commit these changes?" and wait for explicit approval before running `git commit`. This applies to ALL commits, no exceptions
 
