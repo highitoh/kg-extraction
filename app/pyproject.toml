@@ -21,6 +21,7 @@ dependencies = [
     "rdflib>=7.6.0",
     "requests>=2.34.2",
     "scikit-learn>=1.8.0",
+    "boto3>=1.43.39",
 ]
 
 [project.optional-dependencies]

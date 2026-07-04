@@ -24,7 +24,8 @@ load_dotenv()
 
 
 def run_knowledge_extraction(
-    pdf_path: str,
+    source: str = None,
+    pdf_path: str = None,  # Deprecated, use source
     output_dir: str = "/workspace/app/output",
     model: str = None,
     project: str = "default",
@@ -32,12 +33,15 @@ def run_knowledge_extraction(
     date: str = None,
     miro_board_url: str = None,
     timestamp: str = None,
+    knowledge_json_path: str = None,
+    progress_callback: callable = None,
 ) -> Dict[str, Any]:
     """
     Execute knowledge extraction from PDF file
 
     Args:
-        pdf_path: PDF file path to extract from
+        source: File path or URL to extract from (PDF, DOCX, etc.)
+        pdf_path: PDF file path to extract from (deprecated, use source)
         output_dir: Output directory
         model: LLM model name (if None, use default for each node)
         project: Project name (output files classified by project)
@@ -45,20 +49,38 @@ def run_knowledge_extraction(
         date: Date in YYYYMMDD format for GitHub extraction at specific point in time
         miro_board_url: Miro board URL (for PDF exports of Miro boards)
         timestamp: Manual timestamp in YYYYMMDD format (converted to YYYYMMDD000000)
+        knowledge_json_path: Path to existing knowledge.json (for AWS Batch)
+        progress_callback: Optional callback function(progress: int, message: str)
 
     Returns:
         Extraction result dictionary
     """
+    # Handle backward compatibility: source takes precedence over pdf_path
+    if source is None and pdf_path is not None:
+        source = pdf_path
+    elif source is None:
+        raise ValueError("Either 'source' or 'pdf_path' parameter is required")
     # Create graph
     app = create_knowledge_extraction_graph()
 
+    # Helper to report progress
+    def report_progress(progress: int, message: str):
+        if progress_callback:
+            progress_callback(progress, message)
+
     # Prepare initial State
     initial_state: KnowledgeExtractionState = {
-        "files": [{"path": pdf_path}],
+        "files": [{"path": source}],
         "output_dir": output_dir,
         "project": project,
         "errors": [],
     }
+
+    # If knowledge_json_path is provided, load it (for AWS Batch)
+    if knowledge_json_path and os.path.exists(knowledge_json_path):
+        with open(knowledge_json_path, "r") as f:
+            existing_knowledge = json.load(f)
+            initial_state["existing_knowledge"] = existing_knowledge
 
     # Add model to State if specified
     if model:
