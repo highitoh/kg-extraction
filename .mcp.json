@@ -12,6 +12,15 @@
         "NEO4J_PASSWORD": "neo4jpassword",
         "NEO4J_DATABASE": "neo4j"
       }
+    },
+    "drawio": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "@drawio/mcp"
+      ],
+      "env": {}
     }
   }
 }
