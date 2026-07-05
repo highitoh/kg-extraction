@@ -154,14 +154,15 @@ Creates API Gateway REST API and Lambda functions:
 - `list-snapshots`: List snapshots for a project
 - `generate-changeset`: disabled until batch_runner implements changeset jobs
 
-**Knowledge Graph API** (7 functions):
-- `get-knowledge-classes`: List classes with pagination/filtering
+**Knowledge Graph API** (4 functions):
+- `get-knowledge-classes`: List classes with filtering
 - `get-knowledge-class`: Get specific class details
 - `get-class-properties`: Get outgoing properties
 - `get-class-incoming`: Get incoming properties (reverse lookup)
-- `get-knowledge-properties`: List all properties
-- `search-knowledge`: Search by text (stub)
-- `get-knowledge-stats`: Get graph statistics (stub)
+
+Project-wide property listing, text search, and stats endpoints were removed
+until they have real implementations; the core extraction and browsing flow
+does not depend on them.
 
 **MCP Server** (1 function):
 - `mcp-server`: Model Context Protocol server for Claude Desktop (stub)

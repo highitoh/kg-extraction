@@ -121,9 +121,6 @@ export class ApiStack extends cdk.Stack {
     const getKnowledgeClass = createLambda('GetKnowledgeClass', 'knowledge_api.get_knowledge_class.handler');
     const getClassProperties = createLambda('GetClassProperties', 'knowledge_api.get_class_properties.handler');
     const getClassIncoming = createLambda('GetClassIncoming', 'knowledge_api.get_class_incoming.handler');
-    const getKnowledgeProperties = createLambda('GetKnowledgeProperties', 'knowledge_api.get_knowledge_properties.handler');
-    const searchKnowledge = createLambda('SearchKnowledge', 'knowledge_api.search_knowledge.handler');
-    const getKnowledgeStats = createLambda('GetKnowledgeStats', 'knowledge_api.get_knowledge_stats.handler');
 
     // API Resources - Job Management
     const uploadUrl = this.api.root.addResource('upload-url');
@@ -168,15 +165,6 @@ export class ApiStack extends cdk.Stack {
 
     const incoming = classByName.addResource('incoming');
     incoming.addMethod('GET', new apigateway.LambdaIntegration(getClassIncoming));
-
-    const allProperties = knowledge.addResource('properties');
-    allProperties.addMethod('GET', new apigateway.LambdaIntegration(getKnowledgeProperties));
-
-    const search = knowledge.addResource('search');
-    search.addMethod('GET', new apigateway.LambdaIntegration(searchKnowledge));
-
-    const stats = knowledge.addResource('stats');
-    stats.addMethod('GET', new apigateway.LambdaIntegration(getKnowledgeStats));
 
     // MCP Server Lambda (with extended timeout for streaming)
     const mcpLambda = new lambda.Function(this, 'McpServer', {
