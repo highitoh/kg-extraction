@@ -21,7 +21,7 @@ The deployment uses a hybrid serverless + batch architecture:
 - Node.js 18+ and npm installed
 - Docker installed (for building container images)
 - AWS CDK CLI: `npm install -g aws-cdk`
-- Python 3.11+ (for local testing)
+- Python 3.14+ (for local testing; matches requires-python in app/pyproject.toml)
 
 ## Quick Start
 

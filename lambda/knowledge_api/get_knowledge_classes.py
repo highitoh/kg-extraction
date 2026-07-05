@@ -83,9 +83,7 @@ def handler(event, context):
 
             classes.append(
                 {
-                    "className": item.get("displayName", {}).get(
-                        "S", item["className"]["S"]
-                    ),
+                    "className": item.get("displayName", {}).get("S", item["className"]["S"]),
                     "classIri": item.get("classIri", {}).get("S"),
                     "classType": item.get("classType", {}).get("S"),
                     "definition": item.get("definition", {}).get("S", ""),

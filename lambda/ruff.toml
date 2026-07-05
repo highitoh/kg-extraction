@@ -1,0 +1,14 @@
+# Matches app/pyproject.toml [tool.ruff] so that the pre-commit hook (run
+# from the repo root) and manual runs from app/ format these files
+# identically instead of ping-ponging between configs.
+line-length = 120
+indent-width = 4
+# Lambda functions run on the python3.11 runtime (see infra api-stack)
+target-version = "py311"
+
+[lint]
+select = ["E", "F", "W", "B", "I"]
+
+[lint.isort]
+# Lambda handler packages in this directory are first-party
+known-first-party = ["job_management", "knowledge_api", "mcp_server", "project_management"]

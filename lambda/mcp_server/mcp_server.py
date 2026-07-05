@@ -44,9 +44,7 @@ def put_interaction(session_id, tool, request, response, tokens, cost, duration_
             "tokens": {"M": {k: {"N": str(v)} for k, v in tokens.items()}},
             "cost": {"N": str(cost)},
             "durationMs": {"N": str(duration_ms)},
-            "expiresAt": {
-                "N": str(int(time.time()) + INTERACTION_TTL_DAYS * 24 * 60 * 60)
-            },
+            "expiresAt": {"N": str(int(time.time()) + INTERACTION_TTL_DAYS * 24 * 60 * 60)},
         },
     )
 
@@ -108,17 +106,13 @@ def lambda_handler(event, context):
                         "M": {
                             "currentProject": {"S": "default"},
                             "recentJobs": {"L": []},
-                            "lastActivity": {
-                                "S": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
-                            },
+                            "lastActivity": {"S": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())},
                         }
                     },
                     "totalTokensUsed": {"N": "0"},
                     "totalCost": {"N": "0.0"},
                     "interactionCount": {"N": "0"},
-                    "createdAt": {
-                        "S": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
-                    },
+                    "createdAt": {"S": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())},
                     "expiresAt": {"N": str(timestamp + STATE_TTL_DAYS * 24 * 60 * 60)},
                 },
             )
@@ -160,7 +154,5 @@ def lambda_handler(event, context):
         traceback.print_exc()
         return {
             "statusCode": 500,
-            "body": json.dumps(
-                {"error": {"code": "INTERNAL_ERROR", "message": "MCP server error"}}
-            ),
+            "body": json.dumps({"error": {"code": "INTERNAL_ERROR", "message": "MCP server error"}}),
         }

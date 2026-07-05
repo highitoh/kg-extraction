@@ -740,7 +740,7 @@ def main():
             {
                 ":status": {"S": "COMPLETED"},
                 ":time": {"S": now_iso()},
-                ":output": {"S": f"s3://{BUCKET_NAME}/projects/{PROJECT}/"},
+                ":output": {"S": f"s3://{BUCKET_NAME}/projects/{PROJECT}"},
             },
         )
 

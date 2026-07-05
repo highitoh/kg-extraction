@@ -1,4 +1,6 @@
-FROM python:3.11-slim
+# Must satisfy requires-python in app/pyproject.toml (>=3.14); with an older
+# base, uv sync silently downloads a second interpreter into the image
+FROM python:3.14-slim
 
 # Install system dependencies
 RUN apt-get update && apt-get install -y \

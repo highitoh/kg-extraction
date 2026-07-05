@@ -84,9 +84,7 @@ def handler(event, context):
         # Generate changeset ID. The fixed-width timestamp prefix keeps
         # lexicographic order chronological; the random suffix prevents
         # collisions between requests in the same second.
-        changeset_id = (
-            f"cs_{time.strftime('%Y%m%d_%H%M%S', time.gmtime())}_{uuid.uuid4().hex[:6]}"
-        )
+        changeset_id = f"cs_{time.strftime('%Y%m%d_%H%M%S', time.gmtime())}_{uuid.uuid4().hex[:6]}"
 
         # Submit AWS Batch job for changeset generation
         batch_response = batch.submit_job(

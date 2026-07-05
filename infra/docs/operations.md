@@ -98,7 +98,7 @@ docker push ACCOUNT-ID.dkr.ecr.us-east-1.amazonaws.com/kg-extraction-dev:latest
 const image = ecs.ContainerImage.fromAsset('../app', {
   file: 'Dockerfile',
   buildArgs: {
-    PYTHON_VERSION: '3.11'
+    PYTHON_VERSION: '3.14'
   }
 });
 ```

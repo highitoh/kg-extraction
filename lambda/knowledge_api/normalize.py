@@ -30,9 +30,7 @@ def class_entity_key(project: str, class_name: str) -> str:
     return f"{project}#CLASS#{normalize_class_name(class_name)}"
 
 
-def property_entity_key(
-    project: str, source_class: str, property_name: str, target_class: str
-) -> str:
+def property_entity_key(project: str, source_class: str, property_name: str, target_class: str) -> str:
     """Build the Instances table entityKey for a property."""
     source = normalize_class_name(source_class)
     target = normalize_class_name(target_class)

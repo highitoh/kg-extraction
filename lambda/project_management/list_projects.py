@@ -57,9 +57,7 @@ def handler(event, context):
                     "project": item["project"]["S"],
                     "projectName": item.get("projectName", {}).get("S", ""),
                     "description": item.get("description", {}).get("S", ""),
-                    "totalExtractions": int(
-                        item.get("totalExtractions", {}).get("N", 0)
-                    ),
+                    "totalExtractions": int(item.get("totalExtractions", {}).get("N", 0)),
                     "totalSnapshots": int(item.get("totalSnapshots", {}).get("N", 0)),
                     "lastExtractionAt": item.get("lastExtractionAt", {}).get("S"),
                     "sources": sorted(item.get("sources", {}).get("SS", [])),

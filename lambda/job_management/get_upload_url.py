@@ -44,14 +44,15 @@ def handler(event, context):
         job_id = f"job-{uuid.uuid4().hex[:12]}"
         timestamp = int(time.time())
 
-        # Generate presigned S3 upload URL
+        # Generate presigned S3 upload URL. ContentType is deliberately not
+        # signed: a signed value would force clients to send exactly that
+        # Content-Type header or get 403 SignatureDoesNotMatch.
         s3_key = f"input/{job_id}/{filename}"
         upload_url = s3.generate_presigned_url(
             "put_object",
             Params={
                 "Bucket": BUCKET_NAME,
                 "Key": s3_key,
-                "ContentType": "application/octet-stream",
             },
             ExpiresIn=900,  # 15 minutes
         )
@@ -83,9 +84,7 @@ def handler(event, context):
                 "Content-Type": "application/json",
                 "Access-Control-Allow-Origin": "*",
             },
-            "body": json.dumps(
-                {"jobId": job_id, "uploadUrl": upload_url, "expiresIn": 900}
-            ),
+            "body": json.dumps({"jobId": job_id, "uploadUrl": upload_url, "expiresIn": 900}),
         }
 
     except Exception as e:

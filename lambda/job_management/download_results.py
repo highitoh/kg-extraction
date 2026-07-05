@@ -93,9 +93,11 @@ def handler(event, context):
                 ),
             }
 
-        # Parse S3 path
+        # Parse S3 path (tolerate a trailing slash on the stored location,
+        # which would otherwise produce a double slash that matches no keys)
         s3_path = output_location.replace("s3://", "")
         bucket, prefix = s3_path.split("/", 1)
+        prefix = prefix.rstrip("/")
 
         # List output files
         list_response = s3.list_objects_v2(Bucket=bucket, Prefix=f"{prefix}/outputs/")
@@ -107,9 +109,7 @@ def handler(event, context):
             filename = key.split("/")[-1]
 
             # Generate presigned URL (valid for 15 minutes)
-            url = s3.generate_presigned_url(
-                "get_object", Params={"Bucket": bucket, "Key": key}, ExpiresIn=900
-            )
+            url = s3.generate_presigned_url("get_object", Params={"Bucket": bucket, "Key": key}, ExpiresIn=900)
 
             if filename.endswith(".ttl"):
                 outputs["ttl"] = url

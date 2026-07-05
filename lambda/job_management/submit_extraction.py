@@ -123,9 +123,7 @@ def handler(event, context):
             ExpressionAttributeValues={
                 ":status": {"S": "PENDING"},
                 ":batchJobId": {"S": batch_job_arn},
-                ":uploadedAt": {
-                    "S": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
-                },
+                ":uploadedAt": {"S": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())},
                 ":progress": {"N": "0"},
                 ":msg": {"S": "Waiting for worker to start"},
             },

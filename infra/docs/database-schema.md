@@ -56,7 +56,7 @@ itself, so scheduled runs are tracked exactly like on-demand ones.
 | `uploadedAt` | String | ISO timestamp when file upload completed |
 | `startedAt` | String | ISO timestamp when extraction started |
 | `completedAt` | String | ISO timestamp when extraction completed |
-| `outputLocation` | String | S3 path to outputs (TTL, CSV files) |
+| `outputLocation` | String | S3 project root (no trailing slash); readers append `/outputs/` |
 | `errorMessage` | String | Error details if status=FAILED |
 | `metadata` | Map | `{fileSize: 5242880, pageCount: 12}` |
 | `tokenUsage` | Map | `{inputTokens: 23700, outputTokens: 40700, totalTokens: 64400}` |
@@ -91,7 +91,7 @@ itself, so scheduled runs are tracked exactly like on-demand ones.
   "uploadedAt": "2026-06-28T10:00:08Z",
   "startedAt": "2026-06-28T10:01:31Z",
   "completedAt": "2026-06-28T10:04:35Z",
-  "outputLocation": "s3://mycompany-kg-extraction-prod/projects/backend/outputs/",
+  "outputLocation": "s3://mycompany-kg-extraction-prod/projects/backend",
   "tokenUsage": {
     "inputTokens": 23700,
     "outputTokens": 40700,

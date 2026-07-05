@@ -3,6 +3,7 @@ import os
 from urllib.parse import unquote
 
 import boto3
+
 from knowledge_api.normalize import normalize_class_name
 
 dynamodb = boto3.client("dynamodb")
@@ -72,9 +73,7 @@ def handler(event, context):
                     "propertyName": item.get("propertyName", {}).get("S"),
                     "sourceClassName": item.get("sourceClassName", {}).get("S"),
                     "propertyIri": item.get("propertyIri", {}).get("S"),
-                    "averageStrength": float(
-                        item.get("averageStrength", {}).get("N", 0)
-                    ),
+                    "averageStrength": float(item.get("averageStrength", {}).get("N", 0)),
                     "instanceCount": int(item.get("instanceCount", {}).get("N", 0)),
                 }
             )

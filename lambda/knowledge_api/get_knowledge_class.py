@@ -3,6 +3,7 @@ import os
 from urllib.parse import unquote
 
 import boto3
+
 from knowledge_api.normalize import class_entity_key, normalize_class_name
 
 dynamodb = boto3.client("dynamodb")
@@ -79,9 +80,7 @@ def handler(event, context):
         instances_response = dynamodb.query(
             TableName=INSTANCES_TABLE,
             KeyConditionExpression="entityKey = :entityKey",
-            ExpressionAttributeValues={
-                ":entityKey": {"S": class_entity_key(project, class_name)}
-            },
+            ExpressionAttributeValues={":entityKey": {"S": class_entity_key(project, class_name)}},
             Limit=INSTANCES_LIMIT,
         )
 
