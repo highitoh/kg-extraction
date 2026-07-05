@@ -272,6 +272,11 @@ List all snapshots for a project.
 
 ### POST /v1/projects/{project}/changesets
 
+> ⚠️ **Currently disabled.** The route is not deployed because changeset
+> generation is not yet implemented in the Batch container; requests would
+> accept and then always fail. The specification below describes the intended
+> behavior once implemented.
+
 Generate changeset between two snapshots.
 
 **Request**:

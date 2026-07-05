@@ -110,6 +110,9 @@ export class ComputeStack extends cdk.Stack {
         assignPublicIp: true,
         environment: {
           STORAGE_BACKEND: 's3',
+          // Required by llm_factory; selects the Gemini Developer API,
+          // authenticated by the injected GEMINI_API_KEY secret
+          LLM_PROVIDER: 'gemini_api',
           BUCKET_NAME: props.extractionBucket.bucketName,
           JOBS_TABLE: props.jobsTable.tableName,
           CLASSES_TABLE: props.classesTable.tableName,
@@ -131,6 +134,11 @@ export class ComputeStack extends cdk.Stack {
         batch.RetryStrategy.of(batch.Action.EXIT, batch.Reason.CANNOT_PULL_CONTAINER),
         batch.RetryStrategy.of(batch.Action.EXIT, batch.Reason.custom({
           onExitCode: '1',
+        })),
+        // Exit code 2 = configuration error (missing env vars, placeholder
+        // secret); retrying cannot succeed
+        batch.RetryStrategy.of(batch.Action.EXIT, batch.Reason.custom({
+          onExitCode: '2',
         })),
       ],
     });

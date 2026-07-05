@@ -148,11 +148,11 @@ Creates API Gateway REST API and Lambda functions:
 - `get-job-status`: Query job status from DynamoDB
 - `download-results`: Generate presigned download URLs
 
-**Project Management** (4 functions):
+**Project Management** (3 functions):
 - `list-projects`: List all projects
 - `get-project`: Get project metadata
 - `list-snapshots`: List snapshots for a project
-- `generate-changeset`: Submit changeset generation job
+- `generate-changeset`: disabled until batch_runner implements changeset jobs
 
 **Knowledge Graph API** (7 functions):
 - `get-knowledge-classes`: List classes with pagination/filtering
@@ -199,6 +199,7 @@ See [docs/api-reference.md](docs/api-reference.md) for complete API documentatio
 Set in ComputeStack for Batch jobs:
 
 - `STORAGE_BACKEND=s3`
+- `LLM_PROVIDER=gemini_api`: Provider selector required by llm_factory
 - `BUCKET_NAME`: S3 bucket name
 - `JOBS_TABLE`: DynamoDB Jobs table name
 - `CLASSES_TABLE`: DynamoDB Classes table name

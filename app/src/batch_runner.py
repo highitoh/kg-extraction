@@ -580,6 +580,13 @@ def main():
 
     started = time.time()
 
+    if JOB_TYPE == "changeset":
+        # Changeset generation runs in the same container but is not
+        # implemented yet. Checked before env validation because changeset
+        # jobs carry no SOURCE and would fail there with a misleading message.
+        logger.error("JOB_TYPE=changeset is not implemented in batch_runner yet")
+        sys.exit(2)
+
     missing = [
         name
         for name, value in {
@@ -594,12 +601,19 @@ def main():
         logger.error(f"Missing required environment variables: {', '.join(missing)}")
         sys.exit(2)
 
-    if JOB_TYPE == "changeset":
-        # Changeset generation runs in the same container but is not
-        # implemented yet; fail fast with a clear message instead of
-        # attempting an extraction with no meaningful SOURCE.
-        logger.error("JOB_TYPE=changeset is not implemented in batch_runner yet")
-        sys.exit(1)
+    # Preflight LLM configuration checks: without these the job fails at the
+    # first LLM call, minutes into a paid Fargate run, with the project lock
+    # already held. Exit code 2 marks a configuration error (not retryable).
+    if not os.environ.get("LLM_PROVIDER"):
+        logger.error("LLM_PROVIDER must be set (the AWS job definition sets gemini_api)")
+        sys.exit(2)
+    if os.environ.get("GEMINI_API_KEY") == "PLACEHOLDER_UPDATE_ME_AFTER_DEPLOYMENT":
+        logger.error(
+            "GEMINI_API_KEY still holds the deployment placeholder. Update it with: "
+            "aws secretsmanager update-secret --secret-id gemini-api-key-<environment> "
+            '--secret-string "YOUR_GEMINI_API_KEY"'
+        )
+        sys.exit(2)
 
     job_id = resolve_job_id()
     lock_acquired = False

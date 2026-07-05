@@ -1,0 +1,26 @@
+# Build context is the repo root; only app/ is copied into the image
+# (infra/docker/Dockerfile). Everything excluded here keeps local secrets
+# and generated data out of the image and the build context lean.
+
+# Local secrets - never bake credentials into the image
+app/.env
+app/.env.*
+!app/.env.example
+
+# Local virtualenv and generated data (the image runs `uv sync` itself)
+app/.venv
+app/output
+app/log
+
+# Python caches
+**/__pycache__
+**/*.pyc
+
+# Repo content not needed by the image
+.git
+doc
+neo4j
+tool
+log
+infra/node_modules
+infra/cdk.out

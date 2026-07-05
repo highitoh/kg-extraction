@@ -110,7 +110,11 @@ export class ApiStack extends cdk.Stack {
     const listProjects = createLambda('ListProjects', 'project_management.list_projects.handler');
     const getProject = createLambda('GetProject', 'project_management.get_project.handler');
     const listSnapshots = createLambda('ListSnapshots', 'project_management.list_snapshots.handler');
-    const generateChangeset = createLambda('GenerateChangeset', 'project_management.generate_changeset.handler');
+    // Changeset generation is disabled: batch_runner rejects
+    // JOB_TYPE=changeset, so the submitted job would fail immediately and
+    // leave the changeset record PENDING forever. Re-enable this Lambda and
+    // the route below together with the batch_runner implementation.
+    // const generateChangeset = createLambda('GenerateChangeset', 'project_management.generate_changeset.handler');
 
     // Knowledge Graph API Lambdas
     const getKnowledgeClasses = createLambda('GetKnowledgeClasses', 'knowledge_api.get_knowledge_classes.handler');
@@ -145,8 +149,8 @@ export class ApiStack extends cdk.Stack {
     const snapshots = project.addResource('snapshots');
     snapshots.addMethod('GET', new apigateway.LambdaIntegration(listSnapshots));
 
-    const changesets = project.addResource('changesets');
-    changesets.addMethod('POST', new apigateway.LambdaIntegration(generateChangeset));
+    // const changesets = project.addResource('changesets');
+    // changesets.addMethod('POST', new apigateway.LambdaIntegration(generateChangeset));
 
     // API Resources - Knowledge Graph
     const knowledge = project.addResource('knowledge');
