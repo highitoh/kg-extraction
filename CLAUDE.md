@@ -1,7 +1,15 @@
 # Project Configuration for Claude Code
 
 ## Project Overview
-A LangChain-based application that extracts knowledge from PDF files and generates Turtle files and CSV files for Neo4j
+A LangChain-based system that extracts knowledge from documents (PDF, DOCX, PPTX, TXT, Markdown) and sources (Miro, Confluence, GitHub) and generates Turtle files and CSV files for Neo4j.
+
+The workspace is a polyglot monorepo, split by deployment target:
+- **`app/`** — Core extraction engine and CLI (Python, uv/pyproject). This is where most day-to-day work happens.
+- **`lambda/`** — AWS Lambda handlers for the serverless API (Python, boto3). Self-contained; does not import from `app/`.
+- **`infra/`** — AWS CDK infrastructure-as-code (TypeScript, npm).
+- **`tool/`** — Operational shell scripts (e.g. Neo4j bulk import).
+- **`neo4j/`** — Neo4j data (persisted).
+- **`doc/`** — Input documents and documentation.
 
 ## General Guidelines
 - **Language**: All code comments, commit messages, documentation, and Claude Code outputs must be in English
@@ -14,6 +22,13 @@ A LangChain-based application that extracts knowledge from PDF files and generat
   uv run ruff check
   uv run ruff format
   ```
+  - **Lambda code** (`/workspace/lambda/`) has its own [`ruff.toml`](lambda/ruff.toml) (matched to `app/pyproject.toml`, but targeting the `py311` runtime). When editing files under `lambda/`, run ruff from `/workspace/lambda` so the correct config applies:
+  ```bash
+  cd /workspace/lambda
+  uv run ruff check
+  uv run ruff format
+  ```
+  - **Infra code** (`/workspace/infra/`) is TypeScript — use `npm run build` (from `infra/`) to type-check; it is not covered by ruff.
 - **Git Commits**: **CRITICAL RULE** - NEVER commit code to the git repository without explicit user permission. ALWAYS ask the user "Should I commit these changes?" and wait for explicit approval before running `git commit`. This applies to ALL commits, no exceptions
 
 ## Development Environment
@@ -25,16 +40,33 @@ A LangChain-based application that extracts knowledge from PDF files and generat
 ## Key Files and Structure
 ```
 /workspace/
-├── app/                    # Main application
+├── app/                    # Core extraction engine & CLI (Python, uv)
 │   ├── src/               # Source code (stage-based architecture)
 │   ├── prompts/           # Prompt text for tasks
 │   ├── metamodel/         # Metamodel definitions
+│   ├── schemas/           # JSON schemas for chain/LLM I/O
 │   ├── output/            # Generated file output directory
 │   ├── log/               # Log files
-│   └── requirements.txt   # Python dependencies
-├── neo4j/                 # Neo4j data
-└── doc/                   # Documentation
+│   ├── *.sh               # Wrapper scripts (extract, snapshot, changeset, ...)
+│   └── pyproject.toml     # Python dependencies (uv-managed)
+├── lambda/                 # AWS Lambda handlers (Python, boto3)
+│   ├── job_management/    # Upload URL, submit, status, download results
+│   ├── knowledge_api/     # Knowledge class/property read endpoints + normalize
+│   ├── project_management/# Projects, snapshots, changeset generation
+│   ├── mcp_server/        # MCP server handler
+│   └── ruff.toml          # Lint config (py311 runtime)
+├── infra/                  # AWS CDK infrastructure (TypeScript, npm)
+│   ├── bin/               # CDK app entrypoint
+│   ├── lib/stacks/        # api / compute / events / storage stacks
+│   ├── docker/            # Dockerfile for batch jobs
+│   ├── docs/              # Architecture, API, DB schema, operations docs
+│   └── package.json       # npm dependencies
+├── tool/                   # Operational scripts (e.g. neo4j_bulk_import.sh)
+├── neo4j/                  # Neo4j data (persisted)
+└── doc/                    # Input documents & documentation
 ```
+
+**Deployment architecture** (see [`infra/README.md`](infra/README.md)): API Gateway + Lambda for the REST API and MCP server, AWS Batch (Fargate Spot) for extraction workflows, S3 for file storage, DynamoDB for job/KG/session tracking, EventBridge for scheduled jobs, ECR for batch images.
 
 ## Schema Structure
 `/workspace/app/schemas/` defines JSON schemas for the input/output of each chain and LLM.
