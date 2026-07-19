@@ -3,6 +3,13 @@
 import json
 from pathlib import Path
 
+# Fields compared to detect content changes on surviving objects. Relationship
+# endpoints (src_label/dest_label) are deliberately excluded: a node rename
+# already surfaces as a node UPDATE, and repeating it on every attached
+# relationship would only add noise.
+CLASS_DIFF_FIELDS = ["label", "judgment", "class_iri", "sources"]
+PROPERTY_DIFF_FIELDS = ["strength", "judgment", "justification"]
+
 
 def load_knowledge(project: str, snapshot_id: str, output_dir: str = "/workspace/app/output") -> dict:
     """Load knowledge.json from a snapshot.
@@ -41,6 +48,7 @@ def compute_diff(before_kg: dict, after_kg: dict) -> dict:
             "updated_classes": [...],
             "deleted_classes": [...],
             "added_properties": [...],
+            "updated_properties": [...],
             "deleted_properties": [...],
             "summary": {counts}
         }
@@ -61,33 +69,21 @@ def compute_diff(before_kg: dict, after_kg: dict) -> dict:
     before_class_ids = set(before_classes.keys())
     after_class_ids = set(after_classes.keys())
 
-    added_class_ids = after_class_ids - before_class_ids
-    deleted_class_ids = before_class_ids - after_class_ids
-    common_class_ids = before_class_ids & after_class_ids
+    added_classes = [after_classes[id] for id in after_class_ids - before_class_ids]
+    deleted_classes = [before_classes[id] for id in before_class_ids - after_class_ids]
+    updated_classes = _collect_updates(
+        before_classes, after_classes, before_class_ids & after_class_ids, CLASS_DIFF_FIELDS
+    )
 
-    added_classes = [after_classes[id] for id in added_class_ids]
-    deleted_classes = [before_classes[id] for id in deleted_class_ids]
-
-    # Check for updated classes (label, judgment, etc. changed)
-    updated_classes = []
-    for class_id in common_class_ids:
-        before_cls = before_classes[class_id]
-        after_cls = after_classes[class_id]
-
-        if _class_content_changed(before_cls, after_cls):
-            updated_classes.append(
-                {"before": before_cls, "after": after_cls, "diff": _compute_class_diff(before_cls, after_cls)}
-            )
-
-    # Find added/deleted properties
+    # Find added/deleted/updated properties
     before_prop_keys = set(before_props.keys())
     after_prop_keys = set(after_props.keys())
 
-    added_prop_keys = after_prop_keys - before_prop_keys
-    deleted_prop_keys = before_prop_keys - after_prop_keys
-
-    added_properties = [after_props[key] for key in added_prop_keys]
-    deleted_properties = [before_props[key] for key in deleted_prop_keys]
+    added_properties = [after_props[key] for key in after_prop_keys - before_prop_keys]
+    deleted_properties = [before_props[key] for key in before_prop_keys - after_prop_keys]
+    updated_properties = _collect_updates(
+        before_props, after_props, before_prop_keys & after_prop_keys, PROPERTY_DIFF_FIELDS
+    )
 
     # Build summary
     summary = {
@@ -96,12 +92,14 @@ def compute_diff(before_kg: dict, after_kg: dict) -> dict:
             + len(updated_classes)
             + len(deleted_classes)
             + len(added_properties)
+            + len(updated_properties)
             + len(deleted_properties)
         ),
         "added_classes": len(added_classes),
         "updated_classes": len(updated_classes),
         "deleted_classes": len(deleted_classes),
         "added_properties": len(added_properties),
+        "updated_properties": len(updated_properties),
         "deleted_properties": len(deleted_properties),
     }
 
@@ -110,6 +108,7 @@ def compute_diff(before_kg: dict, after_kg: dict) -> dict:
         "updated_classes": updated_classes,
         "deleted_classes": deleted_classes,
         "added_properties": added_properties,
+        "updated_properties": updated_properties,
         "deleted_properties": deleted_properties,
         "summary": summary,
     }
@@ -129,47 +128,46 @@ def _prop_key(prop: dict) -> str:
     return f"{prop.get('property_iri', '')}|{prop.get('src_id', '')}|{prop.get('dest_id', '')}"
 
 
-def _class_content_changed(before_cls: dict, after_cls: dict) -> bool:
-    """Check if class content has changed.
+def _collect_updates(before_map: dict, after_map: dict, common_keys: set, fields: list) -> list:
+    """Collect updated objects among those present in both snapshots.
 
     Args:
-        before_cls: Class from earlier snapshot
-        after_cls: Class from later snapshot
+        before_map: key -> object from earlier snapshot
+        after_map: key -> object from later snapshot
+        common_keys: Keys present in both maps
+        fields: Field names to compare
 
     Returns:
-        True if content changed
+        List of {"before": ..., "after": ..., "diff": ...} entries
     """
-    # Compare key fields
-    fields_to_compare = ["label", "judgment", "class_iri", "sources"]
-
-    for field in fields_to_compare:
-        before_val = before_cls.get(field)
-        after_val = after_cls.get(field)
-
-        if before_val != after_val:
-            return True
-
-    return False
+    updates = []
+    for key in common_keys:
+        before_obj = before_map[key]
+        after_obj = after_map[key]
+        diff = _compute_field_diff(before_obj, after_obj, fields)
+        if diff["modified_fields"]:
+            updates.append({"before": before_obj, "after": after_obj, "diff": diff})
+    return updates
 
 
-def _compute_class_diff(before_cls: dict, after_cls: dict) -> dict:
-    """Compute detailed diff for a single class.
+def _compute_field_diff(before_obj: dict, after_obj: dict, fields: list) -> dict:
+    """Compute a field-level diff between two objects.
 
     Args:
-        before_cls: Class from earlier snapshot
-        after_cls: Class from later snapshot
+        before_obj: Object from earlier snapshot
+        after_obj: Object from later snapshot
+        fields: Field names to compare
 
     Returns:
         Diff dict with modified_fields, old_values, new_values
     """
-    fields_to_compare = ["label", "judgment", "class_iri", "sources"]
     modified_fields = []
     old_values = {}
     new_values = {}
 
-    for field in fields_to_compare:
-        before_val = before_cls.get(field)
-        after_val = after_cls.get(field)
+    for field in fields:
+        before_val = before_obj.get(field)
+        after_val = after_obj.get(field)
 
         if before_val != after_val:
             modified_fields.append(field)
