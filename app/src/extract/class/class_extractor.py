@@ -15,15 +15,15 @@ from src.utils.llm_retry import call_with_retry
 from src.utils.logger import Logger
 from src.utils.prompt_utils import fill_prompt_template
 
-VIEW_TYPES = [
-    "value_analysis",
-    "business_concept",
-    "business_operation",
-    "business_requirement",
-    "system_requirement",
-    "system_component",
-    "data_analysis",
-]
+
+def llm_extractable_classes(metamodel: Dict[str, Any]) -> List[Dict[str, Any]]:
+    """Metamodel classes the LLM should extract (deterministically derived ones are skipped)."""
+    return [cls for cls in (metamodel or {}).get("classes", []) if cls.get("extraction", "llm") != "deterministic"]
+
+
+def view_types_from_metamodel(metamodel: Dict[str, Any]) -> List[str]:
+    """Derive the view type set from the metamodel's LLM-extractable classes."""
+    return sorted({cls.get("view_type") for cls in llm_extractable_classes(metamodel) if cls.get("view_type")})
 
 
 @dataclass
@@ -220,8 +220,9 @@ class ClassExtractor(Runnable):
         self, view_info: Dict[str, Any], metamodel: Dict[str, Any]
     ) -> List[Dict[str, Any]]:
         """Execute class extraction in parallel for each view"""
+        view_types = view_types_from_metamodel(metamodel)
         sem = asyncio.Semaphore(self.max_concurrency)
-        total = len(VIEW_TYPES)
+        total = len(view_types)
         counter = 0
         lock = asyncio.Lock()
 
@@ -254,7 +255,7 @@ class ClassExtractor(Runnable):
 
                 return {"view_type": view_type, "label_items": label_items}
 
-        results = await asyncio.gather(*[_wrapped(vt) for vt in VIEW_TYPES])
+        results = await asyncio.gather(*[_wrapped(vt) for vt in view_types])
         return results
 
     async def _extract_labels_from_view_async(
@@ -395,8 +396,7 @@ class ClassExtractor(Runnable):
         if not metamodel or "classes" not in metamodel:
             return ""
 
-        classes = metamodel.get("classes", [])
-        view_classes = [cls for cls in classes if cls.get("view_type") == view_type]
+        view_classes = [cls for cls in llm_extractable_classes(metamodel) if cls.get("view_type") == view_type]
 
         # Build class definitions
         definitions = []
@@ -426,8 +426,7 @@ class ClassExtractor(Runnable):
         if not metamodel or "classes" not in metamodel:
             return ""
 
-        classes = metamodel.get("classes", [])
-        view_classes = [cls for cls in classes if cls.get("view_type") == view_type]
+        view_classes = [cls for cls in llm_extractable_classes(metamodel) if cls.get("view_type") == view_type]
 
         # Build policies
         policies = []
@@ -472,7 +471,7 @@ class ClassExtractor(Runnable):
         if not metamodel or "classes" not in metamodel:
             return ""
         definitions = []
-        for cls in metamodel.get("classes", []):
+        for cls in llm_extractable_classes(metamodel):
             name = cls.get("name", "")
             description = cls.get("description", "")
             definitions.append(f"- {name}: {description}")
@@ -625,7 +624,7 @@ class ClassExtractor(Runnable):
             return []
 
         class_definitions = self._get_all_class_definitions(metamodel)
-        valid_class_names = {c.get("name") for c in metamodel.get("classes", [])}
+        valid_class_names = {c.get("name") for c in llm_extractable_classes(metamodel)}
         sem = asyncio.Semaphore(self.max_concurrency)
 
         async def _wrapped(block: Dict[str, Any]) -> List[ExtractedClass]:

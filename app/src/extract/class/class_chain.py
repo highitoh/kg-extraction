@@ -236,7 +236,9 @@ class ClassChainWithReview(Runnable):
         return result
 
 
-def create_class_chain(model: str = None, max_review_iterations: int = 2, progress: bool = True) -> Runnable:
+def create_class_chain(
+    model: str = None, max_review_iterations: int = 2, progress: bool = True, metamodel_path: str = None
+) -> Runnable:
     """
     Create class extraction chain with review loop:
       ClassExtractor -> ClassConsolidator -> ClassReviewer -> (ClassLabelCorrector -> ClassReviewer)*
@@ -245,17 +247,18 @@ def create_class_chain(model: str = None, max_review_iterations: int = 2, progre
         model: LLM model name (if None, use default for each component)
         max_review_iterations: Maximum iterations for REVIEW judgments (default: 2)
         progress: Progress display flag (default: True)
+        metamodel_path: Metamodel file path override (default: metamodel/metamodel.json)
     """
     if model is not None:
         extractor = ClassExtractor(model=model)
-        class_reviewer = ClassReviewer(model=model)
-        corrector = ClassEditor(model=model)
-        consolidator = ClassConsolidator(model=model)
+        class_reviewer = ClassReviewer(model=model, metamodel_path=metamodel_path)
+        corrector = ClassEditor(model=model, metamodel_path=metamodel_path)
+        consolidator = ClassConsolidator(model=model, metamodel_path=metamodel_path)
     else:
         extractor = ClassExtractor()
-        class_reviewer = ClassReviewer()
-        corrector = ClassEditor()
-        consolidator = ClassConsolidator()
+        class_reviewer = ClassReviewer(metamodel_path=metamodel_path)
+        corrector = ClassEditor(metamodel_path=metamodel_path)
+        consolidator = ClassConsolidator(metamodel_path=metamodel_path)
 
     return ClassChainWithReview(
         extractor=extractor,

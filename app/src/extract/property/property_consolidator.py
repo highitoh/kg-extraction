@@ -34,6 +34,7 @@ class PropertyConsolidator(Runnable):
         max_concurrency: int = 8,
         progress: bool = True,
         log_dir: str = "/workspace/app/log/property_consolidator",
+        metamodel_path: str = None,
     ):
         self.llm = llm or LLMFactory.create_llm(
             model=model,
@@ -45,6 +46,7 @@ class PropertyConsolidator(Runnable):
         self.logger = Logger(log_dir)
 
         # Load metamodel
+        self.metamodel_path = metamodel_path
         self.metamodel = self._load_metamodel()
         # Load prompt template
         self.prompt_template = self._load_prompt_template()
@@ -53,11 +55,11 @@ class PropertyConsolidator(Runnable):
 
     def _load_metamodel(self) -> dict:
         """Load metamodel file"""
-        # Go up 3 levels from src/extract/XXX/ to /workspace/app/
-
-        app_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
-
-        metamodel_path = os.path.join(app_dir, "metamodel", "metamodel.json")
+        metamodel_path = self.metamodel_path
+        if not metamodel_path:
+            # Go up 3 levels from src/extract/XXX/ to /workspace/app/
+            app_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
+            metamodel_path = os.path.join(app_dir, "metamodel", "metamodel.json")
         with open(metamodel_path, "r", encoding="utf-8") as f:
             return json.load(f)
 

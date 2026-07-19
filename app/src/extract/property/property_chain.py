@@ -355,19 +355,20 @@ class PropertyChainWithAdapter(Runnable):
     using RunnableSequence
     """
 
-    def __init__(self, model: str = None):
+    def __init__(self, model: str = None, metamodel_path: str = None):
         self.model = model
+        self.metamodel_path = metamodel_path
 
     def invoke(self, input: Dict[str, Any], config=None) -> Dict[str, Any]:
         # Create components
         if self.model is not None:
-            extractor = PropertyExtractor(model=self.model)
-            ranker = PropertyRanker(model=self.model)
-            property_reviewer = PropertyReviewer(model=self.model)
+            extractor = PropertyExtractor(model=self.model, metamodel_path=self.metamodel_path)
+            ranker = PropertyRanker(model=self.model, metamodel_path=self.metamodel_path)
+            property_reviewer = PropertyReviewer(model=self.model, metamodel_path=self.metamodel_path)
         else:
-            extractor = PropertyExtractor()
-            ranker = PropertyRanker()
-            property_reviewer = PropertyReviewer()
+            extractor = PropertyExtractor(metamodel_path=self.metamodel_path)
+            ranker = PropertyRanker(metamodel_path=self.metamodel_path)
+            property_reviewer = PropertyReviewer(metamodel_path=self.metamodel_path)
         validator = PropertyValidator()
 
         # Create adapters (preserve original input)
@@ -382,7 +383,11 @@ class PropertyChainWithAdapter(Runnable):
 
 
 def create_property_chain(
-    model: str = None, max_review_iterations: int = 2, enable_review: bool = True, existing_properties: list = None
+    model: str = None,
+    max_review_iterations: int = 2,
+    enable_review: bool = True,
+    existing_properties: list = None,
+    metamodel_path: str = None,
 ) -> Runnable:
     """
     Property extraction chain:
@@ -396,31 +401,39 @@ def create_property_chain(
         max_review_iterations: Maximum number of REVIEW iterations (default: 2)
         enable_review: Enable review loop (default: True)
         existing_properties: Existing property list (for consolidation, default: None)
+        metamodel_path: Metamodel file path override (default: metamodel/metamodel.json)
     """
     if not enable_review:
-        return PropertyChainWithAdapter(model=model)
+        return PropertyChainWithAdapter(model=model, metamodel_path=metamodel_path)
 
     # When using PropertyChainWithReview, return a wrapper since input is needed at invoke time
     class PropertyChainWithReviewWrapper(Runnable):
-        def __init__(self, model: str = None, max_review_iterations: int = 2, existing_properties: list = None):
+        def __init__(
+            self,
+            model: str = None,
+            max_review_iterations: int = 2,
+            existing_properties: list = None,
+            metamodel_path: str = None,
+        ):
             self.model = model
             self.max_review_iterations = max_review_iterations
             self.existing_properties = existing_properties or []
+            self.metamodel_path = metamodel_path
 
         def invoke(self, input: Dict[str, Any], config=None) -> Dict[str, Any]:
             # Create components
             if self.model is not None:
-                extractor = PropertyExtractor(model=self.model)
-                consolidator = PropertyConsolidator(model=self.model)
-                ranker = PropertyRanker(model=self.model)
-                property_reviewer = PropertyReviewer(model=self.model)
-                editor = PropertyEditor(model=self.model)
+                extractor = PropertyExtractor(model=self.model, metamodel_path=self.metamodel_path)
+                consolidator = PropertyConsolidator(model=self.model, metamodel_path=self.metamodel_path)
+                ranker = PropertyRanker(model=self.model, metamodel_path=self.metamodel_path)
+                property_reviewer = PropertyReviewer(model=self.model, metamodel_path=self.metamodel_path)
+                editor = PropertyEditor(model=self.model, metamodel_path=self.metamodel_path)
             else:
-                extractor = PropertyExtractor()
-                consolidator = PropertyConsolidator()
-                ranker = PropertyRanker()
-                property_reviewer = PropertyReviewer()
-                editor = PropertyEditor()
+                extractor = PropertyExtractor(metamodel_path=self.metamodel_path)
+                consolidator = PropertyConsolidator(metamodel_path=self.metamodel_path)
+                ranker = PropertyRanker(metamodel_path=self.metamodel_path)
+                property_reviewer = PropertyReviewer(metamodel_path=self.metamodel_path)
+                editor = PropertyEditor(metamodel_path=self.metamodel_path)
             validator = PropertyValidator()
 
             # Create PropertyChainWithReview
@@ -439,7 +452,10 @@ def create_property_chain(
             return chain.invoke(input, config)
 
     return PropertyChainWithReviewWrapper(
-        model=model, max_review_iterations=max_review_iterations, existing_properties=existing_properties
+        model=model,
+        max_review_iterations=max_review_iterations,
+        existing_properties=existing_properties,
+        metamodel_path=metamodel_path,
     )
 
 
