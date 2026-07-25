@@ -14,7 +14,7 @@ This script runs inside AWS Batch (Fargate container) and orchestrates:
 Environment variables:
 - JOB_ID: Unique job identifier (optional; scheduled runs derive one from
   AWS_BATCH_JOB_ID, which is stable across retry attempts)
-- JOB_TYPE: extraction (default) | scheduled | changeset
+- JOB_TYPE: extraction (default) | scheduled
 - PROJECT: Project name
 - SOURCE: S3 path or external URL
 - SOURCE_TYPE: Optional source type hint (pdf, confluence, ...)
@@ -26,12 +26,14 @@ Environment variables:
 - INSTANCES_TABLE: DynamoDB Instances table name (per-instance evidence)
 - SNAPSHOTS_TABLE: DynamoDB Snapshots table name
 - PROJECTS_TABLE: DynamoDB Projects table name
+- CHANGESETS_TABLE: DynamoDB Changesets table name
 - LOCK_MAX_WAIT_SECONDS: How long to wait for the project lock (default 1800)
 """
 
 import logging
 import os
 import re
+import shutil
 import sys
 import time
 import uuid
@@ -61,6 +63,7 @@ PROPERTIES_TABLE = os.environ.get("PROPERTIES_TABLE")
 INSTANCES_TABLE = os.environ.get("INSTANCES_TABLE")
 SNAPSHOTS_TABLE = os.environ.get("SNAPSHOTS_TABLE")
 PROJECTS_TABLE = os.environ.get("PROJECTS_TABLE")
+CHANGESETS_TABLE = os.environ.get("CHANGESETS_TABLE")
 LOCK_MAX_WAIT_SECONDS = int(os.environ.get("LOCK_MAX_WAIT_SECONDS", "1800"))
 LOCK_POLL_SECONDS = 20
 LOCK_EXPIRY_SECONDS = 3 * 60 * 60  # longer than the 2h Batch job timeout
@@ -281,6 +284,7 @@ def create_snapshot(
     source_type: str,
     class_count: int,
     property_count: int,
+    source_raw_path: Path = None,
 ) -> str:
     """Create a snapshot: claim the DynamoDB record, then upload files to S3.
 
@@ -324,6 +328,8 @@ def create_snapshot(
         meta_path.write_text(json.dumps(snapshot_meta, ensure_ascii=False, indent=2))
         upload_to_s3(meta_path, f"{s3_prefix}/snapshot.json")
         upload_to_s3(knowledge_json_path, f"{s3_prefix}/knowledge.json")
+        if source_raw_path is not None:
+            upload_to_s3(source_raw_path, f"{s3_prefix}/source_raw.json")
         logger.info(f"Created snapshot {snapshot_id}")
         return snapshot_id
 
@@ -570,8 +576,114 @@ def update_project_records(
 
 
 # ---------------------------------------------------------------------------
+# Changesets
+# ---------------------------------------------------------------------------
+# A changeset records what one extraction changed and why. It is generated at
+# the end of the extraction, while the source text is still at hand: the
+# reason for a change is written in the text and is not kept in the snapshots.
+
+
+def record_changeset(
+    before_snapshot_id: str,
+    after_snapshot_id: str,
+    knowledge_before: Path,
+    knowledge_after: Path,
+    result: dict,
+) -> str:
+    """Generate the changeset for the extraction that just ran and upload it.
+
+    Args:
+        before_snapshot_id: Snapshot before the extraction
+        after_snapshot_id: Snapshot the extraction produced
+        knowledge_before: knowledge.json as it was before the extraction
+        knowledge_after: knowledge.json the extraction produced
+        result: Extraction result, read for the source sentences
+
+    Returns:
+        The changeset ID
+    """
+    import json
+    import shutil
+
+    changeset_id = f"cs_{after_snapshot_id}"
+    output_dir = WORK_DIR / "output"
+
+    # generate_changeset reads both sides from the local snapshot layout
+    for snapshot_id, knowledge in ((before_snapshot_id, knowledge_before), (after_snapshot_id, knowledge_after)):
+        snapshot_dir = output_dir / PROJECT / "snapshots" / snapshot_id
+        snapshot_dir.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(knowledge, snapshot_dir / "knowledge.json")
+
+    sys.path.insert(0, str(Path(__file__).parent.parent))
+    from src.utils.changeset_generator import generate_changeset
+
+    generate_changeset(
+        before_snapshot_id=before_snapshot_id,
+        after_snapshot_id=after_snapshot_id,
+        project=PROJECT,
+        output_dir=str(output_dir),
+        changeset_id=changeset_id,
+        source_sentences=result.get("sentences", []),
+        file_id=result.get("file_id", "unknown"),
+    )
+
+    changeset_dir = output_dir / PROJECT / "changesets" / changeset_id
+    s3_prefix = f"projects/{PROJECT}/changesets/{changeset_id}"
+    for output_file in changeset_dir.glob("*"):
+        if output_file.is_file():
+            upload_to_s3(output_file, f"{s3_prefix}/{output_file.name}")
+
+    summary = json.loads((changeset_dir / "changeset.json").read_text()).get("summary", {})
+    dynamodb.put_item(
+        TableName=CHANGESETS_TABLE,
+        Item={
+            "project": {"S": PROJECT},
+            "changesetId": {"S": changeset_id},
+            "beforeSnapshotId": {"S": before_snapshot_id},
+            "afterSnapshotId": {"S": after_snapshot_id},
+            "status": {"S": "COMPLETED"},
+            "s3Location": {"S": f"s3://{BUCKET_NAME}/{s3_prefix}/changeset.json"},
+            "totalChanges": {"N": str(summary.get("total_changes", 0))},
+            "driversCount": {"N": str(summary.get("drivers", 0))},
+            "createdAt": {"S": now_iso()},
+        },
+    )
+    logger.info(f"Created changeset {changeset_id}")
+    return changeset_id
+
+
+def latest_snapshot_id() -> str:
+    """Return the project's most recent snapshot ID, or an empty string."""
+    response = dynamodb.query(
+        TableName=SNAPSHOTS_TABLE,
+        KeyConditionExpression="#project = :project",
+        ExpressionAttributeNames={"#project": "project"},
+        ExpressionAttributeValues={":project": {"S": PROJECT}},
+        Limit=1,
+        ScanIndexForward=False,
+    )
+    items = response.get("Items", [])
+    return items[0]["snapshotId"]["S"] if items else ""
+
+
+# ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
+
+
+def preflight_llm_config():
+    """Preflight LLM configuration checks.
+
+    Without these the job fails at the first LLM call, minutes into a paid
+    Fargate run (for extraction jobs, with the project lock already held).
+    Exit code 2 marks a configuration error (not retryable).
+    """
+    if not os.environ.get("LLM_PROVIDER"):
+        logger.error("LLM_PROVIDER must be set (the AWS job definition sets gcp_vertexai)")
+        sys.exit(2)
+    if os.environ.get("LLM_PROVIDER") == "gcp_vertexai" and not os.environ.get("GOOGLE_CLOUD_PROJECT"):
+        logger.error("GOOGLE_CLOUD_PROJECT must be set when using Vertex AI")
+        sys.exit(2)
 
 
 def main():
@@ -579,13 +691,6 @@ def main():
     import json
 
     started = time.time()
-
-    if JOB_TYPE == "changeset":
-        # Changeset generation runs in the same container but is not
-        # implemented yet. Checked before env validation because changeset
-        # jobs carry no SOURCE and would fail there with a misleading message.
-        logger.error("JOB_TYPE=changeset is not implemented in batch_runner yet")
-        sys.exit(2)
 
     missing = [
         name
@@ -601,19 +706,7 @@ def main():
         logger.error(f"Missing required environment variables: {', '.join(missing)}")
         sys.exit(2)
 
-    # Preflight LLM configuration checks: without these the job fails at the
-    # first LLM call, minutes into a paid Fargate run, with the project lock
-    # already held. Exit code 2 marks a configuration error (not retryable).
-    if not os.environ.get("LLM_PROVIDER"):
-        logger.error("LLM_PROVIDER must be set (the AWS job definition sets gemini_api)")
-        sys.exit(2)
-    if os.environ.get("GEMINI_API_KEY") == "PLACEHOLDER_UPDATE_ME_AFTER_DEPLOYMENT":
-        logger.error(
-            "GEMINI_API_KEY still holds the deployment placeholder. Update it with: "
-            "aws secretsmanager update-secret --secret-id gemini-api-key-<environment> "
-            '--secret-string "YOUR_GEMINI_API_KEY"'
-        )
-        sys.exit(2)
+    preflight_llm_config()
 
     job_id = resolve_job_id()
     lock_acquired = False
@@ -667,6 +760,12 @@ def main():
             logger.info("No existing knowledge.json found, starting fresh")
             knowledge_json_path.write_text('{"classes": [], "properties": []}')
 
+        # Keep the state this extraction starts from, so the changeset below
+        # can diff against it once the extraction has overwritten it.
+        previous_snapshot_id = latest_snapshot_id()
+        knowledge_before_path = WORK_DIR / "knowledge_before.json"
+        shutil.copy2(knowledge_json_path, knowledge_before_path)
+
         # Stage 2-4: Run extraction workflow (15-85%)
         update_progress(job_id, 15, "Starting knowledge extraction")
 
@@ -707,13 +806,42 @@ def main():
         # Stage 6: Create snapshot (90-93%)
         update_progress(job_id, 90, "Creating snapshot")
 
+        # Persist raw source data next to the snapshot so changeset driver
+        # extraction can diff source items between snapshots.
+        raw_source_data = (
+            result.get("miro_raw_data")
+            or result.get("jira_raw_data")
+            or result.get("github_raw_data")
+            or result.get("confluence_raw_data")
+        )
+        source_raw_path = None
+        if raw_source_data:
+            source_raw_path = WORK_DIR / "source_raw.json"
+            source_raw_path.write_text(json.dumps(raw_source_data, ensure_ascii=False))
+
         knowledge = json.loads(knowledge_json_path.read_text())
         snapshot_id = create_snapshot(
             knowledge_json_path,
             source_type,
             class_count=len(knowledge.get("classes", [])),
             property_count=len(knowledge.get("properties", [])),
+            source_raw_path=source_raw_path,
         )
+
+        # Record what this extraction changed and why. Best effort: the
+        # extraction itself has already succeeded at this point.
+        if previous_snapshot_id:
+            update_progress(job_id, 92, "Recording changeset")
+            try:
+                record_changeset(
+                    previous_snapshot_id,
+                    snapshot_id,
+                    knowledge_before_path,
+                    knowledge_json_path,
+                    result,
+                )
+            except Exception as e:
+                logger.warning(f"Failed to record changeset: {e}")
 
         # Stage 7: Write knowledge graph to DynamoDB (93-97%)
         update_progress(job_id, 93, "Writing knowledge graph to DynamoDB")
