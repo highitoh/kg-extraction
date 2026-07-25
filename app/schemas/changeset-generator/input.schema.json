@@ -1,0 +1,64 @@
+{
+  "$id": "https://github.com/highitoh/kg-extraction/schemas/changeset-generator/input.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ChangesetGeneratorInput",
+  "type": "object",
+  "description": "Input for changeset generation: the knowledge graphs of the two snapshots being compared",
+  "properties": {
+    "before_knowledge": {
+      "$ref": "#/$defs/knowledge",
+      "description": "Knowledge graph of the earlier snapshot"
+    },
+    "after_knowledge": {
+      "$ref": "#/$defs/knowledge",
+      "description": "Knowledge graph of the later snapshot"
+    }
+  },
+  "required": ["before_knowledge", "after_knowledge"],
+  "additionalProperties": false,
+  "$defs": {
+    "knowledge": {
+      "type": "object",
+      "description": "knowledge.json shape: accumulated classes and properties",
+      "properties": {
+        "classes": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": { "type": "string", "description": "Class instance ID" },
+              "class_iri": { "type": "string", "format": "uri", "description": "Class IRI from the metamodel" },
+              "label": { "type": "string", "description": "Class instance label" },
+              "sources": { "type": "array", "items": { "type": "string" }, "description": "Source text excerpts" },
+              "file_ids": { "type": "array", "items": { "type": "string" }, "description": "Source file IDs" },
+              "judgment": { "type": "string", "description": "Review judgment" }
+            },
+            "required": ["id", "class_iri", "label"],
+            "additionalProperties": true
+          }
+        },
+        "properties": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": { "type": "string", "description": "Property instance ID" },
+              "src_id": { "type": "string", "description": "Source class instance ID" },
+              "src_label": { "type": "string", "description": "Source class instance label" },
+              "property_iri": { "type": "string", "format": "uri", "description": "Property IRI from the metamodel" },
+              "dest_id": { "type": "string", "description": "Destination class instance ID" },
+              "dest_label": { "type": "string", "description": "Destination class instance label" },
+              "strength": { "type": "integer", "description": "Relationship strength" },
+              "judgment": { "type": "string", "description": "Review judgment" },
+              "justification": { "type": "string", "description": "Judgment justification" }
+            },
+            "required": ["id", "src_id", "property_iri", "dest_id"],
+            "additionalProperties": true
+          }
+        }
+      },
+      "required": ["classes", "properties"],
+      "additionalProperties": true
+    }
+  }
+}

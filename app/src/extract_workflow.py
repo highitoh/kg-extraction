@@ -135,7 +135,49 @@ def run_knowledge_extraction(
             print(f"\nWarning: Failed to create snapshot: {e}")
             result["snapshot_error"] = str(e)
 
+        # Record what this extraction changed and why, while its source text
+        # is still available: the reason for a change is written in the text
+        # and is not preserved in the snapshots.
+        if result.get("snapshot"):
+            try:
+                changeset_id = _record_changeset(result, project, output_dir, model)
+                if changeset_id:
+                    result["changeset"] = changeset_id
+                    print(f"  - Changeset created: {changeset_id}")
+            except Exception as e:
+                # Don't fail extraction if changeset creation fails
+                print(f"\nWarning: Failed to create changeset: {e}")
+                result["changeset_error"] = str(e)
+
     return result
+
+
+def _record_changeset(result: Dict[str, Any], project: str, output_dir: str, model: str = None) -> str:
+    """Generate the changeset for the extraction that just ran.
+
+    Returns the changeset ID, or an empty string when this is the project's
+    first snapshot and there is nothing to compare against.
+    """
+    from src.utils.changeset_generator import generate_changeset
+    from src.utils.snapshot_repository import SnapshotRepository
+
+    after_snapshot_id = result["snapshot"]["snapshot_id"]
+
+    # Snapshots are listed newest first; the one before ours is the baseline.
+    snapshots = SnapshotRepository(output_dir=output_dir).list_snapshots(project)
+    earlier = [s["snapshot_id"] for s in snapshots if s["snapshot_id"] < after_snapshot_id]
+    if not earlier:
+        return ""
+
+    return generate_changeset(
+        before_snapshot_id=max(earlier),
+        after_snapshot_id=after_snapshot_id,
+        project=project,
+        output_dir=output_dir,
+        model=model,
+        source_sentences=result.get("sentences", []),
+        file_id=result.get("file_id", "unknown"),
+    )
 
 
 if __name__ == "__main__":

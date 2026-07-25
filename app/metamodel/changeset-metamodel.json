@@ -1,0 +1,180 @@
+{
+  "classes": [
+    {
+      "iri": "https://github.com/highitoh/kg-extraction#kg-snapshot",
+      "name": "KGSnapshot",
+      "description": "A frozen state of the knowledge graph captured at a point in time.",
+      "view_type": "change_analysis",
+      "extraction": "deterministic",
+      "extract_rules": [],
+      "prohibit_rules": []
+    },
+    {
+      "iri": "https://github.com/highitoh/kg-extraction#kg-change-set",
+      "name": "KGChangeSet",
+      "description": "The set of changes between two knowledge graph snapshots.",
+      "view_type": "change_analysis",
+      "extraction": "deterministic",
+      "extract_rules": [],
+      "prohibit_rules": []
+    },
+    {
+      "iri": "https://github.com/highitoh/kg-extraction#kg-change",
+      "name": "KGChange",
+      "description": "A single change (addition, update, or deletion) of one knowledge graph object between two snapshots.",
+      "view_type": "change_analysis",
+      "extraction": "deterministic",
+      "extract_rules": [],
+      "prohibit_rules": []
+    },
+    {
+      "iri": "https://github.com/highitoh/kg-extraction#kg-node",
+      "name": "KGNode",
+      "description": "The state of one knowledge graph node (class instance) within a specific snapshot. Subclass of KGObject.",
+      "view_type": "change_analysis",
+      "extraction": "deterministic",
+      "extract_rules": [],
+      "prohibit_rules": []
+    },
+    {
+      "iri": "https://github.com/highitoh/kg-extraction#kg-relationship",
+      "name": "KGRelationship",
+      "description": "The state of one knowledge graph relationship (property instance) within a specific snapshot. Subclass of KGObject.",
+      "view_type": "change_analysis",
+      "extraction": "deterministic",
+      "extract_rules": [],
+      "prohibit_rules": []
+    },
+    {
+      "iri": "https://github.com/highitoh/kg-extraction#kg-change-driver",
+      "name": "KGChangeDriver",
+      "description": "A business reason (activity or decision) behind knowledge changes, such as a new regulation, customer feedback, or a strategic decision.",
+      "view_type": "change_analysis",
+      "extraction": "llm",
+      "min_length": 3,
+      "max_length": 15,
+      "extract_rules": [
+        "Extract one driver per source change and cite that single source text ID; never combine several IDs into one entry",
+        "Give related source changes the same driver label so they merge into one driver (e.g., three GDPR sticky notes all yield 'GDPR Article 17 compliance')",
+        "Use business language, not technical jargon",
+        "Be specific (not 'requirement change' but 'GDPR Article 17 compliance')",
+        "The driver must explain WHY the knowledge changed, not just WHAT changed",
+        "Typical driver categories: regulatory, customer feedback, strategic decision, technical necessity"
+      ],
+      "prohibit_rules": [
+        "Do not extract technical trigger names (e.g., 'miro_extraction', 'file upload') as drivers.",
+        "Do not extract mere descriptions of the change itself (e.g., 'added sticky note') without a business reason."
+      ]
+    }
+  ],
+  "properties": [
+    {
+      "iri": "https://github.com/highitoh/kg-extraction#beforeSnapshot",
+      "name": "beforeSnapshot",
+      "description": "Links a change set to the earlier snapshot it was computed from.",
+      "src_class": "https://github.com/highitoh/kg-extraction#kg-change-set",
+      "dest_class": "https://github.com/highitoh/kg-extraction#kg-snapshot",
+      "extraction": "deterministic",
+      "extract_rules": [],
+      "prohibit_rules": []
+    },
+    {
+      "iri": "https://github.com/highitoh/kg-extraction#afterSnapshot",
+      "name": "afterSnapshot",
+      "description": "Links a change set to the later snapshot it was computed from.",
+      "src_class": "https://github.com/highitoh/kg-extraction#kg-change-set",
+      "dest_class": "https://github.com/highitoh/kg-extraction#kg-snapshot",
+      "extraction": "deterministic",
+      "extract_rules": [],
+      "prohibit_rules": []
+    },
+    {
+      "iri": "https://github.com/highitoh/kg-extraction#hasChange",
+      "name": "hasChange",
+      "description": "Links a change set to each change it contains.",
+      "src_class": "https://github.com/highitoh/kg-extraction#kg-change-set",
+      "dest_class": "https://github.com/highitoh/kg-extraction#kg-change",
+      "extraction": "deterministic",
+      "extract_rules": [],
+      "prohibit_rules": []
+    },
+    {
+      "iri": "https://github.com/highitoh/kg-extraction#hasNode",
+      "name": "hasNode",
+      "description": "Links a snapshot to a node state it contains. Only objects referenced by changes are materialized.",
+      "src_class": "https://github.com/highitoh/kg-extraction#kg-snapshot",
+      "dest_class": "https://github.com/highitoh/kg-extraction#kg-node",
+      "extraction": "deterministic",
+      "extract_rules": [],
+      "prohibit_rules": []
+    },
+    {
+      "iri": "https://github.com/highitoh/kg-extraction#hasRelationship",
+      "name": "hasRelationship",
+      "description": "Links a snapshot to a relationship state it contains. Only objects referenced by changes are materialized.",
+      "src_class": "https://github.com/highitoh/kg-extraction#kg-snapshot",
+      "dest_class": "https://github.com/highitoh/kg-extraction#kg-relationship",
+      "extraction": "deterministic",
+      "extract_rules": [],
+      "prohibit_rules": []
+    },
+    {
+      "iri": "https://github.com/highitoh/kg-extraction#beforeNode",
+      "name": "beforeNode",
+      "description": "Links a change to the state of the affected node in the earlier snapshot (absent for additions).",
+      "src_class": "https://github.com/highitoh/kg-extraction#kg-change",
+      "dest_class": "https://github.com/highitoh/kg-extraction#kg-node",
+      "extraction": "deterministic",
+      "extract_rules": [],
+      "prohibit_rules": []
+    },
+    {
+      "iri": "https://github.com/highitoh/kg-extraction#beforeRelationship",
+      "name": "beforeRelationship",
+      "description": "Links a change to the state of the affected relationship in the earlier snapshot (absent for additions).",
+      "src_class": "https://github.com/highitoh/kg-extraction#kg-change",
+      "dest_class": "https://github.com/highitoh/kg-extraction#kg-relationship",
+      "extraction": "deterministic",
+      "extract_rules": [],
+      "prohibit_rules": []
+    },
+    {
+      "iri": "https://github.com/highitoh/kg-extraction#afterNode",
+      "name": "afterNode",
+      "description": "Links a change to the state of the affected node in the later snapshot (absent for deletions).",
+      "src_class": "https://github.com/highitoh/kg-extraction#kg-change",
+      "dest_class": "https://github.com/highitoh/kg-extraction#kg-node",
+      "extraction": "deterministic",
+      "extract_rules": [],
+      "prohibit_rules": []
+    },
+    {
+      "iri": "https://github.com/highitoh/kg-extraction#afterRelationship",
+      "name": "afterRelationship",
+      "description": "Links a change to the state of the affected relationship in the later snapshot (absent for deletions).",
+      "src_class": "https://github.com/highitoh/kg-extraction#kg-change",
+      "dest_class": "https://github.com/highitoh/kg-extraction#kg-relationship",
+      "extraction": "deterministic",
+      "extract_rules": [],
+      "prohibit_rules": []
+    },
+    {
+      "iri": "https://github.com/highitoh/kg-extraction#isDrivenBy",
+      "name": "isDrivenBy",
+      "description": "Associates a knowledge change with the business driver that caused it.",
+      "src_class": "https://github.com/highitoh/kg-extraction#kg-change",
+      "dest_class": "https://github.com/highitoh/kg-extraction#kg-change-driver",
+      "extraction": "llm",
+      "extract_rules": [
+        "Link a change to a driver only when the driver plausibly explains why that specific object was added, updated, or deleted",
+        "Match on the affected object's label and the source text of the change and the driver",
+        "A change may be linked to multiple drivers, and a driver may drive multiple changes",
+        "Leave a change unlinked when no driver explains it"
+      ],
+      "prohibit_rules": [
+        "Do not link a change to a driver merely because both exist in the same change set.",
+        "Do not link an UPDATE change whose diff only re-scores an existing relationship (strength, judgment, or justification) while both endpoints stay the same: that reflects re-extraction of the same knowledge, not a business decision. Additions and deletions of relationships are genuine knowledge changes and may be linked."
+      ]
+    }
+  ]
+}

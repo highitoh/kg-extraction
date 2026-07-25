@@ -1,0 +1,133 @@
+{
+  "$id": "https://github.com/highitoh/kg-extraction/schemas/changeset-generator/output.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ChangesetGeneratorOutput",
+  "type": "object",
+  "description": "Changeset as an instance graph conforming to the changeset metamodel (metamodel-agnostic: instance/link shapes are fixed, class/property IRIs come from the metamodel)",
+  "properties": {
+    "changeSetId": {
+      "type": "string",
+      "description": "Changeset ID (cs_YYYYMMDD_HHMMSS)"
+    },
+    "beforeSnapshotId": {
+      "type": "string",
+      "description": "Earlier snapshot ID"
+    },
+    "afterSnapshotId": {
+      "type": "string",
+      "description": "Later snapshot ID"
+    },
+    "timestamp": {
+      "type": "string",
+      "description": "Generation timestamp (ISO 8601)"
+    },
+    "summary": {
+      "type": "object",
+      "description": "Change counts",
+      "properties": {
+        "total_changes": { "type": "integer" },
+        "added_classes": { "type": "integer" },
+        "updated_classes": { "type": "integer" },
+        "deleted_classes": { "type": "integer" },
+        "added_properties": { "type": "integer" },
+        "updated_properties": { "type": "integer" },
+        "deleted_properties": { "type": "integer" },
+        "drivers": { "type": "integer" }
+      },
+      "required": ["total_changes"],
+      "additionalProperties": true
+    },
+    "classes": {
+      "type": "array",
+      "description": "Instances of changeset metamodel classes",
+      "items": { "$ref": "#/$defs/instance" }
+    },
+    "properties": {
+      "type": "array",
+      "description": "Instances of changeset metamodel properties",
+      "items": { "$ref": "#/$defs/link" }
+    }
+  },
+  "required": ["changeSetId", "beforeSnapshotId", "afterSnapshotId", "timestamp", "summary", "classes", "properties"],
+  "additionalProperties": false,
+  "$defs": {
+    "instance": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Instance ID (reified object states are snapshot-scoped: '{snapshotId}#{objectId}')"
+        },
+        "class_iri": {
+          "type": "string",
+          "format": "uri",
+          "description": "Class IRI from the changeset metamodel"
+        },
+        "label": {
+          "type": "string",
+          "description": "Human-readable instance label"
+        },
+        "sources": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Source text excerpts (change details or source-change spans)"
+        },
+        "file_ids": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Provenance IDs (source item IDs for LLM-extracted instances)"
+        },
+        "judgment": {
+          "type": "string",
+          "description": "Review judgment (LLM-extracted instances only)"
+        },
+        "justification": {
+          "type": "string",
+          "description": "Judgment justification (LLM-extracted instances only)"
+        },
+        "attributes": {
+          "type": "object",
+          "description": "Class-specific attributes (e.g. change_type/object_type/diff for changes, the full object state for reified objects)"
+        }
+      },
+      "required": ["id", "class_iri", "label"],
+      "additionalProperties": true
+    },
+    "link": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Link ID"
+        },
+        "src_id": {
+          "type": "string",
+          "description": "Source instance ID"
+        },
+        "property_iri": {
+          "type": "string",
+          "format": "uri",
+          "description": "Property IRI from the changeset metamodel"
+        },
+        "dest_id": {
+          "type": "string",
+          "description": "Destination instance ID"
+        },
+        "strength": {
+          "type": "integer",
+          "description": "Relationship strength (LLM-extracted links only)"
+        },
+        "judgment": {
+          "type": "string",
+          "description": "Review judgment (LLM-extracted links only)"
+        },
+        "justification": {
+          "type": "string",
+          "description": "Judgment justification (LLM-extracted links only)"
+        }
+      },
+      "required": ["id", "src_id", "property_iri", "dest_id"],
+      "additionalProperties": true
+    }
+  }
+}
