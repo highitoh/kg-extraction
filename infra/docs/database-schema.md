@@ -173,9 +173,11 @@ lexicographic order chronological. Writers use
 | `batchJobId` | String | AWS Batch job ARN of the generation job |
 | `errorMessage` | String | Error details if status=FAILED |
 | `s3Location` | String | S3 path to changeset.json (set when COMPLETED) |
-| `changeCount` | Number | Total changes (added + deleted + modified) |
-| `driverCount` | Number | Number of business drivers extracted |
-| `createdAt` | String | ISO timestamp |
+| `totalChanges` | Number | Total changes (added + updated + deleted, nodes and relationships) |
+| `driversCount` | Number | Number of change drivers extracted |
+| `createdAt` | String | ISO timestamp (record creation by the API) |
+| `startedAt` | String | ISO timestamp (Batch job start) |
+| `completedAt` | String | ISO timestamp (Batch job completion) |
 
 **No GSI** (query by project, sort by changesetId desc)
 
@@ -189,9 +191,11 @@ lexicographic order chronological. Writers use
   "status": "COMPLETED",
   "batchJobId": "arn:aws:batch:us-east-1:123456789012:job/changeset-abc123",
   "s3Location": "s3://mycompany-kg-extraction-prod/projects/backend/changesets/cs_20260628_150000_a1b2c3/changeset.json",
-  "changeCount": 23,
-  "driverCount": 5,
-  "createdAt": "2026-06-28T15:00:00Z"
+  "totalChanges": 23,
+  "driversCount": 5,
+  "createdAt": "2026-06-28T15:00:00Z",
+  "startedAt": "2026-06-28T15:00:31Z",
+  "completedAt": "2026-06-28T15:04:12Z"
 }
 ```
 

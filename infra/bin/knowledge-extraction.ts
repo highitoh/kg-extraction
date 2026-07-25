@@ -14,8 +14,20 @@ const env = {
 };
 
 // Get configuration from context
-const accountName = app.node.tryGetContext('accountName') || 'mycompany';
+const accountName = app.node.tryGetContext('accountName');
 const environment = app.node.tryGetContext('environment') || 'dev';
+const gcpProjectId = app.node.tryGetContext('gcpProjectId');
+const gcpLocation = app.node.tryGetContext('gcpLocation') || 'global';
+
+// accountName prefixes the globally-unique S3 bucket name, so a placeholder
+// default would either collide or create a wrongly-named bucket; require it.
+if (!accountName) {
+  throw new Error('accountName must be provided via CDK context (-c accountName=YOUR_ORG)');
+}
+
+if (!gcpProjectId) {
+  throw new Error('gcpProjectId must be provided via CDK context (-c gcpProjectId=YOUR_PROJECT_ID)');
+}
 
 // Stack IDs and resource names carry the environment suffix so that
 // dev/staging/prod can coexist in one AWS account and region.
@@ -32,6 +44,8 @@ const storageStack = new StorageStack(app, `KnowledgeExtractionStorage-${environ
 const computeStack = new ComputeStack(app, `KnowledgeExtractionCompute-${environment}`, {
   env,
   environment,
+  gcpProjectId,
+  gcpLocation,
   extractionBucket: storageStack.extractionBucket,
   jobsTable: storageStack.jobsTable,
   classesTable: storageStack.classesTable,
@@ -39,6 +53,7 @@ const computeStack = new ComputeStack(app, `KnowledgeExtractionCompute-${environ
   instancesTable: storageStack.instancesTable,
   snapshotsTable: storageStack.snapshotsTable,
   projectsTable: storageStack.projectsTable,
+  changesetsTable: storageStack.changesetsTable,
   description: 'Compute layer for knowledge extraction system (AWS Batch + Fargate)',
 });
 computeStack.addDependency(storageStack);

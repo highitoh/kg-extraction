@@ -270,56 +270,67 @@ List all snapshots for a project.
 
 ---
 
-### POST /v1/projects/{project}/changesets
+> **Changesets are not requested.** Every extraction records what it changed
+> and why, because the reason for a change is written in the source text and
+> is not kept in the snapshots. The endpoints below read those records; there
+> is no endpoint to generate one.
 
-> ⚠️ **Currently disabled.** The route is not deployed because changeset
-> generation is not yet implemented in the Batch container; requests would
-> accept and then always fail. The specification below describes the intended
-> behavior once implemented.
+---
 
-Generate changeset between two snapshots.
+### GET /v1/projects/{project}/changesets
 
-**Request**:
+List all changesets for a project (latest first).
+
+**Query Parameters**:
+- `limit` (optional): Number of results (default: 20)
+
+**Response** (200 OK):
 ```json
 {
-  "beforeSnapshotId": "20260627140000",
-  "afterSnapshotId": "20260628100430"
+  "project": "backend",
+  "changesets": [
+    {
+      "changesetId": "cs_20260628_150000_a1b2c3",
+      "status": "COMPLETED",
+      "beforeSnapshotId": "20260627140000",
+      "afterSnapshotId": "20260628100430",
+      "createdAt": "2026-06-28T15:00:00Z",
+      "completedAt": "2026-06-28T15:04:12Z",
+      "totalChanges": 23,
+      "driversCount": 5
+    }
+  ],
+  "nextToken": null
 }
 ```
-
-**Response** (202 Accepted):
-```json
-{
-  "changesetId": "cs_20260628_150000_a1b2c3",
-  "status": "PENDING",
-  "message": "Changeset generation job submitted",
-  "statusUrl": "/v1/projects/backend/changesets/cs_20260628_150000_a1b2c3"
-}
-```
-
-**Errors**:
-- `404 Not Found`: Snapshot does not exist
-- `400 Bad Request`: Invalid snapshot IDs
 
 ---
 
 ### GET /v1/projects/{project}/changesets/{changesetId}
 
-Get changeset details.
+Get changeset status and results. `downloadUrl` is a presigned URL for
+`changeset.json` and is present once the status is COMPLETED.
 
 **Response** (200 OK):
 ```json
 {
   "changesetId": "cs_20260628_150000_a1b2c3",
   "project": "backend",
+  "status": "COMPLETED",
   "beforeSnapshotId": "20260627140000",
   "afterSnapshotId": "20260628100430",
-  "changeCount": 23,
-  "driverCount": 5,
   "createdAt": "2026-06-28T15:00:00Z",
+  "startedAt": "2026-06-28T15:00:31Z",
+  "completedAt": "2026-06-28T15:04:12Z",
+  "totalChanges": 23,
+  "driversCount": 5,
+  "errorMessage": null,
   "downloadUrl": "https://s3.amazonaws.com/.../changeset.json?X-Amz-..."
 }
 ```
+
+**Errors**:
+- `404 Not Found`: Changeset does not exist
 
 ---
 

@@ -6,11 +6,12 @@ import * as iam from 'aws-cdk-lib/aws-iam';
 import * as s3 from 'aws-cdk-lib/aws-s3';
 import * as dynamodb from 'aws-cdk-lib/aws-dynamodb';
 import * as ecr from 'aws-cdk-lib/aws-ecr';
-import * as secretsmanager from 'aws-cdk-lib/aws-secretsmanager';
 import { Construct } from 'constructs';
 
 interface ComputeStackProps extends cdk.StackProps {
   environment: string;
+  gcpProjectId: string;
+  gcpLocation?: string;
   extractionBucket: s3.Bucket;
   jobsTable: dynamodb.Table;
   classesTable: dynamodb.Table;
@@ -18,6 +19,7 @@ interface ComputeStackProps extends cdk.StackProps {
   instancesTable: dynamodb.Table;
   snapshotsTable: dynamodb.Table;
   projectsTable: dynamodb.Table;
+  changesetsTable: dynamodb.Table;
 }
 
 export class ComputeStack extends cdk.Stack {
@@ -56,14 +58,14 @@ export class ComputeStack extends cdk.Stack {
     props.instancesTable.grantReadWriteData(jobRole);
     props.snapshotsTable.grantReadWriteData(jobRole);
     props.projectsTable.grantReadWriteData(jobRole);
+    props.changesetsTable.grantReadWriteData(jobRole);
 
-    // Gemini API Key secret, injected into the container as GEMINI_API_KEY
-    // (created with a placeholder value; update it after deployment)
-    const geminiSecret = new secretsmanager.Secret(this, 'GeminiApiKey', {
-      secretName: `gemini-api-key-${environment}`,
-      description: 'Gemini API key for knowledge extraction - UPDATE THIS VALUE AFTER DEPLOYMENT',
-      secretStringValue: cdk.SecretValue.unsafePlainText('PLACEHOLDER_UPDATE_ME_AFTER_DEPLOYMENT'),
-    });
+    // Vertex AI authentication via Workload Identity Federation
+    // Configure GCP to allow this AWS role to access Vertex AI:
+    // 1. Create a Workload Identity Pool in your GCP project
+    // 2. Add AWS as a provider with the account ID and role ARN
+    // 3. Grant the workload identity user the Vertex AI User role
+    // See: https://cloud.google.com/iam/docs/workload-identity-federation-with-other-clouds
 
     // Execution Role for ECS Task
     const executionRole = new iam.Role(this, 'BatchExecutionRole', {
@@ -106,13 +108,15 @@ export class ComputeStack extends cdk.Stack {
         jobRole,
         executionRole,
         // The default VPC has public subnets and no NAT gateway; without a
-        // public IP the task cannot pull from ECR or reach the Gemini API
+        // public IP the task cannot pull from ECR or reach the Vertex AI API
         assignPublicIp: true,
         environment: {
           STORAGE_BACKEND: 's3',
-          // Required by llm_factory; selects the Gemini Developer API,
-          // authenticated by the injected GEMINI_API_KEY secret
-          LLM_PROVIDER: 'gemini_api',
+          // Required by llm_factory; selects Vertex AI,
+          // authenticated via Workload Identity Federation
+          LLM_PROVIDER: 'gcp_vertexai',
+          GOOGLE_CLOUD_PROJECT: props.gcpProjectId,
+          GOOGLE_CLOUD_LOCATION: props.gcpLocation || 'global',
           BUCKET_NAME: props.extractionBucket.bucketName,
           JOBS_TABLE: props.jobsTable.tableName,
           CLASSES_TABLE: props.classesTable.tableName,
@@ -120,9 +124,7 @@ export class ComputeStack extends cdk.Stack {
           INSTANCES_TABLE: props.instancesTable.tableName,
           SNAPSHOTS_TABLE: props.snapshotsTable.tableName,
           PROJECTS_TABLE: props.projectsTable.tableName,
-        },
-        secrets: {
-          GEMINI_API_KEY: batch.Secret.fromSecretsManager(geminiSecret),
+          CHANGESETS_TABLE: props.changesetsTable.tableName,
         },
         logging: ecs.LogDriver.awsLogs({
           streamPrefix: 'extraction-job',
@@ -135,8 +137,8 @@ export class ComputeStack extends cdk.Stack {
         batch.RetryStrategy.of(batch.Action.EXIT, batch.Reason.custom({
           onExitCode: '1',
         })),
-        // Exit code 2 = configuration error (missing env vars, placeholder
-        // secret); retrying cannot succeed
+        // Exit code 2 = configuration error (missing env vars); retrying
+        // cannot succeed
         batch.RetryStrategy.of(batch.Action.EXIT, batch.Reason.custom({
           onExitCode: '2',
         })),
@@ -159,9 +161,14 @@ export class ComputeStack extends cdk.Stack {
       description: 'URI of the ECR repository',
     });
 
-    new cdk.CfnOutput(this, 'GeminiSecretName', {
-      value: geminiSecret.secretName,
-      description: 'Gemini API secret name (UPDATE THE VALUE with: aws secretsmanager update-secret --secret-id gemini-api-key --secret-string "YOUR_KEY")',
+    new cdk.CfnOutput(this, 'GcpProjectId', {
+      value: props.gcpProjectId,
+      description: 'GCP Project ID for Vertex AI access',
+    });
+
+    new cdk.CfnOutput(this, 'BatchJobRoleArn', {
+      value: jobRole.roleArn,
+      description: 'ARN of the batch job role (configure in GCP Workload Identity Federation)',
     });
   }
 }

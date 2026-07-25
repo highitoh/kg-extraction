@@ -2,7 +2,7 @@
 
 ## Overview
 
-The knowledge extraction system deploys as a hybrid serverless architecture on AWS, combining API Gateway + Lambda for lightweight operations with AWS Batch + Fargate for compute-intensive extraction workflows. All extractions use GCP Gemini.
+The knowledge extraction system deploys as a hybrid serverless architecture on AWS, combining API Gateway + Lambda for lightweight operations with AWS Batch + Fargate for compute-intensive extraction workflows. All extractions use GCP Vertex AI (Gemini models) via Workload Identity Federation.
 
 ## Core AWS Services
 
@@ -14,7 +14,6 @@ The knowledge extraction system deploys as a hybrid serverless architecture on A
 - **DynamoDB**: Job tracking, knowledge graph storage, session management
 - **EventBridge**: Scheduled extraction jobs
 - **CloudWatch**: Logs, metrics, alarms, dashboards
-- **Secrets Manager**: GCP API keys, credentials
 - **ECR**: Docker image storage
 
 ## Architecture Diagram
@@ -89,9 +88,9 @@ The knowledge extraction system deploys as a hybrid serverless architecture on A
                 │        │
                 ▼        ▼
          ┌──────────┐  ┌──────────────┐
-         │ S3 I/O   │  │ GCP Gemini   │
-         └──────────┘  │ API (Flash   │
-                       │  Lite 3.1)   │
+         │ S3 I/O   │  │ GCP Vertex AI│
+         └──────────┘  │ (Gemini 3.1  │
+                       │  Flash Lite) │
                        └──────────────┘
 ```
 
