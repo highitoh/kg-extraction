@@ -3,8 +3,8 @@
 # identically instead of ping-ponging between configs.
 line-length = 120
 indent-width = 4
-# Lambda functions run on the python3.11 runtime (see infra api-stack)
-target-version = "py311"
+# Lambda functions run on the python3.14 runtime (see infra api-stack)
+target-version = "py314"
 
 [lint]
 select = ["E", "F", "W", "B", "I"]

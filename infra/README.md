@@ -17,6 +17,7 @@ AWS CDK infrastructure for deploying the knowledge extraction system as a server
 - Node.js 18+ and npm
 - Docker
 - AWS CDK CLI: `npm install -g aws-cdk`
+- Python 3.14+
 
 ## Quick Start
 

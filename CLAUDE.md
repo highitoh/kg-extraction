@@ -22,7 +22,7 @@ The workspace is a polyglot monorepo, split by deployment target:
   uv run ruff check
   uv run ruff format
   ```
-  - **Lambda code** (`/workspace/lambda/`) has its own [`ruff.toml`](lambda/ruff.toml) (matched to `app/pyproject.toml`, but targeting the `py311` runtime). When editing files under `lambda/`, run ruff from `/workspace/lambda` so the correct config applies:
+  - **Lambda code** (`/workspace/lambda/`) has its own [`ruff.toml`](lambda/ruff.toml), matched to `app/pyproject.toml`. When editing files under `lambda/`, run ruff from `/workspace/lambda` so the correct config applies:
   ```bash
   cd /workspace/lambda
   uv run ruff check
@@ -32,7 +32,8 @@ The workspace is a polyglot monorepo, split by deployment target:
 - **Git Commits**: **CRITICAL RULE** - NEVER commit code to the git repository without explicit user permission. ALWAYS ask the user "Should I commit these changes?" and wait for explicit approval before running `git commit`. This applies to ALL commits, no exceptions
 
 ## Development Environment
-- **Language**: Python
+- **Language**: Python 3.14
+  - **IMPORTANT**: Only use Python features available in Python 3.14 or earlier. Do NOT use features introduced in Python 3.15 or later versions
 - **Framework**: LangChain
 - **Database**: Neo4j
 - **Container**: Docker Compose
@@ -54,7 +55,7 @@ The workspace is a polyglot monorepo, split by deployment target:
 │   ├── knowledge_api/     # Knowledge class/property read endpoints + normalize
 │   ├── project_management/# Projects, snapshots, changeset generation
 │   ├── mcp_server/        # MCP server handler
-│   └── ruff.toml          # Lint config (py311 runtime)
+│   └── ruff.toml          # Lint config (py314 runtime)
 ├── infra/                  # AWS CDK infrastructure (TypeScript, npm)
 │   ├── bin/               # CDK app entrypoint
 │   ├── lib/stacks/        # api / compute / events / storage stacks

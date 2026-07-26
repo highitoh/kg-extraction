@@ -49,7 +49,7 @@ export class ApiStack extends cdk.Stack {
     // Helper function to create Lambda with common settings
     const createLambda = (name: string, handler: string, timeout = 30): lambda.Function => {
       const fn = new lambda.Function(this, name, {
-        runtime: lambda.Runtime.PYTHON_3_11,
+        runtime: lambda.Runtime.PYTHON_3_14,
         code: lambdaCode,
         handler,
         environment: commonEnv,
@@ -168,7 +168,7 @@ export class ApiStack extends cdk.Stack {
 
     // MCP Server Lambda (with extended timeout for streaming)
     const mcpLambda = new lambda.Function(this, 'McpServer', {
-      runtime: lambda.Runtime.PYTHON_3_11,
+      runtime: lambda.Runtime.PYTHON_3_14,
       handler: 'mcp_server.lambda_handler',
       code: lambda.Code.fromAsset('../lambda/mcp_server'),
       timeout: cdk.Duration.minutes(15),

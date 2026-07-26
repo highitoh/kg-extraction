@@ -30,7 +30,7 @@ Input → File Type Classification → Text Extraction → View Extraction
 
 ## Prerequisites
 
-- Python 3.8+
+- Python 3.14+
 - Docker & Docker Compose (optional)
 - OpenAI API Key
 
