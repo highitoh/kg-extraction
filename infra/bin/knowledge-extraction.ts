@@ -20,7 +20,7 @@ const localConfig: Record<string, string> = fs.existsSync(localConfigPath)
 const getConfig = (key: string): string | undefined =>
   app.node.tryGetContext(key) ?? localConfig[key];
 
-const accountName = getConfig('accountName');
+const orgName = getConfig('orgName');
 const environment = getConfig('environment') || 'dev';
 const gcpProjectId = getConfig('gcpProjectId');
 const gcpLocation = getConfig('gcpLocation') || 'global';
@@ -40,11 +40,11 @@ if (!account || !region) {
 
 const env = { account, region };
 
-// accountName prefixes the globally-unique S3 bucket name, so a placeholder
+// orgName prefixes the globally-unique S3 bucket name, so a placeholder
 // default would either collide or create a wrongly-named bucket; require it.
-if (!accountName) {
+if (!orgName) {
   throw new Error(
-    'accountName must be provided via cdk.local.json or CDK context (-c accountName=YOUR_ORG)',
+    'orgName must be provided via cdk.local.json or CDK context (-c orgName=YOUR_ORG)',
   );
 }
 
@@ -60,7 +60,7 @@ if (!gcpProjectId) {
 // Stack 1: Storage (S3 + DynamoDB)
 const storageStack = new StorageStack(app, `KnowledgeExtractionStorage-${environment}`, {
   env,
-  accountName,
+  orgName,
   environment,
   description: 'Storage layer for knowledge extraction system (S3 + DynamoDB)',
 });

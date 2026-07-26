@@ -4,7 +4,7 @@ import * as dynamodb from 'aws-cdk-lib/aws-dynamodb';
 import { Construct } from 'constructs';
 
 interface StorageStackProps extends cdk.StackProps {
-  accountName: string;
+  orgName: string;
   environment: string;
 }
 
@@ -22,8 +22,8 @@ export class StorageStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props: StorageStackProps) {
     super(scope, id, props);
 
-    const { accountName, environment } = props;
-    const bucketName = `${accountName}-kg-extraction-${environment}`;
+    const { orgName, environment } = props;
+    const bucketName = `${orgName}-kg-extraction-${environment}`;
 
     // S3 Bucket
     this.extractionBucket = new s3.Bucket(this, 'ExtractionBucket', {

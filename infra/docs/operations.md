@@ -22,56 +22,58 @@
    cdk bootstrap aws://ACCOUNT-ID/REGION
    ```
 
-3. **Configure context variables** in `cdk.json`:
+3. **Configure deployment settings** in `cdk.local.json` (copy
+   `cdk.local.example.json`):
    ```json
    {
-     "context": {
-       "accountName": "mycompany",
-       "environment": "dev"
-     }
+     "orgName": "mycompany",
+     "environment": "dev",
+     "awsRegion": "ap-northeast-1",
+     "gcpProjectId": "my-gcp-project",
+     "gcpLocation": "global"
    }
    ```
 
-   Or pass via CLI:
+   Individual values can be overridden per invocation, which takes precedence:
    ```bash
-   cdk deploy --all -c accountName=mycompany -c environment=dev
+   cdk deploy --all -c orgName=mycompany -c environment=dev
    ```
 
 ### Deployment Commands
 
 **Deploy all stacks** (recommended for first deployment):
 ```bash
-cdk deploy --all -c accountName=mycompany -c environment=dev
+cdk deploy --all
 ```
 
 **Deploy specific stack**:
 ```bash
 # Storage only (S3 + DynamoDB)
-cdk deploy KnowledgeExtractionStorage-dev -c accountName=mycompany -c environment=dev
+cdk deploy KnowledgeExtractionStorage-dev
 
 # Compute only (AWS Batch)
-cdk deploy KnowledgeExtractionCompute-dev -c accountName=mycompany -c environment=dev
+cdk deploy KnowledgeExtractionCompute-dev
 
 # API only (API Gateway + Lambda + MCP)
-cdk deploy KnowledgeExtractionApi-dev -c accountName=mycompany -c environment=dev
+cdk deploy KnowledgeExtractionApi-dev
 
 # Events only (EventBridge scheduled jobs)
-cdk deploy KnowledgeExtractionEvents-dev -c accountName=mycompany -c environment=dev
+cdk deploy KnowledgeExtractionEvents-dev
 ```
 
 **Preview changes before deployment** (CloudFormation changeset):
 ```bash
-cdk diff --all -c accountName=mycompany -c environment=dev
+cdk diff --all
 ```
 
 **Synthesize CloudFormation template** (without deploying):
 ```bash
-cdk synth KnowledgeExtractionStorage-dev -c accountName=mycompany -c environment=dev
+cdk synth KnowledgeExtractionStorage-dev
 ```
 
 **Destroy all resources** (⚠️ irreversible):
 ```bash
-cdk destroy --all -c accountName=mycompany -c environment=dev
+cdk destroy --all
 ```
 
 ### Build and Push Docker Image
@@ -107,19 +109,19 @@ const image = ecs.ContainerImage.fromAsset('../app', {
 
 **Development**:
 ```bash
-cdk deploy --all -c accountName=mycompany -c environment=dev
+cdk deploy --all
 # Creates: mycompany-kg-extraction-dev
 ```
 
 **Staging**:
 ```bash
-cdk deploy --all -c accountName=mycompany -c environment=staging
+cdk deploy --all -c environment=staging
 # Creates: mycompany-kg-extraction-staging
 ```
 
 **Production**:
 ```bash
-cdk deploy --all -c accountName=mycompany -c environment=prod --require-approval broadening
+cdk deploy --all -c environment=prod --require-approval broadening
 # Creates: mycompany-kg-extraction-prod
 # --require-approval: Ask before creating IAM resources
 ```
@@ -128,11 +130,11 @@ cdk deploy --all -c accountName=mycompany -c environment=prod --require-approval
 
 ## S3 Bucket Naming
 
-Buckets follow the pattern: `{accountName}-kg-extraction-{environment}`
+Buckets follow the pattern: `{orgName}-kg-extraction-{environment}`
 
 **Why this pattern?**
 - **Global uniqueness**: S3 bucket names must be globally unique across all AWS accounts
-- **Account name prefix**: Prevents collisions (e.g., "mycompany", "acme-corp")
+- **Org name prefix**: Prevents collisions (e.g., "mycompany", "acme-corp")
 - **Service identifier**: "kg-extraction" clearly identifies purpose
 - **Environment suffix**: Separates dev/staging/prod buckets
 
@@ -144,25 +146,23 @@ Buckets follow the pattern: `{accountName}-kg-extraction-{environment}`
 
 **Configuration**:
 
-Set `accountName` in CDK context (via `cdk.json` or CLI):
+Set `orgName` in `cdk.local.json`:
 
 ```json
 {
-  "context": {
-    "accountName": "mycompany"
-  }
+  "orgName": "mycompany"
 }
 ```
 
 Or via CLI:
 ```bash
-cdk deploy --all -c accountName=mycompany -c environment=prod
+cdk deploy --all -c orgName=mycompany -c environment=prod
 ```
 
 **CDK Implementation** (in StorageStack):
 
 ```typescript
-const bucketName = `${this.node.tryGetContext('accountName')}-kg-extraction-${this.node.tryGetContext('environment')}`;
+const bucketName = `${orgName}-kg-extraction-${environment}`;
 
 const bucket = new s3.Bucket(this, 'ExtractionBucket', {
   bucketName,

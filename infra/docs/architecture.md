@@ -196,9 +196,9 @@ Infrastructure as code using TypeScript.
 
 Context variables control environment-specific settings:
 
-- `accountName`: S3 bucket prefix (e.g., "mycompany")
+- `orgName`: S3 bucket prefix (e.g., "mycompany")
 - `environment`: dev, staging, prod
-- Bucket name format: `{accountName}-kg-extraction-{environment}`
+- Bucket name format: `{orgName}-kg-extraction-{environment}`
 
 > 📋 For deployment instructions, see [README.md](../README.md) (quick start) or [operations.md](operations.md) (complete guide)
 

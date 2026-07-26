@@ -39,7 +39,7 @@ Edit `cdk.local.json` with your values:
 
 ```json
 {
-  "accountName": "YOUR_ORG",
+  "orgName": "YOUR_ORG",
   "environment": "dev",
   "awsRegion": "ap-northeast-1",
   "gcpProjectId": "YOUR_GCP_PROJECT_ID",
