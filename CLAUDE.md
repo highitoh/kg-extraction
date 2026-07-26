@@ -249,9 +249,9 @@ Track changes between knowledge graph snapshots with automatic business driver e
 ### Changeset Directory Structure
 ```
 /workspace/app/output/{project}/changesets/
-├── metadata.json              # Changeset index
-├── cs_20260501_120000/       # Changeset
-│   └── changeset.json        # Full changeset with changes and drivers
+├── metadata.json                    # Changeset index
+├── cs_20260501_120000/             # Changeset
+│   └── changeset.json              # Instance graph (changes, drivers, links)
 └── cs_20260501_130000/
     └── ...
 ```
@@ -259,17 +259,17 @@ Track changes between knowledge graph snapshots with automatic business driver e
 ### Changeset Management Commands
 
 ```bash
-# Generate changeset between two snapshots
-./changeset.sh generate --project myproject --before 20260501110000 --after 20260501120000
-
-# Generate with specific model for driver extraction
-./changeset.sh generate --project myproject --before 20260501110000 --after 20260501120000 --model gemini-3.0-flash-lite
-
-# List all changesets
+# List all changesets (one per extraction)
 ./changeset.sh list --project myproject
 
 # Show specific changeset details
 ./changeset.sh show --project myproject --changeset cs_20260501_120000
+
+# Show the changes recorded between two snapshots (aggregated, no LLM)
+./changeset.sh range --project myproject --before 20260501110000 --after 20260501120000
+
+# Validate against the JSON schema (schemas/changeset-generator/output.schema.json)
+./changeset.sh validate --project myproject --changeset cs_20260501_120000
 ```
 
 ## Key Dependencies
