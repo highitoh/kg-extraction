@@ -27,17 +27,25 @@ AWS CDK infrastructure for deploying the knowledge extraction system as a server
 # Install dependencies
 cd infra
 npm install
+```
 
-# Bootstrap CDK (first time only)
-cdk bootstrap aws://ACCOUNT-ID/REGION
+Configure the environment in `cdk.json`:
 
-# Configure environment in cdk.json
+```json
 {
   "context": {
     "accountName": "mycompany",
     "environment": "dev"
   }
 }
+```
+
+Then bootstrap CDK (once per account/region):
+
+```bash
+# Run from OUTSIDE the infra directory
+cd ~
+cdk bootstrap aws://ACCOUNT-ID/REGION
 ```
 
 ### 2. Deploy Infrastructure
