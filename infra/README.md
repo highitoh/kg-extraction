@@ -29,40 +29,44 @@ cd infra
 npm install
 ```
 
-Configure the environment in `cdk.json`:
+Create your personal deployment settings (gitignored):
+
+```bash
+cp cdk.local.example.json cdk.local.json
+```
+
+Edit `cdk.local.json` with your values:
 
 ```json
 {
-  "context": {
-    "accountName": "mycompany",
-    "environment": "dev"
-  }
+  "accountName": "YOUR_ORG",
+  "environment": "dev",
+  "awsRegion": "ap-northeast-1",
+  "gcpProjectId": "YOUR_GCP_PROJECT_ID",
+  "gcpLocation": "global"
 }
 ```
+
+Individual values can be overridden per invocation with `-c key=value`,
+which takes precedence over `cdk.local.json`.
 
 Then bootstrap CDK (once per account/region):
 
 ```bash
-# Run from OUTSIDE the infra directory
-cd ~
 cdk bootstrap aws://ACCOUNT-ID/REGION
 ```
 
 ### 2. Deploy Infrastructure
 
 ```bash
-# Deploy all stacks (requires GCP project ID)
-cdk deploy --all \
-  -c accountName=mycompany \
-  -c environment=dev \
-  -c gcpProjectId=YOUR_GCP_PROJECT_ID \
-  -c gcpLocation=global
+# Deploy all stacks (settings come from cdk.local.json)
+cdk deploy --all
 
 # Or deploy individually
-cdk deploy KnowledgeExtractionStorage-dev -c gcpProjectId=YOUR_GCP_PROJECT_ID
-cdk deploy KnowledgeExtractionCompute-dev -c gcpProjectId=YOUR_GCP_PROJECT_ID
-cdk deploy KnowledgeExtractionApi-dev -c gcpProjectId=YOUR_GCP_PROJECT_ID
-cdk deploy KnowledgeExtractionEvents-dev -c gcpProjectId=YOUR_GCP_PROJECT_ID
+cdk deploy KnowledgeExtractionStorage-dev
+cdk deploy KnowledgeExtractionCompute-dev
+cdk deploy KnowledgeExtractionApi-dev
+cdk deploy KnowledgeExtractionEvents-dev
 ```
 
 ### 3. Build and Push Docker Image

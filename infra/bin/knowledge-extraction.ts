@@ -1,5 +1,7 @@
 #!/usr/bin/env node
 import 'source-map-support/register';
+import * as fs from 'fs';
+import * as path from 'path';
 import * as cdk from 'aws-cdk-lib';
 import { StorageStack } from '../lib/stacks/storage-stack';
 import { ComputeStack } from '../lib/stacks/compute-stack';
@@ -8,25 +10,48 @@ import { EventsStack } from '../lib/stacks/events-stack';
 
 const app = new cdk.App();
 
-const env = {
-  account: process.env.CDK_DEFAULT_ACCOUNT,
-  region: process.env.CDK_DEFAULT_REGION || 'us-east-1',
-};
+// Per-developer settings live in cdk.local.json (gitignored; see
+// cdk.local.example.json). CLI context (-c key=value) takes precedence.
+const localConfigPath = path.join(__dirname, '..', 'cdk.local.json');
+const localConfig: Record<string, string> = fs.existsSync(localConfigPath)
+  ? JSON.parse(fs.readFileSync(localConfigPath, 'utf-8'))
+  : {};
 
-// Get configuration from context
-const accountName = app.node.tryGetContext('accountName');
-const environment = app.node.tryGetContext('environment') || 'dev';
-const gcpProjectId = app.node.tryGetContext('gcpProjectId');
-const gcpLocation = app.node.tryGetContext('gcpLocation') || 'global';
+const getConfig = (key: string): string | undefined =>
+  app.node.tryGetContext(key) ?? localConfig[key];
+
+const accountName = getConfig('accountName');
+const environment = getConfig('environment') || 'dev';
+const gcpProjectId = getConfig('gcpProjectId');
+const gcpLocation = getConfig('gcpLocation') || 'global';
+
+// Resource names carry no region component, so deploying to an unintended
+// region silently creates a parallel copy of the whole system instead of
+// failing. Require an explicit region rather than falling back to a default.
+const account = process.env.CDK_DEFAULT_ACCOUNT;
+const region = getConfig('awsRegion') ?? process.env.CDK_DEFAULT_REGION;
+
+if (!account || !region) {
+  throw new Error(
+    'Could not resolve the target AWS account/region. Configure the AWS CLI ' +
+      '(aws configure), or set "awsRegion" in cdk.local.json.',
+  );
+}
+
+const env = { account, region };
 
 // accountName prefixes the globally-unique S3 bucket name, so a placeholder
 // default would either collide or create a wrongly-named bucket; require it.
 if (!accountName) {
-  throw new Error('accountName must be provided via CDK context (-c accountName=YOUR_ORG)');
+  throw new Error(
+    'accountName must be provided via cdk.local.json or CDK context (-c accountName=YOUR_ORG)',
+  );
 }
 
 if (!gcpProjectId) {
-  throw new Error('gcpProjectId must be provided via CDK context (-c gcpProjectId=YOUR_PROJECT_ID)');
+  throw new Error(
+    'gcpProjectId must be provided via cdk.local.json or CDK context (-c gcpProjectId=YOUR_PROJECT_ID)',
+  );
 }
 
 // Stack IDs and resource names carry the environment suffix so that

@@ -145,5 +145,8 @@ vite.config.ts.timestamp-*
 # CDK
 cdk.out/
 
+# Per-developer deployment settings (copy cdk.local.example.json)
+cdk.local.json
+
 # Re-include CDK source (root .gitignore ignores generic lib/ for Python builds)
 !lib/

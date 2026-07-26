@@ -1,0 +1,7 @@
+{
+  "accountName": "YOUR_ORG",
+  "environment": "dev",
+  "awsRegion": "ap-northeast-1",
+  "gcpProjectId": "YOUR_GCP_PROJECT_ID",
+  "gcpLocation": "global"
+}
