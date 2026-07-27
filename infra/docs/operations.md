@@ -82,6 +82,19 @@ ComputeStack creates the ECR repository, so deploy it first, then push the
 extraction workflow image. Batch jobs fail at run time until the image exists.
 
 ```bash
+cd infra
+./push-image.sh
+```
+
+| Option | Default | Purpose |
+|---|---|---|
+| `--environment ENV` | `environment` from `cdk.local.json` | Which stack to read the repository from |
+| `--tag TAG` | `latest` | Tag to push |
+| `--skip-build` | off | Re-push the existing local image |
+
+To run the steps manually:
+
+```bash
 # Resolve the repository URI from the deployed stack
 ECR_URI=$(aws cloudformation describe-stacks \
   --stack-name KnowledgeExtractionCompute-dev \
@@ -616,19 +629,13 @@ aws ecr describe-images --repository-name kg-extraction-dev
 ### Update Docker Image
 
 1. **Make code changes** in `/workspace/app/src/`
-2. **Rebuild Docker image**:
+2. **Rebuild and push the image**:
    ```bash
-   cd /workspace
-   docker build -t kg-extraction:latest -f infra/docker/Dockerfile .
+   cd infra
+   ./push-image.sh
    ```
-3. **Push to ECR** (see [Build and Push Docker Image](#build-and-push-docker-image)
-   for how `ECR_URI` is resolved):
-   ```bash
-   docker tag kg-extraction:latest "$ECR_URI:latest"
-   docker push "$ECR_URI:latest"
-   ```
-4. **Update job definition** (CDK automatically updates on next deploy)
-5. **Redeploy compute stack**:
+3. **Update job definition** (CDK automatically updates on next deploy)
+4. **Redeploy compute stack**:
    ```bash
    cdk deploy KnowledgeExtractionCompute-dev
    ```

@@ -75,24 +75,8 @@ The ECR repository is created by ComputeStack, so this step comes after the
 deploy above.
 
 ```bash
-# Resolve the repository URI from the deployed stack
-ECR_URI=$(aws cloudformation describe-stacks \
-  --stack-name KnowledgeExtractionCompute-dev \
-  --query 'Stacks[0].Outputs[?OutputKey==`EcrRepositoryUri`].OutputValue' \
-  --output text)
-
-REGISTRY="${ECR_URI%%/*}"
-REGION=$(echo "$REGISTRY" | cut -d. -f4)
-
-# Build from workspace root
-cd /workspace
-docker build -t kg-extraction:latest -f infra/docker/Dockerfile .
-
-aws ecr get-login-password --region "$REGION" \
-  | docker login --username AWS --password-stdin "$REGISTRY"
-
-docker tag kg-extraction:latest "$ECR_URI:latest"
-docker push "$ECR_URI:latest"
+cd infra
+./push-image.sh
 ```
 
 ### 4. Configure Workload Identity Federation
