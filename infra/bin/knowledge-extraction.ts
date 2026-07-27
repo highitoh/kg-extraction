@@ -31,10 +31,20 @@ const gcpLocation = getConfig('gcpLocation') || 'global';
 const account = process.env.CDK_DEFAULT_ACCOUNT;
 const region = getConfig('awsRegion') ?? process.env.CDK_DEFAULT_REGION;
 
-if (!account || !region) {
+// The account is deliberately not configurable: taking it from the credentials
+// in use means the deployment target cannot drift from the caller's identity.
+if (!account) {
   throw new Error(
-    'Could not resolve the target AWS account/region. Configure the AWS CLI ' +
-      '(aws configure), or set "awsRegion" in cdk.local.json.',
+    'Could not resolve the target AWS account. The CDK CLI derives it from the ' +
+      'AWS credentials in use, so verify them with `aws sts get-caller-identity` ' +
+      'and pass --profile if you deploy with a named profile.',
+  );
+}
+
+if (!region) {
+  throw new Error(
+    'Could not resolve the target AWS region. Set "awsRegion" in cdk.local.json, ' +
+      'or configure a default region for the AWS CLI.',
   );
 }
 
