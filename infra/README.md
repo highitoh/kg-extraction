@@ -71,19 +71,28 @@ cdk deploy KnowledgeExtractionEvents-dev
 
 ### 3. Build and Push Docker Image
 
+The ECR repository is created by ComputeStack, so this step comes after the
+deploy above.
+
 ```bash
+# Resolve the repository URI from the deployed stack
+ECR_URI=$(aws cloudformation describe-stacks \
+  --stack-name KnowledgeExtractionCompute-dev \
+  --query 'Stacks[0].Outputs[?OutputKey==`EcrRepositoryUri`].OutputValue' \
+  --output text)
+
+REGISTRY="${ECR_URI%%/*}"
+REGION=$(echo "$REGISTRY" | cut -d. -f4)
+
 # Build from workspace root
 cd /workspace
 docker build -t kg-extraction:latest -f infra/docker/Dockerfile .
 
-# Get ECR URI and push
-ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
-REGION=$(aws configure get region)
-ECR_URI="$ACCOUNT_ID.dkr.ecr.$REGION.amazonaws.com/kg-extraction-dev"
+aws ecr get-login-password --region "$REGION" \
+  | docker login --username AWS --password-stdin "$REGISTRY"
 
-aws ecr get-login-password --region $REGION | docker login --username AWS --password-stdin $ECR_URI
-docker tag kg-extraction:latest $ECR_URI:latest
-docker push $ECR_URI:latest
+docker tag kg-extraction:latest "$ECR_URI:latest"
+docker push "$ECR_URI:latest"
 ```
 
 ### 4. Configure Workload Identity Federation

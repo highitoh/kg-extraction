@@ -78,20 +78,29 @@ cdk destroy --all
 
 ### Build and Push Docker Image
 
-Before deploying compute stack, build and push the extraction workflow Docker image:
+ComputeStack creates the ECR repository, so deploy it first, then push the
+extraction workflow image. Batch jobs fail at run time until the image exists.
 
 ```bash
-# Build Docker image
+# Resolve the repository URI from the deployed stack
+ECR_URI=$(aws cloudformation describe-stacks \
+  --stack-name KnowledgeExtractionCompute-dev \
+  --query 'Stacks[0].Outputs[?OutputKey==`EcrRepositoryUri`].OutputValue' \
+  --output text)
+
+# Derive the registry host and its region from that URI
+REGISTRY="${ECR_URI%%/*}"
+REGION=$(echo "$REGISTRY" | cut -d. -f4)
+
+# Build, tag and push
 cd /workspace
 docker build -t kg-extraction:latest -f infra/docker/Dockerfile .
 
-# Tag for ECR
-aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin ACCOUNT-ID.dkr.ecr.us-east-1.amazonaws.com
+aws ecr get-login-password --region "$REGION" \
+  | docker login --username AWS --password-stdin "$REGISTRY"
 
-docker tag kg-extraction:latest ACCOUNT-ID.dkr.ecr.us-east-1.amazonaws.com/kg-extraction-dev:latest
-
-# Push to ECR
-docker push ACCOUNT-ID.dkr.ecr.us-east-1.amazonaws.com/kg-extraction-dev:latest
+docker tag kg-extraction:latest "$ECR_URI:latest"
+docker push "$ECR_URI:latest"
 ```
 
 **Automated in CDK**: ComputeStack creates ECR repository automatically. Use CDK Docker asset for integrated build/push:
@@ -612,10 +621,11 @@ aws ecr describe-images --repository-name kg-extraction-dev
    cd /workspace
    docker build -t kg-extraction:latest -f infra/docker/Dockerfile .
    ```
-3. **Push to ECR**:
+3. **Push to ECR** (see [Build and Push Docker Image](#build-and-push-docker-image)
+   for how `ECR_URI` is resolved):
    ```bash
-   docker tag kg-extraction:latest ACCOUNT-ID.dkr.ecr.us-east-1.amazonaws.com/kg-extraction-dev:latest
-   docker push ACCOUNT-ID.dkr.ecr.us-east-1.amazonaws.com/kg-extraction-dev:latest
+   docker tag kg-extraction:latest "$ECR_URI:latest"
+   docker push "$ECR_URI:latest"
    ```
 4. **Update job definition** (CDK automatically updates on next deploy)
 5. **Redeploy compute stack**:
