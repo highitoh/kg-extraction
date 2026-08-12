@@ -43,12 +43,11 @@ Edit `cdk.local.json` with your values:
   "environment": "dev",
   "awsRegion": "ap-northeast-1",
   "gcpProjectId": "YOUR_GCP_PROJECT_ID",
+  "gcpProjectNumber": "YOUR_GCP_PROJECT_NUMBER",
   "gcpLocation": "global"
 }
 ```
 
-Individual values can be overridden per invocation with `-c key=value`,
-which takes precedence over `cdk.local.json`.
 
 Then bootstrap CDK (once per account/region):
 
@@ -84,33 +83,36 @@ cd infra
 Set up GCP Workload Identity Federation to allow AWS roles to access Vertex AI:
 
 ```bash
-# Get the Batch Job Role ARN from CDK outputs
-ROLE_ARN=$(aws cloudformation describe-stacks \
-  --stack-name KnowledgeExtractionCompute-dev \
-  --query 'Stacks[0].Outputs[?OutputKey==`BatchJobRoleArn`].OutputValue' \
-  --output text)
+GCP_PROJECT_ID=YOUR_GCP_PROJECT_ID
+GCP_PROJECT_NUMBER=$(gcloud projects describe "$GCP_PROJECT_ID" \
+  --format='value(projectNumber)')
+AWS_ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
 
-# In GCP Console or CLI:
 # 1. Create a Workload Identity Pool
 gcloud iam workload-identity-pools create aws-extraction-pool \
-  --project=YOUR_GCP_PROJECT_ID \
+  --project="$GCP_PROJECT_ID" \
   --location=global \
   --display-name="AWS Extraction Pool"
 
 # 2. Add AWS as a provider
 gcloud iam workload-identity-pools providers create-aws aws-provider \
-  --project=YOUR_GCP_PROJECT_ID \
+  --project="$GCP_PROJECT_ID" \
   --location=global \
   --workload-identity-pool=aws-extraction-pool \
-  --account-id=YOUR_AWS_ACCOUNT_ID
+  --account-id="$AWS_ACCOUNT_ID"
 
-# 3. Grant Vertex AI User role to the workload identity
-gcloud projects add-iam-policy-binding YOUR_GCP_PROJECT_ID \
-  --member="principalSet://iam.googleapis.com/projects/PROJECT_NUMBER/locations/global/workloadIdentityPools/aws-extraction-pool/attribute.aws_role/$ROLE_ARN" \
+# 3. Grant Vertex AI access to the Batch job role.
+ROLE_ARN=$(aws cloudformation describe-stacks \
+  --stack-name KnowledgeExtractionCompute-dev \
+  --query 'Stacks[0].Outputs[?OutputKey==`BatchJobRoleArn`].OutputValue' \
+  --output text)
+ROLE_NAME="${ROLE_ARN##*/}"
+
+gcloud projects add-iam-policy-binding "$GCP_PROJECT_ID" \
+  --member="principalSet://iam.googleapis.com/projects/$GCP_PROJECT_NUMBER/locations/global/workloadIdentityPools/aws-extraction-pool/attribute.aws_role/arn:aws:sts::$AWS_ACCOUNT_ID:assumed-role/$ROLE_NAME" \
   --role="roles/aiplatform.user"
 ```
 
-See [GCP Workload Identity Federation docs](https://cloud.google.com/iam/docs/workload-identity-federation-with-other-clouds) for details.
 
 ## Using the API
 

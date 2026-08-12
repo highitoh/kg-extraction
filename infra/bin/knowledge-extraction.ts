@@ -23,7 +23,10 @@ const getConfig = (key: string): string | undefined =>
 const orgName = getConfig('orgName');
 const environment = getConfig('environment') || 'dev';
 const gcpProjectId = getConfig('gcpProjectId');
+const gcpProjectNumber = getConfig('gcpProjectNumber');
 const gcpLocation = getConfig('gcpLocation') || 'global';
+const gcpWifPool = getConfig('gcpWifPool') || 'aws-extraction-pool';
+const gcpWifProvider = getConfig('gcpWifProvider') || 'aws-provider';
 
 // Resource names carry no region component, so deploying to an unintended
 // region silently creates a parallel copy of the whole system instead of
@@ -64,6 +67,15 @@ if (!gcpProjectId) {
   );
 }
 
+// The Workload Identity Federation audience embeds the numeric project
+// number, which cannot be derived from the project ID at synth time.
+if (!gcpProjectNumber) {
+  throw new Error(
+    'gcpProjectNumber must be provided via cdk.local.json or CDK context. ' +
+      "Look it up with: gcloud projects describe PROJECT_ID --format='value(projectNumber)'",
+  );
+}
+
 // Stack IDs and resource names carry the environment suffix so that
 // dev/staging/prod can coexist in one AWS account and region.
 
@@ -80,6 +92,9 @@ const computeStack = new ComputeStack(app, `KnowledgeExtractionCompute-${environ
   env,
   environment,
   gcpProjectId,
+  gcpProjectNumber,
+  gcpWifPool,
+  gcpWifProvider,
   gcpLocation,
   extractionBucket: storageStack.extractionBucket,
   jobsTable: storageStack.jobsTable,

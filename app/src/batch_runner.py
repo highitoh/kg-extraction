@@ -681,9 +681,19 @@ def preflight_llm_config():
     if not os.environ.get("LLM_PROVIDER"):
         logger.error("LLM_PROVIDER must be set (the AWS job definition sets gcp_vertexai)")
         sys.exit(2)
-    if os.environ.get("LLM_PROVIDER") == "gcp_vertexai" and not os.environ.get("GOOGLE_CLOUD_PROJECT"):
-        logger.error("GOOGLE_CLOUD_PROJECT must be set when using Vertex AI")
-        sys.exit(2)
+    if os.environ.get("LLM_PROVIDER") == "gcp_vertexai":
+        if not os.environ.get("GOOGLE_CLOUD_PROJECT"):
+            logger.error("GOOGLE_CLOUD_PROJECT must be set when using Vertex AI")
+            sys.exit(2)
+        # Wire up Workload Identity Federation before the first LLM call;
+        # google-auth cannot reach the Fargate credentials endpoint on its own.
+        from src.utils.gcp_wif import setup_workload_identity
+
+        try:
+            setup_workload_identity()
+        except Exception as e:
+            logger.error(f"Failed to configure GCP federated credentials: {e}")
+            sys.exit(2)
 
 
 def main():

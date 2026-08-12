@@ -11,6 +11,9 @@ import { Construct } from 'constructs';
 interface ComputeStackProps extends cdk.StackProps {
   environment: string;
   gcpProjectId: string;
+  gcpProjectNumber: string;
+  gcpWifPool: string;
+  gcpWifProvider: string;
   gcpLocation?: string;
   extractionBucket: s3.Bucket;
   jobsTable: dynamodb.Table;
@@ -117,6 +120,12 @@ export class ComputeStack extends cdk.Stack {
           LLM_PROVIDER: 'gcp_vertexai',
           GOOGLE_CLOUD_PROJECT: props.gcpProjectId,
           GOOGLE_CLOUD_LOCATION: props.gcpLocation || 'global',
+          // batch_runner exchanges the task role credentials for GCP tokens
+          // against this Workload Identity Federation provider
+          GOOGLE_WIF_AUDIENCE:
+            `//iam.googleapis.com/projects/${props.gcpProjectNumber}` +
+            `/locations/global/workloadIdentityPools/${props.gcpWifPool}` +
+            `/providers/${props.gcpWifProvider}`,
           BUCKET_NAME: props.extractionBucket.bucketName,
           JOBS_TABLE: props.jobsTable.tableName,
           CLASSES_TABLE: props.classesTable.tableName,
