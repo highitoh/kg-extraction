@@ -20,9 +20,22 @@ export class EventsStack extends cdk.Stack {
       description: 'Role for EventBridge to submit Batch jobs',
     });
 
+    // Submitting by job definition name lets Batch pick the active revision,
+    // but IAM then authorises against the unversioned ARN, which a
+    // revision-qualified resource never matches. Grant both forms.
+    const jobDefinitionArnBase = cdk.Stack.of(this).formatArn({
+      service: 'batch',
+      resource: 'job-definition',
+      resourceName: props.jobDefinition.jobDefinitionName,
+    });
+
     eventBridgeRole.addToPolicy(new iam.PolicyStatement({
       actions: ['batch:SubmitJob'],
-      resources: [props.jobQueue.jobQueueArn, props.jobDefinition.jobDefinitionArn],
+      resources: [
+        props.jobQueue.jobQueueArn,
+        jobDefinitionArnBase,
+        `${jobDefinitionArnBase}:*`,
+      ],
     }));
 
     // Example: Daily Confluence extraction at 2 AM UTC (commented out by default)

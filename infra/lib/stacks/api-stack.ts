@@ -46,6 +46,20 @@ export class ApiStack extends cdk.Stack {
     // Lambda code directory
     const lambdaCode = lambda.Code.fromAsset('../lambda');
 
+    // SubmitJob is called with the job definition name so that Batch picks the
+    // active revision. IAM then authorises against the unversioned ARN, which a
+    // revision-qualified resource never matches, so grant both forms.
+    const jobDefinitionArnBase = cdk.Stack.of(this).formatArn({
+      service: 'batch',
+      resource: 'job-definition',
+      resourceName: props.jobDefinition.jobDefinitionName,
+    });
+    const batchSubmitResources = [
+      props.jobQueue.jobQueueArn,
+      jobDefinitionArnBase,
+      `${jobDefinitionArnBase}:*`,
+    ];
+
     // Helper function to create Lambda with common settings
     const createLambda = (name: string, handler: string, timeout = 30): lambda.Function => {
       const fn = new lambda.Function(this, name, {
@@ -72,7 +86,7 @@ export class ApiStack extends cdk.Stack {
       // Grant Batch permissions
       fn.addToRolePolicy(new iam.PolicyStatement({
         actions: ['batch:SubmitJob', 'batch:DescribeJobs'],
-        resources: [props.jobQueue.jobQueueArn, props.jobDefinition.jobDefinitionArn],
+        resources: batchSubmitResources,
       }));
 
       return fn;
@@ -190,7 +204,7 @@ export class ApiStack extends cdk.Stack {
 
     mcpLambda.addToRolePolicy(new iam.PolicyStatement({
       actions: ['batch:SubmitJob', 'batch:DescribeJobs'],
-      resources: [props.jobQueue.jobQueueArn, props.jobDefinition.jobDefinitionArn],
+      resources: batchSubmitResources,
     }));
 
     // Add /mcp endpoint
