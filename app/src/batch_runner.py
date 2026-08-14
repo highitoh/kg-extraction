@@ -800,6 +800,11 @@ def main():
             errors = "; ".join(result.get("errors", [])) or "unknown error"
             raise RuntimeError(f"Extraction failed: {errors}")
 
+        # A run that extracted nothing is a failure.
+        if result["summary"]["classes_count"] == 0:
+            errors = "; ".join(result.get("errors", [])) or "no errors reported"
+            raise RuntimeError(f"Extraction produced no classes: {errors}")
+
         logger.info(f"Extraction completed: {result['summary']}")
 
         # Stage 5: Upload results (85-90%)
