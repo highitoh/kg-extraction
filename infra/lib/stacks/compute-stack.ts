@@ -6,6 +6,7 @@ import * as iam from 'aws-cdk-lib/aws-iam';
 import * as s3 from 'aws-cdk-lib/aws-s3';
 import * as dynamodb from 'aws-cdk-lib/aws-dynamodb';
 import * as ecr from 'aws-cdk-lib/aws-ecr';
+import * as logs from 'aws-cdk-lib/aws-logs';
 import { Construct } from 'constructs';
 
 interface ComputeStackProps extends cdk.StackProps {
@@ -101,6 +102,12 @@ export class ComputeStack extends cdk.Stack {
       ],
     });
 
+    const jobLogGroup = new logs.LogGroup(this, 'ExtractionJobLogGroup', {
+      logGroupName: `/aws/batch/kg-extraction-${environment}`,
+      retention: logs.RetentionDays.ONE_MONTH,
+      removalPolicy: cdk.RemovalPolicy.DESTROY,
+    });
+
     // Job Definition
     this.jobDefinition = new batch.EcsJobDefinition(this, 'ExtractionJobDefinition', {
       jobDefinitionName: `extraction-job-${environment}`,
@@ -136,6 +143,7 @@ export class ComputeStack extends cdk.Stack {
           CHANGESETS_TABLE: props.changesetsTable.tableName,
         },
         logging: ecs.LogDriver.awsLogs({
+          logGroup: jobLogGroup,
           streamPrefix: 'extraction-job',
         }),
       }),
@@ -178,6 +186,11 @@ export class ComputeStack extends cdk.Stack {
     new cdk.CfnOutput(this, 'BatchJobRoleArn', {
       value: jobRole.roleArn,
       description: 'ARN of the batch job role (configure in GCP Workload Identity Federation)',
+    });
+
+    new cdk.CfnOutput(this, 'JobLogGroup', {
+      value: jobLogGroup.logGroupName,
+      description: 'CloudWatch log group for batch job output',
     });
   }
 }

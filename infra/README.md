@@ -166,7 +166,7 @@ cdk diff --all
 cdk deploy --all -c environment=prod --require-approval broadening
 
 # View logs
-aws logs tail /aws/batch/job --follow
+aws logs tail /aws/batch/kg-extraction-dev --follow
 
 # Destroy
 cdk destroy --all

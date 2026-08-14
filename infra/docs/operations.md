@@ -201,7 +201,7 @@ const bucket = new s3.Bucket(this, 'ExtractionBucket', {
 
 **View logs in AWS Console**:
 1. Go to **CloudWatch → Log Groups**
-2. Find `/aws/batch/job`
+2. Find `/aws/batch/kg-extraction-dev`
 3. Filter by job name or search keywords
 
 **View logs via CLI** (recommended for debugging):
@@ -221,7 +221,7 @@ LOG_STREAM=$(aws batch describe-jobs \
   --output text)
 
 # Tail logs in real-time
-aws logs tail /aws/batch/job \
+aws logs tail /aws/batch/kg-extraction-dev \
   --follow \
   --log-stream-names $LOG_STREAM \
   --format short
@@ -230,7 +230,7 @@ aws logs tail /aws/batch/job \
 **Search logs for errors**:
 ```bash
 aws logs filter-log-events \
-  --log-group-name /aws/batch/job \
+  --log-group-name /aws/batch/kg-extraction-dev \
   --filter-pattern "ERROR" \
   --start-time $(date -u -d '1 hour ago' +%s)000
 ```
@@ -492,12 +492,11 @@ def handler(event, context):
    });
    ```
 
-5. **CloudWatch Logs Retention** (reduce storage costs):
+5. **CloudWatch Logs Retention**: ComputeStack expires job logs after one
+   month. Shorten it in `lib/stacks/compute-stack.ts` to cut storage costs
+   further:
    ```typescript
-   new logs.LogGroup(this, 'BatchLogs', {
-     logGroupName: '/aws/batch/job',
-     retention: logs.RetentionDays.SEVEN_DAYS, // or 30, 90 days
-   });
+   retention: logs.RetentionDays.ONE_WEEK,
    ```
 
 6. **Use Gemini Flash Lite** (cheapest model):
@@ -565,7 +564,7 @@ aws batch describe-job-queues --job-queues extraction-queue-dev
 **Diagnosis**:
 ```bash
 # Check logs
-aws logs tail /aws/batch/job --follow --filter-pattern "Gemini"
+aws logs tail /aws/batch/kg-extraction-dev --follow --filter-pattern "Gemini"
 ```
 
 **Common causes**:
@@ -659,7 +658,7 @@ aws ecr describe-images --repository-name kg-extraction-dev
 
 **Delete old CloudWatch logs**:
 ```bash
-aws logs delete-log-group --log-group-name /aws/batch/job
+aws logs delete-log-group --log-group-name /aws/batch/kg-extraction-dev
 ```
 
 ### Backup DynamoDB
