@@ -94,12 +94,15 @@ gcloud iam workload-identity-pools create aws-extraction-pool \
   --location=global \
   --display-name="AWS Extraction Pool"
 
-# 2. Add AWS as a provider
+# 2. Add AWS as a provider.
+#    The default google.subject is the full ARN, which on Fargate exceeds the
+#    127-byte limit. A mapping replaces the defaults, so aws_role is restated.
 gcloud iam workload-identity-pools providers create-aws aws-provider \
   --project="$GCP_PROJECT_ID" \
   --location=global \
   --workload-identity-pool=aws-extraction-pool \
-  --account-id="$AWS_ACCOUNT_ID"
+  --account-id="$AWS_ACCOUNT_ID" \
+  --attribute-mapping="google.subject=assertion.arn.extract('assumed-role/{role_name}/'),attribute.aws_role=assertion.arn.contains('assumed-role') ? assertion.arn.extract('{account_arn}assumed-role/') + 'assumed-role/' + assertion.arn.extract('assumed-role/{role_name}/') : assertion.arn"
 
 # 3. Grant Vertex AI access to the Batch job role.
 ROLE_ARN=$(aws cloudformation describe-stacks \
