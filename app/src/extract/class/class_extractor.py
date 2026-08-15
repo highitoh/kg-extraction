@@ -52,6 +52,7 @@ class ClassExtractor(Runnable):
         temperature: float = 0.0,
         progress: bool = True,
         max_concurrency: int = 8,
+        batch_size: int = 25,
         log_dir: str = "/workspace/app/log/class_extractor",
     ):
         self.llm = llm or LLMFactory.create_llm(
@@ -61,6 +62,7 @@ class ClassExtractor(Runnable):
         )
         self.progress = progress
         self.max_concurrency = max_concurrency
+        self.batch_size = batch_size
         self.logger = Logger(log_dir)
 
         # Load JSON schema
@@ -266,10 +268,17 @@ class ClassExtractor(Runnable):
     ) -> List[Dict[str, str]]:
         """
         Process to extract class candidates from target view descriptions (async version).
+        Large views are split into batches of batch_size texts to keep per-call input
+        small enough for exhaustive enumeration, and processed concurrently.
         Returns:
           [{"class": "<class>", "label": "<instance>", "source": "<source>", "file_id": "<source file ID>"} , ...]
         """
-        return await self._extract_labels_async(view_type, texts, metamodel)
+        if not self.batch_size or len(texts) <= self.batch_size:
+            return await self._extract_labels_async(view_type, texts, metamodel)
+
+        batches = [texts[i : i + self.batch_size] for i in range(0, len(texts), self.batch_size)]
+        results = await asyncio.gather(*[self._extract_labels_async(view_type, batch, metamodel) for batch in batches])
+        return [label for batch_labels in results for label in batch_labels]
 
     def _format_texts_with_ids(self, texts: List[Dict[str, Any]]) -> tuple[str, Dict[str, Dict[str, Any]]]:
         """
