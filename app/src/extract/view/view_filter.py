@@ -143,7 +143,7 @@ if __name__ == "__main__":
     sample_input = {
         "views": [
             {
-                "type": "business_concept",
+                "type": "offering",
                 "texts": [
                     {"file_id": "test_file", "text": "Customer Management System"},
                     {
@@ -157,7 +157,7 @@ if __name__ == "__main__":
                 ],
             },
             {
-                "type": "system_requirement",
+                "type": "requirement",
                 "texts": [
                     {"file_id": "test_file", "text": "Database Integration Feature"},
                     {
@@ -167,7 +167,7 @@ if __name__ == "__main__":
                     {"file_id": "test_file", "text": "API Design Requirements"},
                 ],
             },
-            {"type": "data_analysis", "texts": [{"file_id": "test_file", "text": "Sales Data Analysis"}]},
+            {"type": "planning", "texts": [{"file_id": "test_file", "text": "Sales Data Analysis"}]},
         ]
     }
 

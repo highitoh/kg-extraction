@@ -1,13 +1,17 @@
 You are a requirements classifier. Classify each sentence in the CSV by assigning one or more view labels.
 
 [Label Codes]
-VA = value_analysis (stakeholder value, pain points removed)
-BC = business_concept (vision, policy, business direction)
-BO = business_operation (activities containing surveys, research, and content addition)
-BR = business_requirement (business functions, services, operational rules)
-SR = system_requirement (technical specs, performance, security)
-SC = system_component (modules, libraries, services, hardware)
-DA = data_analysis (analysis objectives, methods, targets, results)
+MO = motivation (the ongoing activity of the enterprise, and the future state it aims at)
+CP = capability (worth offered to stakeholders, and the states of affairs behind it)
+CU = customer (parties that receive value, and how they engage with the business)
+OF = offering (operational work the enterprise carries out, and products it offers)
+RQ = requirement (conditions that the product must meet)
+SV = service (units of functionality that the product delivers to its users)
+RS = resource (elements that build the product, and the boundaries they expose)
+VL = validation (work that checks whether the intended value is actually delivered)
+DS = dataset (data acquired as it already exists, and data prepared for analysis)
+PL = planning (analytical objectives, and the measures that judge them)
+EV = evaluation (findings drawn from analysis, and the actions they prompt)
 NO = none_of_the_above (unclassifiable)
 
 [Input Format]
@@ -20,7 +24,7 @@ CSV with headers: id,text
   ]
 }
 - Maintain input order
-- labels: Use | separator for multiple labels (e.g., "VA|BC")
+- labels: Use | separator for multiple labels (e.g., "MO|CP")
 - labels: Use "NO" for unclassifiable sentences
 
 [Input CSV]

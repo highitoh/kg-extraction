@@ -52,27 +52,23 @@ class ViewExtractor(Runnable):
         # Load prompt file
         self.prompt = self._load_prompt()
 
-        # Target views
-        self.views = [
-            "value_analysis",
-            "business_concept",
-            "business_operation",
-            "business_requirement",
-            "system_requirement",
-            "system_component",
-            "data_analysis",
-        ]
-
-        # Label code mapping
+        # Label code mapping; codes must match the [Label Codes] block of prompts/view_extractor.txt
         self.label_codes = {
-            "VA": "value_analysis",
-            "BC": "business_concept",
-            "BO": "business_operation",
-            "BR": "business_requirement",
-            "SR": "system_requirement",
-            "SC": "system_component",
-            "DA": "data_analysis",
+            "MO": "motivation",
+            "CP": "capability",
+            "CU": "customer",
+            "OF": "offering",
+            "RQ": "requirement",
+            "SV": "service",
+            "RS": "resource",
+            "VL": "validation",
+            "DS": "dataset",
+            "PL": "planning",
+            "EV": "evaluation",
         }
+
+        # Target views, in metamodel order
+        self.views = list(self.label_codes.values())
 
         # Initialize Logger
         self.logger = Logger(log_dir)

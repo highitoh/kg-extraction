@@ -278,7 +278,7 @@ if __name__ == "__main__":
         "view_info": {
             "views": [
                 {
-                    "type": "business_concept",
+                    "type": "service",
                     "texts": [
                         {
                             "file_id": "file-abc",
@@ -288,7 +288,7 @@ if __name__ == "__main__":
                     ],
                 },
                 {
-                    "type": "system_component",
+                    "type": "resource",
                     "texts": [
                         {"file_id": "file-abc", "line": 2, "text": "Implementation of database connection module"}
                     ],
