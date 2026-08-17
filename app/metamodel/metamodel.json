@@ -1,562 +1,1001 @@
 {
     "classes": [
         {
-            "iri": "https://github.com/highitoh/kg-extraction#stakeholder",
-            "name": "Stakeholder",
-            "description": "An entity (organization or role) that participates in business activities and receives value through the system or service being developed.",
-            "view_type": "value_analysis",
-            "min_length": 2,
-            "max_length": 10,
-            "extract_rules": [],
-            "prohibit_rules": []
-        },
-        {
-            "iri": "https://github.com/highitoh/kg-extraction#value",
-            "name": "Value",
-            "description": "Represents the benefits or desired states that stakeholders gain through the system or service being developed.",
-            "view_type": "value_analysis",
-            "min_length": 4,
+            "iri": "https://github.com/highitoh/kg-extraction#mission",
+            "name": "Mission",
+            "description": "The ongoing operational activity of the enterprise: what the business is or will be doing on a day-to-day basis. A Mission makes a Vision operative, and is stated broadly enough to cover the enterprise's complete area of operations.",
+            "view_type": "motivation",
+            "min_length": 5,
             "max_length": 30,
             "extract_rules": [
-                "Extract Value when the text explicitly describes a stakeholder-focused benefit or desired end-state that stakeholders gain from the system or service.",
-                "Extract Value when the statement expresses an improvement or outcome that is attributable to the system and is phrased in terms of stakeholder impact (for example, phrases such as \"reduce time to\", \"increase accuracy of\", \"improve customer satisfaction\", \"reduce cost for\", or \"increase revenue from\").",
-                "Extract Value when the benefit includes an identifiable beneficiary (e.g., customers, users, operators, business units) and, where available, an associated measure or qualitative descriptor of the improvement (e.g., time, accuracy, satisfaction, cost, revenue, risk).",
-                "Extract Value only when the content describes outcomes or end-states rather than solutions, capabilities, actions, or technical implementations; if the statement describes a capability, activity, feature, or system requirement, map it to Feature, Business Activity, or System Requirement instead of Value.",
-                "Extract Value statements even when phrased qualitatively, provided they are clearly framed as stakeholder benefits or desired end-states (for example, \"better decision-making for managers\" or \"faster incident resolution for customers\").",
-                "Extract Value when the statement frames a stakeholder benefit, outcome, or desired end-state and includes explicit outcome-framing or trigger words such as \"benefit\", \"value\", \"improve\", \"reduce\", \"increase\", \"enable\", or similar verbs indicating positive change; do not extract statements that only describe means, features, or system capabilities without outcome framing.",
-                "Extract only tangible outcomes or benefits; do not extract abstract concepts or process steps as Values, and if a candidate describes a process, re-classify it as a Business Activity.",
-                "Extract only qualitative or quantitative benefits, outcomes, or improvements; do not extract process steps, activities, or system capabilities, as these belong to Business Activity or Feature."
+                "Extract a Mission when the text states what the enterprise does on an ongoing, day-to-day basis, rather than what it aspires to become.",
+                "Prefer statements that combine an action, a product or service, and a market or customer (for example: \"provide car rental service across Europe for both business and personal customers\"); these three parts are the canonical shape of a Mission.",
+                "Extract a Mission only when the statement is broad enough to cover the enterprise's complete area of operations and generic enough to cover all of its strategies, rather than describing one particular activity, project, or initiative.",
+                "Include the product or service and the served market or customer in the label when the text supplies them, so that the extracted Mission identifies what is delivered and to whom."
             ],
-            "prohibit_rules": []
+            "prohibit_rules": [
+                "Do not extract as Mission a statement about a desired future state, aspiration, or end that the enterprise seeks; a Mission describes ongoing activity, not something to be accomplished, and such statements belong to Vision.",
+                "Do not extract as Mission a statement whose wording describes a desired end-state through judgmental, qualitative, or comparative words (for example: \"best\", \"premier\", \"leading\", \"fastest\", \"lowest-cost\"); the absence of such end-state wording is a defining characteristic of a Mission.",
+                "Do not extract as Mission a concrete process, workflow, task, or step performed by a specific role, team, or organizational unit; a Mission covers the whole area of operations rather than an individual operational activity.",
+                "Do not extract as Mission a statement that governs, constrains, or guides how activity must be carried out; such governance statements are directives rather than the operational activity itself."
+            ]
         },
         {
             "iri": "https://github.com/highitoh/kg-extraction#vision",
             "name": "Vision",
-            "description": "A statement that concisely expresses the long-term ideal state that a company, business, or project aims to achieve.",
-            "view_type": "business_concept",
+            "description": "The future state of the enterprise, described without regard to how it is to be achieved. A Vision is the ultimate, possibly unattainable state the enterprise would like to reach, and is usually long-term and enterprise-wide in perspective.",
+            "view_type": "motivation",
             "min_length": 3,
             "max_length": 30,
             "extract_rules": [
-                "Extract only high-level strategic objectives or aspirational statements that define the long-term ideal state of the entity."
+                "Extract a Vision when the text describes a future state that the enterprise wants to be or become, stated without any indication of how it will be achieved.",
+                "Extract a Vision when the statement encompasses the enterprise as a whole and is long-term in perspective, rather than addressing a single aspect of the business problem.",
+                "Treat judgmental, qualitative, or comparative wording (for example: \"best\", \"premier\", \"leading\", \"trusted\", \"of choice\") as a positive indicator of a Vision rather than a reason to reject the candidate.",
+                "Extract a compound aspiration that covers several ambitions at once as a single Vision, keeping the statement whole rather than splitting it into separate items."
             ],
-            "prohibit_rules": []
+            "prohibit_rules": [
+                "Do not extract as Vision a statement that indicates how the future state is to be achieved, or that describes the ongoing operational activity of the enterprise; those are means of achievement and belong to Mission.",
+                "Do not extract as Vision a statement that is narrow enough to be quantified by a target value, deadline, or metric; a Vision is too broad to be measured directly, and measurable targets belong to Outcome or Indicator.",
+                "Do not extract as Vision a benefit, result, or improvement delivered to a specific party or realized within a defined time frame; such attainable results belong to Outcome or Value.",
+                "Do not extract as Vision a statement scoped to a single product, project, system, or organizational unit rather than to the enterprise as a whole."
+            ]
         },
         {
-            "iri": "https://github.com/highitoh/kg-extraction#concept",
-            "name": "Concept",
-            "description": "A statement that concisely expresses the activity policy toward realizing the ideal (vision) of a company, business, or project.",
-            "view_type": "business_concept",
-            "min_length": 3,
+            "iri": "https://github.com/highitoh/kg-extraction#value-proposition",
+            "name": "Value Proposition",
+            "description": "A collection of values that the business believes it is offering to a stakeholder through a product or service. A Value Proposition aggregates the individual Values that compose it and is directed at a particular stakeholder.",
+            "view_type": "capability",
+            "min_length": 5,
             "max_length": 40,
             "extract_rules": [
-                "Extract a Concept when the text describes a high-level domain idea, taxonomy, policy, framework, or other conceptual notion that captures the intended vision or guiding approach (for example: \"risk model\", \"triage protocol\", \"fraud detection concept\").",
-                "Extract a Concept only when the phrase denotes an abstract construct or organizing principle rather than a concrete action, task, or named product/feature.",
-                "When a phrase describes an ability, capability, or a concrete mechanism (for example: a specific feature, step, or action), prefer extracting it as Feature or Business Activity instead of Concept.",
-                "If a candidate Concept is a short noun phrase that could be interpreted either as an abstract notion or as a concrete item, extract it and flag it for consolidation review to determine correct abstraction layer and linkage to Feature or Business Activity entries.",
-                "Include contextual qualifiers or definitions when available (for example, brief description or intended outcome) to confirm that the extracted item functions as a conceptual policy or framework rather than a concrete task.",
-                "Extract only domain-specific entities or terminology, prioritizing them over generic process descriptions or common nouns; if a candidate is better described as a Feature or System Requirement, prioritize those classes over Concept."
+                "Extract a Value Proposition when the text states, taken as a whole, what the business believes it offers to a particular stakeholder through a product or service.",
+                "Extract a Value Proposition when the statement bundles several benefits together into one overall offer; the individual benefits within it are extracted separately as Value.",
+                "Extract a Value Proposition only when the intended recipient is identified in the text or clearly inferable from the surrounding context.",
+                "Extract a Value Proposition when the offer is tied to a specific product, service, or offering rather than to the enterprise as a whole."
             ],
-            "prohibit_rules": []
+            "prohibit_rules": [
+                "Do not extract as Value Proposition a single benefit, gain, or perceived worth; an individual item of worth belongs to Value.",
+                "Do not extract as Value Proposition a statement about the future state or aspiration of the enterprise as a whole; those belong to Vision.",
+                "Do not extract as Value Proposition a factual state of affairs that the business produces; a state of affairs belongs to Outcome.",
+                "Do not extract as Value Proposition a description of an internal capability, process, or technical function that does not express worth offered to a stakeholder."
+            ]
+        },
+        {
+            "iri": "https://github.com/highitoh/kg-extraction#value",
+            "name": "Value",
+            "description": "The business belief that a stakeholder will value one or more Outcomes that the stakeholder experiences. A Value is a single item of worth as perceived by the receiving party, and is aggregated into a Value Proposition.",
+            "view_type": "capability",
+            "min_length": 3,
+            "max_length": 30,
+            "extract_rules": [
+                "Extract a Value when the text expresses a single benefit, gain, or worth that a stakeholder is believed to perceive from something the business produces or delivers.",
+                "Extract a Value from the perspective of the party receiving it, capturing what that party gains rather than what the business does to deliver it.",
+                "Extract a Value when the text describes a stakeholder's positive perception or judgment of an experience (for example: feeling that a purchase was a good deal, or that a question was satisfactorily answered).",
+                "Extract each distinct perception as its own Value when the same experience is valued differently by different stakeholders."
+            ],
+            "prohibit_rules": [
+                "Do not extract as Value a factual, observable state of affairs that the business produces; the state of affairs is an Outcome, and only the worth a stakeholder places on it is a Value.",
+                "Do not extract as Value an action, process, task, or technical function performed by the business; those belong to Business Activity, Feature, or Component.",
+                "Do not extract as Value a bundled offer that covers several benefits directed at a stakeholder; such a bundle belongs to Value Proposition.",
+                "Do not extract as Value a measurable target, threshold, or metric; those belong to Outcome or Indicator."
+            ]
+        },
+        {
+            "iri": "https://github.com/highitoh/kg-extraction#outcome",
+            "name": "Outcome",
+            "description": "A fact or collection of facts about an experienced state of affairs that the business produces or needs. An Outcome externalizes the state of a thing or of information, and is what a stakeholder may experience and place value on.",
+            "view_type": "capability",
+            "min_length": 3,
+            "max_length": 30,
+            "extract_rules": [
+                "Extract an Outcome when the text states a resulting condition or state of affairs - what has become true - rather than the activity that brought it about.",
+                "Extract an Outcome when the statement describes the state of a thing or of information at some point in the business (for example: an order has been received, a record is up to date, the wheels are attached to the vehicle).",
+                "Extract an Outcome both when the condition is one the business produces and when it is one the business requires as a precondition or trigger.",
+                "Phrase the label as a state or result, keeping the subject whose state is being described."
+            ],
+            "prohibit_rules": [
+                "Do not extract as Outcome the activity, process, or capability that produces the state; those belong to Business Activity, Feature, or Component.",
+                "Do not extract as Outcome a stakeholder's perception of worth or benefit in a state of affairs; that perception belongs to Value.",
+                "Do not extract as Outcome a desired future state of the enterprise as a whole; those belong to Vision.",
+                "Do not extract as Outcome a rule, constraint, or requirement prescribing how the business or product must behave; those belong to Product Requirement."
+            ]
+        },
+        {
+            "iri": "https://github.com/highitoh/kg-extraction#stakeholder",
+            "name": "Stakeholder",
+            "description": "A type or class of party that receives value from the business, including customers, partner businesses, and other value-receiving parties. A Stakeholder identifies the party rather than describing it in detail, and is the party a Value Proposition is directed at.",
+            "view_type": "customer",
+            "min_length": 2,
+            "max_length": 10,
+            "extract_rules": [
+                "Extract a Stakeholder when the text names a type or class of party that receives, uses, or is affected by what the business offers.",
+                "Extract a Stakeholder as a role or class of party rather than as a named individual or a single named organization.",
+                "Extract a Stakeholder for parties on either side of a contracted relationship, including customers, partner businesses, and other value-receiving parties.",
+                "Keep the label to the identifying term for the party; characteristics, needs, and states of mind stated about the party are not part of the label."
+            ],
+            "prohibit_rules": [
+                "Do not extract as Stakeholder an internal organizational unit, team, or system that only performs work and does not receive value.",
+                "Do not extract as Stakeholder a benefit, need, or expectation attributed to a party; the party itself is the Stakeholder and the worth it perceives belongs to Value.",
+                "Do not extract as Stakeholder an interaction, channel, or phase at which a party engages with the business; those belong to Touchpoint or Customer Journey Stage."
+            ]
+        },
+        {
+            "iri": "https://github.com/highitoh/kg-extraction#customer-journey",
+            "name": "Customer Journey",
+            "description": "A sequence of stages through which a stakeholder may pass with respect to a product or service. A Customer Journey is defined by the business as a reusable whole, and the experience it describes accumulates across its stages.",
+            "view_type": "customer",
+            "min_length": 2,
+            "max_length": 15,
+            "extract_rules": [
+                "Extract a Customer Journey when the text names or describes an end-to-end path that a stakeholder passes through with respect to a product or service, taken as a whole.",
+                "Extract a Customer Journey when the path is described from the business's view of stakeholder behavior and could be taken by more than one type of stakeholder.",
+                "Extract the journey as a single item covering the whole path; the significant points along it are extracted separately as Customer Journey Stage."
+            ],
+            "prohibit_rules": [
+                "Do not extract as Customer Journey a single stage, step, or interaction within a path; those belong to Customer Journey Stage or Touchpoint.",
+                "Do not extract as Customer Journey a business process, workflow, or procedure executed by the enterprise; a journey describes what the stakeholder passes through, not what the business performs.",
+                "Do not extract as Customer Journey a description containing branches, alternative paths, or conditional routing; a journey is a cumulative sequence without alternative paths, and branching indicates a process instead."
+            ]
+        },
+        {
+            "iri": "https://github.com/highitoh/kg-extraction#customer-journey-stage",
+            "name": "Customer Journey Stage",
+            "description": "A significant stage within a Customer Journey, such as becoming aware, seeking a solution, weighing alternatives, acquiring, using, or disposing of it. A stage is often where the stakeholder decides whether to continue or abandon the journey.",
+            "view_type": "customer",
+            "min_length": 2,
+            "max_length": 15,
+            "extract_rules": [
+                "Extract a Customer Journey Stage when the text names a significant phase that a stakeholder passes through on the way through a journey.",
+                "Extract a Customer Journey Stage when the phase is a point at which the stakeholder forms a judgment or decides whether to proceed further.",
+                "Extract phases such as becoming aware, searching for a solution, comparing alternatives, acquiring, using, and disposing when the text presents them as distinct stages."
+            ],
+            "prohibit_rules": [
+                "Do not extract as Customer Journey Stage a specific interaction or point of contact between the business and the stakeholder; a concrete interaction belongs to Touchpoint.",
+                "Do not extract as Customer Journey Stage the complete path taken by the stakeholder; the whole path belongs to Customer Journey.",
+                "Do not extract as Customer Journey Stage a step in a process or workflow performed internally by the enterprise."
+            ]
+        },
+        {
+            "iri": "https://github.com/highitoh/kg-extraction#touchpoint",
+            "name": "Touchpoint",
+            "description": "An interaction between the business and a stakeholder, at which the stakeholder experiences one or more Outcomes. A Touchpoint is where the value offered by the business is actually delivered and perceived.",
+            "view_type": "customer",
+            "min_length": 2,
+            "max_length": 15,
+            "extract_rules": [
+                "Extract a Touchpoint when the text describes a concrete point of interaction or contact between the business and a stakeholder.",
+                "Extract a Touchpoint when the stakeholder experiences a result at that interaction, such as receiving a service, obtaining information that answers a question, accepting an offering, or using something that was supplied.",
+                "Extract a Touchpoint at the level of the individual interaction, naming the interaction itself rather than the phase of the journey that contains it."
+            ],
+            "prohibit_rules": [
+                "Do not extract as Touchpoint a broad phase of the stakeholder's journey; a phase belongs to Customer Journey Stage.",
+                "Do not extract as Touchpoint a screen, channel, or system element described purely as a technical component without reference to the stakeholder's experience; those belong to Interface or Component.",
+                "Do not extract as Touchpoint the result that the stakeholder experiences at the interaction; the result itself belongs to Outcome."
+            ]
         },
         {
             "iri": "https://github.com/highitoh/kg-extraction#business-activity",
             "name": "Business Activity",
-            "description": "A business activity performed by stakeholders; business requirements are realized through these activities.",
-            "view_type": "business_operation",
+            "description": "An operational activity that the enterprise carries out in order to realize an Outcome. A Business Activity is what the organization does, as distinct from the product it offers.",
+            "view_type": "offering",
             "min_length": 5,
             "max_length": 50,
             "extract_rules": [
-                "Extract a Business Activity only when the phrase describes a process, task, or operation performed by an actor; prefer verbs, gerunds, or process nouns that imply action, and do not extract single-word outcomes, goals, or metrics (map those to Value or Indicator).",
-                "Extract a Business Activity when the phrase is a verb or verb phrase that denotes a repeatable operation or end-to-end business process performed by an actor or stakeholder (for example: \"process payments\", \"onboard customers\", \"schedule appointments\").",
-                "Extract a Business Activity when the described operation delivers observable business value or outcome and can be executed or repeated by a person, role, or organizational unit rather than being an internal implementation detail.",
-                "Extract a Business Activity when the phrase names a cohesive task or workflow (one or more steps) that stakeholders recognize as a business-level responsibility, even if it can be decomposed into subtasks.",
-                "Extract a Business Activity when the phrase explicitly or implicitly identifies the performing actor (role, team, or external stakeholder) or when actor attribution is inferable from context.",
-                "Extract a Business Activity when the phrase expresses a recurring or regularized function of the business (scheduled, periodic, or standard operating procedures) rather than a one-off event.",
-                "Extract as Business Activity only processes, workflows, or actions performed by stakeholders; exclude static objects, data entities, or system outputs, and ensure the activity describes a dynamic process with a clear purpose.",
-                "Extract only activities that involve a clear transformation of input to output or a specific operational process; exclude high-level strategic objectives or vague business intentions to prevent scope creep."
+                "Extract a Business Activity when the text describes work carried out by the enterprise itself that brings about a state of affairs the business intends.",
+                "Extract a Business Activity when the phrase denotes an operation, task, or workflow performed by a role, team, or organizational unit, rather than a thing that is delivered.",
+                "Extract a Business Activity when the performing party is stated in the text or inferable from the surrounding context.",
+                "Extract a Business Activity when the work is an ongoing or repeatable function of the business rather than a one-off event.",
+                "Phrase the label as the action performed, keeping the verb that expresses what is done."
             ],
             "prohibit_rules": [
-                "Do not accept candidates that are static states, goals, or desired outcomes; these belong to Value or Business Requirement, as a Business Activity must involve a verb-based process or operational execution.",
-                "Do not extract as Business Activity if the entity describes a technical system capability, a specific feature, or a static system requirement; Business Activities must represent high-level organizational processes, operational tasks, or workflows.",
-                "Do not extract activities that are purely technical, internal system processes, or administrative tasks (e.g., \"data logging\", \"system initialization\"); these should be excluded or mapped to System Component functionality.",
-                "Do not extract high-level strategic objectives or mission statements as Business Activity; these should be categorized as Vision or Analysis Goal, as a Business Activity must represent a specific, repeatable operational process."
+                "Do not extract as Business Activity the state of affairs that the work brings about; the resulting state belongs to Outcome.",
+                "Do not extract as Business Activity a product, service, or deliverable that the enterprise offers; the thing offered belongs to Product.",
+                "Do not extract as Business Activity behavior performed by a product or system rather than by the organization; product behavior belongs to Feature or Component.",
+                "Do not extract as Business Activity a desired result, goal, or benefit; those belong to Outcome or Value.",
+                "Do not extract as Business Activity a rule or condition that governs how work must be carried out rather than the work itself."
             ]
         },
         {
-            "iri": "https://github.com/highitoh/kg-extraction#business-requirement",
-            "name": "Business Requirement",
-            "description": "Descriptions of business requirements demanded of the system or service being developed.",
-            "view_type": "business_requirement",
-            "min_length": 5,
-            "max_length": 50,
+            "iri": "https://github.com/highitoh/kg-extraction#product",
+            "name": "Product",
+            "description": "A product or service that the enterprise offers in order to realize an Outcome. A Product is the delivered thing itself, as distinct from the activity the organization performs, and requirements are placed on it.",
+            "view_type": "offering",
+            "min_length": 2,
+            "max_length": 20,
             "extract_rules": [
-                "Extract a Business Requirement when the text contains obligative or modal verbs that indicate a prescriptive demand, such as \"shall\", \"must\", \"required\", \"should\", \"will\", or explicit phrases like \"is required to\" or \"is required that\".",
-                "Extract a Business Requirement when the sentence follows a stakeholder-driven need structure: [Stakeholder] + [verb of need/obligation] + [action or outcome], for example \"The user must be able to...\" or \"The department shall ensure...\".",
-                "Extract a Business Requirement when the text defines a constraint, obligation, acceptance criterion, or a mandated capability that implies a change to system behavior, process, or deliverable.",
-                "Extract a Business Requirement when the statement includes measurable or testable criteria (e.g., performance thresholds, deadlines, success conditions) that indicate a requirement rather than a high-level goal.",
-                "When extracting, capture and attach an evidence token list containing the obligative/modal verbs and key phrases found in the source text (for example: \"shall\", \"must\", \"required\", \"should\", \"is required to\", \"is required that\", \"must be able to\", \"shall ensure\").",
-                "Extract a Business Requirement when the statement is explicitly labeled or introduced as a requirement (for example: headings, bullets, or prefatory text like \"Business Requirement:\").",
-                "If the text is outcome-oriented but lacks prescriptive language or obligative verbs (for example, it describes a desired outcome, goal, or benefit such as \"improve customer satisfaction\"), treat it as a Value rather than a Business Requirement and do not extract it as a Business Requirement.",
-                "Extract candidate Business Requirements even when conditional language is present (for example \"If X, the system must...\"), but include the condition text and evidence tokens so a reviewer can confirm scope and applicability.",
-                "Extract a Business Requirement when the text describes a clear stakeholder pain point or operational friction that necessitates a system solution, even if explicit obligative language is absent, provided the context implies a mandatory corrective action.",
-                "Ensure extracted Business Requirements are phrased as actionable needs (e.g., \"The system must allow X\"). If a candidate is phrased as a noun-heavy concept without an action, re-evaluate if it should be a Concept instead.",
-                "Prefer Business Requirement only when the statement expresses a business need, obligation, policy, or operational outcome at the problem level; if the sentence mainly names a concrete function such as notifying, displaying, recording, deleting, inputting, or guiding, re-evaluate it as Feature or System Requirement.",
-                "Keep the candidate as Business Requirement when the sentence describes an organizational, service-operation, governance, documentation, support, or compliance obligation (for example preparing FAQs, providing support arrangements, maintaining documentation, or ensuring operational continuity), even if action verbs are present."
+                "Extract a Product when the text names a product, service, application, or other offering that the enterprise delivers in order to bring about an intended state of affairs.",
+                "Extract a Product as the named thing itself, using the name the document gives it.",
+                "Extract a Product when the text treats the item as a whole that requirements are placed on, rather than as one of its parts or functions.",
+                "Extract a Product when the item is offered to, or used by, a party outside the work of producing it."
             ],
             "prohibit_rules": [
-                "Do not extract as a Business Requirement if the text describes a technical implementation detail or a specific UI element; these should be captured as Feature or System Component.",
-                "Do not extract as Business Requirement if the content describes a static system component, a technical feature implementation, or a data entity. Requirements must focus on business needs, outcomes, or constraints, not technical solutions.",
-                "Do not extract as Business Requirement when the candidate is dominated by concrete system behavior or interface action verbs such as notify, display, input, record, delete, send, guide, or show and the sentence reads like a functional behavior specification rather than a business need.",
-                "Do not extract as Business Requirement when the sentence primarily specifies a user-facing function, screen behavior, control flow, or data-handling operation that could directly map to a Feature or System Requirement.",
-                "Do not reject a candidate as Business Requirement solely because it contains action verbs if the action is primarily organizational or service-operational rather than a concrete system function."
+                "Do not extract as Product the work the enterprise performs to create, deliver, or operate it; that work belongs to Business Activity.",
+                "Do not extract as Product a function or capability that the product provides to its users; those belong to Feature.",
+                "Do not extract as Product a constraint or condition that the product must satisfy; those belong to Product Requirement.",
+                "Do not extract as Product an internal building block, module, or system element that composes the product rather than being offered in its own right; those belong to Component."
             ]
         },
         {
-            "iri": "https://github.com/highitoh/kg-extraction#feedback",
-            "name": "Feedback",
-            "description": "Feedback produced from analytical insights by the data analysis.",
-            "view_type": "data_analysis",
-            "min_length": 3,
-            "max_length": 60,
-            "extract_rules": [],
-            "prohibit_rules": []
-        },
-        {
-            "iri": "https://github.com/highitoh/kg-extraction#analysis-goal",
-            "name": "Analysis Goal",
-            "description": "The purpose of data analysis; it leads to analytical insights and is defined by indicators.",
-            "view_type": "data_analysis",
-            "min_length": 5,
-            "max_length": 40,
-            "extract_rules": [],
-            "prohibit_rules": []
-        },
-        {
-            "iri": "https://github.com/highitoh/kg-extraction#analytical-insight",
-            "name": "Analytical Insight",
-            "description": "An insight derived from data analysis that contributes to designing business values.",
-            "view_type": "data_analysis",
-            "min_length": 5,
-            "max_length": 60,
-            "extract_rules": [],
-            "prohibit_rules": []
-        },
-        {
-            "iri": "https://github.com/highitoh/kg-extraction#indicator",
-            "name": "Indicator",
-            "description": "A metric/indicator used to define analysis goals and estimated by analytical insights.",
-            "view_type": "data_analysis",
-            "min_length": 2,
-            "max_length": 40,
-            "extract_rules": [],
-            "prohibit_rules": []
-        },
-        {
-            "iri": "https://github.com/highitoh/kg-extraction#operational-data",
-            "name": "Operational Data",
-            "description": "Operational data produced by system components and interfaces (e.g., logs, events, usage records).",
-            "view_type": "data_analysis",
-            "min_length": 2,
-            "max_length": 60,
-            "extract_rules": [
-                "When extracting Operational Data instances, prefer noun phrases that denote concrete, measurable data artifacts such as logs, telemetry, events, sensor readings, dataset names, usage records, and audit trails.",
-                "Mark phrases that explicitly include collection attributes (source, collection frequency, format, protocol, or location) — for example, 'API logs', 'sensor readings at 1Hz', 'Kafka event stream', or 'CSV export from billing system' — as strong candidates for Operational Data.",
-                "If a candidate phrase names a data artifact but lacks explicit collection attributes (for example, 'application logs' without source or frequency), tag it as a candidate-level Operational Data instance with lower confidence and capture missing provenance details where possible.",
-                "Include Operational Data mentions that convey structural or operational properties relevant to extraction, such as schema names, event types, timestamp conventions, retention policy references, partitioning keys, sampling rates, and storage locations.",
-                "Prefer extraction of names or identifiers of datasets, log streams, and event channels (for example, 'transaction_log_2024', 'error_event_stream', 'sensor_temperature_readings') rather than high-level conceptual descriptions.",
-                "When available, extract Operational Data together with contextual metadata (source system, collection method, frequency, and format) to support unambiguous classification and downstream usage."
-            ],
-            "prohibit_rules": []
-        },
-        {
-            "iri": "https://github.com/highitoh/kg-extraction#external-data",
-            "name": "External Data",
-            "description": "External data obtained from outside the system/organization (e.g., market data, third-party datasets).",
-            "view_type": "data_analysis",
-            "min_length": 2,
-            "max_length": 60,
-            "extract_rules": [],
-            "prohibit_rules": []
-        },
-        {
-            "iri": "https://github.com/highitoh/kg-extraction#research-data",
-            "name": "Research Data",
-            "description": "Research/experimental data related to business activities (e.g., surveys, studies, experiment results).",
-            "view_type": "data_analysis",
-            "min_length": 2,
-            "max_length": 60,
-            "extract_rules": [],
-            "prohibit_rules": []
-        },
-        {
-            "iri": "https://github.com/highitoh/kg-extraction#system-requirement",
-            "name": "System Requirement",
-            "description": "Descriptions of technical specifications for the system or service being developed.",
-            "view_type": "system_requirement",
+            "iri": "https://github.com/highitoh/kg-extraction#product-requirement",
+            "name": "Product Requirement",
+            "description": "A stakeholder need placed on a Product, expressed as a condition the Product must meet. A Product Requirement is satisfied by the Features that realize it, may be refined into more detailed requirements, and is stated so that it can be verified.",
+            "view_type": "requirement",
             "min_length": 5,
             "max_length": 50,
             "extract_rules": [
-                "Extract requirements only if they specify a functional capability, performance constraint, security/privacy constraint, data-handling rule, retention rule, interface specification, or other verifiable technical behavior.",
-                "Extract a System Requirement when the statement defines how the system must behave, what technical constraint it must satisfy, or what data/security/performance condition it must enforce, even if phrased as a full requirement sentence rather than a short feature label.",
-                "Prefer System Requirement over Business Requirement when the statement is testable at the system level and focuses on implementation-neutral technical behavior or constraint rather than business motivation.",
-                "Prefer System Requirement for retention, privacy, security, performance, interface, and data-handling rules only when the text constrains the system's technical behavior rather than assigning an organizational or service-operation responsibility."
+                "Extract a Product Requirement when the text expresses a stakeholder need as something the product must do, provide, or comply with, rather than describing what has already been built.",
+                "Extract a Product Requirement when the statement is a demand placed on the product, so that a solution element can be identified as satisfying it.",
+                "Extract a Product Requirement for any kind of need placed on the product, including operational, service, personnel, resource, and security-related needs.",
+                "Extract both the general statement and the more detailed statements that refine it as separate Product Requirements when a passage presents a need together with its elaborations.",
+                "Extract a Product Requirement when the statement is worded so that it can be checked whether the delivered product meets it."
             ],
             "prohibit_rules": [
-                "Do not extract high-level business goals or vague aspirations as System Requirement; these should be categorized as Value or Business Requirement instead.",
-                "Only extract requirements that define specific system behaviors, interfaces, or functional constraints.",
-                "Do not extract as System Requirement if the entity describes a broad business goal, a business process, or an organizational strategy; System Requirements must be verifiable, technical specifications, constraints, or functional capabilities of the system.",
-                "Do not extract as System Requirement when the candidate is merely a short user-facing capability label or product feature name without a requirement statement, constraint, or technical condition; classify such cases as Feature instead.",
-                "Do not reject a candidate as System Requirement solely because it mentions user-visible behavior if the sentence still specifies a verifiable system rule, limit, retention policy, security condition, or technical handling constraint.",
-                "Do not extract as System Requirement when the statement is primarily about organizational support, documentation, service-operation arrangements, governance, or operational responsibility assignment rather than a technical rule that the system itself must satisfy."
+                "Do not extract as Product Requirement the function or capability that satisfies the need; the element that realizes a requirement belongs to Feature.",
+                "Do not extract as Product Requirement the product on which the need is placed; the offered thing itself belongs to Product.",
+                "Do not extract as Product Requirement a state of affairs that the business produces, or a benefit that a stakeholder perceives; those belong to Outcome and Value.",
+                "Do not extract as Product Requirement an aspiration or goal stated for the enterprise as a whole rather than for the product; those belong to Vision or Mission.",
+                "Do not extract as Product Requirement an instruction describing how the organization is to carry out its own operations; that work belongs to Business Activity.",
+                "Do not extract as Product Requirement the act of checking that the product meets a requirement; that checking belongs to Validation Activity."
             ]
         },
         {
             "iri": "https://github.com/highitoh/kg-extraction#feature",
             "name": "Feature",
-            "description": "A user/system-facing capability that realizes system requirements and is implemented by system components.",
-            "view_type": "system_requirement",
+            "description": "A unit of functionality through which the Product delivers a useful result to the party using it. A Feature realizes a Product Requirement, is described independently of how it is built, is reached through an Interface, and is implemented by Components.",
+            "view_type": "service",
             "min_length": 3,
             "max_length": 60,
             "extract_rules": [
-                "Extract a Feature when the text explicitly names a user-facing capability or product feature using terms such as \"feature\", \"capability\", \"function\", \"option\", \"module\" (when used in a user-facing sense), or other wording that indicates functionality delivered to end users.",
-                "Extract a Feature when the description emphasizes user interactions, UI/UX elements, user goals, or intended user benefits (for example: screens, buttons, workflows, user stories, or phrases like \"users can\", \"allows users to\", \"provides users with\").",
-                "Extract the canonical name or label of the Feature as presented in the source (e.g., feature name, menu/option label, or marketing name) when available, and extract a concise one-sentence description of the Feature's purpose or user outcome.",
-                "Extract Feature-level acceptance criteria, user-facing constraints, and typical user scenarios when they are clearly associated with the named capability.",
-                "When source text pairs features with business or product requirements (goals, KPIs, value proposition), extract those associations as attributes of the Feature.",
-                "Prefer extracting a System Component or Interface (not Feature) when the text refers to explicit implementation artifacts such as modules, services, APIs, databases, servers, hardware, libraries, classes, code-level components, or deployment infrastructure.",
-                "If a phrase is ambiguous between being a user-facing capability and an implementation artifact, extract both the Feature and the System Component and tag the extraction with the label \"feature/component ambiguous\" to signal the need for later consolidation and review.",
-                "Extract Feature-level relationships to other Features (dependencies, enabled-by, supersedes) when the relationships are expressed in user-facing or product-oriented terms.",
-                "Extract features described in marketing, documentation, or product roadmaps when they describe user-facing capabilities, even if implementation details are also included in the same source."
+                "Extract a Feature when the text describes a unit of functionality through which the product delivers a useful result to the party using it.",
+                "Extract a Feature when the statement describes what the product does for its user, stated independently of how the functionality is built.",
+                "Extract a Feature when the functionality can be identified as meeting a need placed on the product, so that it traces back to a Product Requirement.",
+                "Extract a Feature when the functionality is reachable by its users through some point of access, whether or not that access point is named in the text.",
+                "Extract a Feature at the level of a nameable unit of functionality, rather than at the level of a single internal step within it.",
+                "Use the name the source gives the functionality when one is stated, rather than rephrasing it."
             ],
             "prohibit_rules": [
-                "Do not extract abstract goals, strategic intents, or high-level outcomes as Features; Features must be concrete, deliverable functionalities, so reject any candidate that represents an abstract concept or a long-term goal."
+                "Do not extract as Feature the need or condition that the functionality satisfies; a stated need belongs to Product Requirement.",
+                "Do not extract as Feature the element that builds or houses the functionality; an implementing element belongs to Component.",
+                "Do not extract as Feature the point of access through which the functionality is reached; an access point belongs to Interface.",
+                "Do not extract as Feature work carried out by the organization rather than by the product; organizational work belongs to Business Activity.",
+                "Do not extract as Feature a service level, target value, or quality threshold expected of the functionality; such a target belongs to Product Requirement or Indicator.",
+                "Do not extract as Feature the state of affairs that results from using the functionality; a resulting state belongs to Outcome.",
+                "Do not extract as Feature an abstract goal, strategic intent, or long-term aspiration; a Feature is a concrete deliverable functionality."
             ]
         },
         {
             "iri": "https://github.com/highitoh/kg-extraction#interface",
             "name": "Interface",
-            "description": "An interface exposed by system components and/or features; it can produce operational data.",
-            "view_type": "system_component",
+            "description": "A declared contract at the boundary of a Component, specifying what it offers to other elements and what it requires from them. An Interface is the point through which a Feature is reached, and data crossing it may form a Source Dataset.",
+            "view_type": "resource",
             "min_length": 2,
             "max_length": 60,
             "extract_rules": [
-                "Extract an Interface when the text explicitly identifies an interaction point or channel through which a system component or feature exposes functionality (for example: API, endpoint, user interface, web portal, REST call, SOAP service, UI screen, or CLI).",
-                "Extract an Interface when the description indicates a concrete integration touchpoint between systems or a concrete interaction point between a user and a system (for example: 'payment gateway endpoint', 'mobile app login screen', 'order submission API').",
-                "Extract an Interface when it describes the mechanism that accepts requests or provides responses, publishes events, or defines a callable contract (for example: endpoints that accept HTTP requests, message topics, callbacks, or published service operations).",
-                "Extract an Interface when it is tied to an implementation or operational artifact (for example: documented endpoints, URLs, ports, SDKs, service endpoints) rather than abstract organizational functions or roles.",
-                "When the text primarily describes the data being exchanged, the message content, or the schema/payload (rather than the channel or interaction point itself), extract Operational Data instead of extracting an Interface.",
-                "Extract Interfaces only when the reference is concrete and actionable (identifiers, protocol, URL, method, endpoint name, or UI screen name); do not extract ambiguous or purely conceptual mentions unless additional context clarifies an actual interaction point."
+                "Extract an Interface when the text identifies a declared boundary through which a component offers its functionality to other elements or to users.",
+                "Extract an Interface for both directions of the contract: the boundary a component provides to others, and the boundary it requires from others in order to work.",
+                "Extract an Interface when the text names a concrete point of interaction, such as an API, endpoint, message topic, screen, or command-line entry point.",
+                "Extract an Interface when the text states what may be called, sent, or received at the boundary, since that is what the contract declares.",
+                "Extract an Interface only when the reference is concrete enough to identify the boundary, rather than a passing or purely conceptual mention."
             ],
-            "prohibit_rules": []
+            "prohibit_rules": [
+                "Do not extract as Interface the functionality reached through the boundary; the functionality itself belongs to Feature.",
+                "Do not extract as Interface the element that owns and exposes the boundary; the owning element belongs to Component.",
+                "Do not extract as Interface the data, message content, or payload that crosses the boundary; what is conveyed belongs to Source Dataset.",
+                "Do not extract as Interface a point of contact between the business and a stakeholder considered as an experience rather than a technical boundary; those belong to Touchpoint.",
+                "Do not extract as Interface an organizational function, role, or responsibility."
+            ]
         },
         {
-            "iri": "https://github.com/highitoh/kg-extraction#system-component",
-            "name": "System Component",
-            "description": "Descriptions of modules and libraries that make up the system or service being developed.",
-            "view_type": "system_component",
+            "iri": "https://github.com/highitoh/kg-extraction#component",
+            "name": "Component",
+            "description": "An element of the solution structure that implements Features and exposes Interfaces. A Component may be software, hardware, a subsystem, or an assembly, and may be composed of other Components.",
+            "view_type": "resource",
             "min_length": 5,
             "max_length": 40,
-            "extract_rules": [],
-            "prohibit_rules": []
+            "extract_rules": [
+                "Extract a Component when the text names an element of the solution structure that carries out functionality, rather than the functionality itself.",
+                "Extract a Component for any kind of constituent element, including software, hardware, firmware, subsystems, assemblies, and supporting elements.",
+                "Extract a Component when the element can be identified as implementing something the product must do, so that it traces back to a Feature.",
+                "Extract a Component when the element owns a boundary through which it is reached by other elements.",
+                "Extract a Component at each named level of composition when the text presents an element together with the parts it is built from.",
+                "Use the name the source gives the element when one is stated, rather than rephrasing it."
+            ],
+            "prohibit_rules": [
+                "Do not extract as Component the functionality that the element carries out; functionality delivered to users belongs to Feature.",
+                "Do not extract as Component the declared boundary through which the element is reached; a boundary belongs to Interface.",
+                "Do not extract as Component the product that is offered as a whole to a party outside the work of producing it; the offered thing belongs to Product.",
+                "Do not extract as Component an organizational unit, team, or role that performs work; organizational work belongs to Business Activity.",
+                "Do not extract as Component the data that the element produces or stores; data belongs to Source Dataset.",
+                "Do not extract as Component a condition that the element must satisfy; a stated need belongs to Product Requirement."
+            ]
+        },
+        {
+            "iri": "https://github.com/highitoh/kg-extraction#validation-activity",
+            "name": "Validation Activity",
+            "description": "An activity carried out to check whether a delivered Product or Business Activity is providing the Value that was intended. A Validation Activity examines what was actually delivered rather than assuming it, and the data it yields feeds the analysis that judges the result.",
+            "view_type": "validation",
+            "min_length": 5,
+            "max_length": 50,
+            "extract_rules": [
+                "Extract a Validation Activity when the text describes work carried out to check whether what the enterprise delivers is providing the worth that was intended for it.",
+                "Extract a Validation Activity when the check is directed at something already delivered or in operation, rather than at something not yet built.",
+                "Extract a Validation Activity when the work is a deliberate act of examination, such as measuring actual use, running a trial, gathering responses from those who receive the offering, or comparing delivered results against what was intended.",
+                "Extract a Validation Activity also when the text describes checking whether a delivered product meets a requirement placed on it, since that too is an examination of what was actually delivered.",
+                "Extract a Validation Activity when the text states, or the surrounding context makes clear, what is being checked.",
+                "Phrase the label as the checking work performed, keeping the verb that expresses the examination."
+            ],
+            "prohibit_rules": [
+                "Do not extract as Validation Activity the worth whose delivery is being checked; intended worth belongs to Value, and the state of affairs belongs to Outcome.",
+                "Do not extract as Validation Activity the thing being checked; the offered product belongs to Product, and the enterprise's own operational work belongs to Business Activity.",
+                "Do not extract as Validation Activity the measure against which delivery is judged; a measure belongs to Indicator.",
+                "Do not extract as Validation Activity the data that the checking yields or draws on; data belongs to Source Dataset or Analysis Dataset.",
+                "Do not extract as Validation Activity what the checking found; a finding belongs to Analytical Insight, and an action taken in response belongs to Next Action.",
+                "Do not extract as Validation Activity work performed to build, deliver, or operate the product; producing something is not a check on the worth it delivers.",
+                "Do not extract as Validation Activity the goal set for an analysis; a stated analytical intent belongs to Analysis Goal."
+            ]
+        },
+        {
+            "iri": "https://github.com/highitoh/kg-extraction#source-dataset",
+            "name": "Source Dataset",
+            "description": "Data acquired for analysis as it already exists, before it is prepared. A Source Dataset is produced by a Component or reached through an Interface, and is the raw material from which an Analysis Dataset is constructed.",
+            "view_type": "dataset",
+            "min_length": 3,
+            "max_length": 40,
+            "extract_rules": [
+                "Extract a Source Dataset when the text names a body of data that is acquired for analysis as it already exists, rather than one constructed for the analysis.",
+                "Extract a Source Dataset when the text identifies where the data comes from, such as the system, log, file, table, or provider it is obtained from.",
+                "Extract a Source Dataset for data of any origin, including data produced by the operation of the product itself and data obtained from outside the enterprise.",
+                "Extract a Source Dataset at the level of the named body of data, rather than at the level of an individual field or record within it.",
+                "Use the name the source gives the data when one is stated, rather than rephrasing it."
+            ],
+            "prohibit_rules": [
+                "Do not extract as Source Dataset data that has been selected, cleaned, combined, or reshaped for the analysis; prepared data belongs to Analysis Dataset.",
+                "Do not extract as Source Dataset the element that produces or stores the data; a producing element belongs to Component, and the boundary it is reached through belongs to Interface.",
+                "Do not extract as Source Dataset a finding obtained from the data; a finding belongs to Analytical Insight.",
+                "Do not extract as Source Dataset a measure used to judge whether a goal was achieved; a measure belongs to Indicator.",
+                "Do not extract as Source Dataset an individual field, column, or attribute described as part of a larger body of data."
+            ]
+        },
+        {
+            "iri": "https://github.com/highitoh/kg-extraction#analysis-dataset",
+            "name": "Analysis Dataset",
+            "description": "The dataset produced by preparing source data, which is what the analysis is actually carried out on. An Analysis Dataset is built from Source Datasets by selecting, cleaning, constructing, integrating, and formatting the data.",
+            "view_type": "dataset",
+            "min_length": 3,
+            "max_length": 40,
+            "extract_rules": [
+                "Extract an Analysis Dataset when the text names a body of data that has been prepared for the analysis and is what the analysis is carried out on.",
+                "Extract an Analysis Dataset when the data is described as having been selected, cleaned, combined, or reshaped before being used.",
+                "Extract an Analysis Dataset when the text describes data constructed from existing data, such as attributes derived from other attributes, or records generated to represent cases the raw data does not hold.",
+                "Extract an Analysis Dataset when the text describes data brought together from several sources into one body, including data summarized to a coarser unit than the sources hold.",
+                "Extract an Analysis Dataset at the level of the named body of data, rather than at the level of a single derived field within it."
+            ],
+            "prohibit_rules": [
+                "Do not extract as Analysis Dataset data taken as it already exists without preparation; unprepared data belongs to Source Dataset.",
+                "Do not extract as Analysis Dataset the work of preparing the data; selecting, cleaning, or reshaping is an activity rather than a dataset.",
+                "Do not extract as Analysis Dataset a finding obtained from the data; a finding belongs to Analytical Insight.",
+                "Do not extract as Analysis Dataset the goal that the analysis is set up to achieve; a stated analytical intent belongs to Analysis Goal.",
+                "Do not extract as Analysis Dataset a model, technique, or tool applied to the data."
+            ]
+        },
+        {
+            "iri": "https://github.com/highitoh/kg-extraction#analysis-goal",
+            "name": "Analysis Goal",
+            "description": "A statement, in technical terms, of what the analysis is intended to produce in order to enable a business objective. An Analysis Goal is defined by the Indicators that judge its achievement, and leads to Analytical Insights.",
+            "view_type": "planning",
+            "min_length": 5,
+            "max_length": 40,
+            "extract_rules": [
+                "Extract an Analysis Goal when the text states what the analysis is intended to produce, expressed in technical terms rather than in business terms.",
+                "Extract an Analysis Goal when the statement names what is to be determined from data, such as describing and summarizing it, dividing it into segments, describing a concept, assigning cases to classes, predicting a value, or finding dependencies between items.",
+                "Extract an Analysis Goal when the text states the intended analytical output together with the data it is to be derived from.",
+                "Extract each Analysis Goal separately when one business question is translated into several analytical outputs.",
+                "Phrase the label as the analytical output sought, keeping the verb that states what is to be determined."
+            ],
+            "prohibit_rules": [
+                "Do not extract as Analysis Goal an objective stated in business terms that the analysis serves; a business-level intent belongs to Outcome or Vision.",
+                "Do not extract as Analysis Goal the measure or threshold by which achievement of the goal is judged; a measure belongs to Indicator.",
+                "Do not extract as Analysis Goal a finding that the analysis has already produced; an obtained finding belongs to Analytical Insight.",
+                "Do not extract as Analysis Goal the data that the analysis is carried out on; data belongs to Source Dataset or Analysis Dataset.",
+                "Do not extract as Analysis Goal a technique, algorithm, or tool chosen to carry out the analysis.",
+                "Do not extract as Analysis Goal a step in the work of preparing data, such as collecting, cleaning, merging, or reformatting it."
+            ]
+        },
+        {
+            "iri": "https://github.com/highitoh/kg-extraction#indicator",
+            "name": "Indicator",
+            "description": "A measure by which it is judged whether a goal has been achieved. An Indicator may be objective, with a benchmark stated for it, or subjective, in which case the party making the judgment is identified; Analytical Insights estimate it.",
+            "view_type": "planning",
+            "min_length": 2,
+            "max_length": 40,
+            "extract_rules": [
+                "Extract an Indicator when the text names a measure by which it is judged whether a goal has been achieved.",
+                "Extract an Indicator when the measure is stated objectively, such as a rate, count, level, accuracy, or lift, whether or not a target value accompanies it.",
+                "Extract an Indicator when the criterion is subjective rather than numeric and the text identifies the party who makes the judgment.",
+                "Extract an Indicator both for measures stated in business terms and for measures stated in technical terms about the analysis itself.",
+                "Extract the measure itself as the label; a target value or benchmark stated for it is not part of the label."
+            ],
+            "prohibit_rules": [
+                "Do not extract as Indicator the goal whose achievement the measure judges; a stated analytical goal belongs to Analysis Goal.",
+                "Do not extract as Indicator a result that the analysis has obtained for the measure; an obtained result belongs to Analytical Insight.",
+                "Do not extract as Indicator the state of affairs that the business produces; a state of affairs belongs to Outcome, and only the measure used to judge it is an Indicator.",
+                "Do not extract as Indicator the data or field from which the measure is computed; data belongs to Source Dataset or Analysis Dataset.",
+                "Do not extract as Indicator a condition that the product must satisfy; a stated need belongs to Product Requirement.",
+                "Do not extract as Indicator an action to be taken in response to what the measure shows; a proposed action belongs to Next Action."
+            ]
+        },
+        {
+            "iri": "https://github.com/highitoh/kg-extraction#analytical-insight",
+            "name": "Analytical Insight",
+            "description": "Something the analysis has found out that is useful to the business, including findings that answer no goal that was set. An Analytical Insight estimates an Indicator, is derived from datasets, and may prompt a Next Action.",
+            "view_type": "evaluation",
+            "min_length": 5,
+            "max_length": 60,
+            "extract_rules": [
+                "Extract an Analytical Insight when the text states something the analysis has found out, rather than something it was set up to find out.",
+                "Extract an Analytical Insight when the finding is presented as novel and useful, rather than restating what was already known.",
+                "Extract an Analytical Insight when the text reports what the analysis showed about a measure, such as a level reached, a relationship observed, or a difference between groups.",
+                "Extract an Analytical Insight even when the finding answers no goal that was set, including side findings such as data quality problems uncovered along the way.",
+                "Extract each finding separately when a passage reports several."
+            ],
+            "prohibit_rules": [
+                "Do not extract as Analytical Insight the goal that the analysis was set up to achieve; a stated analytical intent belongs to Analysis Goal.",
+                "Do not extract as Analytical Insight the measure by which achievement is judged; a measure belongs to Indicator, and only the result obtained for it is an Analytical Insight.",
+                "Do not extract as Analytical Insight an action proposed in response to the finding; a proposed action belongs to Next Action.",
+                "Do not extract as Analytical Insight the data that the finding was derived from; data belongs to Source Dataset or Analysis Dataset.",
+                "Do not extract as Analytical Insight the technique, model, or tool that produced the finding.",
+                "Do not extract as Analytical Insight a state of affairs that the business produces as part of its operation; a business state belongs to Outcome."
+            ]
+        },
+        {
+            "iri": "https://github.com/highitoh/kg-extraction#next-action",
+            "name": "Next Action",
+            "description": "A further course of action proposed in response to what the analysis found. A Next Action may be one option among several or the course decided on, and is directed at what the business or the product should do next.",
+            "view_type": "evaluation",
+            "min_length": 5,
+            "max_length": 50,
+            "extract_rules": [
+                "Extract a Next Action when the text proposes a further course of action to take in response to what the analysis found.",
+                "Extract a Next Action whether the action is one option among several under consideration or the single course that was decided on.",
+                "Extract a Next Action for any kind of follow-on course, including putting a result into use, running a further round of analysis, starting a new analysis, and changing what the business or the product does.",
+                "Extract a Next Action when the action is directed at something upstream that should change, such as a value offered to a stakeholder or a requirement placed on the product.",
+                "Extract the action itself as the label; the reasons stated for and against it are not part of the label."
+            ],
+            "prohibit_rules": [
+                "Do not extract as Next Action the finding that prompted the action; a reported finding belongs to Analytical Insight.",
+                "Do not extract as Next Action the reasons stated for or against an action, or the rationale recorded for a decision.",
+                "Do not extract as Next Action a goal set for the analysis itself; a stated analytical intent belongs to Analysis Goal.",
+                "Do not extract as Next Action work that the enterprise already carries out as a standing part of its operations; ongoing work belongs to Business Activity.",
+                "Do not extract as Next Action a condition that the product must meet; a stated need belongs to Product Requirement.",
+                "Do not extract as Next Action a measure used to judge whether something succeeded; a measure belongs to Indicator."
+            ]
         }
     ],
     "properties": [
         {
-            "iri": "https://github.com/highitoh/kg-extraction#hasConcept",
-            "name": "hasConcept",
-            "description": "Associates concepts linked to a vision.",
-            "src_class": "https://github.com/highitoh/kg-extraction#vision",
-            "dest_class": "https://github.com/highitoh/kg-extraction#concept",
+            "iri": "https://github.com/highitoh/kg-extraction#hasVision",
+            "name": "hasVision",
+            "description": "Associates the vision that a mission serves.",
+            "src_class": "https://github.com/highitoh/kg-extraction#mission",
+            "dest_class": "https://github.com/highitoh/kg-extraction#vision",
+            "extract_rules": [
+                "Extract hasVision when ongoing operational activity of the enterprise is presented alongside the desired future state it serves.",
+                "Accept hasVision when a statement of what the business does day to day and a statement of where it is heading appear together, even without explicit linking wording."
+            ],
             "prohibit_rules": [
-                "Do not extract hasConcept when the candidate span is a verb or verb phrase or otherwise clearly procedural or action-oriented (describing steps, actions, or processes).",
-                "Do not extract hasConcept when the candidate span expresses temporal information such as dates, durations, timelines, scheduling, or sequence markers.",
-                "Do not extract hasConcept when the candidate span denotes an outcome, result, benefit, metric, value judgment, or measurable effect rather than an abstract idea or conceptual entity.",
-                "Do not extract hasConcept when the candidate span is not a definitional noun phrase describing an abstract idea (for example, single-word fragments, isolated entities without conceptual description, or mere labels without definitional context).",
-                "Do not extract hasConcept when there are no explicit concept-linking cues in the local context (for example, phrases like \"concept of\", \"notion\", \"term\", \"defined as\", \"refers to\", or similar phrasing); absence of such cues should prevent extraction.",
-                "Do not extract hasConcept when the target is a verb phrase, procedural description, or otherwise ambiguous between an action/entity and a concept; only accept hasConcept when the target is a clearly conceptual noun phrase (definitions, terms, metaphors). For ambiguous mappings, do not extract unless there is an explicit concept-linking cue in the local context (for example, \"concept of\", \"idea of\", \"term\", \"notion\", \"defined as\", or similar)."
+                "Do not extract hasVision between two statements of desired future state; the source must be the operative side of the pair."
             ]
         },
         {
-            "iri": "https://github.com/highitoh/kg-extraction#realizeValue",
-            "name": "realizeValue",
-            "description": "Associates the value that a concept realizes.",
-            "src_class": "https://github.com/highitoh/kg-extraction#concept",
+            "iri": "https://github.com/highitoh/kg-extraction#realizesValue",
+            "name": "realizesValue",
+            "description": "Associates the value that realizes a vision.",
+            "src_class": "https://github.com/highitoh/kg-extraction#vision",
             "dest_class": "https://github.com/highitoh/kg-extraction#value",
+            "extract_rules": [
+                "Extract realizesValue when a benefit perceived by a stakeholder is presented as what brings the enterprise's desired future state closer.",
+                "Accept realizesValue when a vision is stated together with the worth it is meant to create for those the business serves."
+            ],
             "prohibit_rules": [
-                "Do not create a realizeValue relation when the source is not a Concept or when the destination is not a Value-like outcome, benefit, or desired end state.",
-                "Do not accept realizeValue candidates that are only implied by document proximity or loose thematic similarity between a Concept and a Value when no local causal, enabling, or realization language is present in the text.",
-                "Do not create realizeValue relations from phrasing that is clearly aspirational, speculative, or promotional (for example, uses formulations such as \"aims to\", \"intends to\", \"plans to\", \"hopes to\", \"could\", or similar) unless the text explicitly links the Concept as enabling, delivering, or realizing the Value.",
-                "Do not infer realizeValue from generic statements about a system, policy, or concept unless the local context shows that the named Concept contributes to or explains how the Value is achieved."
+                "Do not extract realizesValue toward a bundled offer covering several benefits; a bundle relates to Value Proposition instead."
             ]
         },
         {
             "iri": "https://github.com/highitoh/kg-extraction#receivesValue",
             "name": "receivesValue",
-            "description": "Associates the value that a stakeholder receives.",
+            "description": "Associates the value proposition that a stakeholder receives.",
             "src_class": "https://github.com/highitoh/kg-extraction#stakeholder",
-            "dest_class": "https://github.com/highitoh/kg-extraction#value",
-            "prohibit_rules": []
-        },
-        {
-            "iri": "https://github.com/highitoh/kg-extraction#participates",
-            "name": "participates",
-            "description": "Associates business activities in which a stakeholder participates.",
-            "src_class": "https://github.com/highitoh/kg-extraction#stakeholder",
-            "dest_class": "https://github.com/highitoh/kg-extraction#business-activity",
+            "dest_class": "https://github.com/highitoh/kg-extraction#value-proposition",
+            "extract_rules": [
+                "Extract receivesValue when the text identifies the party that an overall offer of worth is made to.",
+                "Accept receivesValue when the intended recipient is clear from the surrounding context rather than stated in the same sentence."
+            ],
             "prohibit_rules": [
-                "Do not extract a 'participates' relation when either the candidate source or target is a Value, Vision, Principle, Goal, or other conceptual/abstract class rather than an Agent-like class (e.g., Stakeholder, Role, Organization, System Component) paired with an Activity or Event class.",
-                "Do not extract a 'participates' relation if the candidate does not link an Agent-like entity to an Activity or Event; participation must represent an agent performing, attending, executing, or otherwise engaging in an activity or event.",
-                "Do not extract a 'participates' relation when the supporting text uses only aspirational, hypothetical, or goal-oriented language (for example, includes phrases such as \"aims to\", \"seeks to\", \"plans to\", \"supports the goal of\", or similar) without explicit wording that an identified agent actually performs or participates in the activity.",
-                "Do not extract a 'participates' relation when the candidate evidence describes responsibilities, intentions, or capabilities in a way that does not indicate actual involvement (for example, descriptions of responsibility, eligibility, or potential role without clear participation behavior)."
+                "Do not extract receivesValue toward an internal team or unit that only performs work and does not receive the offer."
             ]
         },
         {
-            "iri": "https://github.com/highitoh/kg-extraction#hasBusinessRequirement",
-            "name": "hasBusinessRequirement",
-            "description": "Associates business requirements linked to a value.",
+            "iri": "https://github.com/highitoh/kg-extraction#offers",
+            "name": "offers",
+            "description": "Associates the individual values that a value proposition offers.",
+            "src_class": "https://github.com/highitoh/kg-extraction#value-proposition",
+            "dest_class": "https://github.com/highitoh/kg-extraction#value",
+            "extract_rules": [
+                "Extract offers when a value proposition is presented together with the individual benefits that make it up.",
+                "Extract offers for each benefit separately when a single offer bundles several of them.",
+                "Accept offers when the benefits are listed as what the offer consists of, even without explicit aggregation wording."
+            ],
+            "prohibit_rules": [
+                "Do not extract offers toward a factual state of affairs; a state of affairs relates to Outcome instead."
+            ]
+        },
+        {
+            "iri": "https://github.com/highitoh/kg-extraction#values",
+            "name": "values",
+            "description": "Associates the outcome that a stakeholder is believed to place value on.",
             "src_class": "https://github.com/highitoh/kg-extraction#value",
-            "dest_class": "https://github.com/highitoh/kg-extraction#business-requirement",
+            "dest_class": "https://github.com/highitoh/kg-extraction#outcome",
             "extract_rules": [
-                "Extract hasBusinessRequirement when the local context indicates that a business requirement is needed to realize, preserve, expand, or operationalize a value, benefit, or desired outcome.",
-                "Accept hasBusinessRequirement when value-like wording and requirement-like wording are connected by purpose or outcome cues such as 'to', 'for', 'so that', 'in order to', 'to enable', 'to support', 'to achieve', 'につなげるため', 'を実現するため', 'のために', or similar formulations.",
-                "Accept hasBusinessRequirement when the destination describes a policy, organizational condition, service provision condition, or operational arrangement required for stakeholders to obtain the value, even if the requirement is expressed as a long verbal clause.",
-                "For example, if the text states that people can receive support quickly and nearby text specifies that a consultation or testing arrangement must be established, treat the arrangement as a business requirement linked to that value."
+                "Extract values when a perceived benefit is presented as arising from a particular state of affairs that the business produces.",
+                "Extract values separately for each perception when the same state of affairs is valued differently by different stakeholders.",
+                "Accept values when the text states what became true and, alongside it, why that matters to the receiving party."
             ],
             "prohibit_rules": [
-                "Do not create hasBusinessRequirement relations when the candidate requirement describes an implementation detail, feature, task, or specific action rather than a business need.",
-                "Do not accept a hasBusinessRequirement relation if the target label contains verbs that describe system behavior (for example, \"send\", \"store\", \"calculate\", \"authenticate\") or contains technical nouns or artifacts (for example, \"API\", \"database\", \"server\", \"endpoint\"); instead surface the candidate as a Feature or System Requirement.",
-                "Do not map items as business requirements when the text encodes technical constraints, specific technologies, configuration steps, or UI/UX implementation notes; classify these as implementation or solution-level artifacts rather than business-level requirements."
+                "Do not extract values toward the activity that produced the state of affairs; an activity relates to Business Activity instead."
             ]
         },
         {
-            "iri": "https://github.com/highitoh/kg-extraction#realizedBy",
-            "name": "realizedBy",
-            "description": "Associates the business activity by which a business requirement is realized.",
-            "src_class": "https://github.com/highitoh/kg-extraction#business-requirement",
+            "iri": "https://github.com/highitoh/kg-extraction#takes",
+            "name": "takes",
+            "description": "Associates the customer journey that a stakeholder takes.",
+            "src_class": "https://github.com/highitoh/kg-extraction#stakeholder",
+            "dest_class": "https://github.com/highitoh/kg-extraction#customer-journey",
+            "extract_rules": [
+                "Extract takes when a party is presented as passing along an end-to-end path with respect to a product or service.",
+                "Accept takes for each type of party separately when several are described as taking the same path."
+            ],
+            "prohibit_rules": [
+                "Do not extract takes toward a business process executed by the enterprise; a journey describes what the stakeholder passes through."
+            ]
+        },
+        {
+            "iri": "https://github.com/highitoh/kg-extraction#owns-journey-stage",
+            "name": "owns",
+            "description": "Associates the stages that a customer journey owns.",
+            "src_class": "https://github.com/highitoh/kg-extraction#customer-journey",
+            "dest_class": "https://github.com/highitoh/kg-extraction#customer-journey-stage",
+            "extract_rules": [
+                "Extract owns when a journey is presented together with the significant phases along it.",
+                "Extract owns for each phase separately when several are listed for one journey.",
+                "Accept owns when the phases are given in sequence as parts of the path, even without explicit composition wording."
+            ],
+            "prohibit_rules": [
+                "Do not extract owns toward a single concrete interaction; an interaction relates to Touchpoint instead."
+            ]
+        },
+        {
+            "iri": "https://github.com/highitoh/kg-extraction#owns-stage-touchpoint",
+            "name": "owns",
+            "description": "Associates the touchpoints that a customer journey stage owns.",
+            "src_class": "https://github.com/highitoh/kg-extraction#customer-journey-stage",
+            "dest_class": "https://github.com/highitoh/kg-extraction#touchpoint",
+            "extract_rules": [
+                "Extract owns when a journey phase is presented together with the concrete interactions that occur within it.",
+                "Accept owns when an interaction is described as happening at a named phase, even without explicit composition wording."
+            ],
+            "prohibit_rules": [
+                "Do not extract owns toward a broad phase of the journey; only individual interactions belong at this end."
+            ]
+        },
+        {
+            "iri": "https://github.com/highitoh/kg-extraction#experiences",
+            "name": "experiences",
+            "description": "Associates the outcome that a stakeholder experiences at a touchpoint.",
+            "src_class": "https://github.com/highitoh/kg-extraction#touchpoint",
+            "dest_class": "https://github.com/highitoh/kg-extraction#outcome",
+            "extract_rules": [
+                "Extract experiences when the text states what results for the stakeholder at a concrete interaction.",
+                "Accept experiences when the interaction and its result are described together, such as a service being received or a question being answered."
+            ],
+            "prohibit_rules": [
+                "Do not extract experiences toward the worth the stakeholder places on the result; perceived worth relates to Value instead."
+            ]
+        },
+        {
+            "iri": "https://github.com/highitoh/kg-extraction#isRealizedBy-outcome-activity",
+            "name": "isRealizedBy",
+            "description": "Associates the business activity that realizes an outcome.",
+            "src_class": "https://github.com/highitoh/kg-extraction#outcome",
             "dest_class": "https://github.com/highitoh/kg-extraction#business-activity",
+            "extract_rules": [
+                "Extract isRealizedBy when work carried out by the enterprise is presented as bringing about a stated state of affairs.",
+                "Accept isRealizedBy when an activity and the condition it results in are described together, even without explicit causal wording."
+            ],
             "prohibit_rules": [
-                "Do not accept a realizedBy relation when the target is an abstract Concept or a generic Business Activity unless the source text contains explicit implementation/realization wording (for example, 'realized by', 'implemented by', 'provided by').",
-                "Do not accept a realizedBy relation that links a business Goal, Value, or high-level Requirement directly to a Concept or Activity described only at an abstract or conceptual level; such mappings should be marked REVIEW unless a concrete, named implementer is specified.",
-                "Do not accept a realizedBy relation when the target is a generic term (for example 'process', 'capability', 'activity') without a specific, named System Component, Feature, or implementation artifact; require a named implementer to treat the relation as valid.",
-                "Do not accept realizedBy relations where the target is a non-implementing artifact (for example 'principle', 'constraint', 'guideline') because these do not represent implementation agents.",
-                "Do not accept realizedBy relations when the connecting wording does not indicate realization/implementation (for example only 'related to' or 'supports'); mark such cases REVIEW rather than mapping them as realizedBy.",
-                "Do not use realizedBy to link a Value to a Feature; this relationship is reserved for linking Business Requirements or System Requirements to a System Component or Feature, and any Value linked to a Feature should be flagged for review."
+                "Do not extract isRealizedBy toward behavior performed by a product or system; product behavior relates to Feature instead."
             ]
         },
         {
-            "iri": "https://github.com/highitoh/kg-extraction#targetsValue",
-            "name": "targetsValue",
-            "description": "Associates the value that this feedback targets (directly).",
-            "src_class": "https://github.com/highitoh/kg-extraction#feedback",
-            "dest_class": "https://github.com/highitoh/kg-extraction#value",
-            "prohibit_rules": []
-        },
-        {
-            "iri": "https://github.com/highitoh/kg-extraction#targetsBusinessRequirement",
-            "name": "targetsBusinessRequirement",
-            "description": "Associates the business requirement that this feedback targets (directly).",
-            "src_class": "https://github.com/highitoh/kg-extraction#feedback",
-            "dest_class": "https://github.com/highitoh/kg-extraction#business-requirement",
-            "prohibit_rules": []
-        },
-        {
-            "iri": "https://github.com/highitoh/kg-extraction#targetsSystemRequirement",
-            "name": "targetsSystemRequirement",
-            "description": "Associates the system requirement that this feedback targets (directly).",
-            "src_class": "https://github.com/highitoh/kg-extraction#feedback",
-            "dest_class": "https://github.com/highitoh/kg-extraction#system-requirement",
-            "prohibit_rules": []
-        },
-        {
-            "iri": "https://github.com/highitoh/kg-extraction#producesInsight",
-            "name": "producesInsight",
-            "description": "Associates analytical insights produced from feedback.",
-            "src_class": "https://github.com/highitoh/kg-extraction#feedback",
-            "dest_class": "https://github.com/highitoh/kg-extraction#analytical-insight",
+            "iri": "https://github.com/highitoh/kg-extraction#isRealizedBy-outcome-product",
+            "name": "isRealizedBy",
+            "description": "Associates the product that realizes an outcome.",
+            "src_class": "https://github.com/highitoh/kg-extraction#outcome",
+            "dest_class": "https://github.com/highitoh/kg-extraction#product",
             "extract_rules": [
-                "Extract producesInsight when feedback, defect reports, complaints, observations, or reported issues are accompanied by a diagnosis, finding, constraint, explanation, or investigation result derived from them.",
-                "Accept producesInsight even when the relation is implicit, as long as the insight is stated as what is learned, inferred, or recognized from the feedback in the same local context.",
-                "Phrases such as 'many issues were reported, but investigation is difficult', 'feedback revealed', 'reports showed', 'it became clear that', or similar constructions are strong evidence for producesInsight.",
-                "For example, if the text says that many bug reports were received and therefore root-cause investigation is difficult, treat the bug reports as Feedback that produces the named Analytical Insight."
-            ],
-            "prohibit_rules": []
-        },
-        {
-            "iri": "https://github.com/highitoh/kg-extraction#leadsTo",
-            "name": "leadsTo",
-            "description": "Associates analytical insights that an analysis goal leads to.",
-            "src_class": "https://github.com/highitoh/kg-extraction#analysis-goal",
-            "dest_class": "https://github.com/highitoh/kg-extraction#analytical-insight",
-            "extract_rules": [
-                "Extract leadsTo when an analysis goal, investigation objective, or evaluation focus is stated as leading to, clarifying, determining, or revealing a specific insight.",
-                "Accept leadsTo when the text frames the insight as the expected or resulting understanding from pursuing the analysis goal, even if the wording is indirect.",
-                "Treat nearby formulations such as 'to determine', 'to clarify', 'to identify', '変更の検討のため', or 'what we need to know is' as evidence that the goal leads to the named insight."
-            ],
-            "prohibit_rules": []
-        },
-        {
-            "iri": "https://github.com/highitoh/kg-extraction#definedBy",
-            "name": "definedBy",
-            "description": "Associates indicators that define an analysis goal.",
-            "src_class": "https://github.com/highitoh/kg-extraction#analysis-goal",
-            "dest_class": "https://github.com/highitoh/kg-extraction#indicator",
-            "extract_rules": [
-                "Extract definedBy when a goal or evaluation target is framed in terms of specific counts, rates, metrics, KPIs, or indicators used to assess it.",
-                "Accept definedBy when the surrounding text presents an indicator as a measure, checkpoint, or basis for evaluating the analysis goal, even if the text does not use explicit definitional wording.",
-                "If a goal about changing, improving, or evaluating something is presented together with concrete metrics such as download counts, registration counts, error counts, or similar measurable indicators, treat those indicators as defining the goal."
-            ],
-            "prohibit_rules": []
-        },
-        {
-            "iri": "https://github.com/highitoh/kg-extraction#estimates",
-            "name": "estimates",
-            "description": "Associates indicators estimated by an analytical insight.",
-            "src_class": "https://github.com/highitoh/kg-extraction#analytical-insight",
-            "dest_class": "https://github.com/highitoh/kg-extraction#indicator",
-            "prohibit_rules": []
-        },
-        {
-            "iri": "https://github.com/highitoh/kg-extraction#usesOperationalData",
-            "name": "usesOperationalData",
-            "description": "Associates operational data used by an analytical insight.",
-            "src_class": "https://github.com/highitoh/kg-extraction#analytical-insight",
-            "dest_class": "https://github.com/highitoh/kg-extraction#operational-data",
-            "extract_rules": [
-                "Extract usesOperationalData when the analytical insight depends on logs, telemetry, runtime records, device information, operational metrics, or other concrete operational data artifacts for investigation, diagnosis, monitoring, or explanation.",
-                "Accept usesOperationalData when the text indicates that such data would be needed, referenced, or used to investigate or explain the insight, even if the wording is about the absence of that data or the need to collect it.",
-                "For example, if the text states that root-cause investigation is difficult and then refers to processing logs, device environment information, or runtime behavior records as the information to send or inspect, treat those data artifacts as operational data used by the insight."
+                "Extract isRealizedBy when an offered product or service is presented as what brings about a stated state of affairs.",
+                "Accept isRealizedBy when a product is named alongside the condition it is intended to produce."
             ],
             "prohibit_rules": [
-                "Do not reject or mark as prohibited usesOperationalData when the text describes routine, intended, or actual consumption of operational data such as telemetry, logs, metrics, sensor feeds, or streaming operational events.",
-                "Do not prohibit usesOperationalData based solely on vague or generic mentions of data consumption; only prohibit when the text explicitly states that operational data is NOT used.",
-                "Do not assign a prohibition when the text refers to usage of data for operational purposes unless it explicitly refers to non-operational datasets (for example, research-only, archival-only, or synthetic datasets) or otherwise disclaims operational usage.",
-                "Do not mark usesOperationalData as prohibited when the subject is clearly a data consumer or system component that consumes data; prohibit only when the entity described is not a data consumer (for example, an abstract Value, a conceptual metric with no data flow, or a purely theoretical construct) and the text explicitly indicates lack of data consumption.",
-                "Do not mark a candidate usesOperationalData relation as valid when the destination is not an explicit data artifact (for example, a sensor reading, log file, dataset, metric, event stream, or similar concrete data object); prohibit relations that point to abstract destinations.",
-                "Do not accept usesOperationalData when the phrasing indicates a conceptual discussion, mention, or description of data in the abstract (for example, 'discusses data', 'mentions metrics', 'describes a vision for data use') without explicit indication of actual data usage.",
-                "Do not accept usesOperationalData when the destination is a Business Activity, Vision, Value, goal, or other strategic/artifactual concept rather than a concrete data artifact; prohibit relations that conflate business concepts with operational data objects.",
-                "Do not accept usesOperationalData unless the text includes explicit data-usage verbs or actions (for example, 'collect', 'record', 'measure', 'log', 'ingest', 'query', 'stream', 'capture', 'monitor'); prohibit candidate relations based solely on passive or non-actionable wording."
+                "Do not extract isRealizedBy toward an internal building block of the product; a constituent element relates to Component instead."
             ]
         },
         {
-            "iri": "https://github.com/highitoh/kg-extraction#usesResearchData",
-            "name": "usesResearchData",
-            "description": "Associates research data used by an analytical insight.",
-            "src_class": "https://github.com/highitoh/kg-extraction#analytical-insight",
-            "dest_class": "https://github.com/highitoh/kg-extraction#research-data",
-            "prohibit_rules": [
-                "Do not assign usesResearchData to statements that refer solely to operational telemetry, system logs, transaction records, live production metrics, or other operational/production monitoring data unless the text also explicitly describes research methodology, experimental design, data sampling, or analytic procedures that indicate use in a research or analytical study.",
-                "Do not accept usesResearchData when the origin of the data is described using phrases such as \"system logs\", \"transaction records\", \"live data\", \"production metrics\", \"operational telemetry\", or similar operational descriptors; such sources should be mapped to Operational Data or equivalent operational-data properties instead.",
-                "Do not mark routine business records, production databases, or operational monitoring streams as usesResearchData when they are mentioned in an operational, reporting, or monitoring context without any indication that the data were used for research, hypothesis testing, or a formal analytical study.",
-                "Avoid inferring usesResearchData from passing references to datasets or metrics where the text does not describe research intent, analytic hypotheses, study parameters, or research-specific processing steps (for example, mention of a log file used for debugging or a metrics dashboard used for operations)."
-            ]
-        },
-        {
-            "iri": "https://github.com/highitoh/kg-extraction#usesExternalData",
-            "name": "usesExternalData",
-            "description": "Associates external data used by an analytical insight.",
-            "src_class": "https://github.com/highitoh/kg-extraction#analytical-insight",
-            "dest_class": "https://github.com/highitoh/kg-extraction#external-data",
-            "prohibit_rules": []
-        },
-        {
-            "iri": "https://github.com/highitoh/kg-extraction#hasSystemRequirement",
-            "name": "hasSystemRequirement",
-            "description": "Associates system requirements linked to a business requirement.",
-            "src_class": "https://github.com/highitoh/kg-extraction#business-requirement",
-            "dest_class": "https://github.com/highitoh/kg-extraction#system-requirement",
+            "iri": "https://github.com/highitoh/kg-extraction#requires",
+            "name": "requires",
+            "description": "Associates the product requirements that a product requires.",
+            "src_class": "https://github.com/highitoh/kg-extraction#product",
+            "dest_class": "https://github.com/highitoh/kg-extraction#product-requirement",
             "extract_rules": [
-                "Extract hasSystemRequirement when a business requirement is operationalized, constrained, or supported by specific functional or non-functional system requirements.",
-                "Accept hasSystemRequirement when the business requirement and system requirement appear in the same policy, design, or solution context and the system requirement expresses what the system must do or must not do to satisfy the business need.",
-                "Privacy, retention, consent, logging, notification, and data-handling constraints are valid hasSystemRequirement targets when they concretely support a business requirement described nearby.",
-                "For example, if the document requires service access, safe usage, or administrative handling and nearby text states that personal information must not be recorded, records can be deleted, or logs are sent only with explicit consent, treat those as system requirements linked to the business requirement."
+                "Extract requires when a product is presented together with a condition it must meet.",
+                "Extract requires for each requirement separately when several are placed on one product.",
+                "Accept requires when a need is stated in a passage whose subject is a named product."
             ],
             "prohibit_rules": [
-                "Do not link System Requirements to Business Activities directly. System Requirements must be linked to Features or System Components. If a relationship implies a dependency on an activity, re-evaluate if it should be a Business Requirement or a Business Activity.",
-                "Do not extract hasSystemRequirement if the target System Requirement is a high-level goal rather than a specific functional or non-functional requirement; ensure the relationship links specific system capabilities to concrete requirements."
+                "Do not extract requires toward a function that the product provides; a function relates to Feature instead."
             ]
         },
         {
-            "iri": "https://github.com/highitoh/kg-extraction#realizedByFeature",
-            "name": "realizedByFeature",
-            "description": "Associates features by which a system requirement is realized.",
-            "src_class": "https://github.com/highitoh/kg-extraction#system-requirement",
+            "iri": "https://github.com/highitoh/kg-extraction#isRealizedBy-requirement-feature",
+            "name": "isRealizedBy",
+            "description": "Associates the features that realize a product requirement.",
+            "src_class": "https://github.com/highitoh/kg-extraction#product-requirement",
             "dest_class": "https://github.com/highitoh/kg-extraction#feature",
+            "extract_rules": [
+                "Extract isRealizedBy when a unit of functionality is presented as meeting a stated need placed on the product.",
+                "Extract isRealizedBy for each feature separately when several together satisfy one requirement.",
+                "Accept isRealizedBy when a requirement and the functionality answering it are described together, even without explicit realization wording."
+            ],
             "prohibit_rules": [
-                "Do not extract realizedByFeature when the candidate mapping links a high-level goal, value, or stakeholder need to a named feature unless the source text explicitly states that the feature realizes, implements, provides, or realizes the goal using clear phrases such as \"implemented by feature X\", \"realized through feature X\", or \"feature X provides\".",
-                "Do not accept realizedByFeature when the text only lists possible solutions, design options, or feature candidates without an explicit statement of realization; treat these cases as REVIEW rather than ACCEPT.",
-                "Do not extract realizedByFeature when the relationship is expressed speculatively or conditionally (for example, using words like \"may\", \"might\", \"could\", \"if\") unless the text also contains explicit implementation/realization wording as required by the first rule."
+                "Do not extract isRealizedBy toward an element that builds the functionality; an implementing element relates to Component instead."
             ]
         },
         {
-            "iri": "https://github.com/highitoh/kg-extraction#implementedBy",
-            "name": "implementedBy",
-            "description": "Associates system components that implement a feature.",
-            "src_class": "https://github.com/highitoh/kg-extraction#feature",
-            "dest_class": "https://github.com/highitoh/kg-extraction#system-component",
-            "prohibit_rules": [
-                "Do not create implementedBy relationships when the source is a Business Activity, Value, Stakeholder, or other non-feature concept and the target is a Feature or System Component.",
-                "Do not treat phrasing that implies responsibility, ownership, benefit, or loose association (for example \"used by\", \"owned by\", \"for\", or \"supports\") as an implementedBy relationship when the text does not show that the target component executes, stores, renders, manages, or otherwise realizes the feature behavior.",
-                "Do not infer implementedBy from passive or ambiguous constructions (for example \"is provided to\", \"is for\", \"is used in\") when the surrounding text lacks concrete technical decomposition or allocation to the target component or layer; explicit implementation verbs are strong evidence but not mandatory if the technical role is clear."
-            ]
-        },
-        {
-            "iri": "https://github.com/highitoh/kg-extraction#exposedBy",
-            "name": "exposedBy",
-            "description": "Associates interfaces exposed by a feature.",
+            "iri": "https://github.com/highitoh/kg-extraction#isExposedBy",
+            "name": "isExposedBy",
+            "description": "Associates the interfaces through which a feature is exposed.",
             "src_class": "https://github.com/highitoh/kg-extraction#feature",
             "dest_class": "https://github.com/highitoh/kg-extraction#interface",
-            "prohibit_rules": []
+            "extract_rules": [
+                "Extract isExposedBy when a unit of functionality is presented as being reached through a declared boundary such as an API, endpoint, or screen.",
+                "Accept isExposedBy when the boundary is named in the same passage as the functionality it gives access to."
+            ],
+            "prohibit_rules": [
+                "Do not extract isExposedBy toward the element that owns the boundary; the owning element relates to Component instead."
+            ]
+        },
+        {
+            "iri": "https://github.com/highitoh/kg-extraction#isImplementedBy",
+            "name": "isImplementedBy",
+            "description": "Associates the components that implement a feature.",
+            "src_class": "https://github.com/highitoh/kg-extraction#feature",
+            "dest_class": "https://github.com/highitoh/kg-extraction#component",
+            "extract_rules": [
+                "Extract isImplementedBy when an element of the solution structure is presented as carrying out a stated unit of functionality.",
+                "Accept isImplementedBy when a feature and the module, subsystem, or hardware realizing it are described together."
+            ],
+            "prohibit_rules": [
+                "Do not extract isImplementedBy toward the boundary through which the functionality is reached; a boundary relates to Interface instead."
+            ]
+        },
+        {
+            "iri": "https://github.com/highitoh/kg-extraction#produces-interface-dataset",
+            "name": "produces",
+            "description": "Associates the source datasets obtained through an interface.",
+            "src_class": "https://github.com/highitoh/kg-extraction#interface",
+            "dest_class": "https://github.com/highitoh/kg-extraction#source-dataset",
+            "extract_rules": [
+                "Extract produces when data is presented as being obtained across a declared boundary such as an API or endpoint.",
+                "Accept produces when the boundary is named as where the data is collected from."
+            ],
+            "prohibit_rules": [
+                "Do not extract produces toward data that has been selected, cleaned, or reshaped for analysis; prepared data relates to Analysis Dataset instead."
+            ]
         },
         {
             "iri": "https://github.com/highitoh/kg-extraction#exposes",
             "name": "exposes",
-            "description": "Associates interfaces exposed by a system component.",
-            "src_class": "https://github.com/highitoh/kg-extraction#system-component",
+            "description": "Associates the interfaces that a component exposes.",
+            "src_class": "https://github.com/highitoh/kg-extraction#component",
             "dest_class": "https://github.com/highitoh/kg-extraction#interface",
+            "extract_rules": [
+                "Extract exposes when an element of the solution structure is presented as offering a declared boundary to other elements or to users.",
+                "Accept exposes for boundaries the element requires from others as well as those it provides, when the text presents them as its boundaries."
+            ],
             "prohibit_rules": [
-                "Do not use 'exposes' for internal system logic or private data structures; this property is strictly reserved for external-facing interfaces or data explicitly made available to users or other systems."
+                "Do not extract exposes toward the functionality reached through the boundary; functionality relates to Feature instead."
             ]
         },
         {
-            "iri": "https://github.com/highitoh/kg-extraction#producesOperationalData",
-            "name": "producesOperationalData",
-            "description": "Associates operational data produced by a system component.",
-            "src_class": "https://github.com/highitoh/kg-extraction#system-component",
-            "dest_class": "https://github.com/highitoh/kg-extraction#operational-data",
+            "iri": "https://github.com/highitoh/kg-extraction#produces-component-dataset",
+            "name": "produces",
+            "description": "Associates the source datasets that a component produces.",
+            "src_class": "https://github.com/highitoh/kg-extraction#component",
+            "dest_class": "https://github.com/highitoh/kg-extraction#source-dataset",
+            "extract_rules": [
+                "Extract produces when an element of the solution structure is presented as generating or storing data through its operation.",
+                "Accept produces when a log, record, or table is described as coming from a named element."
+            ],
             "prohibit_rules": [
-                "Do not accept producesOperationalData assertions when the source of production is a Stakeholder, Vision, or Business Activity; such sources do not qualify as operational data producers.",
-                "Do not accept producesOperationalData unless the stated source is a System Component, Interface, or Feature; if the source is any other model element, reject the assertion.",
-                "Do not accept producesOperationalData when the text provides no concrete indication that the source component creates, records, stores, returns, transmits, computes, or otherwise handles the destination as a runtime or system-level data artifact.",
-                "Do not accept producesOperationalData unless the object is an explicit data artifact (for example: log entries, telemetry stream, sensor readings, event records, or a named data file/schema); reject assertions where the object is a vague activity, requirement, or non-data concept.",
-                "Do not accept producesOperationalData when production is described only as a manual action, business process outcome, or stakeholder deliverable; production must be characterized as system-level or runtime data generation.",
-                "Do not reject producesOperationalData solely because the text lacks explicit verbs such as \"generates\" or \"logs\" if the local context clearly allocates the named data artifact to the source component through recording, storage, transmission, computation, or interface response behavior."
+                "Do not extract produces toward data that has been selected, cleaned, or reshaped for analysis; prepared data relates to Analysis Dataset instead."
             ]
         },
         {
-            "iri": "https://github.com/highitoh/kg-extraction#interfaceProducesOperationalData",
-            "name": "interfaceProducesOperationalData",
-            "description": "Associates operational data produced by an interface.",
-            "src_class": "https://github.com/highitoh/kg-extraction#interface",
-            "dest_class": "https://github.com/highitoh/kg-extraction#operational-data",
+            "iri": "https://github.com/highitoh/kg-extraction#produces-validation-dataset",
+            "name": "produces",
+            "description": "Associates the source datasets that a validation activity produces.",
+            "src_class": "https://github.com/highitoh/kg-extraction#validation-activity",
+            "dest_class": "https://github.com/highitoh/kg-extraction#source-dataset",
+            "extract_rules": [
+                "Extract produces when checking work is presented as yielding data to be analyzed, such as measurements, trial results, or collected responses.",
+                "Accept produces when the data is described as the record of what the checking observed."
+            ],
             "prohibit_rules": [
-                "Do not extract an interfaceProducesOperationalData relation when the interface is not explicitly named or otherwise clearly identified in the source text.",
-                "Do not extract an interfaceProducesOperationalData relation when the verb phrase is metaphorical or vague (for example, 'enables insights', 'supports visibility', 'helps analyze') rather than explicitly indicating production of a data artifact.",
-                "Do not extract an interfaceProducesOperationalData relation when the source text does not connect the interface to a concrete data artifact through output, return, display, download, export, logging, or similar interface-level data delivery behavior.",
-                "If the source text names both the interface and a concrete data artifact but the production wording is indirect or weak, mark the candidate relation for REVIEW rather than rejecting it automatically."
+                "Do not extract produces toward a finding drawn from the data; a finding relates to Analytical Insight instead."
             ]
         },
         {
-            "iri": "https://github.com/highitoh/kg-extraction#producesResearchData",
-            "name": "producesResearchData",
-            "description": "Associates research data produced by a business activity.",
+            "iri": "https://github.com/highitoh/kg-extraction#isSourceOf",
+            "name": "isSourceOf",
+            "description": "Associates the analysis dataset that a source dataset is the source of.",
+            "src_class": "https://github.com/highitoh/kg-extraction#source-dataset",
+            "dest_class": "https://github.com/highitoh/kg-extraction#analysis-dataset",
+            "extract_rules": [
+                "Extract isSourceOf when data acquired as it already exists is presented as the material that prepared data was built from.",
+                "Extract isSourceOf for each source separately when data from several sources is brought together into one body.",
+                "Accept isSourceOf when the text describes selecting, cleaning, combining, or reshaping named source data."
+            ],
+            "prohibit_rules": [
+                "Do not extract isSourceOf toward the element that produced the source data; a producing element relates to Component instead."
+            ]
+        },
+        {
+            "iri": "https://github.com/highitoh/kg-extraction#leadsTo",
+            "name": "leadsTo",
+            "description": "Associates the analytical insights that an analysis goal leads to.",
+            "src_class": "https://github.com/highitoh/kg-extraction#analysis-goal",
+            "dest_class": "https://github.com/highitoh/kg-extraction#analytical-insight",
+            "extract_rules": [
+                "Extract leadsTo when a finding is presented as the outcome of pursuing a stated analysis goal.",
+                "Accept leadsTo when a goal and the finding answering it are described together, even without explicit linking wording."
+            ],
+            "prohibit_rules": [
+                "Do not extract leadsTo toward a finding that answers no goal that was set; such findings stand on their own as Analytical Insight."
+            ]
+        },
+        {
+            "iri": "https://github.com/highitoh/kg-extraction#definedBy",
+            "name": "definedBy",
+            "description": "Associates the indicators that define an analysis goal.",
+            "src_class": "https://github.com/highitoh/kg-extraction#analysis-goal",
+            "dest_class": "https://github.com/highitoh/kg-extraction#indicator",
+            "extract_rules": [
+                "Extract definedBy when an analysis goal is framed in terms of the measures used to judge whether it has been achieved.",
+                "Accept definedBy when a measure is presented as the basis for evaluating the goal, even without explicit definitional wording.",
+                "Accept definedBy for subjective criteria as well as numeric ones, when the text identifies what the judgment rests on."
+            ],
+            "prohibit_rules": [
+                "Do not extract definedBy toward a result already obtained for the measure; an obtained result relates to Analytical Insight instead."
+            ]
+        },
+        {
+            "iri": "https://github.com/highitoh/kg-extraction#estimates",
+            "name": "estimates",
+            "description": "Associates the indicator that an analytical insight estimates.",
+            "src_class": "https://github.com/highitoh/kg-extraction#analytical-insight",
+            "dest_class": "https://github.com/highitoh/kg-extraction#indicator",
+            "extract_rules": [
+                "Extract estimates when a finding reports a result for a measure used to judge achievement.",
+                "Accept estimates when the finding gives a level, rate, or accuracy for a named measure."
+            ],
+            "prohibit_rules": [
+                "Do not extract estimates toward a measure that the finding only mentions without reporting a result for it."
+            ]
+        },
+        {
+            "iri": "https://github.com/highitoh/kg-extraction#usesData",
+            "name": "usesData",
+            "description": "Associates the analysis dataset that an analytical insight is drawn from.",
+            "src_class": "https://github.com/highitoh/kg-extraction#analytical-insight",
+            "dest_class": "https://github.com/highitoh/kg-extraction#analysis-dataset",
+            "extract_rules": [
+                "Extract usesData when a finding is presented as having been obtained from prepared data.",
+                "Accept usesData when the finding names the dataset the analysis was carried out on."
+            ],
+            "prohibit_rules": [
+                "Do not extract usesData toward the technique or model applied to the data."
+            ]
+        },
+        {
+            "iri": "https://github.com/highitoh/kg-extraction#produces-insight-action",
+            "name": "produces",
+            "description": "Associates the next action that an analytical insight produces.",
+            "src_class": "https://github.com/highitoh/kg-extraction#analytical-insight",
+            "dest_class": "https://github.com/highitoh/kg-extraction#next-action",
+            "extract_rules": [
+                "Extract produces when a further course of action is presented as a response to a stated finding.",
+                "Extract produces for each option separately when several courses are put forward in response to one finding.",
+                "Accept produces when the finding and the proposed course are described together, even without explicit causal wording."
+            ],
+            "prohibit_rules": [
+                "Do not extract produces toward the reasons stated for or against the course of action."
+            ]
+        },
+        {
+            "iri": "https://github.com/highitoh/kg-extraction#targets-vision",
+            "name": "targets",
+            "description": "Associates the vision that a next action targets.",
+            "src_class": "https://github.com/highitoh/kg-extraction#next-action",
+            "dest_class": "https://github.com/highitoh/kg-extraction#vision",
+            "extract_rules": [
+                "Extract targets when a proposed course of action is directed at the enterprise's desired future state.",
+                "Accept targets when the action is described as revising, adding to, or withdrawing a stated vision."
+            ],
+            "prohibit_rules": [
+                "Do not extract targets toward the finding that prompted the action; a finding relates to Analytical Insight instead."
+            ]
+        },
+        {
+            "iri": "https://github.com/highitoh/kg-extraction#targets-value",
+            "name": "targets",
+            "description": "Associates the value that a next action targets.",
+            "src_class": "https://github.com/highitoh/kg-extraction#next-action",
+            "dest_class": "https://github.com/highitoh/kg-extraction#value",
+            "extract_rules": [
+                "Extract targets when a proposed course of action is directed at the worth a stakeholder is believed to perceive.",
+                "Accept targets when the action is described as revising, adding to, or withdrawing a stated value."
+            ],
+            "prohibit_rules": [
+                "Do not extract targets toward the finding that prompted the action; a finding relates to Analytical Insight instead."
+            ]
+        },
+        {
+            "iri": "https://github.com/highitoh/kg-extraction#targets-outcome",
+            "name": "targets",
+            "description": "Associates the outcome that a next action targets.",
+            "src_class": "https://github.com/highitoh/kg-extraction#next-action",
+            "dest_class": "https://github.com/highitoh/kg-extraction#outcome",
+            "extract_rules": [
+                "Extract targets when a proposed course of action is directed at a state of affairs the business produces.",
+                "Accept targets when the action is described as revising, adding to, or withdrawing a stated outcome."
+            ],
+            "prohibit_rules": [
+                "Do not extract targets toward the finding that prompted the action; a finding relates to Analytical Insight instead."
+            ]
+        },
+        {
+            "iri": "https://github.com/highitoh/kg-extraction#targets-business-activity",
+            "name": "targets",
+            "description": "Associates the business activity that a next action targets.",
+            "src_class": "https://github.com/highitoh/kg-extraction#next-action",
+            "dest_class": "https://github.com/highitoh/kg-extraction#business-activity",
+            "extract_rules": [
+                "Extract targets when a proposed course of action is directed at operational work the enterprise carries out.",
+                "Accept targets when the action is described as revising, adding to, or withdrawing a stated business activity."
+            ],
+            "prohibit_rules": [
+                "Do not extract targets toward the finding that prompted the action; a finding relates to Analytical Insight instead."
+            ]
+        },
+        {
+            "iri": "https://github.com/highitoh/kg-extraction#targets-product",
+            "name": "targets",
+            "description": "Associates the product that a next action targets.",
+            "src_class": "https://github.com/highitoh/kg-extraction#next-action",
+            "dest_class": "https://github.com/highitoh/kg-extraction#product",
+            "extract_rules": [
+                "Extract targets when a proposed course of action is directed at a product the enterprise offers.",
+                "Accept targets when the action is described as revising, adding to, or withdrawing a stated product."
+            ],
+            "prohibit_rules": [
+                "Do not extract targets toward the finding that prompted the action; a finding relates to Analytical Insight instead."
+            ]
+        },
+        {
+            "iri": "https://github.com/highitoh/kg-extraction#targets-product-requirement",
+            "name": "targets",
+            "description": "Associates the product requirement that a next action targets.",
+            "src_class": "https://github.com/highitoh/kg-extraction#next-action",
+            "dest_class": "https://github.com/highitoh/kg-extraction#product-requirement",
+            "extract_rules": [
+                "Extract targets when a proposed course of action is directed at a condition placed on the product.",
+                "Accept targets when the action is described as revising, adding to, or withdrawing a stated product requirement."
+            ],
+            "prohibit_rules": [
+                "Do not extract targets toward the finding that prompted the action; a finding relates to Analytical Insight instead."
+            ]
+        },
+        {
+            "iri": "https://github.com/highitoh/kg-extraction#isValidatedBy-vision",
+            "name": "isValidatedBy",
+            "description": "Associates the validation activity that checks a vision.",
+            "src_class": "https://github.com/highitoh/kg-extraction#vision",
+            "dest_class": "https://github.com/highitoh/kg-extraction#validation-activity",
+            "extract_rules": [
+                "Extract isValidatedBy when checking work is presented as examining whether the enterprise's desired future state is holding true in practice.",
+                "Accept isValidatedBy when a test, trial, measurement, or review is named as being carried out against a stated vision."
+            ],
+            "prohibit_rules": [
+                "Do not extract isValidatedBy toward what the checking found; a finding relates to Analytical Insight instead."
+            ]
+        },
+        {
+            "iri": "https://github.com/highitoh/kg-extraction#isValidatedBy-value",
+            "name": "isValidatedBy",
+            "description": "Associates the validation activity that checks a value.",
+            "src_class": "https://github.com/highitoh/kg-extraction#value",
+            "dest_class": "https://github.com/highitoh/kg-extraction#validation-activity",
+            "extract_rules": [
+                "Extract isValidatedBy when checking work is presented as examining whether the worth a stakeholder is believed to perceive is holding true in practice.",
+                "Accept isValidatedBy when a test, trial, measurement, or review is named as being carried out against a stated value."
+            ],
+            "prohibit_rules": [
+                "Do not extract isValidatedBy toward what the checking found; a finding relates to Analytical Insight instead."
+            ]
+        },
+        {
+            "iri": "https://github.com/highitoh/kg-extraction#isValidatedBy-outcome",
+            "name": "isValidatedBy",
+            "description": "Associates the validation activity that checks a outcome.",
+            "src_class": "https://github.com/highitoh/kg-extraction#outcome",
+            "dest_class": "https://github.com/highitoh/kg-extraction#validation-activity",
+            "extract_rules": [
+                "Extract isValidatedBy when checking work is presented as examining whether a state of affairs the business produces is holding true in practice.",
+                "Accept isValidatedBy when a test, trial, measurement, or review is named as being carried out against a stated outcome."
+            ],
+            "prohibit_rules": [
+                "Do not extract isValidatedBy toward what the checking found; a finding relates to Analytical Insight instead."
+            ]
+        },
+        {
+            "iri": "https://github.com/highitoh/kg-extraction#isValidatedBy-business-activity",
+            "name": "isValidatedBy",
+            "description": "Associates the validation activity that checks a business activity.",
             "src_class": "https://github.com/highitoh/kg-extraction#business-activity",
-            "dest_class": "https://github.com/highitoh/kg-extraction#research-data",
+            "dest_class": "https://github.com/highitoh/kg-extraction#validation-activity",
+            "extract_rules": [
+                "Extract isValidatedBy when checking work is presented as examining whether operational work the enterprise carries out is holding true in practice.",
+                "Accept isValidatedBy when a test, trial, measurement, or review is named as being carried out against a stated business activity."
+            ],
             "prohibit_rules": [
-                "Do not mark a relation as producesResearchData when the text refers to general data, business metrics, or high-level insights rather than formal research outputs.",
-                "Do not mark a relation as producesResearchData unless the text explicitly uses research-oriented terminology such as \"study\", \"survey\", \"experiment\", \"research data\", \"clinical trial\", or similar phrases indicating primary or formal research.",
-                "Do not mark a relation as producesResearchData unless the text explicitly identifies research roles or agents (for example, \"research team\", \"researchers\", \"principal investigator\", or named academic units) that performed or produced the research.",
-                "Do not mark a relation as producesResearchData when the described work is clearly operational, analytics, or internal reporting (for example, dashboards, KPIs, operational metrics); instead, map such cases to producesOperationalData or producesInsight as appropriate.",
-                "Do not mark a relation as producesResearchData when the source is opinion-based content, anecdotal observations, vendor marketing materials, or secondary summaries (for example, press releases or market reports) that do not describe primary research methods or outputs."
+                "Do not extract isValidatedBy toward what the checking found; a finding relates to Analytical Insight instead."
+            ]
+        },
+        {
+            "iri": "https://github.com/highitoh/kg-extraction#isValidatedBy-product",
+            "name": "isValidatedBy",
+            "description": "Associates the validation activity that checks a product.",
+            "src_class": "https://github.com/highitoh/kg-extraction#product",
+            "dest_class": "https://github.com/highitoh/kg-extraction#validation-activity",
+            "extract_rules": [
+                "Extract isValidatedBy when checking work is presented as examining whether a product the enterprise offers is holding true in practice.",
+                "Accept isValidatedBy when a test, trial, measurement, or review is named as being carried out against a stated product."
+            ],
+            "prohibit_rules": [
+                "Do not extract isValidatedBy toward what the checking found; a finding relates to Analytical Insight instead."
+            ]
+        },
+        {
+            "iri": "https://github.com/highitoh/kg-extraction#isValidatedBy-product-requirement",
+            "name": "isValidatedBy",
+            "description": "Associates the validation activity that checks a product requirement.",
+            "src_class": "https://github.com/highitoh/kg-extraction#product-requirement",
+            "dest_class": "https://github.com/highitoh/kg-extraction#validation-activity",
+            "extract_rules": [
+                "Extract isValidatedBy when checking work is presented as examining whether a condition placed on the product is holding true in practice.",
+                "Accept isValidatedBy when a test, trial, measurement, or review is named as being carried out against a stated product requirement."
+            ],
+            "prohibit_rules": [
+                "Do not extract isValidatedBy toward what the checking found; a finding relates to Analytical Insight instead."
             ]
         }
     ]
