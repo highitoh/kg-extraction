@@ -29,7 +29,7 @@ class ActionPlanner:
 
     def __init__(
         self,
-        model: str = "gemini-3.1-flash-lite",
+        model: str = "gemini-3.5-flash-lite",
         temperature: float = 0.0,
         max_concurrency: int = 8,
         progress: bool = True,
@@ -706,7 +706,7 @@ if __name__ == "__main__":
         description="Action Planner - Generates concrete fix proposals from strategy plans"
     )
     parser.add_argument(
-        "--model", default="gemini-3.1-flash-lite", help="LLM model name (default: gemini-3.1-flash-lite)"
+        "--model", default="gemini-3.5-flash-lite", help="LLM model name (default: gemini-3.5-flash-lite)"
     )
     parser.add_argument("--temperature", type=float, default=0.0, help="LLM temperature (default: 0.0)")
     parser.add_argument("--max-concurrency", type=int, default=8, help="Maximum concurrent LLM calls (default: 8)")

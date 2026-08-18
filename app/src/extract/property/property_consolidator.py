@@ -29,7 +29,7 @@ class PropertyConsolidator(Runnable):
     def __init__(
         self,
         llm: ChatOpenAI | None = None,
-        model: str = "gemini-3.1-flash-lite",
+        model: str = "gemini-3.5-flash-lite",
         temperature: float = 0.0,
         max_concurrency: int = 8,
         progress: bool = True,

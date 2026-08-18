@@ -27,7 +27,7 @@ class KnowledgeValidator:
     def __init__(
         self,
         project: str = "default",
-        model: str = "gemini-3.1-flash-lite",
+        model: str = "gemini-3.5-flash-lite",
         temperature: float = 0.0,
         output_base_dir: str = "/workspace/app/output",
         verbose: bool = False,
@@ -734,7 +734,7 @@ if __name__ == "__main__":
         help="Project name (resolves to /workspace/app/output/{project}/) (default: default)",
     )
     parser.add_argument(
-        "--model", default="gemini-3.1-flash-lite", help="LLM model name (default: gemini-3.1-flash-lite)"
+        "--model", default="gemini-3.5-flash-lite", help="LLM model name (default: gemini-3.5-flash-lite)"
     )
     parser.add_argument(
         "--verbose",

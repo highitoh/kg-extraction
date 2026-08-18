@@ -34,7 +34,7 @@ class IterationWorkflow:
         batch_files: List[str],
         max_iterations: int = 5,
         quality_threshold: float = 2.0,
-        model: str = "gemini-3.1-flash-lite",
+        model: str = "gemini-3.5-flash-lite",
         apply_changes: bool = True,
         output_dir: str = "/workspace/app/output",
     ):
@@ -543,7 +543,7 @@ class IterationWorkflow:
             batch_files=state.get("batch_files", []),
             max_iterations=config.get("max_iterations", 5),
             quality_threshold=config.get("quality_threshold", 2.0),
-            model=config.get("model", "gemini-3.1-flash-lite"),
+            model=config.get("model", "gemini-3.5-flash-lite"),
             apply_changes=config.get("apply_changes", True),
             output_dir=output_dir,
         )
@@ -570,7 +570,7 @@ def main():
         "--quality-threshold", type=float, default=2.0, help="Stop when combined score >= threshold (default: 2.0)"
     )
     parser.add_argument(
-        "--model", type=str, default="gemini-3.1-flash-lite", help="LLM model name (default: gemini-3.1-flash-lite)"
+        "--model", type=str, default="gemini-3.5-flash-lite", help="LLM model name (default: gemini-3.5-flash-lite)"
     )
     parser.add_argument("--no-apply", action="store_true", help="Dry-run optimization without applying changes")
     parser.add_argument("--resume", type=str, help="Resume from a previous run ID")

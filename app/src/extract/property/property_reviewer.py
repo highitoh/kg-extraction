@@ -16,7 +16,7 @@ from src.utils.prompt_utils import fill_prompt_template
 class PropertyReviewer(Runnable):
     def __init__(
         self,
-        model: str = "gemini-3.1-flash-lite",
+        model: str = "gemini-3.5-flash-lite",
         temperature: float = 0.0,
         max_concurrency: int = 8,
         progress: bool = True,

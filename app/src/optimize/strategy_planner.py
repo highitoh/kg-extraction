@@ -22,7 +22,7 @@ class StrategyPlanner:
 
     def __init__(
         self,
-        model: str = "gemini-3.1-flash-lite",
+        model: str = "gemini-3.5-flash-lite",
         progress: bool = True,
         verbose: bool = False,
         issue_statistics: Optional[List[Dict[str, Any]]] = None,
@@ -461,7 +461,7 @@ if __name__ == "__main__":
         description="Strategy Planner - Creates improvement plans by analyzing categorized issues"
     )
     parser.add_argument(
-        "--model", default="gemini-3.1-flash-lite", help="LLM model name (default: gemini-3.1-flash-lite)"
+        "--model", default="gemini-3.5-flash-lite", help="LLM model name (default: gemini-3.5-flash-lite)"
     )
     parser.add_argument("--no-progress", action="store_true", help="Disable progress messages")
     parser.add_argument(

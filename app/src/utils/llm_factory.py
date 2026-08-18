@@ -6,7 +6,7 @@ from typing import Optional
 from langchain_core.language_models.chat_models import BaseChatModel
 from langchain_openai import AzureChatOpenAI, ChatOpenAI
 
-DEFAULT_LLM_MODEL = "gemini-3.1-flash-lite"
+DEFAULT_LLM_MODEL = "gemini-3.5-flash-lite"
 _SUPPORTED_LLM_PROVIDERS = {"gemini_api", "gcp_vertexai", "openai_api", "azure_openai"}
 _GEMINI_THINKING_LEVELS = {"minimal", "low", "medium", "high"}
 
@@ -48,7 +48,7 @@ class LLMFactory:
 
 
         Args:
-            model: The model or deployment name to use (default: "gemini-3.1-flash-lite")
+            model: The model or deployment name to use
             temperature: The temperature setting for the model (default: 0.0)
             reasoning_effort: The reasoning effort level - "low", "minimal", etc. (default: "low")
             timeout: The client-side request timeout in seconds (default: 90)

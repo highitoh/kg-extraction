@@ -13,7 +13,7 @@ When the user asks to test extraction:
 
 1. **Run Extraction**
    ```bash
-   cd /workspace/app && ./extract.sh ../doc/sample.pdf --project test-YYYYMMDD --model gemini-3.1-flash-lite
+   cd /workspace/app && ./extract.sh ../doc/sample.pdf --project test-YYYYMMDD --model gemini-3.5-flash-lite
    ```
    Use today's date for project name (e.g., `test-20260601`)
 

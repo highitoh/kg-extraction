@@ -23,7 +23,7 @@ class IssueClassifier:
 
     def __init__(
         self,
-        model: str = "gemini-3.1-flash-lite",
+        model: str = "gemini-3.5-flash-lite",
         temperature: float = 0.0,
         output_base_dir: str = "/workspace/app/output/optimize",
         progress: bool = True,
@@ -608,7 +608,7 @@ class IssueClassifier:
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Issue Classifier - Classifies issues in poor extractions using LLM")
     parser.add_argument(
-        "--model", default="gemini-3.1-flash-lite", help="LLM model name (default: gemini-3.1-flash-lite)"
+        "--model", default="gemini-3.5-flash-lite", help="LLM model name (default: gemini-3.5-flash-lite)"
     )
 
     args = parser.parse_args()

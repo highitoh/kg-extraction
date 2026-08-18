@@ -9,7 +9,7 @@
 # Options:
 #   --max-iterations N       Maximum iterations (default: 5)
 #   --quality-threshold F    Stop when combined score >= threshold (default: 2.0)
-#   --model MODEL            LLM model name (default: gemini-3.1-flash-lite-preview)
+#   --model MODEL            LLM model name (default: gemini-3.5-flash-lite
 #   --no-apply               Dry-run optimization without applying changes
 #   --resume RUN_ID          Resume from a previous run
 #   --output-dir DIR         Base output directory (default: /workspace/app/output)

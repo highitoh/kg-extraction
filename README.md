@@ -292,7 +292,7 @@ docker-compose up -d neo4j
 ### Options
 
 - `--project PROJECT` - Project name for organizing output files (default: `default`)
-- `--model MODEL` - LLM model name (e.g., `gemini-3.1-flash-lite`, `gpt-5-nano`)
+- `--model MODEL` - LLM model name
 - `--output-dir DIR` - Output directory path (default: `/workspace/app/output`)
 
 ### Examples
