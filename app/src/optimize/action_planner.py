@@ -29,7 +29,7 @@ class ActionPlanner:
 
     def __init__(
         self,
-        model: str = "gemini-3.5-flash-lite",
+        model: str | None = None,
         temperature: float = 0.0,
         max_concurrency: int = 8,
         progress: bool = True,

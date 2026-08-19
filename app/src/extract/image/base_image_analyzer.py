@@ -50,7 +50,7 @@ class BaseImageAnalyzer(Runnable):
     def __init__(
         self,
         llm: BaseChatModel | None = None,
-        model: str = "gemini-3.5-flash-lite",
+        model: str | None = None,
         temperature: float = 0.0,
         max_concurrency: int = 5,
         log_dir: str | None = None,

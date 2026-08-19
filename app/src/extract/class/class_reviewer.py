@@ -19,7 +19,7 @@ class ClassReviewer(Runnable):
 
     def __init__(
         self,
-        model: str = "gemini-3.5-flash-lite",
+        model: str | None = None,
         temperature: float = 0.0,
         progress: bool = True,
         max_concurrency: int = 8,

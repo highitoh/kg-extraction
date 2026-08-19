@@ -22,7 +22,7 @@ class IssueCategorizer:
 
     def __init__(
         self,
-        model: str = "gemini-3.5-flash-lite",
+        model: str | None = None,
         temperature: float = 0.0,
         output_base_dir: str = "/workspace/app/output/optimize",
         progress: bool = True,

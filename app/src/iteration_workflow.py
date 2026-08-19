@@ -35,7 +35,7 @@ class IterationWorkflow:
         batch_files: List[str],
         max_iterations: int = 5,
         quality_threshold: float = 2.0,
-        model: str = "gemini-3.5-flash-lite",
+        model: str | None = None,
         apply_changes: bool = True,
         output_dir: str = "/workspace/app/output",
     ):
@@ -53,7 +53,7 @@ class IterationWorkflow:
         self.batch_files = [os.path.abspath(bf) for bf in batch_files]
         self.max_iterations = max_iterations
         self.quality_threshold = quality_threshold
-        self.model = model
+        self.model = model or DEFAULT_LLM_MODEL
         self.apply_changes = apply_changes
         self.output_dir = output_dir
         self.is_resume_mode = False

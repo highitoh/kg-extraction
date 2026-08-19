@@ -22,7 +22,7 @@ class StrategyPlanner:
 
     def __init__(
         self,
-        model: str = "gemini-3.5-flash-lite",
+        model: str | None = None,
         progress: bool = True,
         verbose: bool = False,
         issue_statistics: Optional[List[Dict[str, Any]]] = None,

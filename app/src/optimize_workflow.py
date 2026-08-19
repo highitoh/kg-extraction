@@ -141,7 +141,7 @@ def _compute_issue_stats_from_category(
 
 def run_optimization_workflow(
     projects: List[str],
-    model: str = "gemini-3.5-flash-lite",
+    model: str | None = None,
     output_dir: str = "/workspace/app/output",
     previous_rewards: Optional[List[float]] = None,
     run_id: Optional[str] = None,

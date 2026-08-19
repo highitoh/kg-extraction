@@ -27,7 +27,7 @@ class KnowledgeValidator:
     def __init__(
         self,
         project: str = "default",
-        model: str = "gemini-3.5-flash-lite",
+        model: str | None = None,
         temperature: float = 0.0,
         output_base_dir: str = "/workspace/app/output",
         verbose: bool = False,

@@ -24,7 +24,7 @@ load_dotenv()
 
 def run_evaluation(
     project: str = "default",
-    model: str = "gemini-3.5-flash-lite",
+    model: str | None = None,
     verbose: bool = False,
     max_concurrency: int = 4,
 ) -> Dict[str, Any]:
