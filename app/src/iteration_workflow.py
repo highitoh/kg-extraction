@@ -538,14 +538,19 @@ class IterationWorkflow:
         with open(state_file, "r", encoding="utf-8") as f:
             state = json.load(f)
 
-        # Create instance with saved config
+        # Resume must restore the exact configuration of the interrupted run;
+        # substituting defaults would silently change how the run behaves.
         config = state.get("config", {})
+        missing = [k for k in ("max_iterations", "quality_threshold", "model", "apply_changes") if k not in config]
+        if missing:
+            raise ValueError(f"Cannot resume run {run_id}: state file is missing config keys: {', '.join(missing)}")
+
         instance = cls(
             batch_files=state.get("batch_files", []),
-            max_iterations=config.get("max_iterations", 5),
-            quality_threshold=config.get("quality_threshold", 2.0),
-            model=config.get("model", "gemini-3.5-flash-lite"),
-            apply_changes=config.get("apply_changes", True),
+            max_iterations=config["max_iterations"],
+            quality_threshold=config["quality_threshold"],
+            model=config["model"],
+            apply_changes=config["apply_changes"],
             output_dir=output_dir,
         )
 
