@@ -21,6 +21,7 @@ from src.optimize.action_planner import ActionPlanner
 from src.optimize.issue_categorizer import IssueCategorizer
 from src.optimize.issue_classifier import IssueClassifier
 from src.optimize.strategy_planner import StrategyPlanner
+from src.utils.llm_factory import DEFAULT_LLM_MODEL
 
 load_dotenv()
 
@@ -254,9 +255,7 @@ if __name__ == "__main__":
         description="Optimize knowledge extraction workflow by analyzing validation results"
     )
     parser.add_argument("--projects", nargs="+", required=True, help="Project names to optimize (space-separated)")
-    parser.add_argument(
-        "--model", type=str, default="gemini-3.5-flash-lite", help="LLM model name (default: gemini-3.5-flash-lite)"
-    )
+    parser.add_argument("--model", type=str, default=DEFAULT_LLM_MODEL, help="LLM model name (default: %(default)s)")
     parser.add_argument(
         "--output-dir",
         type=str,

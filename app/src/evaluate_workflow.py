@@ -16,6 +16,7 @@ from dotenv import load_dotenv
 
 from src.evaluate.knowledge_validator import KnowledgeValidator
 from src.evaluate.reward_calculator import RewardCalculator
+from src.utils.llm_factory import DEFAULT_LLM_MODEL
 
 # Load environment variables from .env file
 load_dotenv()
@@ -114,8 +115,8 @@ if __name__ == "__main__":
     parser.add_argument(
         "--model",
         type=str,
-        default="gemini-3.5-flash-lite",
-        help="LLM model for validation (default: gemini-3.5-flash-lite)",
+        default=DEFAULT_LLM_MODEL,
+        help="LLM model for validation (default: %(default)s)",
     )
     parser.add_argument(
         "--verbose",

@@ -343,7 +343,7 @@ if __name__ == "__main__":
     print("FileTypeClassifier test starting...")
 
     # Create FileTypeClassifier instance
-    classifier = FileTypeClassifier(model="gemini-3.5-flash-lite", temperature=0.0)
+    classifier = FileTypeClassifier(temperature=0.0)
 
     try:
         # Execute test

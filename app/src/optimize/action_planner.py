@@ -13,7 +13,7 @@ from typing import Any, Dict, List, Optional, Tuple
 # Add src directory to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from utils.llm_factory import LLMFactory
+from utils.llm_factory import DEFAULT_LLM_MODEL, LLMFactory
 from utils.llm_retry import call_with_retry
 from utils.prompt_utils import fill_prompt_template
 
@@ -705,9 +705,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description="Action Planner - Generates concrete fix proposals from strategy plans"
     )
-    parser.add_argument(
-        "--model", default="gemini-3.5-flash-lite", help="LLM model name (default: gemini-3.5-flash-lite)"
-    )
+    parser.add_argument("--model", default=DEFAULT_LLM_MODEL, help="LLM model name (default: %(default)s)")
     parser.add_argument("--temperature", type=float, default=0.0, help="LLM temperature (default: 0.0)")
     parser.add_argument("--max-concurrency", type=int, default=8, help="Maximum concurrent LLM calls (default: 8)")
     parser.add_argument("--no-progress", action="store_true", help="Disable progress messages")

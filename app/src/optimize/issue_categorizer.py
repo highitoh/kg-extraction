@@ -12,7 +12,7 @@ from typing import Any, Dict, List, Optional
 # Add src directory to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from utils.llm_factory import LLMFactory
+from utils.llm_factory import DEFAULT_LLM_MODEL, LLMFactory
 from utils.llm_retry import call_with_retry
 from utils.prompt_utils import fill_prompt_template
 
@@ -315,9 +315,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description="Issue Categorizer - Categorizes similar issue labels into canonical categories"
     )
-    parser.add_argument(
-        "--model", default="gemini-3.5-flash-lite", help="LLM model name (default: gemini-3.5-flash-lite)"
-    )
+    parser.add_argument("--model", default=DEFAULT_LLM_MODEL, help="LLM model name (default: %(default)s)")
 
     args = parser.parse_args()
 

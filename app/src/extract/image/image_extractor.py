@@ -373,7 +373,6 @@ if __name__ == "__main__":
 
     print("ImageExtractor test starting...")
     extractor = ImageExtractor(
-        model="gpt-5-nano",
         temperature=0.0,
         max_concurrency=2,
         relevance_threshold=0.5,

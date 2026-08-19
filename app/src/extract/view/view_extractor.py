@@ -294,7 +294,6 @@ if __name__ == "__main__":
     # Create ViewExtractor instance
     print("ViewExtractor test starting...")
     extractor = ViewExtractor(
-        model="gpt-5-nano",
         temperature=0.0,
         max_concurrency=2,  # Limit concurrency for testing
         max_spans_per_label=2,  # Limit for testing

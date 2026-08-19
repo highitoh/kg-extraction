@@ -22,6 +22,7 @@ from src.optimize.action_applicator import ActionApplicator
 from src.optimize.project_state_manager import ProjectStateManager
 from src.optimize.quality_tracker import QualityTracker
 from src.optimize_workflow import run_optimization_workflow
+from src.utils.llm_factory import DEFAULT_LLM_MODEL
 
 load_dotenv()
 
@@ -569,9 +570,7 @@ def main():
     parser.add_argument(
         "--quality-threshold", type=float, default=2.0, help="Stop when combined score >= threshold (default: 2.0)"
     )
-    parser.add_argument(
-        "--model", type=str, default="gemini-3.5-flash-lite", help="LLM model name (default: gemini-3.5-flash-lite)"
-    )
+    parser.add_argument("--model", type=str, default=DEFAULT_LLM_MODEL, help="LLM model name (default: %(default)s)")
     parser.add_argument("--no-apply", action="store_true", help="Dry-run optimization without applying changes")
     parser.add_argument("--resume", type=str, help="Resume from a previous run ID")
     parser.add_argument(
