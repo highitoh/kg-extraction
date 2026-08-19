@@ -10,11 +10,11 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 # Add src directory to path for imports
-sys.path.insert(0, str(Path(__file__).parent.parent))
+sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
-from utils.llm_factory import DEFAULT_LLM_MODEL, LLMFactory
-from utils.llm_retry import call_with_retry
-from utils.prompt_utils import fill_prompt_template
+from src.utils.llm_factory import DEFAULT_LLM_MODEL, LLMFactory
+from src.utils.llm_retry import call_with_retry
+from src.utils.prompt_utils import fill_prompt_template
 
 
 class IssueCategorizer:
