@@ -6,6 +6,7 @@ FROM python:3.14-slim
 RUN apt-get update && apt-get install -y \
     git \
     curl \
+    fonts-noto-cjk \
     && rm -rf /var/lib/apt/lists/*
 
 # Set working directory

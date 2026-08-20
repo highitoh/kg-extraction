@@ -203,6 +203,47 @@ class MiroClient:
 
         return all_items
 
+    def get_connectors(self, board_id: str, limit: int = 50) -> list[dict]:
+        """Fetch connectors (arrows/lines) from a board.
+
+        Connectors are not included in get_board_items() - they live on a
+        separate endpoint.
+
+        Args:
+            board_id: Miro board ID
+            limit: Connectors per page (default: 50, max: 50)
+
+        Returns:
+            List of connectors. Each connector includes:
+            - id: Connector ID
+            - startItem / endItem: {"id": ...} of the connected items
+            - captions: List of {"content": ...} labels (optional)
+            - shape: Line shape (straight, curved, elbowed)
+            - style: Stroke color/width/style and arrowhead caps
+
+        Example:
+            >>> connectors = client.get_connectors("o9J_abc123")
+            >>> print(connectors[0]["startItem"]["id"], connectors[0]["endItem"]["id"])
+        """
+        endpoint = f"/boards/{board_id}/connectors"
+
+        all_connectors = []
+        cursor = None
+
+        while True:
+            params = {"limit": min(limit, 50)}
+            if cursor:
+                params["cursor"] = cursor
+
+            response = self._make_request("GET", endpoint, params=params)
+            all_connectors.extend(response.get("data", []))
+
+            cursor = response.get("cursor")
+            if not cursor:
+                break
+
+        return all_connectors
+
     def get_item(self, board_id: str, item_id: str) -> dict:
         """Fetch a specific item from a board.
 
