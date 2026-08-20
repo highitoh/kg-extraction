@@ -65,9 +65,7 @@ FONT_SEARCH_PATHS = [
 
 def _resolve_font_path() -> Optional[Tuple[str, int]]:
     """Find a usable font file, preferring the JP face of Noto Sans CJK."""
-    env_path = os.getenv("MIRO_RENDER_FONT")
-    candidates = ([env_path] if env_path else []) + FONT_SEARCH_PATHS
-    for path in candidates:
+    for path in FONT_SEARCH_PATHS:
         if not path or not os.path.exists(path):
             continue
         if path.endswith(".ttc"):
