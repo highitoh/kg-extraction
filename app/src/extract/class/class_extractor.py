@@ -47,7 +47,6 @@ class ClassExtractor(Runnable):
 
     def __init__(
         self,
-        llm: Any = None,
         model: str | None = None,
         temperature: float = 0.0,
         progress: bool = True,
@@ -55,36 +54,43 @@ class ClassExtractor(Runnable):
         batch_size: int = 25,
         log_dir: str = "/workspace/app/log/class_extractor",
     ):
-        self.llm = llm or LLMFactory.create_llm(
-            model=model,
-            temperature=temperature,
-            reasoning_effort="low",
-        )
+        self.model = model
+        self.temperature = temperature
+        self.reasoning_effort = "low"
         self.progress = progress
         self.max_concurrency = max_concurrency
         self.batch_size = batch_size
         self.logger = Logger(log_dir)
 
-        # Load JSON schema
-        schema = self._load_schema()
-        self.llm_json = self.llm.bind(
-            response_format={"type": "json_schema", "json_schema": {"name": "class_extractor", "schema": schema}}
-        )
+        # Load JSON schemas
+        self.schema = self._load_schema()
+        self.structured_schema = self._load_structured_schema()
 
-        # Load prompt template
+        # Load prompt templates
         self.prompt_template = self._load_prompt_template()
+        self.prompt_template_structured = self._load_structured_prompt_template()
         # Load custom rules
         self.custom_rules = self._load_custom_rules()
 
-        # Structured-block (table) header typing: separate prompt + schema
-        structured_schema = self._load_structured_schema()
-        self.llm_json_structured = self.llm.bind(
+    def _create_llm(self) -> Any:
+        return LLMFactory.create_llm(
+            model=self.model,
+            temperature=self.temperature,
+            reasoning_effort=self.reasoning_effort,
+        )
+
+    def _create_llm_json(self) -> Any:
+        return self._create_llm().bind(
+            response_format={"type": "json_schema", "json_schema": {"name": "class_extractor", "schema": self.schema}}
+        )
+
+    def _create_llm_json_structured(self) -> Any:
+        return self._create_llm().bind(
             response_format={
                 "type": "json_schema",
-                "json_schema": {"name": "class_extractor_structured", "schema": structured_schema},
+                "json_schema": {"name": "class_extractor_structured", "schema": self.structured_schema},
             }
         )
-        self.prompt_template_structured = self._load_structured_prompt_template()
 
     def _load_schema(self) -> dict:
         """Load JSON schema file"""
@@ -222,6 +228,8 @@ class ClassExtractor(Runnable):
         self, view_info: Dict[str, Any], metamodel: Dict[str, Any]
     ) -> List[Dict[str, Any]]:
         """Execute class extraction in parallel for each view"""
+        # Fresh LLM per event loop so async client resources are not shared across loops
+        llm_json = self._create_llm_json()
         view_types = view_types_from_metamodel(metamodel)
         sem = asyncio.Semaphore(self.max_concurrency)
         total = len(view_types)
@@ -239,7 +247,7 @@ class ClassExtractor(Runnable):
                 label_items = []
                 for attempt in range(5):
                     try:
-                        label_items = await self._extract_labels_from_view_async(view_type, texts, metamodel)
+                        label_items = await self._extract_labels_from_view_async(llm_json, view_type, texts, metamodel)
                         break
                     except Exception as e:
                         if attempt == 4:  # Last attempt
@@ -262,6 +270,7 @@ class ClassExtractor(Runnable):
 
     async def _extract_labels_from_view_async(
         self,
+        llm_json: Any,
         view_type: str,
         texts: List[Dict[str, Any]],
         metamodel: Dict[str, Any],
@@ -274,10 +283,12 @@ class ClassExtractor(Runnable):
           [{"class": "<class>", "label": "<instance>", "source": "<source>", "file_id": "<source file ID>"} , ...]
         """
         if not self.batch_size or len(texts) <= self.batch_size:
-            return await self._extract_labels_async(view_type, texts, metamodel)
+            return await self._extract_labels_async(llm_json, view_type, texts, metamodel)
 
         batches = [texts[i : i + self.batch_size] for i in range(0, len(texts), self.batch_size)]
-        results = await asyncio.gather(*[self._extract_labels_async(view_type, batch, metamodel) for batch in batches])
+        results = await asyncio.gather(
+            *[self._extract_labels_async(llm_json, view_type, batch, metamodel) for batch in batches]
+        )
         return [label for batch_labels in results for label in batch_labels]
 
     def _format_texts_with_ids(self, texts: List[Dict[str, Any]]) -> tuple[str, Dict[str, Dict[str, Any]]]:
@@ -315,7 +326,7 @@ class ClassExtractor(Runnable):
         return output.getvalue(), text_map
 
     async def _extract_labels_async(
-        self, view_type: str, texts: List[Dict[str, Any]], metamodel: Dict[str, Any] = None
+        self, llm_json: Any, view_type: str, texts: List[Dict[str, Any]], metamodel: Dict[str, Any] = None
     ) -> List[Dict[str, str]]:
         """
         Extract class instances from specified view type using LLM (async version)
@@ -340,7 +351,7 @@ class ClassExtractor(Runnable):
         prompt = f"{prompt}\n\n[Text]\n{texts_csv}\n"
 
         response = await call_with_retry(
-            lambda: self.llm_json.ainvoke([HumanMessage(content=prompt)]),
+            lambda: llm_json.ainvoke([HumanMessage(content=prompt)]),
             timeout=90.0,
             label="ClassExtractor",
         )
@@ -547,7 +558,12 @@ class ClassExtractor(Runnable):
         return "\n".join(lines)
 
     async def _type_table_headers(
-        self, block: Dict[str, Any], class_definitions: str, valid_class_names: set, metamodel: Dict[str, Any]
+        self,
+        llm_json_structured: Any,
+        block: Dict[str, Any],
+        class_definitions: str,
+        valid_class_names: set,
+        metamodel: Dict[str, Any],
     ) -> List[ExtractedClass]:
         """Type a single table's headers into class candidates (verbatim labels)."""
         table = block.get("table", {})
@@ -573,7 +589,7 @@ class ClassExtractor(Runnable):
 
         try:
             response = await call_with_retry(
-                lambda: self.llm_json_structured.ainvoke([HumanMessage(content=prompt)]),
+                lambda: llm_json_structured.ainvoke([HumanMessage(content=prompt)]),
                 timeout=90.0,
                 label="ClassExtractor-Structured",
             )
@@ -632,13 +648,17 @@ class ClassExtractor(Runnable):
         if not table_blocks:
             return []
 
+        # Fresh LLM per event loop so async client resources are not shared across loops
+        llm_json_structured = self._create_llm_json_structured()
         class_definitions = self._get_all_class_definitions(metamodel)
         valid_class_names = {c.get("name") for c in llm_extractable_classes(metamodel)}
         sem = asyncio.Semaphore(self.max_concurrency)
 
         async def _wrapped(block: Dict[str, Any]) -> List[ExtractedClass]:
             async with sem:
-                return await self._type_table_headers(block, class_definitions, valid_class_names, metamodel)
+                return await self._type_table_headers(
+                    llm_json_structured, block, class_definitions, valid_class_names, metamodel
+                )
 
         results = await asyncio.gather(*[_wrapped(b) for b in table_blocks])
         out: List[ExtractedClass] = []
