@@ -109,16 +109,19 @@ class KnowledgeExtractionState(TypedDict, total=False):
     # ========== Intermediate Results: Image Extraction Stage ==========
     image_chunks: List[Dict[str, Any]]  # Image descriptions as chunks (parallel to text chunks)
     # image_chunk: {
-    #   "text": str,              # Description text (Mermaid diagram or natural language)
+    #   "text": str,              # Description text (natural language, Mermaid appended when structural)
     #   "file_id": str,
-    #   "page_number": int,
-    #   "provenance": {
-    #     "source": "image",
-    #     "image_id": str,
-    #     "relevance_score": float,
+    #   "source": {               # Where the image came from
+    #     "kind": "image",
+    #     "page_number": int,
+    #     "image_id": str,        # PDF embedded images only
+    #     "item_id": str,         # Miro board items only
+    #     "item_type": str        # Miro board items only
+    #   },
+    #   "analysis": {             # What the pipeline derived from it
     #     "has_structural_content": bool,
-    #     "image_description": str,
-    #     "structural_description": str | None
+    #     "structural_description": str | None,   # Mermaid
+    #     "relevance_score": float                # only when screening ran
     #   }
     # }
     image_statistics: Dict[str, Any]  # Image pipeline statistics

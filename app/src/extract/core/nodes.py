@@ -6,11 +6,13 @@ LangGraph node function definitions for knowledge extraction processing
 import importlib
 import json
 import os
+import uuid
 from typing import Any, Dict, List, Set, Tuple
 
 from src.extract.classification.file_type_classifier import FileTypeClassifier
 from src.extract.core.state import KnowledgeExtractionState
-from src.extract.image.image_extractor import ImageExtractor
+from src.extract.image.image_analyzer import ImageAnalyzer
+from src.extract.image.sources import pdf_embedded_images, pdf_page_images
 from src.extract.output.neo4j_csv_generator import Neo4jCSVGenerator
 from src.extract.output.turtle_generator import TurtleGenerator
 from src.extract.property.property_chain import create_property_chain
@@ -1127,14 +1129,19 @@ def extract_images_node(state: KnowledgeExtractionState) -> Dict[str, Any]:
     as pasted diagrams; does not re-read rendered page text).
     """
     try:
-        extractor = ImageExtractor(model=state.get("model"))
+        analyzer = ImageAnalyzer(
+            model=state.get("model"),
+            relevance_threshold=0.5,
+            screen_width=512,
+            describe_width=1024,
+            label="ImageExtractor",
+            log_dir="/workspace/app/log/image_extractor",
+            log_prefix="image_extractor_output_",
+        )
 
-        input_data = {
-            "files": state["files"],
-            "file_id": state.get("file_id"),
-        }
-
-        result = extractor.invoke(input_data)
+        file_id = state.get("file_id") or str(uuid.uuid4())
+        subjects = pdf_embedded_images(state["files"][0]["path"], file_id)
+        result = analyzer.analyze(subjects)
 
         image_chunks = result.get("image_chunks", [])
         return {
@@ -1797,18 +1804,15 @@ def extract_images_miro_board_node(state: KnowledgeExtractionState) -> Knowledge
     Converts PDF pages to images and sends to LLM for analysis.
     """
     try:
-        from src.extract.miro.miro_board_image_extractor import MiroBoardImageExtractor
-
-        model = state.get("model")
-        extractor = MiroBoardImageExtractor(model=model) if model else MiroBoardImageExtractor()
-
-        result = extractor.invoke(
-            {
-                "pdf_path": state["file_path"],
-                "item_page_mappings": state["item_page_mappings"],
-                "file_id": state["file_id"],
-            }
+        analyzer = ImageAnalyzer(
+            model=state.get("model"),
+            label="MiroBoardImageExtractor",
+            log_dir="/workspace/app/log/miro_board_image_extractor",
+            log_prefix="miro_board_image_extractor_output_",
         )
+
+        subjects = pdf_page_images(state["file_path"], state["item_page_mappings"], state["file_id"])
+        result = analyzer.analyze(subjects)
 
         state["image_chunks"] = result["image_chunks"]
         state["image_statistics"] = result["image_statistics"]

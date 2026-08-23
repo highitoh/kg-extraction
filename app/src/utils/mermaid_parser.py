@@ -175,7 +175,7 @@ def build_extracted_structure(image_chunks: List[Dict[str, Any]]) -> List[Dict[s
     """Build format-agnostic structure records from structural image chunks.
 
     Args:
-        image_chunks: Image chunks with a "provenance" dict that may carry
+        image_chunks: Image chunks with an "analysis" dict that may carry
             "has_structural_content" and "structural_description" (Mermaid).
 
     Returns:
@@ -183,10 +183,10 @@ def build_extracted_structure(image_chunks: List[Dict[str, Any]]) -> List[Dict[s
     """
     structure: List[Dict[str, str]] = []
     for chunk in image_chunks:
-        provenance = chunk.get("provenance", {}) or {}
-        if not provenance.get("has_structural_content"):
+        analysis = chunk.get("analysis", {}) or {}
+        if not analysis.get("has_structural_content"):
             continue
-        mermaid = provenance.get("structural_description")
+        mermaid = analysis.get("structural_description")
         if not mermaid:
             continue
         file_id = chunk.get("file_id", "")
