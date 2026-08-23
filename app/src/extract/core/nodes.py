@@ -12,7 +12,7 @@ from typing import Any, Dict, List, Set, Tuple
 from src.extract.classification.file_type_classifier import FileTypeClassifier
 from src.extract.core.state import KnowledgeExtractionState
 from src.extract.image.image_analyzer import ImageAnalyzer
-from src.extract.image.sources import pdf_embedded_images, pdf_page_images
+from src.extract.image.sources import embedded_images, pdf_page_images
 from src.extract.output.neo4j_csv_generator import Neo4jCSVGenerator
 from src.extract.output.turtle_generator import TurtleGenerator
 from src.extract.property.property_chain import create_property_chain
@@ -1119,14 +1119,14 @@ def transform_to_chunks_node(state: KnowledgeExtractionState) -> KnowledgeExtrac
 
 def extract_images_node(state: KnowledgeExtractionState) -> Dict[str, Any]:
     """
-    Node that extracts image descriptions from the PDF and converts them into chunks.
+    Node that extracts image descriptions from the source file and converts them into chunks.
     files, file_id -> image_chunks, image_statistics
 
     Runs in parallel with the text-extraction/chunking path and converges at
     merge_chunks_node. Returns only the keys this node writes to avoid
-    concurrent-update conflicts with the parallel text branch. Applies to both
-    document and presentation file types (extracts embedded image XObjects such
-    as pasted diagrams; does not re-read rendered page text).
+    concurrent-update conflicts with the parallel text branch. Reads embedded
+    images (pasted diagrams and the like) from PDF, DOCX and PPTX sources; other
+    sources simply yield no image chunks.
     """
     try:
         analyzer = ImageAnalyzer(
@@ -1140,7 +1140,7 @@ def extract_images_node(state: KnowledgeExtractionState) -> Dict[str, Any]:
         )
 
         file_id = state.get("file_id") or str(uuid.uuid4())
-        subjects = pdf_embedded_images(state["files"][0]["path"], file_id)
+        subjects = embedded_images(state["files"][0]["path"], file_id)
         result = analyzer.analyze(subjects)
 
         image_chunks = result.get("image_chunks", [])
