@@ -51,13 +51,15 @@
                 "Extract a Value Proposition when the text states, taken as a whole, what the business believes it offers to a particular stakeholder through a product or service.",
                 "Extract a Value Proposition when the statement bundles several benefits together into one overall offer; the individual benefits within it are extracted separately as Value.",
                 "Extract a Value Proposition only when the intended recipient is identified in the text or clearly inferable from the surrounding context.",
-                "Extract a Value Proposition when the offer is tied to a specific product, service, or offering rather than to the enterprise as a whole."
+                "Extract a Value Proposition when the offer is tied to a specific product, service, or offering rather than to the enterprise as a whole.",
+                "Express the label as a concise noun phrase that names the concept; when the source states it as a full sentence, condense it into nominal form instead of copying the sentence."
             ],
             "prohibit_rules": [
                 "Do not extract as Value Proposition a single benefit, gain, or perceived worth; an individual item of worth belongs to Value.",
                 "Do not extract as Value Proposition a statement about the future state or aspiration of the enterprise as a whole; those belong to Vision.",
                 "Do not extract as Value Proposition a factual state of affairs that the business produces; a state of affairs belongs to Outcome.",
-                "Do not extract as Value Proposition a description of an internal capability, process, or technical function that does not express worth offered to a stakeholder."
+                "Do not extract as Value Proposition a description of an internal capability, process, or technical function that does not express worth offered to a stakeholder.",
+                "Do not use a verbatim sentence copied from the source text as the class label; sentence-form labels blur the concept boundary and belong in the source evidence, not the label."
             ]
         },
         {
@@ -71,13 +73,15 @@
                 "Extract a Value when the text expresses a single benefit, gain, or worth that a stakeholder is believed to perceive from something the business produces or delivers.",
                 "Extract a Value from the perspective of the party receiving it, capturing what that party gains rather than what the business does to deliver it.",
                 "Extract a Value when the text describes a stakeholder's positive perception or judgment of an experience (for example: feeling that a purchase was a good deal, or that a question was satisfactorily answered).",
-                "Extract each distinct perception as its own Value when the same experience is valued differently by different stakeholders."
+                "Extract each distinct perception as its own Value when the same experience is valued differently by different stakeholders.",
+                "Express the label as a concise noun phrase that names the concept; when the source states it as a full sentence, condense it into nominal form instead of copying the sentence."
             ],
             "prohibit_rules": [
                 "Do not extract as Value a factual, observable state of affairs that the business produces; the state of affairs is an Outcome, and only the worth a stakeholder places on it is a Value.",
                 "Do not extract as Value an action, process, task, or technical function performed by the business; those belong to Business Activity, Feature, or Component.",
                 "Do not extract as Value a bundled offer that covers several benefits directed at a stakeholder; such a bundle belongs to Value Proposition.",
-                "Do not extract as Value a measurable target, threshold, or metric; those belong to Outcome or Indicator."
+                "Do not extract as Value a measurable target, threshold, or metric; those belong to Outcome or Indicator.",
+                "Do not use a verbatim sentence copied from the source text as the class label; sentence-form labels blur the concept boundary and belong in the source evidence, not the label."
             ]
         },
         {
@@ -91,13 +95,15 @@
                 "Extract an Outcome when the text states a resulting condition or state of affairs - what has become true - rather than the activity that brought it about.",
                 "Extract an Outcome when the statement describes the state of a thing or of information at some point in the business (for example: an order has been received, a record is up to date, the wheels are attached to the vehicle).",
                 "Extract an Outcome both when the condition is one the business produces and when it is one the business requires as a precondition or trigger.",
-                "Phrase the label as a state or result, keeping the subject whose state is being described."
+                "Phrase the label as a state or result, keeping the subject whose state is being described.",
+                "Express the label as a concise noun phrase that names the concept; when the source states it as a full sentence, condense it into nominal form instead of copying the sentence."
             ],
             "prohibit_rules": [
                 "Do not extract as Outcome the activity, process, or capability that produces the state; those belong to Business Activity, Feature, or Component.",
                 "Do not extract as Outcome a stakeholder's perception of worth or benefit in a state of affairs; that perception belongs to Value.",
                 "Do not extract as Outcome a desired future state of the enterprise as a whole; those belong to Vision.",
-                "Do not extract as Outcome a rule, constraint, or requirement prescribing how the business or product must behave; those belong to Product Requirement."
+                "Do not extract as Outcome a rule, constraint, or requirement prescribing how the business or product must behave; those belong to Product Requirement.",
+                "Do not use a verbatim sentence copied from the source text as the class label; sentence-form labels blur the concept boundary and belong in the source evidence, not the label."
             ]
         },
         {
@@ -165,12 +171,14 @@
             "extract_rules": [
                 "Extract a Touchpoint when the text describes a concrete point of interaction or contact between the business and a stakeholder.",
                 "Extract a Touchpoint when the stakeholder experiences a result at that interaction, such as receiving a service, obtaining information that answers a question, accepting an offering, or using something that was supplied.",
-                "Extract a Touchpoint at the level of the individual interaction, naming the interaction itself rather than the phase of the journey that contains it."
+                "Extract a Touchpoint at the level of the individual interaction, naming the interaction itself rather than the phase of the journey that contains it.",
+                "Express the label as a concise noun phrase that names the concept; when the source states it as a full sentence, condense it into nominal form instead of copying the sentence."
             ],
             "prohibit_rules": [
                 "Do not extract as Touchpoint a broad phase of the stakeholder's journey; a phase belongs to Customer Journey Stage.",
                 "Do not extract as Touchpoint a screen, channel, or system element described purely as a technical component without reference to the stakeholder's experience; those belong to Interface or Component.",
-                "Do not extract as Touchpoint the result that the stakeholder experiences at the interaction; the result itself belongs to Outcome."
+                "Do not extract as Touchpoint the result that the stakeholder experiences at the interaction; the result itself belongs to Outcome.",
+                "Do not use a verbatim sentence copied from the source text as the class label; sentence-form labels blur the concept boundary and belong in the source evidence, not the label."
             ]
         },
         {
@@ -436,7 +444,8 @@
                 "Extract an Analytical Insight when the finding is presented as novel and useful, rather than restating what was already known.",
                 "Extract an Analytical Insight when the text reports what the analysis showed about a measure, such as a level reached, a relationship observed, or a difference between groups.",
                 "Extract an Analytical Insight even when the finding answers no goal that was set, including side findings such as data quality problems uncovered along the way.",
-                "Extract each finding separately when a passage reports several."
+                "Extract each finding separately when a passage reports several.",
+                "Express the label as a concise noun phrase that names the concept; when the source states it as a full sentence, condense it into nominal form instead of copying the sentence."
             ],
             "prohibit_rules": [
                 "Do not extract as Analytical Insight the goal that the analysis was set up to achieve; a stated analytical intent belongs to Analysis Goal.",
@@ -444,7 +453,8 @@
                 "Do not extract as Analytical Insight an action proposed in response to the finding; a proposed action belongs to Next Action.",
                 "Do not extract as Analytical Insight the data that the finding was derived from; data belongs to Source Dataset or Analysis Dataset.",
                 "Do not extract as Analytical Insight the technique, model, or tool that produced the finding.",
-                "Do not extract as Analytical Insight a state of affairs that the business produces as part of its operation; a business state belongs to Outcome."
+                "Do not extract as Analytical Insight a state of affairs that the business produces as part of its operation; a business state belongs to Outcome.",
+                "Do not use a verbatim sentence copied from the source text as the class label; sentence-form labels blur the concept boundary and belong in the source evidence, not the label."
             ]
         },
         {
@@ -459,7 +469,8 @@
                 "Extract a Next Action whether the action is one option among several under consideration or the single course that was decided on.",
                 "Extract a Next Action for any kind of follow-on course, including putting a result into use, running a further round of analysis, starting a new analysis, and changing what the business or the product does.",
                 "Extract a Next Action when the action is directed at something upstream that should change, such as a value offered to a stakeholder or a requirement placed on the product.",
-                "Extract the action itself as the label; the reasons stated for and against it are not part of the label."
+                "Extract the action itself as the label; the reasons stated for and against it are not part of the label.",
+                "Express the label as a concise noun phrase that names the concept; when the source states it as a full sentence, condense it into nominal form instead of copying the sentence."
             ],
             "prohibit_rules": [
                 "Do not extract as Next Action the finding that prompted the action; a reported finding belongs to Analytical Insight.",
@@ -467,7 +478,8 @@
                 "Do not extract as Next Action a goal set for the analysis itself; a stated analytical intent belongs to Analysis Goal.",
                 "Do not extract as Next Action work that the enterprise already carries out as a standing part of its operations; ongoing work belongs to Business Activity.",
                 "Do not extract as Next Action a condition that the product must meet; a stated need belongs to Product Requirement.",
-                "Do not extract as Next Action a measure used to judge whether something succeeded; a measure belongs to Indicator."
+                "Do not extract as Next Action a measure used to judge whether something succeeded; a measure belongs to Indicator.",
+                "Do not use a verbatim sentence copied from the source text as the class label; sentence-form labels blur the concept boundary and belong in the source evidence, not the label."
             ]
         }
     ],
