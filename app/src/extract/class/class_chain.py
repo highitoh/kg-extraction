@@ -19,6 +19,7 @@ class ClassChainWithReview(Runnable):
     - After correction, ClassReviewer re-evaluates
     - Repeats until all become ACCEPT/REJECT or maximum iterations reached
     - If REVIEW remains after maximum iterations, converts to ACCEPT
+    - REJECT classes are excluded from the output
     """
 
     def __init__(
@@ -231,7 +232,10 @@ class ClassChainWithReview(Runnable):
         if accepted_review_count > 0 and self.progress:
             print(f"\n=== Converting {accepted_review_count} remaining REVIEW classes to ACCEPT ===")
 
-        result["classes"] = self._clear_internal_flags(final_classes)
+        # 7. Drop REJECT classes so the chain output carries accepted classes only.
+        accepted_classes = [c for c in final_classes if c.get("judgment") != "REJECT"]
+
+        result["classes"] = self._clear_internal_flags(accepted_classes)
 
         return result
 
