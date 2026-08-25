@@ -2,6 +2,7 @@
 
 import re
 
+from src.extract.miro.miro_board_renderer import attach_container_children
 from src.extract.miro.miro_item_analyzer import MiroItemAnalyzer
 from src.utils.miro_client import MiroClient
 
@@ -74,6 +75,11 @@ def extract_text_from_miro_board(miro_url: str) -> list[dict]:
     client = MiroClient()
     board_data = client.get_board(board_id)
     board_items = client.get_board_items(board_id)
+    connectors = client.get_connectors(board_id)
+
+    # Diagram children come back with parent=null, so read the relationship
+    # back per container - the renderer needs it to group them
+    attach_container_children(client, board_id, board_items)
 
     # 3. Transform via MiroItemAnalyzer
     analyzer = MiroItemAnalyzer()
@@ -97,6 +103,7 @@ def extract_text_from_miro_board(miro_url: str) -> list[dict]:
         "id": board_id,
         "name": board_data.get("name", "Unnamed Board"),
         "items": board_items,
+        "connectors": connectors,
         "modifiedAt": board_data.get("modifiedAt"),
     }
 

@@ -9,7 +9,7 @@ the analyzer.
 import io
 import os
 import uuid
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Set
 
 import pdfplumber
 from PIL import Image
@@ -217,6 +217,67 @@ def pptx_embedded_images(file_path: str, file_id: str, progress: bool = True) ->
             f"rule_filtered={rule_filtered} unreadable={unreadable} candidates={len(subjects)}"
         )
     return subjects
+
+
+def miro_rendered_regions(
+    items: List[Dict[str, Any]],
+    connectors: List[Dict[str, Any]],
+    file_id: str,
+    changed_item_ids: Optional[Set[str]] = None,
+    progress: bool = True,
+) -> List[ImageSubject]:
+    """Draw a Miro board from its API data, one image per frame, diagram or cluster.
+
+    Args:
+        items: Board items, with diagram children already resolved
+        connectors: Board connectors, drawn as arrows between items
+        file_id: File ID prefix; each region appends its own id
+        changed_item_ids: In incremental mode, keep only regions holding one of these
+        progress: Print what was rendered
+
+    Returns:
+        One ImageSubject per rendered region
+    """
+    from src.extract.miro.miro_board_renderer import MiroBoardRenderer
+
+    if progress:
+        print(f"[miro_rendered_regions] Rendering {len(items)} items and {len(connectors)} connectors")
+
+    regions = MiroBoardRenderer().render(items, connectors)
+
+    subjects: List[ImageSubject] = []
+    skipped = 0
+    for region in regions:
+        if changed_item_ids is not None and not (set(region.item_ids) & changed_item_ids):
+            skipped += 1
+            continue
+
+        source: Dict[str, Any] = {
+            "kind": "image",
+            "item_id": region.region_id,
+            "item_type": region.region_type,
+        }
+        if region.title:
+            source["title"] = region.title
+
+        subjects.append(
+            ImageSubject(
+                load=_region_loader(region),
+                file_id=f"{file_id}:{region.region_id}",
+                source=source,
+            )
+        )
+
+    if progress:
+        print(f"[miro_rendered_regions] regions={len(regions)} unchanged_skipped={skipped} candidates={len(subjects)}")
+    return subjects
+
+
+def _region_loader(region):
+    def load() -> Image.Image:
+        return region.image
+
+    return load
 
 
 def _iter_pictures(shapes):

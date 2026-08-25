@@ -12,7 +12,7 @@ from typing import Any, Dict, List, Set, Tuple
 from src.extract.classification.file_type_classifier import FileTypeClassifier
 from src.extract.core.state import KnowledgeExtractionState
 from src.extract.image.image_analyzer import ImageAnalyzer
-from src.extract.image.sources import embedded_images, pdf_page_images
+from src.extract.image.sources import embedded_images, miro_rendered_regions, pdf_page_images
 from src.extract.output.neo4j_csv_generator import Neo4jCSVGenerator
 from src.extract.output.turtle_generator import TurtleGenerator
 from src.extract.property.property_chain import create_property_chain
@@ -1154,6 +1154,53 @@ def extract_images_node(state: KnowledgeExtractionState) -> Dict[str, Any]:
         return {
             "image_chunks": [],
             "image_statistics": {"error": str(e), "failed_message": f"Image extraction failed: {e}"},
+            "extracted_structure": [],
+        }
+
+
+def extract_images_miro_node(state: KnowledgeExtractionState) -> Dict[str, Any]:
+    """
+    Node that renders a Miro board from its API data and describes each region.
+    miro_raw_data -> image_chunks, image_statistics
+
+    Runs in parallel with the text-extraction/chunking path and converges at
+    merge_chunks_node, so it returns only the keys it writes. Every region is
+    analyzed: they are deliberate cut-outs of the board, so there is nothing to
+    screen out.
+    """
+    try:
+        raw = state.get("miro_raw_data") or {}
+        items = raw.get("items") or []
+        connectors = raw.get("connectors") or []
+
+        analyzer = ImageAnalyzer(
+            model=state.get("model"),
+            label="MiroImageExtractor",
+            log_dir="/workspace/app/log/miro_image_extractor",
+            log_prefix="miro_image_extractor_output_",
+        )
+
+        changed_item_ids = set(state["changed_item_ids"]) if state.get("incremental_mode") else None
+        subjects = miro_rendered_regions(
+            items,
+            connectors,
+            f"miro:{raw.get('id', 'unknown')}",
+            changed_item_ids=changed_item_ids,
+        )
+        result = analyzer.analyze(subjects)
+
+        image_chunks = result.get("image_chunks", [])
+        return {
+            "image_chunks": image_chunks,
+            "image_statistics": result.get("image_statistics", {}),
+            "extracted_structure": build_extracted_structure(image_chunks),
+        }
+
+    except Exception as e:
+        print(f"[ExtractVisualsMiro] Error: {e}")
+        return {
+            "image_chunks": [],
+            "image_statistics": {"error": str(e), "failed_message": f"Miro visual extraction failed: {e}"},
             "extracted_structure": [],
         }
 

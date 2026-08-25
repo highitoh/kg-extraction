@@ -14,6 +14,7 @@ from src.extract.core.nodes import (
     detect_miro_changes_node,
     extract_classes_node,
     extract_images_miro_board_node,
+    extract_images_miro_node,
     extract_images_node,
     extract_properties_node,
     extract_text_confluence_node,
@@ -52,7 +53,7 @@ def create_knowledge_extraction_graph():
       └─→ detect_github_changes (GitHub only) → extract_text_github ─┘
               ↓                     ↘
          transform_to_chunks     extract_images (parallel - image-to-text)
-              ↓                     ↙
+              ↓                       or extract_images_miro (Miro URL-only)
               └─→ merge_chunks ←───┘
                        ↓
                   extract_views
@@ -93,6 +94,7 @@ def create_knowledge_extraction_graph():
     workflow.add_node("extract_text_confluence", extract_text_confluence_node)
     workflow.add_node("transform_to_chunks", transform_to_chunks_node)
     workflow.add_node("extract_images", extract_images_node)
+    workflow.add_node("extract_images_miro", extract_images_miro_node)
     workflow.add_node("merge_chunks", merge_chunks_node)
     workflow.add_node("extract_views", extract_views_node)
     workflow.add_node("extract_classes", extract_classes_node)
@@ -218,7 +220,8 @@ def create_knowledge_extraction_graph():
     workflow.add_edge("extract_text_md", "extract_images")
     workflow.add_edge("extract_text_document", "extract_images")
     workflow.add_edge("extract_text_presentation", "extract_images")
-    workflow.add_edge("extract_text_miro", "extract_images")
+    workflow.add_edge("extract_text_miro", "extract_images_miro")
+    workflow.add_edge("extract_images_miro", "merge_chunks")
     workflow.add_edge("extract_text_github", "extract_images")
     workflow.add_edge("extract_text_jira", "extract_images")
     workflow.add_edge("extract_text_confluence", "extract_images")

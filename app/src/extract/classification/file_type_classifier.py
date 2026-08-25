@@ -199,10 +199,11 @@ class FileTypeClassifier(Runnable):
 
         # Check if miro_board_url is provided
         miro_board_url = input.get("miro_board_url")
-        if miro_board_url and file_path.endswith(".pdf"):
+        is_board_url = "miro.com/app/board/" in file_path or file_path.startswith("miro:")
+        if is_board_url or (miro_board_url and file_path.endswith(".pdf")):
             source_type = "miro_board"
             content_type = None
-            print(f"File: {file_path}, Source: {source_type}, Content: {content_type} (Miro URL: {miro_board_url})")
+            print(f"File: {file_path}, Source: {source_type}, Content: {content_type}")
 
             # Save log
             log_data = {
@@ -210,7 +211,7 @@ class FileTypeClassifier(Runnable):
                 "source_type": source_type,
                 "content_type": content_type,
                 "miro_board_url": miro_board_url,
-                "justification": "PDF with Miro board URL detected",
+                "justification": "Miro board URL detected" if is_board_url else "PDF with Miro board URL detected",
             }
             self.logger.save_log(log_data, "file_type_classifier_output_")
             return {**input, "source_type": source_type, "content_type": content_type}
