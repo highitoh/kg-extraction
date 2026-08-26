@@ -6,7 +6,8 @@ line (e.g. `flowchart TD`, `classDiagram`) and use the exact labels shown.
 
 If NON-STRUCTURAL (chart, screenshot, photo), leave "structural_description" empty.
 
-Always output a 2-5 sentence summary in "description".
+Always output a 2-5 sentence summary in "description". Write it in the same
+language as the text shown in the image; do not translate.
 
 Output JSON:
 {
