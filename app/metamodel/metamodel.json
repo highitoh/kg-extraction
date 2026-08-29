@@ -259,7 +259,8 @@
                 "Extract a Feature when the functionality can be identified as meeting a need placed on the product, so that it traces back to a Product Requirement.",
                 "Extract a Feature when the functionality is reachable by its users through some point of access, whether or not that access point is named in the text.",
                 "Extract a Feature at the level of a nameable unit of functionality, rather than at the level of a single internal step within it.",
-                "Use the name the source gives the functionality when one is stated, rather than rephrasing it."
+                "Use the name the source gives the functionality when one is stated, rather than rephrasing it.",
+                "Express the label as a concise noun phrase that names the concept; when the source states it as a full sentence, condense it into nominal form instead of copying the sentence."
             ],
             "prohibit_rules": [
                 "Do not extract as Feature the need or condition that the functionality satisfies; a stated need belongs to Product Requirement.",
@@ -268,7 +269,8 @@
                 "Do not extract as Feature work carried out by the organization rather than by the product; organizational work belongs to Business Activity.",
                 "Do not extract as Feature a service level, target value, or quality threshold expected of the functionality; such a target belongs to Product Requirement or Indicator.",
                 "Do not extract as Feature the state of affairs that results from using the functionality; a resulting state belongs to Outcome.",
-                "Do not extract as Feature an abstract goal, strategic intent, or long-term aspiration; a Feature is a concrete deliverable functionality."
+                "Do not extract as Feature an abstract goal, strategic intent, or long-term aspiration; a Feature is a concrete deliverable functionality.",
+                "Do not use a verbatim sentence copied from the source text as the class label; sentence-form labels blur the concept boundary and belong in the source evidence, not the label."
             ]
         },
         {
