@@ -7,6 +7,7 @@ from langchain_core.messages import HumanMessage
 from langchain_core.runnables import Runnable
 
 from src.utils.id_generator import generate_class_id
+from src.utils.label_normalizer import normalize_label
 from src.utils.llm_factory import LLMFactory
 from src.utils.llm_retry import call_with_retry
 from src.utils.logger import Logger
@@ -563,6 +564,7 @@ class ClassConsolidator(Runnable):
         is_frozen_base = merged.get("_frozen_from_existing_accept", False)
 
         # Update label to canonical label
+        canonical_label = normalize_label(canonical_label)
         merged["label"] = canonical_label
 
         # Recompute ID based on the new canonical label and first source

@@ -10,6 +10,7 @@ from langchain_core.messages import HumanMessage
 from langchain_core.runnables import Runnable
 
 from src.utils.id_generator import generate_class_id
+from src.utils.label_normalizer import normalize_label
 from src.utils.llm_factory import LLMFactory
 from src.utils.llm_retry import call_with_retry
 from src.utils.logger import Logger
@@ -159,7 +160,7 @@ class ClassExtractor(Runnable):
 
             for li in label_items:
                 c = li["class"]
-                label = li["label"]
+                label = normalize_label(li["label"])
                 source = li["source"]
                 file_id = li["file_id"]
                 class_iri = self._resolve_class_iri(view_type, c, metamodel)  # Implementation to return URI
@@ -621,7 +622,7 @@ class ClassExtractor(Runnable):
                 continue
             if not class_name or class_name == "none" or class_name not in valid_class_names:
                 continue
-            label = header_map[header_id]  # verbatim from parser
+            label = normalize_label(header_map[header_id])
             class_iri = self._resolve_class_iri_by_name(class_name, metamodel)
             if not class_iri:
                 continue

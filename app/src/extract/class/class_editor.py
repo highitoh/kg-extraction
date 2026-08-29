@@ -6,6 +6,7 @@ from typing import Any, Dict
 from langchain_core.messages import HumanMessage
 from langchain_core.runnables import Runnable
 
+from src.utils.label_normalizer import normalize_label
 from src.utils.llm_factory import LLMFactory
 from src.utils.llm_retry import call_with_retry
 from src.utils.logger import Logger
@@ -151,7 +152,7 @@ class ClassEditor(Runnable):
             base_class = group_classes[0].copy()
 
         # Update label to canonical label
-        base_class["label"] = canonical_label
+        base_class["label"] = normalize_label(canonical_label)
 
         # Collect IDs and labels of merged classes (excluding canonical)
         consolidated_ids = []
@@ -575,7 +576,7 @@ class ClassEditor(Runnable):
                 c_corrected = c.copy()
 
                 should_reject = correction_obj.get("should_reject", False)
-                revised_label = correction_obj.get("revised_label", "")
+                revised_label = normalize_label(correction_obj.get("revised_label", ""))
                 revision_reason = correction_obj.get("revision_reason", "")
 
                 if should_reject:
