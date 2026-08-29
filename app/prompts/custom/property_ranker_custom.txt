@@ -1,6 +1,4 @@
 Relationship Strength Guidelines (Scale 0-2):
 
-- 'participates': 1 (contextual); 2 (active, necessary).
-- 'hasSystemRequirement': 1 (optional); 2 (explicit/current).
-- 'realizedBy': 1 (inferred); 2 (direct implementation).
+- 'isRealizedBy': 1 (inferred); 2 (direct implementation).
 - 'exposes': 0 (incidental/indirect); 2 (explicit access/visibility).

@@ -1,3 +1,0 @@
-### Extraction Rules
-- Concept: Extract only domain-specific entities or abstract ideas. Classify concrete operational steps as 'Business Activity' or 'Value'.
-- Business Activity: Focus on high-level processes delivering direct stakeholder value. Classify technical operations or system functions as 'System Requirement'.
