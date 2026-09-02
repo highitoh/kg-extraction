@@ -25,20 +25,21 @@ from src.utils.llm_retry import call_with_retry
 from src.utils.logger import Logger
 
 
-def combine_description(description: str, structural: str, has_structural: bool) -> str:
-    """Build the chunk text from an image's natural-language and structural forms.
+def build_chunk_text(structural: str, has_structural: bool) -> str:
+    """Build the chunk text that downstream extraction reads from an image.
 
-    The natural-language description is always included. For structural images,
-    the structural (Mermaid) form is appended so both the prose summary and the
-    explicit structure reach downstream extraction.
+    Only the structural (Mermaid) form is returned. The prose description the
+    vision model writes is a summary it composed, not wording the document
+    carries, so a class extracted from it traces back to generated text rather
+    than to the source. It is therefore dropped rather than carried downstream.
+
+    A non-structural image yields no text, and so no chunk: prose was the only
+    thing such an image contributed.
     """
-    description = (description or "").strip()
     structural = (structural or "").strip()
     if has_structural and structural:
-        if description:
-            return f"{description}\n\n{structural}"
         return structural
-    return description
+    return ""
 
 
 @dataclass
@@ -239,10 +240,9 @@ class ImageAnalyzer:
                     )
                 data = json.loads(self._to_text(response.content))
 
-                description = data.get("description", "") or ""
                 structural = data.get("structural_description", "") or ""
                 has_structural = bool(data.get("has_structural_content", False))
-                text = combine_description(description, structural, has_structural)
+                text = build_chunk_text(structural, has_structural)
 
                 if not text:
                     status = "empty"

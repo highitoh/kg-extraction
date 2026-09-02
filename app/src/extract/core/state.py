@@ -109,7 +109,7 @@ class KnowledgeExtractionState(TypedDict, total=False):
     # ========== Intermediate Results: Image Extraction Stage ==========
     image_chunks: List[Dict[str, Any]]  # Image descriptions as chunks (parallel to text chunks)
     # image_chunk: {
-    #   "text": str,              # Description text (natural language, Mermaid appended when structural)
+    #   "text": str,              # The image's structural (Mermaid) form; non-structural images yield no chunk
     #   "file_id": str,
     #   "source": {               # Where the image came from
     #     "kind": "image",
