@@ -23,6 +23,7 @@ from PIL import Image
 from src.utils.llm_factory import LLMFactory
 from src.utils.llm_retry import call_with_retry
 from src.utils.logger import Logger
+from src.utils.mermaid_parser import is_structural_diagram
 
 
 def build_chunk_text(structural: str, has_structural: bool) -> str:
@@ -37,7 +38,7 @@ def build_chunk_text(structural: str, has_structural: bool) -> str:
     thing such an image contributed.
     """
     structural = (structural or "").strip()
-    if has_structural and structural:
+    if has_structural and structural and is_structural_diagram(structural):
         return structural
     return ""
 

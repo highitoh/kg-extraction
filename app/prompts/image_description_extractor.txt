@@ -1,10 +1,31 @@
 Extract information from this image for knowledge extraction.
 
-If STRUCTURAL (UML, ER, architecture, flowchart), output the structure as a
-Mermaid diagram in "structural_description". Declare the diagram type on the first
-line (e.g. `flowchart TD`, `classDiagram`) and use the exact labels shown.
+Decide first whether the image states the STRUCTURE of a product or domain:
+what parts exist, what contains what, and how the parts relate. Only such an
+image is structural. A picture of a process -- steps, branches, an order of
+events, an exchange over time -- is NOT structural, however it is drawn.
 
-If NON-STRUCTURAL (chart, screenshot, photo), leave "structural_description" empty.
+If STRUCTURAL, set "has_structural_content" to true and write the structure as a
+Mermaid diagram in "structural_description", declaring the diagram type on the
+first line. Use exactly one of these four types:
+
+- `classDiagram` - classes, types, entities and their relations. Use this for an
+  entity-relationship diagram too.
+- `requirementDiagram` - requirements and what satisfies or verifies them. Give
+  each requirement a `text:` field holding its statement as the image words it.
+- `architecture-beta` - systems, services and the groups that contain them.
+  Write nesting with `in`, e.g. `service db(database)[DB] in api`. Pick each
+  icon from cloud, database, disk, internet, server.
+- `flowchart` - a boxes-and-lines structure diagram that the three types above
+  would not capture faithfully. Write containment with `subgraph`. Use this
+  ONLY when the boxes are parts of a product or domain; never for a process.
+
+If NOT STRUCTURAL, set "has_structural_content" to false and leave
+"structural_description" empty. This covers a process flow, a sequence or
+interaction over time, a state machine, a chart or graph, a screenshot and a
+photo. Do not reach for `flowchart` to record a process.
+
+Use the exact labels shown in the image; do not invent or rename nodes.
 
 Always output a 2-5 sentence summary in "description". Write it in the same
 language as the text shown in the image; do not translate.
