@@ -14,6 +14,7 @@ from src.utils.chunk_creator import ChunkCreator
 from src.utils.llm_factory import LLMFactory
 from src.utils.llm_retry import call_with_retry
 from src.utils.logger import Logger
+from src.utils.mermaid_parser import is_structural_diagram
 from src.utils.prompt_utils import fill_prompt_template
 
 
@@ -104,8 +105,13 @@ class ViewExtractor(Runnable):
         return ""
 
     def _segment_sentences(self, text: str) -> List[str]:
-        """Split text into sentences using ChunkCreator utility"""
+        """Split a chunk into the units offered to view classification.
+
+        A diagram chunk is not prose, so the sentence rules do not apply to it.
+        """
         cc = ChunkCreator()
+        if is_structural_diagram(text):
+            return cc.split_at_line_boundaries(text)
         return cc._split_into_sentences(text)
 
     def _format_as_csv(self, sentences: List[str], chunk_index: int) -> Tuple[str, Dict[str, str]]:

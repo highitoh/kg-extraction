@@ -47,6 +47,18 @@ class ChunkCreator:
                 result.extend(self._split_oversized(s))
         return result
 
+    def split_at_line_boundaries(self, text: str) -> List[str]:
+        """Break text at line ends, and only when it exceeds max_chars.
+
+        Shorter text is returned as a single piece.
+        """
+        text = text.replace("\r\n", "\n").strip()
+        if not text:
+            return []
+        if len(text) <= self.max_chars:
+            return [text]
+        return self._split_oversized(text)
+
     def _split_oversized(self, text: str) -> List[str]:
         """Split an oversized sentence into pieces that fit within max_chars.
         Tries splitting by newline first, then by space, then by hard cut."""
