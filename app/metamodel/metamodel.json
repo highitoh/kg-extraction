@@ -343,7 +343,7 @@
                 "Do not extract as Validation Activity what the checking found; a finding belongs to Analytical Insight, and an action taken in response belongs to Next Action.",
                 "Do not extract as Validation Activity work performed to build, deliver, or operate the product; producing something is not a check on the worth it delivers.",
                 "Do not extract as Validation Activity the goal set for an analysis; a stated analytical intent belongs to Analysis Goal.",
-                "Do not extract as Validation Activity a check that something works correctly, such as a test before release or a verification the product performs as it runs; a Validation Activity asks whether what was delivered is providing its intended worth, not whether a mechanism functions."
+                "Do not extract as Validation Activity a check that something works correctly, such as a test that looks for defects or a verification the product performs as it runs; a Validation Activity asks whether what was delivered is providing its intended worth, not whether a mechanism functions."
             ]
         },
         {
