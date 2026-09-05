@@ -183,6 +183,21 @@ class PropertyChainWithReview(Runnable):
         return merged
 
     @staticmethod
+    def _fill_missing_labels(properties: list, class_info: dict) -> list:
+        """Fill in src_label and dest_label wherever they are missing.
+
+        Only the reviewer sets them, and a frozen or structure-derived property
+        skips it. The validator then has no label to show and reports "Unknown".
+        """
+        labels = {c.get("id"): c.get("label", "") for c in class_info.get("classes", [])}
+        for p in properties:
+            if not p.get("src_label"):
+                p["src_label"] = labels.get(p.get("src_id"), "")
+            if not p.get("dest_label"):
+                p["dest_label"] = labels.get(p.get("dest_id"), "")
+        return properties
+
+    @staticmethod
     def _clear_internal_flags(properties: list) -> list:
         """Remove internal control flags from output properties."""
         for p in properties:
@@ -334,7 +349,9 @@ class PropertyChainWithReview(Runnable):
         if accepted_review_count > 0 and self.progress:
             print(f"\n=== Converting {accepted_review_count} remaining REVIEW properties to ACCEPT ===")
 
-        result["properties"] = self._clear_internal_flags(final_properties)
+        result["properties"] = self._clear_internal_flags(
+            self._fill_missing_labels(final_properties, self.original_input.get("class_info", {}))
+        )
 
         # 7. Execute PropertyValidator
         if self.progress:
