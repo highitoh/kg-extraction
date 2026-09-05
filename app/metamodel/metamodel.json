@@ -363,7 +363,8 @@
                 "Do not extract as Source Dataset the element that produces or stores the data; a producing element belongs to Component, and the boundary it is reached through belongs to Interface.",
                 "Do not extract as Source Dataset a finding obtained from the data; a finding belongs to Analytical Insight.",
                 "Do not extract as Source Dataset a measure used to judge whether a goal was achieved; a measure belongs to Indicator.",
-                "Do not extract as Source Dataset an individual field, column, or attribute described as part of a larger body of data."
+                "Do not extract as Source Dataset an individual field, column, or attribute described as part of a larger body of data.",
+                "Do not extract as Source Dataset an identifier, key or token that the product issues, derives or exchanges in order to operate; such a value makes the product work rather than being data acquired for analysis."
             ]
         },
         {
