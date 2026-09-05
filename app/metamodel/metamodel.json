@@ -220,7 +220,8 @@
                 "Do not extract as Product the work the enterprise performs to create, deliver, or operate it; that work belongs to Business Activity.",
                 "Do not extract as Product a function or capability that the product provides to its users; those belong to Feature.",
                 "Do not extract as Product a constraint or condition that the product must satisfy; those belong to Product Requirement.",
-                "Do not extract as Product an internal building block, module, or system element that composes the product rather than being offered in its own right; those belong to Component."
+                "Do not extract as Product an internal building block, module, or system element that composes the product rather than being offered in its own right; those belong to Component.",
+                "Do not extract as Product a phrase the document uses to point at its own subject without naming it, such as \"this application\" or \"the system\"; extract the name the document gives the product instead."
             ]
         },
         {
