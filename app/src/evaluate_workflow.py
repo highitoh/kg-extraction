@@ -25,7 +25,6 @@ load_dotenv()
 def run_evaluation(
     project: str = "default",
     model: str | None = None,
-    verbose: bool = False,
     max_concurrency: int = 4,
 ) -> Dict[str, Any]:
     """
@@ -55,7 +54,6 @@ def run_evaluation(
             project=project,
             model=model,
             output_base_dir=output_dir,
-            verbose=verbose,
             max_concurrency=max_concurrency,
         )
         validation_report = validator.validate()
@@ -119,12 +117,6 @@ if __name__ == "__main__":
         help="LLM model for validation (default: %(default)s)",
     )
     parser.add_argument(
-        "--verbose",
-        action="store_true",
-        default=False,
-        help="Output detailed justifications for each validation score (default: scores only)",
-    )
-    parser.add_argument(
         "--max-concurrency", type=int, default=4, help="Maximum concurrent validation LLM calls (default: 4)"
     )
 
@@ -138,7 +130,6 @@ if __name__ == "__main__":
         results = run_evaluation(
             project=args.project,
             model=args.model,
-            verbose=args.verbose,
             max_concurrency=args.max_concurrency,
         )
 

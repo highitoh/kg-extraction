@@ -30,7 +30,6 @@ class KnowledgeValidator:
         model: str | None = None,
         temperature: float = 0.0,
         output_base_dir: str = "/workspace/app/output",
-        verbose: bool = False,
         max_concurrency: int = 4,
     ):
         """
@@ -41,14 +40,12 @@ class KnowledgeValidator:
             model: LLM model name
             temperature: LLM temperature setting
             output_base_dir: Base directory for project outputs
-            verbose: If True, LLM outputs detailed justifications for each score
             max_concurrency: Maximum concurrent validation LLM calls
         """
         self.project = project
         self.model = model
         self.temperature = temperature
         self.output_base_dir = output_base_dir
-        self.verbose = verbose
         self.max_concurrency = max_concurrency
 
         # Resolve file paths from project name (do this FIRST before LLM initialization)
@@ -69,10 +66,8 @@ class KnowledgeValidator:
 
         # Load schemas (path: /workspace/app/schemas/knowledge-validator/)
         self.schemas_dir = Path(__file__).parent.parent.parent / "schemas" / "knowledge-validator"
-        class_schema_file = "llm-class.schema.json" if verbose else "llm-class-compact.schema.json"
-        self.class_schema = self._load_schema(class_schema_file)
-        property_schema_file = "llm-property.schema.json" if verbose else "llm-property-compact.schema.json"
-        self.property_schema = self._load_schema(property_schema_file)
+        self.class_schema = self._load_schema("llm-class.schema.json")
+        self.property_schema = self._load_schema("llm-property.schema.json")
 
         # Bind LLM with JSON schemas (separate for class and property validation)
         self.llm_class = self.llm.bind(
@@ -203,8 +198,7 @@ class KnowledgeValidator:
 
         class_instances = "\n".join(class_instances_parts)
 
-        if self.verbose:
-            justification_instruction = """```json
+        justification_instruction = """```json
 {
   "class_validations": [
     {
@@ -240,24 +234,6 @@ class KnowledgeValidator:
 
 Provide clear, specific, and actionable justifications for each score. Reference specific aspects of the class
 and how they relate to the evaluation criteria."""
-        else:
-            justification_instruction = """```json
-{
-  "class_validations": [
-    {
-      "class_id": "<class_id_1>",
-      "S11": <1-5>,
-      "S12": <1-5>,
-      "S13": <1-5>,
-      "S14": <1-5>,
-      "S15": <1-5>,
-      "S16": <1-5>
-    }
-  ]
-}
-```
-
-Output ONLY the scores using the metrics IDs (S11-S16) as keys."""
 
         prompt = fill_prompt_template(
             self.class_prompt_template,
@@ -268,31 +244,17 @@ Output ONLY the scores using the metrics IDs (S11-S16) as keys."""
 
         return prompt
 
-    # Mapping from compact metrics IDs to full dimension names
-    COMPACT_METRICS_MAP = {
-        "S11": "necessity",
-        "S12": "understandability",
-        "S13": "unity",
-        "S14": "boundary_suitability",
-        "S15": "structural_validity",
-        "S16": "text_grounding",
-    }
-
     def _enrich_class_validations(
         self, validations: List[Dict[str, Any]], class_group: List[Dict[str, Any]]
     ) -> List[Dict[str, Any]]:
-        """Enrich LLM validation results with class_iri, class_label, and normalize compact format.
-
-        In non-verbose (compact) mode, converts {"S11": 4, "S12": 3, ...} to
-        {"necessity": {"score": 4, "justification": ""}, ...}.
-        In verbose mode, the nested format is already correct.
+        """Enrich LLM validation results with class_iri and class_label.
 
         Args:
             validations: LLM response validations
             class_group: Original input class group with full metadata
 
         Returns:
-            Enriched and normalized validations
+            Enriched validations
         """
         # Build mapping: class_id -> {class_iri, label}
         class_map = {
@@ -309,12 +271,6 @@ Output ONLY the scores using the metrics IDs (S11-S16) as keys."""
             class_info = class_map.get(class_id, {})
             validation["class_iri"] = class_info.get("class_iri", "Unknown")
             validation["class_label"] = class_info.get("class_label", "Unknown")
-
-            # Normalize compact format (S11-S16) to standard nested format
-            if not self.verbose:
-                for metric_id, dimension_name in self.COMPACT_METRICS_MAP.items():
-                    score = validation.pop(metric_id, 0)
-                    validation[dimension_name] = {"score": score, "justification": ""}
 
         return validations
 
@@ -368,8 +324,7 @@ Output ONLY the scores using the metrics IDs (S11-S16) as keys."""
 
         property_instances = "\n".join(property_instances_parts)
 
-        if self.verbose:
-            justification_instruction = """```json
+        justification_instruction = """```json
 {
   "property_validations": [
     {
@@ -397,22 +352,6 @@ Output ONLY the scores using the metrics IDs (S11-S16) as keys."""
 
 Provide clear, specific, and actionable justifications for each score. Reference specific aspects of the
 property and how they relate to the evaluation criteria."""
-        else:
-            justification_instruction = """```json
-{
-  "property_validations": [
-    {
-      "property_id": "<property_id_1>",
-      "S21": <1-5>,
-      "S22": <1-5>,
-      "S23": <1-5>,
-      "S24": <1-5>
-    }
-  ]
-}
-```
-
-Output ONLY the scores using the metrics IDs (S21-S24) as keys."""
 
         prompt = fill_prompt_template(
             self.property_prompt_template,
@@ -424,29 +363,17 @@ Output ONLY the scores using the metrics IDs (S21-S24) as keys."""
 
         return prompt
 
-    # Mapping from compact property metrics IDs to full dimension names
-    COMPACT_PROPERTY_METRICS_MAP = {
-        "S21": "relation_applicability",
-        "S22": "relation_unity",
-        "S23": "strength_validity",
-        "S24": "contextual_grounding",
-    }
-
     def _enrich_property_validations(
         self, validations: List[Dict[str, Any]], property_group: List[Dict[str, Any]]
     ) -> List[Dict[str, Any]]:
-        """Enrich LLM validation results with src_label, property_iri, dest_label and normalize compact format.
-
-        In non-verbose (compact) mode, converts {"S21": 4, "S22": 3, ...} to
-        {"relation_applicability": {"score": 4, "justification": ""}, ...}.
-        In verbose mode, the nested format is already correct.
+        """Enrich LLM validation results with src_label, property_iri and dest_label.
 
         Args:
             validations: LLM response validations
             property_group: Original input property group with full metadata
 
         Returns:
-            Enriched and normalized validations
+            Enriched validations
         """
         # Build mapping: property_id -> {src_label, property_iri, dest_label}
         property_map = {
@@ -465,12 +392,6 @@ Output ONLY the scores using the metrics IDs (S21-S24) as keys."""
             validation["src_label"] = property_info.get("src_label", "Unknown")
             validation["property_iri"] = property_info.get("property_iri", "Unknown")
             validation["dest_label"] = property_info.get("dest_label", "Unknown")
-
-            # Normalize compact format (S21-S24) to standard nested format
-            if not self.verbose:
-                for metric_id, dimension_name in self.COMPACT_PROPERTY_METRICS_MAP.items():
-                    score = validation.pop(metric_id, 0)
-                    validation[dimension_name] = {"score": score, "justification": ""}
 
         return validations
 
@@ -735,12 +656,6 @@ if __name__ == "__main__":
     )
     parser.add_argument("--model", default=DEFAULT_LLM_MODEL, help="LLM model name (default: %(default)s)")
     parser.add_argument(
-        "--verbose",
-        action="store_true",
-        default=False,
-        help="Output detailed justifications for each score (default: scores only)",
-    )
-    parser.add_argument(
         "--max-concurrency", type=int, default=4, help="Maximum concurrent validation LLM calls (default: 4)"
     )
 
@@ -748,11 +663,10 @@ if __name__ == "__main__":
 
     try:
         # Create validator
-        print(f"Initializing KnowledgeValidator with model: {args.model} (verbose={args.verbose})")
+        print(f"Initializing KnowledgeValidator with model: {args.model}")
         validator = KnowledgeValidator(
             project=args.project,
             model=args.model,
-            verbose=args.verbose,
             max_concurrency=args.max_concurrency,
         )
 
