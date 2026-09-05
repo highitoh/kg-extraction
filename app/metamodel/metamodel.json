@@ -35,7 +35,7 @@
             ],
             "prohibit_rules": [
                 "Do not extract as Vision a statement that indicates how the future state is to be achieved, or that describes the ongoing operational activity of the enterprise; those are means of achievement and belong to Mission.",
-                "Do not extract as Vision a statement that is narrow enough to be quantified by a target value, deadline, or metric; a Vision is too broad to be measured directly, and measurable targets belong to Outcome or Indicator.",
+                "Do not extract as Vision a statement that is narrow enough to be quantified by a target value, deadline, or metric; a Vision is too broad to be measured directly, and measurable targets belong to Outcome, and a condition for drawing a conclusion belongs to Decision Criterion.",
                 "Do not extract as Vision a benefit, result, or improvement delivered to a specific party or realized within a defined time frame; such attainable results belong to Outcome or Value.",
                 "Do not extract as Vision a statement scoped to a single product, project, system, or organizational unit rather than to the enterprise as a whole."
             ]
@@ -80,7 +80,7 @@
                 "Do not extract as Value a factual, observable state of affairs that the business produces; the state of affairs is an Outcome, and only the worth a stakeholder places on it is a Value.",
                 "Do not extract as Value an action, process, task, or technical function performed by the business; those belong to Business Activity, Feature, or Component.",
                 "Do not extract as Value a bundled offer that covers several benefits directed at a stakeholder; such a bundle belongs to Value Proposition.",
-                "Do not extract as Value a measurable target, threshold, or metric; those belong to Outcome or Indicator.",
+                "Do not extract as Value a measurable target, threshold, or metric; those belong to Outcome, or to Decision Criterion when the threshold settles a conclusion.",
                 "Do not use a verbatim sentence copied from the source text as the class label; sentence-form labels blur the concept boundary and belong in the source evidence, not the label."
             ]
         },
@@ -268,7 +268,7 @@
                 "Do not extract as Feature the element that builds or houses the functionality; an implementing element belongs to Component.",
                 "Do not extract as Feature the point of access through which the functionality is reached; an access point belongs to Interface.",
                 "Do not extract as Feature work carried out by the organization rather than by the product; organizational work belongs to Business Activity.",
-                "Do not extract as Feature a service level, target value, or quality threshold expected of the functionality; such a target belongs to Product Requirement or Indicator.",
+                "Do not extract as Feature a service level, target value, or quality threshold expected of the functionality; such a target belongs to Product Requirement, or to Decision Criterion when it settles a conclusion drawn from analysis.",
                 "Do not extract as Feature the state of affairs that results from using the functionality; a resulting state belongs to Outcome.",
                 "Do not extract as Feature an abstract goal, strategic intent, or long-term aspiration; a Feature is a concrete deliverable functionality.",
                 "Do not use a verbatim sentence copied from the source text as the class label; sentence-form labels blur the concept boundary and belong in the source evidence, not the label."
@@ -338,7 +338,7 @@
             "prohibit_rules": [
                 "Do not extract as Validation Activity the worth whose delivery is being checked; intended worth belongs to Value, and the state of affairs belongs to Outcome.",
                 "Do not extract as Validation Activity the thing being checked; the offered product belongs to Product, and the enterprise's own operational work belongs to Business Activity.",
-                "Do not extract as Validation Activity the measure against which delivery is judged; a measure belongs to Indicator.",
+                "Do not extract as Validation Activity the condition against which delivery is judged; a stated condition belongs to Decision Criterion.",
                 "Do not extract as Validation Activity the data that the checking yields or draws on; data belongs to Source Dataset or Analysis Dataset.",
                 "Do not extract as Validation Activity what the checking found; a finding belongs to Analytical Insight, and an action taken in response belongs to Next Action.",
                 "Do not extract as Validation Activity work performed to build, deliver, or operate the product; producing something is not a check on the worth it delivers.",
@@ -364,7 +364,7 @@
                 "Do not extract as Source Dataset data that has been selected, cleaned, combined, or reshaped for the analysis; prepared data belongs to Analysis Dataset.",
                 "Do not extract as Source Dataset the element that produces or stores the data; a producing element belongs to Component, and the boundary it is reached through belongs to Interface.",
                 "Do not extract as Source Dataset a finding obtained from the data; a finding belongs to Analytical Insight.",
-                "Do not extract as Source Dataset a measure used to judge whether a goal was achieved; a measure belongs to Indicator.",
+                "Do not extract as Source Dataset a condition used to judge whether a goal was achieved; a stated condition belongs to Decision Criterion.",
                 "Do not extract as Source Dataset an individual field, column, or attribute described as part of a larger body of data.",
                 "Do not extract as Source Dataset an identifier, key or token that the product issues, derives or exchanges in order to operate; such a value makes the product work rather than being data acquired for analysis."
             ]
@@ -394,7 +394,7 @@
         {
             "iri": "https://github.com/highitoh/kg-extraction#analysis-goal",
             "name": "Analysis Goal",
-            "description": "A statement, in technical terms, of what the analysis is intended to produce in order to enable a business objective. An Analysis Goal is defined by the Indicators that judge its achievement, and leads to Analytical Insights.",
+            "description": "A statement, in technical terms, of what the analysis is intended to produce in order to enable a business objective. An Analysis Goal is defined by the Decision Criteria that settle its achievement, and leads to Analytical Insights.",
             "view_type": "planning",
             "min_length": 5,
             "max_length": 40,
@@ -407,7 +407,7 @@
             ],
             "prohibit_rules": [
                 "Do not extract as Analysis Goal an objective stated in business terms that the analysis serves; a business-level intent belongs to Outcome or Vision.",
-                "Do not extract as Analysis Goal the measure or threshold by which achievement of the goal is judged; a measure belongs to Indicator.",
+                "Do not extract as Analysis Goal the condition by which achievement of the goal is settled; that condition belongs to Decision Criterion.",
                 "Do not extract as Analysis Goal a finding that the analysis has already produced; an obtained finding belongs to Analytical Insight.",
                 "Do not extract as Analysis Goal the data that the analysis is carried out on; data belongs to Source Dataset or Analysis Dataset.",
                 "Do not extract as Analysis Goal a technique, algorithm, or tool chosen to carry out the analysis.",
@@ -415,32 +415,33 @@
             ]
         },
         {
-            "iri": "https://github.com/highitoh/kg-extraction#indicator",
-            "name": "Indicator",
-            "description": "A measure by which it is judged whether a goal has been achieved. An Indicator may be objective, with a benchmark stated for it, or subjective, in which case the party making the judgment is identified; Analytical Insights estimate it.",
+            "iri": "https://github.com/highitoh/kg-extraction#decision-criterion",
+            "name": "Decision Criterion",
+            "description": "The condition under which an Analysis Goal counts as met, against which an Analytical Insight is judged. A Decision Criterion states what the result must show to support a conclusion, such as a threshold, a range, or a named party's assent; it is the standard applied, not the quantity measured.",
             "view_type": "planning",
             "min_length": 2,
             "max_length": 40,
             "extract_rules": [
-                "Extract an Indicator when the text names a measure by which it is judged whether a goal has been achieved.",
-                "Extract an Indicator when the measure is stated objectively, such as a rate, count, level, accuracy, or lift, whether or not a target value accompanies it.",
-                "Extract an Indicator when the criterion is subjective rather than numeric and the text identifies the party who makes the judgment.",
-                "Extract an Indicator both for measures stated in business terms and for measures stated in technical terms about the analysis itself.",
-                "Extract the measure itself as the label; a target value or benchmark stated for it is not part of the label."
+                "Extract a Decision Criterion when the text states the condition a result must meet before a conclusion can be drawn.",
+                "Extract a Decision Criterion when the condition is numeric, such as a threshold, a bound, a range, or a level a measure must reach.",
+                "Extract a Decision Criterion when the condition is a named party's assent or judgment rather than a number, identifying the party who decides.",
+                "Extract a Decision Criterion for a condition stated in business terms and for one stated in technical terms about the analysis itself.",
+                "Include the measure and the condition placed on it in the label, since the condition is what makes it a criterion."
             ],
             "prohibit_rules": [
-                "Do not extract as Indicator the goal whose achievement the measure judges; a stated analytical goal belongs to Analysis Goal.",
-                "Do not extract as Indicator a result that the analysis has obtained for the measure; an obtained result belongs to Analytical Insight.",
-                "Do not extract as Indicator the state of affairs that the business produces; a state of affairs belongs to Outcome, and only the measure used to judge it is an Indicator.",
-                "Do not extract as Indicator the data or field from which the measure is computed; data belongs to Source Dataset or Analysis Dataset.",
-                "Do not extract as Indicator a condition that the product must satisfy; a stated need belongs to Product Requirement.",
-                "Do not extract as Indicator an action to be taken in response to what the measure shows; a proposed action belongs to Next Action."
+                "Do not extract as Decision Criterion the goal whose achievement it settles; a stated analytical goal belongs to Analysis Goal.",
+                "Do not extract as Decision Criterion a quantity named without any condition placed on it; a bare measure states what is observed, not what would settle a question.",
+                "Do not extract as Decision Criterion a result the analysis has obtained; an obtained result belongs to Analytical Insight.",
+                "Do not extract as Decision Criterion the state of affairs that the business produces; a state of affairs belongs to Outcome.",
+                "Do not extract as Decision Criterion the data or field the condition is computed from; data belongs to Source Dataset or Analysis Dataset.",
+                "Do not extract as Decision Criterion a condition that the product must satisfy in operation; a stated need belongs to Product Requirement.",
+                "Do not extract as Decision Criterion an action to be taken once the condition is settled; a proposed action belongs to Next Action."
             ]
         },
         {
             "iri": "https://github.com/highitoh/kg-extraction#analytical-insight",
             "name": "Analytical Insight",
-            "description": "Something the analysis has found out that is useful to the business, including findings that answer no goal that was set. An Analytical Insight estimates an Indicator, is derived from datasets, and may prompt a Next Action.",
+            "description": "Something the analysis has found out that is useful to the business, including findings that answer no goal that was set. An Analytical Insight is judged against a Decision Criterion, is derived from datasets, and may prompt a Next Action.",
             "view_type": "evaluation",
             "min_length": 5,
             "max_length": 60,
@@ -454,7 +455,7 @@
             ],
             "prohibit_rules": [
                 "Do not extract as Analytical Insight the goal that the analysis was set up to achieve; a stated analytical intent belongs to Analysis Goal.",
-                "Do not extract as Analytical Insight the measure by which achievement is judged; a measure belongs to Indicator, and only the result obtained for it is an Analytical Insight.",
+                "Do not extract as Analytical Insight the condition by which achievement is settled; that condition belongs to Decision Criterion, and only the result obtained is an Analytical Insight.",
                 "Do not extract as Analytical Insight an action proposed in response to the finding; a proposed action belongs to Next Action.",
                 "Do not extract as Analytical Insight the data that the finding was derived from; data belongs to Source Dataset or Analysis Dataset.",
                 "Do not extract as Analytical Insight the technique, model, or tool that produced the finding.",
@@ -483,7 +484,7 @@
                 "Do not extract as Next Action a goal set for the analysis itself; a stated analytical intent belongs to Analysis Goal.",
                 "Do not extract as Next Action work that the enterprise already carries out as a standing part of its operations; ongoing work belongs to Business Activity.",
                 "Do not extract as Next Action a condition that the product must meet; a stated need belongs to Product Requirement.",
-                "Do not extract as Next Action a measure used to judge whether something succeeded; a measure belongs to Indicator.",
+                "Do not extract as Next Action a condition used to judge whether something succeeded; a stated condition belongs to Decision Criterion.",
                 "Do not use a verbatim sentence copied from the source text as the class label; sentence-form labels blur the concept boundary and belong in the source evidence, not the label."
             ]
         }
@@ -792,30 +793,30 @@
         {
             "iri": "https://github.com/highitoh/kg-extraction#definedBy",
             "name": "definedBy",
-            "description": "Associates the indicators that define an analysis goal.",
+            "description": "Associates the decision criteria that define an analysis goal.",
             "src_class": "https://github.com/highitoh/kg-extraction#analysis-goal",
-            "dest_class": "https://github.com/highitoh/kg-extraction#indicator",
+            "dest_class": "https://github.com/highitoh/kg-extraction#decision-criterion",
             "extract_rules": [
-                "Extract definedBy when an analysis goal is framed in terms of the measures used to judge whether it has been achieved.",
-                "Accept definedBy when a measure is presented as the basis for evaluating the goal, even without explicit definitional wording.",
-                "Accept definedBy for subjective criteria as well as numeric ones, when the text identifies what the judgment rests on."
+                "Extract definedBy when an analysis goal is framed in terms of the condition that settles whether it has been met.",
+                "Accept definedBy when a criterion is presented as the basis for evaluating the goal, even without explicit definitional wording.",
+                "Accept definedBy for a criterion resting on a named party's assent as well as a numeric one."
             ],
             "prohibit_rules": [
-                "Do not extract definedBy toward a result already obtained for the measure; an obtained result relates to Analytical Insight instead."
+                "Do not extract definedBy toward a result already obtained; an obtained result relates to Analytical Insight instead."
             ]
         },
         {
-            "iri": "https://github.com/highitoh/kg-extraction#estimates",
-            "name": "estimates",
-            "description": "Associates the indicator that an analytical insight estimates.",
+            "iri": "https://github.com/highitoh/kg-extraction#isJudgedAgainst",
+            "name": "isJudgedAgainst",
+            "description": "Associates the decision criterion that an analytical insight is judged against.",
             "src_class": "https://github.com/highitoh/kg-extraction#analytical-insight",
-            "dest_class": "https://github.com/highitoh/kg-extraction#indicator",
+            "dest_class": "https://github.com/highitoh/kg-extraction#decision-criterion",
             "extract_rules": [
-                "Extract estimates when a finding reports a result for a measure used to judge achievement.",
-                "Accept estimates when the finding gives a level, rate, or accuracy for a named measure."
+                "Extract isJudgedAgainst when a finding is weighed against a stated condition for drawing a conclusion.",
+                "Accept isJudgedAgainst whether the finding meets the condition or falls short of it; the relation records what it was judged against, not the verdict."
             ],
             "prohibit_rules": [
-                "Do not extract estimates toward a measure that the finding only mentions without reporting a result for it."
+                "Do not extract isJudgedAgainst toward a criterion the finding only mentions without being weighed against it."
             ]
         },
         {
