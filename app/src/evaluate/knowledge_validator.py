@@ -23,6 +23,7 @@ class KnowledgeValidator:
 
     MAX_PROPERTY_CONTEXT_SOURCES = 3
     MAX_SOURCE_CHARS = 200
+    MAX_GROUP_SIZE = 8
 
     def __init__(
         self,
@@ -104,6 +105,15 @@ class KnowledgeValidator:
         """Load a JSON file."""
         with open(file_path, "r", encoding="utf-8") as f:
             return json.load(f)
+
+    @classmethod
+    def _batch_groups(cls, groups: Dict[str, List[Dict[str, Any]]]) -> List[List[Dict[str, Any]]]:
+        """Flatten grouped items into batches of at most MAX_GROUP_SIZE."""
+        batches: List[List[Dict[str, Any]]] = []
+        for group in groups.values():
+            for start in range(0, len(group), cls.MAX_GROUP_SIZE):
+                batches.append(group[start : start + cls.MAX_GROUP_SIZE])
+        return batches
 
     @staticmethod
     def _build_class_index(classes: List[Dict[str, Any]]) -> Dict[str, Dict[str, Any]]:
@@ -522,14 +532,16 @@ property and how they relate to the evaluation criteria."""
             class_iri = cls.get("class_iri", "Unknown")
             class_groups[class_iri].append(cls)
 
+        class_batches = self._batch_groups(class_groups)
+
         print(f"[KnowledgeValidator] {len(class_groups)} class types found")
         print(
-            f"[KnowledgeValidator] Starting parallel validation: {len(class_groups)} class types "
-            f"(concurrency={self.max_concurrency})"
+            f"[KnowledgeValidator] Starting parallel validation: {len(class_batches)} batches "
+            f"over {len(class_groups)} class types (concurrency={self.max_concurrency})"
         )
 
         # Validate classes with progress tracking
-        total_class_groups = len(class_groups)
+        total_class_groups = len(class_batches)
         class_counter = 0
         class_lock = asyncio.Lock()
         class_sem = asyncio.Semaphore(self.max_concurrency)
@@ -550,7 +562,7 @@ property and how they relate to the evaluation criteria."""
 
             return result
 
-        class_tasks = [_wrapped_class_validation(group) for group in class_groups.values()]
+        class_tasks = [_wrapped_class_validation(group) for group in class_batches]
         class_validation_groups = await asyncio.gather(*class_tasks)
 
         # Flatten the results
@@ -567,14 +579,16 @@ property and how they relate to the evaluation criteria."""
             property_iri = prop.get("property_iri", "Unknown")
             property_groups[property_iri].append(prop)
 
+        property_batches = self._batch_groups(property_groups)
+
         print(f"[KnowledgeValidator] {len(property_groups)} property types found")
         print(
-            f"[KnowledgeValidator] Starting parallel validation: {len(property_groups)} property types "
-            f"(concurrency={self.max_concurrency})"
+            f"[KnowledgeValidator] Starting parallel validation: {len(property_batches)} batches "
+            f"over {len(property_groups)} property types (concurrency={self.max_concurrency})"
         )
 
         # Validate properties with progress tracking
-        total_property_groups = len(property_groups)
+        total_property_groups = len(property_batches)
         property_counter = 0
         property_lock = asyncio.Lock()
         property_sem = asyncio.Semaphore(self.max_concurrency)
@@ -595,7 +609,7 @@ property and how they relate to the evaluation criteria."""
 
             return result
 
-        property_tasks = [_wrapped_property_validation(group) for group in property_groups.values()]
+        property_tasks = [_wrapped_property_validation(group) for group in property_batches]
         property_validation_groups = await asyncio.gather(*property_tasks)
 
         # Flatten the results
