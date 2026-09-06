@@ -13,7 +13,7 @@ from typing import Any, Dict, List, Optional, Tuple
 # Add src directory to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
-from src.utils.llm_factory import DEFAULT_LLM_MODEL, LLMFactory
+from src.utils.llm_factory import DEFAULT_EVAL_LLM_MODEL, LLMFactory
 from src.utils.llm_retry import call_with_retry
 from src.utils.prompt_utils import fill_prompt_template
 
@@ -63,7 +63,9 @@ class KnowledgeValidator:
         }
 
         # Create LLM instance (only after files are validated)
-        self.llm = LLMFactory.create_llm(model=model, temperature=temperature, timeout=300.0, reasoning_effort="low")
+        self.llm = LLMFactory.create_llm(
+            model=model or DEFAULT_EVAL_LLM_MODEL, temperature=temperature, timeout=300.0, reasoning_effort="low"
+        )
 
         # Load schemas (path: /workspace/app/schemas/knowledge-validator/)
         self.schemas_dir = Path(__file__).parent.parent.parent / "schemas" / "knowledge-validator"
@@ -668,7 +670,7 @@ if __name__ == "__main__":
         default="test",
         help="Project name (resolves to /workspace/app/output/{project}/) (default: default)",
     )
-    parser.add_argument("--model", default=DEFAULT_LLM_MODEL, help="LLM model name (default: %(default)s)")
+    parser.add_argument("--model", default=DEFAULT_EVAL_LLM_MODEL, help="LLM model name (default: %(default)s)")
     parser.add_argument(
         "--max-concurrency", type=int, default=4, help="Maximum concurrent validation LLM calls (default: 4)"
     )
