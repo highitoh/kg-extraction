@@ -117,22 +117,24 @@ class ChunkCreator:
             raise ValueError(f"Unknown chunk_mode: {self.chunk_mode}")
 
     def _create_char_based(self, text: str) -> List[str]:
-        """Split into chunks based on character count (with overlap)"""
+        """Split into chunks by character count, repeating the last sentence."""
         sents = self._split_into_sentences(text)
-        chunks, cur = [], ""
+        chunks: List[str] = []
+        cur: List[str] = []
+        cur_len = 0
+
         for s in sents:
-            if len(cur) + len(s) + 1 <= self.max_chars:
-                cur = (cur + " " + s).strip()
-            else:
-                if cur:
-                    chunks.append(cur)
-                if self.overlap_chars > 0 and cur:
-                    tail = cur[-self.overlap_chars :]
-                    cur = (tail + " " + s).strip()
-                else:
-                    cur = s
+            if cur and cur_len + len(s) + 1 > self.max_chars:
+                chunks.append(" ".join(cur))
+                # Carry the last sentence back only when s still fits beside it.
+                carry = self.overlap_chars > 0 and len(cur[-1]) + len(s) + 1 <= self.max_chars
+                cur = cur[-1:] if carry else []
+                cur_len = sum(len(x) + 1 for x in cur)
+            cur.append(s)
+            cur_len += len(s) + 1
+
         if cur:
-            chunks.append(cur)
+            chunks.append(" ".join(cur))
         return chunks
 
     def _create_page_based(self, text: str) -> List[str]:
