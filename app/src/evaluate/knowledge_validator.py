@@ -61,6 +61,9 @@ class KnowledgeValidator:
         self.metamodel_property_map = {
             prop.get("iri"): prop for prop in self.metamodel_data.get("properties", []) if prop.get("iri")
         }
+        self.metamodel_class_map = {
+            cls.get("iri"): cls for cls in self.metamodel_data.get("classes", []) if cls.get("iri")
+        }
 
         # Create LLM instance (only after files are validated)
         self.llm = LLMFactory.create_llm(
@@ -192,6 +195,14 @@ class KnowledgeValidator:
             raise ValueError("class_group cannot be empty")
 
         class_iri = class_group[0].get("class_iri", "Unknown")
+        class_def = self.metamodel_class_map.get(class_iri)
+        if class_def:
+            filtered_def = {
+                k: class_def[k] for k in ("name", "description", "extract_rules", "prohibit_rules") if k in class_def
+            }
+            class_def_str = f"**Class Definition:** {json.dumps(filtered_def, indent=2, ensure_ascii=False)}"
+        else:
+            class_def_str = ""
 
         # Format class instances
         class_instances_parts = []
@@ -250,6 +261,7 @@ and how they relate to the evaluation criteria."""
         prompt = fill_prompt_template(
             self.class_prompt_template,
             class_iri=class_iri,
+            class_def=class_def_str,
             class_instances=class_instances,
             justification_instruction=justification_instruction,
         )

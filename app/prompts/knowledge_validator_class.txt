@@ -6,6 +6,8 @@ You are a knowledge quality validator. Your task is to evaluate the quality of e
 
 Class IRI: <<CLASS_IRI>>
 
+<<CLASS_DEF>>
+
 Classes to Validate:
 <<CLASS_INSTANCES>>
 
@@ -29,7 +31,7 @@ S14: Boundary Suitability (Score 1-5)
 
 S15: Structural Validity (Score 1-5)
    - Evaluates whether the class is properly defined as a metamodel element, and whether the hierarchical structure is consistent with the metamodel assumptions.
-   - Consider: Is the class correctly positioned in the metamodel? Does the hierarchical structure align with domain expectations?
+   - Consider: Does the class satisfy the definition and the rules given above? Judge the form of the label only where those rules speak to it; a class whose concept is a condition or an activity is stated as a sentence, and that is not a defect unless its rules ask for a noun phrase.
 
 S16: Text Grounding (Score 1-5)
    - Evaluates whether the class is extracted based on the document description.
