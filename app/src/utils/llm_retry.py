@@ -7,9 +7,19 @@ import random
 from datetime import datetime
 from typing import Awaitable, Callable, Optional
 
+from langchain_google_genai.chat_models import ChatGoogleGenerativeAIError
 from openai import APIConnectionError, APIError, RateLimitError
 
 from src.utils.logger import Logger
+
+# Errors worth retrying, listed per provider so every supported model gets retries.
+_RETRYABLE = (
+    APIConnectionError,
+    RateLimitError,
+    APIError,
+    ChatGoogleGenerativeAIError,
+    asyncio.TimeoutError,
+)
 
 _error_logger = Logger(os.path.join("log", "errors"))
 
@@ -37,7 +47,7 @@ async def call_with_retry(
             "full" samples uniformly from [0, backoff_cap].
 
     Raises:
-        APIConnectionError, RateLimitError, APIError, asyncio.TimeoutError, or the last caught exception after retries.
+        Any exception in _RETRYABLE, or the last caught exception after retries.
     """
     if jitter not in {"none", "full"}:
         raise ValueError(f"Unsupported jitter mode: {jitter}")
@@ -97,7 +107,7 @@ async def call_with_retry(
             if usage:
                 _log_usage(usage)
             return response
-        except (APIConnectionError, RateLimitError, APIError, asyncio.TimeoutError) as e:
+        except _RETRYABLE as e:
             last_exception = e
             _error_logger.error_log(label, attempt + 1, type(e).__name__, str(e))
 
