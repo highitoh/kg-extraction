@@ -13,7 +13,7 @@ from src.utils.llm_retry import call_with_retry
 from src.utils.logger import Logger
 from src.utils.prompt_utils import fill_prompt_template
 
-STAGE2_RULES = """
+EXISTING_MATCH_RULES = """
 
 [Matching New Classes Against Existing]
 - Labels marked [EXISTING] come from previous extractions; labels marked [NEW] are from this one
@@ -145,17 +145,17 @@ class ClassConsolidator(Runnable):
 
         return output
 
-    def invoke_stage2_match_with_frozen(self, new_classes: list, frozen_classes: list, config=None) -> Dict[str, Any]:
+    def match_against_existing(self, new_classes: list, frozen_classes: list, config=None) -> Dict[str, Any]:
         """
-        Stage 2: Match already-consolidated new classes against frozen existing classes.
+        Match already-consolidated new classes against the existing ones carried over.
 
-        This is called after Stage 1 (consolidate new among themselves).
+        Runs after invoke(), which consolidates the new classes among themselves.
         Input new_classes are already consolidated, so typically small (5-10 classes).
 
         Parameters
         ----------
         new_classes: list
-            Already-consolidated new class instances (output from Stage 1)
+            Already-consolidated new class instances (output from invoke())
         frozen_classes: list
             Existing ACCEPT'ed class instances with _frozen_from_existing_accept flag
 
@@ -174,7 +174,7 @@ class ClassConsolidator(Runnable):
 
         if self.progress:
             print(
-                f"[ClassConsolidator Stage 2] Matching {len(new_classes)} new classes against "
+                f"[ClassConsolidator existing] Matching {len(new_classes)} new classes against "
                 f"{len(frozen_classes)} frozen classes"
             )
 
@@ -189,7 +189,9 @@ class ClassConsolidator(Runnable):
 
         # Process all common_iris in parallel
         llm = self._create_llm()
-        matched_results = asyncio.run(self._process_stage2_parallel(common_iris, new_by_iri, frozen_by_iri, llm))
+        matched_results = asyncio.run(
+            self._match_against_existing_parallel(common_iris, new_by_iri, frozen_by_iri, llm)
+        )
 
         for matched_result in matched_results:
             all_classes.extend(matched_result)
@@ -208,11 +210,11 @@ class ClassConsolidator(Runnable):
 
         if self.progress:
             print(
-                f"[ClassConsolidator Stage 2] Completed: {len(new_classes)} new + {len(frozen_classes)} frozen "
+                f"[ClassConsolidator existing] Completed: {len(new_classes)} new + {len(frozen_classes)} frozen "
                 f"→ {len(all_classes)} final classes"
             )
 
-        self.logger.save_log(output, filename_prefix="class_consolidator_stage2_output_")
+        self.logger.save_log(output, filename_prefix="class_consolidator_existing_output_")
 
         return output
 
@@ -281,14 +283,14 @@ class ClassConsolidator(Runnable):
         """
         Consolidate specified class list with LLM (async version)
 
-        Pass 1 proposes candidate groups from labels alone; pass 2 reads the source
-        text behind each candidate and decides which members really are the same.
+        The candidate step proposes groups from labels alone; the verify step reads the
+        source text behind each candidate and decides which members really are the same.
 
         Args:
             llm: LLM instance to use for consolidation
             classes: List of class instances to consolidate
             class_iri: Target class IRI
-            verify_sem: Concurrency budget for the verify pass
+            verify_sem: Concurrency budget for the verify step
 
         Returns:
             Consolidated class instance list
@@ -329,7 +331,7 @@ class ClassConsolidator(Runnable):
     async def _propose_candidates(
         self, llm: Any, labels: List[str], class_iri: str, custom_rules: str, log_label: str
     ) -> List[List[int]] | None:
-        """Pass 1: group labels that may refer to the same concept. Returns None on parse failure."""
+        """Candidate step: group labels that may refer to the same concept. Returns None on parse failure."""
         schema = self._build_schema("candidates.schema.json")
         llm_json = llm.bind(
             response_format={
@@ -365,7 +367,7 @@ class ClassConsolidator(Runnable):
     async def _verify_candidate(
         self, llm: Any, group_classes: list, class_iri: str, custom_rules: str, log_label: str, labels: List[str] = None
     ) -> list | None:
-        """Pass 2: with the source text in view, split a candidate group and name each part."""
+        """Verify step: with the source text in view, split a candidate group and name each part."""
         schema = self._build_schema("llm.schema.json")
         llm_json = llm.bind(
             response_format={
@@ -457,7 +459,7 @@ class ClassConsolidator(Runnable):
         return label.replace(" [EXISTING]", "").replace(" [NEW]", "")
 
     def _merge_classes_keeping_frozen(self, members: list, canonical_label: str, reason: str) -> list:
-        """Merge a Stage 2 group so the frozen class stays the merge base and keeps its ID."""
+        """Merge a matched group so the carried-over class stays the merge base and keeps its ID."""
         frozen = [m for m in members if m.get("_frozen_from_existing_accept")]
         if len(frozen) > 1:
             # Two already-consolidated classes in one group is an LLM error; leave them alone
@@ -467,8 +469,10 @@ class ClassConsolidator(Runnable):
             return [self._merge_classes(ordered, canonical_label, reason)]
         return [self._merge_classes(members, canonical_label, reason)]
 
-    async def _process_stage2_parallel(self, common_iris: set, new_by_iri: dict, frozen_by_iri: dict, llm: Any) -> list:
-        """Process Stage 2 matching in parallel for each common class_iri"""
+    async def _match_against_existing_parallel(
+        self, common_iris: set, new_by_iri: dict, frozen_by_iri: dict, llm: Any
+    ) -> list:
+        """Match against existing classes in parallel for each common class_iri"""
         sem = asyncio.Semaphore(self.max_concurrency)
         verify_sem = asyncio.Semaphore(self.max_concurrency)
         total = len(common_iris)
@@ -477,7 +481,7 @@ class ClassConsolidator(Runnable):
 
         if self.progress:
             print(
-                f"[ClassConsolidator Stage 2] Starting parallel processing: {total} class types "
+                f"[ClassConsolidator existing] Starting parallel processing: {total} class types "
                 f"(concurrency={self.max_concurrency})"
             )
 
@@ -489,7 +493,7 @@ class ClassConsolidator(Runnable):
 
                 class_name = self._get_class_name_from_iri(class_iri)
 
-                matched_result = await self._match_new_against_frozen_async(
+                matched_result = await self._match_against_existing_async(
                     llm, new_instances, frozen_instances, class_iri, verify_sem
                 )
 
@@ -497,7 +501,7 @@ class ClassConsolidator(Runnable):
                     counter += 1
                     if self.progress:
                         print(
-                            f"[{counter}/{total}] ClassConsolidator Stage 2: {class_name} processed "
+                            f"[{counter}/{total}] ClassConsolidator existing: {class_name} processed "
                             f"({len(new_instances)} new vs {len(frozen_instances)} frozen → "
                             f"{len(matched_result)} final)"
                         )
@@ -507,11 +511,11 @@ class ClassConsolidator(Runnable):
         results = await asyncio.gather(*[_wrapped(iri) for iri in common_iris])
         return results
 
-    async def _match_new_against_frozen_async(
+    async def _match_against_existing_async(
         self, llm: Any, new_classes: list, frozen_classes: list, class_iri: str, verify_sem: asyncio.Semaphore
     ) -> list:
         """
-        Stage 2 core logic: Match new classes against frozen classes.
+        Match new classes against the ones carried over from previous extractions.
 
         Task for LLM: For each new class, determine if it matches any frozen class.
         If match found, merge new into frozen. If not, keep new as standalone.
@@ -534,9 +538,11 @@ class ClassConsolidator(Runnable):
             for i, c in enumerate(all_classes)
         ]
 
-        stage2_rules = self.custom_rules + STAGE2_RULES
+        existing_match_rules = self.custom_rules + EXISTING_MATCH_RULES
 
-        candidates = await self._propose_candidates(llm, labels, class_iri, stage2_rules, "ClassConsolidator Stage 2")
+        candidates = await self._propose_candidates(
+            llm, labels, class_iri, existing_match_rules, "ClassConsolidator existing"
+        )
         if candidates is None:
             return all_classes
 
@@ -551,8 +557,8 @@ class ClassConsolidator(Runnable):
                     llm,
                     group_classes,
                     class_iri,
-                    stage2_rules,
-                    "ClassConsolidator Stage 2 verify",
+                    existing_match_rules,
+                    "ClassConsolidator existing verify",
                     labels=group_labels,
                 )
             if verified is None:
