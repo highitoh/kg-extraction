@@ -8,10 +8,20 @@ from langchain_core.runnables import Runnable
 
 from src.utils.id_generator import generate_class_id
 from src.utils.label_normalizer import normalize_label
-from src.utils.llm_factory import LLMFactory
+from src.utils.llm_factory import DEFAULT_CONSOLIDATE_LLM_MODEL, LLMFactory
 from src.utils.llm_retry import call_with_retry
 from src.utils.logger import Logger
 from src.utils.prompt_utils import fill_prompt_template
+
+STAGE2_RULES = """
+
+[Matching New Classes Against Existing]
+- Labels marked [EXISTING] come from previous extractions; labels marked [NEW] are from this one
+- Group a [NEW] label with an [EXISTING] label when they refer to the same thing
+- NEVER group two [EXISTING] labels together; they were consolidated already
+- A [NEW] label that matches nothing stays in a group of its own
+- Leave the [EXISTING] and [NEW] markers out of canonical_label
+"""
 
 
 class ClassConsolidator(Runnable):
@@ -19,6 +29,10 @@ class ClassConsolidator(Runnable):
     Class to consolidate similar class labels
     Judges same concept with LLM and integrates by selecting canonical label
     """
+
+    # How much of each label's origin the verify pass sees
+    MAX_SOURCES = 3
+    MAX_SOURCE_CHARS = 300
 
     def __init__(
         self,
@@ -29,9 +43,9 @@ class ClassConsolidator(Runnable):
         log_dir: str = "/workspace/app/log/class_consolidator",
         metamodel_path: str = None,
     ):
-        self.model = model
+        self.model = model or DEFAULT_CONSOLIDATE_LLM_MODEL
         self.temperature = temperature
-        self.reasoning_effort = "minimal"
+        self.reasoning_effort = "low"
         self.progress = progress
         self.max_concurrency = max_concurrency
         self.logger = Logger(log_dir)
@@ -39,8 +53,9 @@ class ClassConsolidator(Runnable):
         # Load metamodel
         self.metamodel_path = metamodel_path
         self.metamodel = self._load_metamodel()
-        # Load prompt template
-        self.prompt_template = self._load_prompt_template()
+        # Load prompt templates
+        self.candidate_template = self._load_prompt_template("class_consolidator_candidates.txt")
+        self.verify_template = self._load_prompt_template("class_consolidator_verify.txt")
         # Load custom rules
         self.custom_rules = self._load_custom_rules()
 
@@ -61,11 +76,11 @@ class ClassConsolidator(Runnable):
         with open(metamodel_path, "r", encoding="utf-8") as f:
             return json.load(f)
 
-    def _load_prompt_template(self) -> str:
+    def _load_prompt_template(self, filename: str) -> str:
         """Load prompt template file"""
         # Go up 3 levels from src/extract/class/ to /workspace/app/
         app_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
-        prompt_path = os.path.join(app_dir, "prompts", "class_consolidator.txt")
+        prompt_path = os.path.join(app_dir, "prompts", filename)
         with open(prompt_path, "r", encoding="utf-8") as f:
             return f.read()
 
@@ -83,11 +98,11 @@ class ClassConsolidator(Runnable):
             content = f.read().strip()
             return "\n" + content if content else ""
 
-    def _build_schema(self) -> dict:
+    def _build_schema(self, filename: str) -> dict:
         """Load JSON schema for LLM"""
         # Go up 3 levels from src/extract/class/ to /workspace/app/
         app_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
-        schema_path = os.path.join(app_dir, "schemas", "class-consolidator", "llm.schema.json")
+        schema_path = os.path.join(app_dir, "schemas", "class-consolidator", filename)
         with open(schema_path, "r", encoding="utf-8") as f:
             return json.load(f)
 
@@ -223,6 +238,7 @@ class ClassConsolidator(Runnable):
     async def _process_classes_parallel(self, class_groups: Dict[str, list], llm: Any) -> list:
         """Process class groups in parallel"""
         sem = asyncio.Semaphore(self.max_concurrency)
+        verify_sem = asyncio.Semaphore(self.max_concurrency)
         total = len(class_groups)
         counter = 0
         lock = asyncio.Lock()
@@ -238,7 +254,7 @@ class ClassConsolidator(Runnable):
             async with sem:
                 class_name = self._get_class_name_from_iri(class_iri)
 
-                consolidated = await self._consolidate_classes_async(llm, class_instances, class_iri)
+                consolidated = await self._consolidate_classes_async(llm, class_instances, class_iri, verify_sem)
 
                 async with lock:
                     counter += 1
@@ -259,14 +275,20 @@ class ClassConsolidator(Runnable):
 
         return all_consolidated
 
-    async def _consolidate_classes_async(self, llm: Any, classes: list, class_iri: str) -> list:
+    async def _consolidate_classes_async(
+        self, llm: Any, classes: list, class_iri: str, verify_sem: asyncio.Semaphore
+    ) -> list:
         """
         Consolidate specified class list with LLM (async version)
+
+        Pass 1 proposes candidate groups from labels alone; pass 2 reads the source
+        text behind each candidate and decides which members really are the same.
 
         Args:
             llm: LLM instance to use for consolidation
             classes: List of class instances to consolidate
             class_iri: Target class IRI
+            verify_sem: Concurrency budget for the verify pass
 
         Returns:
             Consolidated class instance list
@@ -278,72 +300,177 @@ class ClassConsolidator(Runnable):
         if len(classes) == 1:
             return classes
 
-        # Build schema
-        schema = self._build_schema()
-        llm_json = llm.bind(
-            response_format={"type": "json_schema", "json_schema": {"name": "class_consolidator", "schema": schema}}
-        )
-
-        # Create label list
         labels = [c.get("label", "") for c in classes]
-        label_list_text = "\n".join([f"{i}: {label}" for i, label in enumerate(labels)])
+        candidates = await self._propose_candidates(llm, labels, class_iri, self.custom_rules, "ClassConsolidator")
+        if candidates is None:
+            return classes
 
-        # Get class name and consolidation rules
-        class_name = self._get_class_name_from_iri(class_iri)
-        extraction_rules = self._build_extraction_rules(class_iri)
+        async def _resolve(indices: List[int]) -> list:
+            group_classes = [classes[i] for i in indices]
+            if len(group_classes) == 1:
+                return [self._merge_classes(group_classes, labels[indices[0]], "no other candidate")]
 
-        # Build prompt
-        prompt = fill_prompt_template(
-            self.prompt_template,
-            class_name=class_name,
-            extraction_rules=extraction_rules,
-            label_list=label_list_text,
-            custom_rules=self.custom_rules,
+            async with verify_sem:
+                verified = await self._verify_candidate(
+                    llm, group_classes, class_iri, self.custom_rules, "ClassConsolidator verify"
+                )
+            if verified is None:
+                # Keep the members apart rather than merging on an unreadable answer
+                return [self._merge_classes([c], c.get("label", ""), "verify failed") for c in group_classes]
+
+            return [
+                self._merge_classes(members, canonical, reason)
+                for members, canonical, reason in self._assemble_verified(group_classes, verified)
+            ]
+
+        results = await asyncio.gather(*[_resolve(indices) for indices in candidates])
+        return [c for result in results for c in result]
+
+    async def _propose_candidates(
+        self, llm: Any, labels: List[str], class_iri: str, custom_rules: str, log_label: str
+    ) -> List[List[int]] | None:
+        """Pass 1: group labels that may refer to the same concept. Returns None on parse failure."""
+        schema = self._build_schema("candidates.schema.json")
+        llm_json = llm.bind(
+            response_format={
+                "type": "json_schema",
+                "json_schema": {"name": "class_consolidator_candidates", "schema": schema},
+            }
         )
 
-        # Execute consolidation with LLM (with retry)
+        prompt = fill_prompt_template(
+            self.candidate_template,
+            class_name=self._get_class_name_from_iri(class_iri),
+            extraction_rules=self._build_extraction_rules(class_iri),
+            label_list="\n".join(f"{i}: {label}" for i, label in enumerate(labels)),
+            custom_rules=custom_rules,
+        )
+
         response = await call_with_retry(
             lambda: llm_json.ainvoke([HumanMessage(content=prompt)]),
             timeout=90.0,
-            label="ClassConsolidator",
+            label=log_label,
         )
 
-        # Extract text from response
         result_text = self._to_text(response.content)
-
-        # Parse JSON
         try:
-            parsed = json.loads(result_text)
-            groups = parsed.get("groups", [])
+            groups = json.loads(result_text).get("groups", [])
         except json.JSONDecodeError:
             if self.progress:
-                print(f"[ClassConsolidator] JSON parse error: {result_text}")
-            return classes
+                print(f"[{log_label}] JSON parse error: {result_text}")
+            return None
 
-        # Generate consolidated class instances from group information
-        consolidated_classes = []
+        return self._normalize_indices(groups, len(labels))
+
+    async def _verify_candidate(
+        self, llm: Any, group_classes: list, class_iri: str, custom_rules: str, log_label: str, labels: List[str] = None
+    ) -> list | None:
+        """Pass 2: with the source text in view, split a candidate group and name each part."""
+        schema = self._build_schema("llm.schema.json")
+        llm_json = llm.bind(
+            response_format={
+                "type": "json_schema",
+                "json_schema": {"name": "class_consolidator_verify", "schema": schema},
+            }
+        )
+
+        prompt = fill_prompt_template(
+            self.verify_template,
+            class_name=self._get_class_name_from_iri(class_iri),
+            extraction_rules=self._build_extraction_rules(class_iri),
+            member_list=self._build_member_list(group_classes, labels),
+            custom_rules=custom_rules,
+        )
+
+        response = await call_with_retry(
+            lambda: llm_json.ainvoke([HumanMessage(content=prompt)]),
+            timeout=90.0,
+            label=log_label,
+        )
+
+        result_text = self._to_text(response.content)
+        try:
+            return json.loads(result_text).get("groups", [])
+        except json.JSONDecodeError:
+            if self.progress:
+                print(f"[{log_label}] JSON parse error: {result_text}")
+            return None
+
+    def _build_member_list(self, classes: list, labels: List[str] = None) -> str:
+        """Render one candidate group as index, label and the text each label came from."""
+        lines = []
+        for i, cls in enumerate(classes):
+            lines.append(f"{i}: {labels[i] if labels else cls.get('label', '')}")
+            sources = cls.get("sources") or []
+            if isinstance(sources, str):
+                sources = [sources]
+            if not sources:
+                lines.append("    source: (none recorded)")
+            for source in sources[: self.MAX_SOURCES]:
+                lines.append(f"    source: {str(source)[: self.MAX_SOURCE_CHARS]}")
+        return "\n".join(lines)
+
+    @staticmethod
+    def _take_unseen(raw: Any, count: int, seen: set) -> List[int]:
+        """Indices from one LLM group: in range, not already used, no repeats within the group."""
+        indices = []
+        for i in raw if isinstance(raw, list) else []:
+            if isinstance(i, int) and 0 <= i < count and i not in seen:
+                seen.add(i)
+                indices.append(i)
+        return indices
+
+    @classmethod
+    def _normalize_indices(cls, groups: list, count: int) -> List[List[int]]:
+        """Keep every index exactly once. Indices the LLM dropped become groups of their own,
+        so a label can never disappear because the model forgot to mention it."""
+        seen = set()
+        result = []
         for group in groups:
-            indices = group.get("indices", [])
-            canonical_label = group.get("canonical_label", "")
-            reason = group.get("reason", "")
+            indices = cls._take_unseen(group.get("indices"), count, seen)
+            if indices:
+                result.append(indices)
+        result.extend([i] for i in range(count) if i not in seen)
+        return result
 
-            if not indices or not canonical_label:
+    def _assemble_verified(self, group_classes: list, verified: list, labels: List[str] = None) -> list:
+        """Map a verify result back onto class instances as (members, canonical_label, reason)."""
+        member_labels = labels or [c.get("label", "") for c in group_classes]
+        out = []
+        seen = set()
+        for group in verified:
+            indices = self._take_unseen(group.get("indices"), len(group_classes), seen)
+            if not indices:
                 continue
+            canonical = self._strip_markers(group.get("canonical_label", ""))
+            choices = [self._strip_markers(member_labels[i]) for i in indices]
+            if canonical not in choices:
+                canonical = choices[0]
+            out.append(([group_classes[i] for i in indices], canonical, group.get("reason", "")))
+        for i in range(len(group_classes)):
+            if i not in seen:
+                out.append(([group_classes[i]], self._strip_markers(member_labels[i]), "not mentioned by verify"))
+        return out
 
-            # Get class instances within group
-            group_classes = [classes[i] for i in indices if i < len(classes)]
-            if not group_classes:
-                continue
+    @staticmethod
+    def _strip_markers(label: str) -> str:
+        return label.replace(" [EXISTING]", "").replace(" [NEW]", "")
 
-            # Consolidation processing
-            consolidated_class = self._merge_classes(group_classes, canonical_label, reason)
-            consolidated_classes.append(consolidated_class)
-
-        return consolidated_classes
+    def _merge_classes_keeping_frozen(self, members: list, canonical_label: str, reason: str) -> list:
+        """Merge a Stage 2 group so the frozen class stays the merge base and keeps its ID."""
+        frozen = [m for m in members if m.get("_frozen_from_existing_accept")]
+        if len(frozen) > 1:
+            # Two already-consolidated classes in one group is an LLM error; leave them alone
+            return list(members)
+        if frozen:
+            ordered = frozen + [m for m in members if m is not frozen[0]]
+            return [self._merge_classes(ordered, canonical_label, reason)]
+        return [self._merge_classes(members, canonical_label, reason)]
 
     async def _process_stage2_parallel(self, common_iris: set, new_by_iri: dict, frozen_by_iri: dict, llm: Any) -> list:
         """Process Stage 2 matching in parallel for each common class_iri"""
         sem = asyncio.Semaphore(self.max_concurrency)
+        verify_sem = asyncio.Semaphore(self.max_concurrency)
         total = len(common_iris)
         counter = 0
         lock = asyncio.Lock()
@@ -363,7 +490,7 @@ class ClassConsolidator(Runnable):
                 class_name = self._get_class_name_from_iri(class_iri)
 
                 matched_result = await self._match_new_against_frozen_async(
-                    llm, new_instances, frozen_instances, class_iri
+                    llm, new_instances, frozen_instances, class_iri, verify_sem
                 )
 
                 async with lock:
@@ -381,7 +508,7 @@ class ClassConsolidator(Runnable):
         return results
 
     async def _match_new_against_frozen_async(
-        self, llm: Any, new_classes: list, frozen_classes: list, class_iri: str
+        self, llm: Any, new_classes: list, frozen_classes: list, class_iri: str, verify_sem: asyncio.Semaphore
     ) -> list:
         """
         Stage 2 core logic: Match new classes against frozen classes.
@@ -401,116 +528,43 @@ class ClassConsolidator(Runnable):
         # Build combined list: frozen first
         all_classes = frozen_classes + new_classes
 
-        # Build schema
-        schema = self._build_schema()
-        llm_json = llm.bind(
-            response_format={
-                "type": "json_schema",
-                "json_schema": {"name": "class_consolidator_stage2", "schema": schema},
-            }
-        )
-
         # Create label list with [EXISTING] markers
-        labels = []
-        for i, c in enumerate(all_classes):
-            label = c.get("label", "")
-            if i < len(frozen_classes):
-                labels.append(f"{label} [EXISTING]")
-            else:
-                labels.append(f"{label} [NEW]")
-        label_list_text = "\n".join([f"{i}: {label}" for i, label in enumerate(labels)])
+        labels = [
+            f"{c.get('label', '')} [{'EXISTING' if i < len(frozen_classes) else 'NEW'}]"
+            for i, c in enumerate(all_classes)
+        ]
 
-        # Get class name and consolidation rules
-        class_name = self._get_class_name_from_iri(class_iri)
-        extraction_rules = self._build_extraction_rules(class_iri)
+        stage2_rules = self.custom_rules + STAGE2_RULES
 
-        # Build Stage 2 specific instructions
-        stage2_rules = """
-
-[STAGE 2: Matching New Classes Against Existing]
-- Labels marked [EXISTING] are from previous extractions (frozen)
-- Labels marked [NEW] are newly consolidated classes
-- Task: Group each [NEW] label with a matching [EXISTING] label if they represent the same concept
-- If a [NEW] label matches an [EXISTING] label, prefer the [EXISTING] label as canonical_label
-- NEVER group two [EXISTING] labels together (already consolidated)
-- If a [NEW] label doesn't match any [EXISTING], keep it as a standalone group
-- Remove [EXISTING] and [NEW] markers from canonical_label in output
-"""
-
-        enhanced_custom_rules = self.custom_rules + stage2_rules
-
-        # Build prompt
-        prompt = fill_prompt_template(
-            self.prompt_template,
-            class_name=class_name,
-            extraction_rules=extraction_rules,
-            label_list=label_list_text,
-            custom_rules=enhanced_custom_rules,
-        )
-
-        # Execute matching with LLM
-        response = await call_with_retry(
-            lambda: llm_json.ainvoke([HumanMessage(content=prompt)]),
-            timeout=90.0,
-            label="ClassConsolidator Stage 2",
-        )
-
-        # Parse response
-        result_text = self._to_text(response.content)
-        try:
-            parsed = json.loads(result_text)
-            groups = parsed.get("groups", [])
-        except json.JSONDecodeError:
-            if self.progress:
-                print("[ClassConsolidator Stage 2] JSON parse error, keeping classes separate")
+        candidates = await self._propose_candidates(llm, labels, class_iri, stage2_rules, "ClassConsolidator Stage 2")
+        if candidates is None:
             return all_classes
 
-        # Process groups: merge new into frozen where matched
-        result_classes = []
-        processed_indices = set()
+        async def _resolve(indices: List[int]) -> list:
+            group_classes = [all_classes[i] for i in indices]
+            group_labels = [labels[i] for i in indices]
+            if len(group_classes) == 1:
+                return group_classes
 
-        for group in groups:
-            indices = group.get("indices", [])
-            canonical_label = group.get("canonical_label", "").replace(" [EXISTING]", "").replace(" [NEW]", "")
-            reason = group.get("reason", "")
+            async with verify_sem:
+                verified = await self._verify_candidate(
+                    llm,
+                    group_classes,
+                    class_iri,
+                    stage2_rules,
+                    "ClassConsolidator Stage 2 verify",
+                    labels=group_labels,
+                )
+            if verified is None:
+                return group_classes
 
-            if not indices or not canonical_label:
-                continue
+            resolved = []
+            for members, canonical, reason in self._assemble_verified(group_classes, verified, group_labels):
+                resolved.extend(self._merge_classes_keeping_frozen(members, canonical, reason))
+            return resolved
 
-            # Check if group contains frozen classes
-            frozen_indices = [i for i in indices if i < len(frozen_classes)]
-            new_indices = [i for i in indices if i >= len(frozen_classes)]
-
-            if len(frozen_indices) > 1:
-                # Multiple frozen in one group - LLM error, keep separate
-                for idx in frozen_indices:
-                    result_classes.append(all_classes[idx])
-                    processed_indices.add(idx)
-                for idx in new_indices:
-                    result_classes.append(all_classes[idx])
-                    processed_indices.add(idx)
-                continue
-
-            # Normal case: merge group
-            group_classes = [all_classes[i] for i in indices if i < len(all_classes)]
-
-            # If frozen class in group, put it first (base for merge)
-            if frozen_indices:
-                frozen_idx = frozen_indices[0]
-                group_classes_reordered = [all_classes[frozen_idx]] + [
-                    all_classes[i] for i in indices if i != frozen_idx
-                ]
-                merged = self._merge_classes(group_classes_reordered, canonical_label, reason)
-            else:
-                merged = self._merge_classes(group_classes, canonical_label, reason)
-
-            result_classes.append(merged)
-            processed_indices.update(indices)
-
-        # Add unprocessed classes
-        for i, cls in enumerate(all_classes):
-            if i not in processed_indices:
-                result_classes.append(cls)
+        results = await asyncio.gather(*[_resolve(indices) for indices in candidates])
+        result_classes = [c for result in results for c in result]
 
         return result_classes
 

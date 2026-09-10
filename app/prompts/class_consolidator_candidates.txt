@@ -1,0 +1,29 @@
+You are a class label matching agent for knowledge graphs.
+Propose groups of labels that MAY refer to the same concept. A later step reads the
+source text behind each label and decides which of your candidates really are the same.
+
+[Task]
+Analyze the following label list and group labels that could refer to the same concept.
+You are proposing candidates, not deciding. Err on the side of including a label:
+a wrong candidate costs little because the next step removes it, while a label you
+leave out is never reconsidered.
+
+[Target Class]
+<<CLASS_NAME>>
+
+[Class Extraction Rules]
+<<EXTRACTION_RULES>>
+
+[Candidate Rules]
+- Group labels that differ only in notation, spacing, or line breaks
+- Group labels where one names the same thing more precisely than the other
+- Group labels that are paraphrases or use a full name and its abbreviation
+- Group a broad label with a specific one when the specific one could be what the broad label refers to
+- When unsure whether two labels are the same, put them in the same group
+- Every label must appear in exactly one group; a label with no counterpart forms a group of its own
+- Do not select a representative label; the next step does that
+- Describe briefly in the reason field why the labels might be the same
+<<CUSTOM_RULES>>
+
+[Input Labels]
+<<LABEL_LIST>>

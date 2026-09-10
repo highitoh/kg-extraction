@@ -1,0 +1,34 @@
+{
+  "$id": "https://github.com/highitoh/kg-extraction/schemas/class-consolidator/candidates.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ClassConsolidatorCandidatesLLMOutput",
+  "type": "object",
+  "description": "First-pass LLM output for ClassConsolidator: candidate groups, no representative chosen",
+  "properties": {
+    "groups": {
+      "type": "array",
+      "description": "List of candidate groups",
+      "items": {
+        "type": "object",
+        "properties": {
+          "indices": {
+            "type": "array",
+            "items": {
+              "type": "integer"
+            },
+            "minItems": 1,
+            "description": "Index list of labels that may represent the same concept (0-indexed)"
+          },
+          "reason": {
+            "type": "string",
+            "description": "Why the labels might be the same (for logging/debugging)"
+          }
+        },
+        "required": ["indices", "reason"],
+        "additionalProperties": false
+      }
+    }
+  },
+  "required": ["groups"],
+  "additionalProperties": false
+}

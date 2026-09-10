@@ -8,6 +8,7 @@ from langchain_openai import AzureChatOpenAI, ChatOpenAI
 
 DEFAULT_LLM_MODEL = "gemini-3.5-flash-lite"
 DEFAULT_EVAL_LLM_MODEL = "gemini-3.6-flash"
+DEFAULT_CONSOLIDATE_LLM_MODEL = "gemini-3.7-flash"
 _SUPPORTED_LLM_PROVIDERS = {"gemini_api", "gcp_vertexai", "openai_api", "azure_openai"}
 _GEMINI_THINKING_LEVELS = {"minimal", "low", "medium", "high"}
 
