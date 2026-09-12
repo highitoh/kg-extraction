@@ -209,22 +209,25 @@
         {
             "iri": "https://github.com/highitoh/kg-extraction#product",
             "name": "Product",
-            "description": "A product or service that the enterprise offers in order to realize an Outcome. A Product is the delivered thing itself, as distinct from the activity the organization performs, and requirements are placed on it.",
+            "description": "The thing this document sets requirements for: the product or service the enterprise offers in order to realize an Outcome. A Product is the delivered thing itself, as distinct from the activity the organization performs, and requirements are placed on it.",
             "view_type": "offering",
             "min_length": 2,
             "max_length": 20,
             "extract_rules": [
-                "Extract a Product when the text names a product, service, application, or other offering that the enterprise delivers in order to bring about an intended state of affairs.",
-                "Extract a Product as the named thing itself, using the name the document gives it.",
+                "Extract as Product the subject the document is written about, the thing whose requirements the document states.",
+                "Extract a Product under the name the document gives it, not the short form it uses to refer back to that name.",
                 "Extract a Product when the text treats the item as a whole that requirements are placed on, rather than as one of its parts or functions.",
-                "Extract a Product when the item is offered to, or used by, a party outside the work of producing it."
+                "Extract a Product when the enterprise this document is written for is the party that delivers it."
             ],
             "prohibit_rules": [
                 "Do not extract as Product the work the enterprise performs to create, deliver, or operate it; that work belongs to Business Activity.",
                 "Do not extract as Product a function or capability that the product provides to its users; those belong to Feature.",
                 "Do not extract as Product a constraint or condition that the product must satisfy; those belong to Product Requirement.",
                 "Do not extract as Product an internal building block, module, or system element that composes the product rather than being offered in its own right; those belong to Component.",
-                "Do not extract as Product a phrase the document uses to point at its own subject without naming it, such as \"this application\" or \"the system\"; extract the name the document gives the product instead."
+                "Do not extract as Product the short form the document uses to point back at its own subject, such as \"this application\" or \"the system\"; extract it under the name the document gives it instead.",
+                "Do not extract as Product a system the product connects to, exchanges data with, or depends on, even when another party offers it in its own right.",
+                "Do not extract as Product a variant, edition, or release of the product, such as a trial or beta build; those are the same Product.",
+                "Do not extract as Product the platform or environment the product runs on, such as a cloud service or an operating system."
             ]
         },
         {
