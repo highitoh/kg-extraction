@@ -70,14 +70,14 @@
             "min_length": 3,
             "max_length": 30,
             "extract_rules": [
-                "Extract a Value when the text expresses a single benefit, gain, or worth that a stakeholder is believed to perceive from something the business produces or delivers.",
+                "Extract a Value when the text presents something as a gain for a particular party, whether it is worded as a benefit, as a state that party ends up in, or as what that party gets out of the product.",
                 "Extract a Value from the perspective of the party receiving it, capturing what that party gains rather than what the business does to deliver it.",
                 "Extract a Value when the text describes a stakeholder's positive perception or judgment of an experience (for example: feeling that a purchase was a good deal, or that a question was satisfactorily answered).",
                 "Extract each distinct perception as its own Value when the same experience is valued differently by different stakeholders.",
                 "Express the label as a concise noun phrase that names the concept; when the source states it as a full sentence, condense it into nominal form instead of copying the sentence."
             ],
             "prohibit_rules": [
-                "Do not extract as Value a factual, observable state of affairs that the business produces; the state of affairs is an Outcome, and only the worth a stakeholder places on it is a Value.",
+                "Do not extract as Value a state of affairs the text states without saying who gains from it; with no party named or implied as the one who benefits, it is only an Outcome.",
                 "Do not extract as Value an action, process, task, or technical function performed by the business; those belong to Business Activity, Feature, or Component.",
                 "Do not extract as Value a bundled offer that covers several benefits directed at a stakeholder; such a bundle belongs to Value Proposition.",
                 "Do not extract as Value a measurable target, threshold, or metric; those belong to Outcome, or to Decision Criterion when the threshold settles a conclusion.",
