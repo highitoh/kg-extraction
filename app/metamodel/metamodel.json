@@ -184,14 +184,14 @@
         {
             "iri": "https://github.com/highitoh/kg-extraction#business-activity",
             "name": "Business Activity",
-            "description": "An operational activity that the enterprise carries out in order to realize an Outcome. A Business Activity is what the organization does, as distinct from the product it offers.",
+            "description": "An operational activity the enterprise carries out, either to deliver something a Stakeholder values or to learn something from the data it holds. A Business Activity is what the organization does, as distinct from the product it offers.",
             "view_type": "offering",
             "min_length": 5,
             "max_length": 50,
             "extract_rules": [
-                "Extract a Business Activity when the text describes work carried out by the enterprise itself that brings about a state of affairs the business intends.",
-                "Extract a Business Activity when the phrase denotes an operation, task, or workflow performed by a role, team, or organizational unit, rather than a thing that is delivered.",
-                "Extract a Business Activity when the performing party is stated in the text or inferable from the surrounding context.",
+                "Extract a Business Activity when a person, role, team, or organizational unit carries out the work, and doing it delivers something a Stakeholder values.",
+                "Extract a Business Activity when the work examines data the enterprise holds in order to learn something from it, such as aggregating, measuring, or reviewing results.",
+                "Extract a Business Activity only when the party doing the work is a person or an organization, never the product itself.",
                 "Extract a Business Activity when the work is an ongoing or repeatable function of the business rather than a one-off event.",
                 "Phrase the label as the action performed, keeping the verb that expresses what is done."
             ],
@@ -200,7 +200,10 @@
                 "Do not extract as Business Activity a product, service, or deliverable that the enterprise offers; the thing offered belongs to Product.",
                 "Do not extract as Business Activity behavior performed by a product or system rather than by the organization; product behavior belongs to Feature or Component.",
                 "Do not extract as Business Activity a desired result, goal, or benefit; those belong to Outcome or Value.",
-                "Do not extract as Business Activity a rule or condition that governs how work must be carried out rather than the work itself."
+                "Do not extract as Business Activity a rule or condition that governs how work must be carried out rather than the work itself.",
+                "Do not extract as Business Activity a step the product performs internally, such as issuing, storing, or exchanging data between components; that belongs to Feature or Component even when the sentence has no subject.",
+                "Do not extract as Business Activity what the product does for its user, even when a person benefits from it; that belongs to Feature.",
+                "Do not extract as Business Activity an action a user performs through the product, such as entering or viewing data; that is a use of a Feature."
             ]
         },
         {
