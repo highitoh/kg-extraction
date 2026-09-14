@@ -78,7 +78,7 @@
             ],
             "prohibit_rules": [
                 "Do not extract as Value a state of affairs the text states without saying who gains from it; with no party named or implied as the one who benefits, it is only an Outcome.",
-                "Do not extract as Value an action, process, task, or technical function performed by the business; those belong to Business Activity, Feature, or Component.",
+                "Do not extract as Value what the business does to deliver the gain; the business's own actions, processes and technical functions belong to Business Activity, Feature, or Component. What the receiving party does or experiences is still a Value.",
                 "Do not extract as Value a bundled offer that covers several benefits directed at a stakeholder; such a bundle belongs to Value Proposition.",
                 "Do not extract as Value a measurable target, threshold, or metric; those belong to Outcome, or to Decision Criterion when the threshold settles a conclusion.",
                 "Do not use a verbatim sentence copied from the source text as the class label; sentence-form labels blur the concept boundary and belong in the source evidence, not the label."
