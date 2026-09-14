@@ -71,6 +71,7 @@
             "max_length": 30,
             "extract_rules": [
                 "Extract a Value when the text presents something as a gain for a particular party, whether it is worded as a benefit, as a state that party ends up in, or as what that party gets out of the product.",
+                "When the text says one thing brings about another - X makes Y possible, or Y follows from X - the Value is Y, what the party ends up with, not X, the step that gets them there.",
                 "Extract a Value from the perspective of the party receiving it, capturing what that party gains rather than what the business does to deliver it.",
                 "Extract a Value when the text describes a stakeholder's positive perception or judgment of an experience (for example: feeling that a purchase was a good deal, or that a question was satisfactorily answered).",
                 "Extract each distinct perception as its own Value when the same experience is valued differently by different stakeholders.",
@@ -79,6 +80,7 @@
             "prohibit_rules": [
                 "Do not extract as Value a state of affairs the text states without saying who gains from it; with no party named or implied as the one who benefits, it is only an Outcome.",
                 "Do not extract as Value what the business does to deliver the gain; the business's own actions, processes and technical functions belong to Business Activity, Feature, or Component. What the receiving party does or experiences is still a Value.",
+                "Do not extract as Value a step that leads to the gain rather than the gain itself; when the text says X brings about Y, X is how the party gets there and only Y is the Value.",
                 "Do not extract as Value a bundled offer that covers several benefits directed at a stakeholder; such a bundle belongs to Value Proposition.",
                 "Do not extract as Value a measurable target, threshold, or metric; those belong to Outcome, or to Decision Criterion when the threshold settles a conclusion.",
                 "Do not use a verbatim sentence copied from the source text as the class label; sentence-form labels blur the concept boundary and belong in the source evidence, not the label."
@@ -93,6 +95,7 @@
             "max_length": 30,
             "extract_rules": [
                 "Extract an Outcome when the text states a resulting condition or state of affairs - what has become true - rather than the activity that brought it about.",
+                "Extract an Outcome for a state the text states in its own right; when the text presents that state as what a particular party gains, extract it as a Value instead. The party can be a role, a group, or an organization, and the text may name it or leave it plain from the surrounding context.",
                 "Extract an Outcome when the statement describes the state of a thing or of information at some point in the business (for example: an order has been received, a record is up to date, the wheels are attached to the vehicle).",
                 "Extract an Outcome both when the condition is one the business produces and when it is one the business requires as a precondition or trigger.",
                 "Phrase the label as a state or result, keeping the subject whose state is being described.",
