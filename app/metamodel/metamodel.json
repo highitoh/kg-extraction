@@ -75,7 +75,7 @@
                 "Extract a Value from the perspective of the party receiving it, capturing what that party gains rather than what the business does to deliver it.",
                 "Extract a Value when the text describes a stakeholder's positive perception or judgment of an experience (for example: feeling that a purchase was a good deal, or that a question was satisfactorily answered).",
                 "Extract each distinct perception as its own Value when the same experience is valued differently by different stakeholders.",
-                "Express the label as a concise noun phrase that names the concept; when the source states it as a full sentence, condense it into nominal form instead of copying the sentence."
+                "Express the label as a concise noun phrase naming the gain itself; when the source states it as a full sentence, condense it to the gain rather than nominalising the whole sentence, and drop wording that only ties the gain to what brought it about (name the prevention, not the fact that something leads to it)."
             ],
             "prohibit_rules": [
                 "Do not extract as Value a state of affairs that no party is said to gain from; the party may be named in the same sentence, in a heading that covers it, or elsewhere in the surrounding context. Where a party does gain, extract the Value, and keep the state as an Outcome as well.",
