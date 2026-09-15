@@ -78,7 +78,7 @@
                 "Express the label as a concise noun phrase that names the concept; when the source states it as a full sentence, condense it into nominal form instead of copying the sentence."
             ],
             "prohibit_rules": [
-                "Do not extract as Value a state of affairs the text states without saying who gains from it; with no party named or implied as the one who benefits, it is only an Outcome.",
+                "Do not extract as Value a state of affairs that no party is said to gain from; the party may be named in the same sentence, in a heading that covers it, or elsewhere in the surrounding context. Where a party does gain, extract the Value, and keep the state as an Outcome as well.",
                 "Do not extract as Value what the business does to deliver the gain; the business's own actions, processes and technical functions belong to Business Activity, Feature, or Component. What the receiving party does or experiences is still a Value.",
                 "Do not extract as Value a step that leads to the gain rather than the gain itself; when the text says X brings about Y, X is how the party gets there and only Y is the Value.",
                 "Do not extract as Value a bundled offer that covers several benefits directed at a stakeholder; such a bundle belongs to Value Proposition.",
