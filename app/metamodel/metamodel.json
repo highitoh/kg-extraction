@@ -95,7 +95,7 @@
             "max_length": 30,
             "extract_rules": [
                 "Extract an Outcome when the text states a resulting condition or state of affairs - what has become true - rather than the activity that brought it about.",
-                "Extract an Outcome for a state the text states in its own right; when the text presents that state as what a particular party gains, extract it as a Value instead. The party can be a role, a group, or an organization, and the text may name it or leave it plain from the surrounding context.",
+                "Extract an Outcome for a state the text states, including when the text also presents that state as what a party gains; the worth that party places on it is a separate element, extracted as a Value that values this Outcome.",
                 "Extract an Outcome when the statement describes the state of a thing or of information at some point in the business (for example: an order has been received, a record is up to date, the wheels are attached to the vehicle).",
                 "Extract an Outcome both when the condition is one the business produces and when it is one the business requires as a precondition or trigger.",
                 "Phrase the label as a state or result, keeping the subject whose state is being described.",
@@ -103,7 +103,7 @@
             ],
             "prohibit_rules": [
                 "Do not extract as Outcome the activity, process, or capability that produces the state; those belong to Business Activity, Feature, or Component.",
-                "Do not extract as Outcome a stakeholder's perception of worth or benefit in a state of affairs; that perception belongs to Value.",
+                "Do not extract as Outcome a bare judgment of worth stated apart from any state of affairs, such as a party feeling satisfied; that judgment belongs to Value. A state a party values is still an Outcome.",
                 "Do not extract as Outcome a desired future state of the enterprise as a whole; those belong to Vision.",
                 "Do not extract as Outcome a rule, constraint, or requirement prescribing how the business or product must behave; those belong to Product Requirement.",
                 "Do not use a verbatim sentence copied from the source text as the class label; sentence-form labels blur the concept boundary and belong in the source evidence, not the label."
