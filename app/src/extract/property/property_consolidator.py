@@ -39,7 +39,6 @@ class PropertyConsolidator(Runnable):
         self.llm = llm or LLMFactory.create_llm(
             model=model,
             temperature=temperature,
-            reasoning_effort="minimal",
         )
         self.progress = progress
         self.max_concurrency = max_concurrency

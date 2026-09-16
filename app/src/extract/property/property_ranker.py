@@ -35,7 +35,6 @@ class PropertyRanker(Runnable):
         self.llm = llm or LLMFactory.create_llm(
             model=model,
             temperature=temperature,
-            reasoning_effort="low",
         )
         self.llm_schema = self._load_llm_schema()
         self.llm_json = self.llm.bind(

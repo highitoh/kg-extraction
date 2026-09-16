@@ -66,9 +66,7 @@ class KnowledgeValidator:
         }
 
         # Create LLM instance (only after files are validated)
-        self.llm = LLMFactory.create_llm(
-            model=model or DEFAULT_EVAL_LLM_MODEL, temperature=temperature, timeout=300.0, reasoning_effort="low"
-        )
+        self.llm = LLMFactory.create_llm(model=model or DEFAULT_EVAL_LLM_MODEL, temperature=temperature, timeout=300.0)
 
         # Load schemas (path: /workspace/app/schemas/knowledge-validator/)
         self.schemas_dir = Path(__file__).parent.parent.parent / "schemas" / "knowledge-validator"

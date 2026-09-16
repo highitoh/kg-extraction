@@ -44,7 +44,8 @@ Edit `cdk.local.json` with your values:
   "awsRegion": "ap-northeast-1",
   "gcpProjectId": "YOUR_GCP_PROJECT_ID",
   "gcpProjectNumber": "YOUR_GCP_PROJECT_NUMBER",
-  "gcpLocation": "global"
+  "gcpLocation": "global",
+  "llmReasoningEffort": "low"
 }
 ```
 

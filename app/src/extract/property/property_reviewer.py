@@ -26,7 +26,6 @@ class PropertyReviewer(Runnable):
     ):
         self.model = model
         self.temperature = temperature
-        self.reasoning_effort = "low"
         self.llm_schema = self._load_llm_schema()
         self.max_concurrency = max_concurrency
         self.progress = progress
@@ -42,7 +41,6 @@ class PropertyReviewer(Runnable):
         return LLMFactory.create_llm(
             model=self.model,
             temperature=self.temperature,
-            reasoning_effort=self.reasoning_effort,
         )
 
     def _bind_llm_json(self, llm: Any):

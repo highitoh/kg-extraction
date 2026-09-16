@@ -45,7 +45,6 @@ class ClassConsolidator(Runnable):
     ):
         self.model = model or DEFAULT_CONSOLIDATE_LLM_MODEL
         self.temperature = temperature
-        self.reasoning_effort = "low"
         self.progress = progress
         self.max_concurrency = max_concurrency
         self.logger = Logger(log_dir)
@@ -63,7 +62,6 @@ class ClassConsolidator(Runnable):
         return LLMFactory.create_llm(
             model=self.model,
             temperature=self.temperature,
-            reasoning_effort=self.reasoning_effort,
         )
 
     def _load_metamodel(self) -> dict:

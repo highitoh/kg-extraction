@@ -58,8 +58,7 @@ class ActionPlanner:
         # Load metamodel
         self.metamodel = self._load_metamodel()
 
-        # Create LLM instance with medium reasoning effort
-        self.llm = LLMFactory.create_llm(model=model, temperature=temperature, reasoning_effort="low")
+        self.llm = LLMFactory.create_llm(model=model, temperature=temperature)
 
         # Load schemas (path: /workspace/app/schemas/action-planner/)
         self.schemas_dir = Path(__file__).parent.parent.parent / "schemas" / "action-planner"

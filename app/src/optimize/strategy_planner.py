@@ -66,8 +66,7 @@ class StrategyPlanner:
         else:
             self.previous_strategies = []
 
-        # Create LLM instance with high reasoning effort for strategic planning
-        self.llm = LLMFactory.create_llm(model=model, temperature=0.0, timeout=300.0, reasoning_effort="low")
+        self.llm = LLMFactory.create_llm(model=model, temperature=0.0, timeout=300.0)
 
         # Load schema (path: /workspace/app/schemas/strategy-planner/)
         self.schemas_dir = Path(__file__).parent.parent.parent / "schemas" / "strategy-planner"

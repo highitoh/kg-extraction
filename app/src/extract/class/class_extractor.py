@@ -57,7 +57,6 @@ class ClassExtractor(Runnable):
     ):
         self.model = model
         self.temperature = temperature
-        self.reasoning_effort = "low"
         self.progress = progress
         self.max_concurrency = max_concurrency
         self.batch_size = batch_size
@@ -77,7 +76,6 @@ class ClassExtractor(Runnable):
         return LLMFactory.create_llm(
             model=self.model,
             temperature=self.temperature,
-            reasoning_effort=self.reasoning_effort,
         )
 
     def _create_llm_json(self) -> Any:

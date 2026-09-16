@@ -36,7 +36,6 @@ class PropertyEditor(Runnable):
     ):
         self.model = model
         self.temperature = temperature
-        self.reasoning_effort = "low"
         self.progress = progress
         self.max_concurrency = max_concurrency
         self.logger = Logger(log_dir)
@@ -51,7 +50,6 @@ class PropertyEditor(Runnable):
         return LLMFactory.create_llm(
             model=self.model,
             temperature=self.temperature,
-            reasoning_effort=self.reasoning_effort,
         )
 
     def _build_schema(self, n: int) -> dict:

@@ -42,7 +42,6 @@ class PropertyExtractor(Runnable):
         self.llm = llm or LLMFactory.create_llm(
             model=model,
             temperature=temperature,
-            reasoning_effort="low",
         )
 
         # Load JSON schema

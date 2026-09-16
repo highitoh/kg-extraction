@@ -27,6 +27,7 @@ const gcpProjectNumber = getConfig('gcpProjectNumber');
 const gcpLocation = getConfig('gcpLocation') || 'global';
 const gcpWifPool = getConfig('gcpWifPool') || 'aws-extraction-pool';
 const gcpWifProvider = getConfig('gcpWifProvider') || 'aws-provider';
+const llmReasoningEffort = getConfig('llmReasoningEffort') || 'low';
 
 // Resource names carry no region component, so deploying to an unintended
 // region silently creates a parallel copy of the whole system instead of
@@ -96,6 +97,7 @@ const computeStack = new ComputeStack(app, `KnowledgeExtractionCompute-${environ
   gcpWifPool,
   gcpWifProvider,
   gcpLocation,
+  llmReasoningEffort,
   extractionBucket: storageStack.extractionBucket,
   jobsTable: storageStack.jobsTable,
   classesTable: storageStack.classesTable,

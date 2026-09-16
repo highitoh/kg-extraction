@@ -30,7 +30,8 @@
      "environment": "dev",
      "awsRegion": "ap-northeast-1",
      "gcpProjectId": "my-gcp-project",
-     "gcpLocation": "global"
+     "gcpLocation": "global",
+     "llmReasoningEffort": "low"
    }
    ```
 

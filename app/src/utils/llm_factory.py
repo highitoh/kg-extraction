@@ -10,7 +10,10 @@ DEFAULT_LLM_MODEL = "gemini-3.5-flash-lite"
 DEFAULT_EVAL_LLM_MODEL = "gemini-3.7-flash"
 DEFAULT_CONSOLIDATE_LLM_MODEL = "gemini-3.7-flash"
 _SUPPORTED_LLM_PROVIDERS = {"gemini_api", "gcp_vertexai", "openai_api", "azure_openai"}
-_GEMINI_THINKING_LEVELS = {"minimal", "low", "medium", "high"}
+DEFAULT_REASONING_EFFORT = "low"
+_SUPPORTED_REASONING_EFFORTS = {"none", "minimal", "low", "medium", "high", "xhigh"}
+# Gemini thinking_level supports minimal/low/medium/high; map the OpenAI-only levels to the nearest one
+_GEMINI_THINKING_LEVEL_MAP = {"none": "minimal", "xhigh": "high"}
 
 
 class LLMFactory:
@@ -39,10 +42,27 @@ class LLMFactory:
         raise ValueError(f"Unsupported LLM provider {provider!r}. Supported values: {supported_values}")
 
     @staticmethod
+    def _resolve_reasoning_effort(reasoning_effort: Optional[str]) -> str:
+        source = "reasoning_effort"
+        if reasoning_effort is None:
+            source = "LLM_REASONING_EFFORT"
+            reasoning_effort = os.getenv("LLM_REASONING_EFFORT")
+
+        effort = (reasoning_effort or "").strip().lower()
+        if not effort:
+            return DEFAULT_REASONING_EFFORT
+
+        if effort in _SUPPORTED_REASONING_EFFORTS:
+            return effort
+
+        supported_values = ", ".join(sorted(_SUPPORTED_REASONING_EFFORTS))
+        raise ValueError(f"Unsupported {source} {reasoning_effort!r}. Supported values: {supported_values}")
+
+    @staticmethod
     def create_llm(
         model: str = DEFAULT_LLM_MODEL,
         temperature: float = 0.0,
-        reasoning_effort: str = "low",
+        reasoning_effort: Optional[str] = None,
         timeout: float = 90.0,
     ) -> BaseChatModel:
         """
@@ -52,7 +72,8 @@ class LLMFactory:
         Args:
             model: The model or deployment name to use
             temperature: The temperature setting for the model (default: 0.0)
-            reasoning_effort: The reasoning effort level - "low", "minimal", etc. (default: "low")
+            reasoning_effort: Explicit reasoning effort that overrides LLM_REASONING_EFFORT
+                (default: None, which uses LLM_REASONING_EFFORT)
             timeout: The client-side request timeout in seconds (default: 90)
 
         Returns:
@@ -62,6 +83,9 @@ class LLMFactory:
             Common provider selection:
                 - LLM_PROVIDER: Required provider selector
                   Supported values: gemini_api, gcp_vertexai, openai_api, azure_openai
+                - LLM_REASONING_EFFORT: Optional reasoning effort (default: "low")
+                  Supported values: none, minimal, low, medium, high, xhigh
+                  Gemini maps none -> minimal and xhigh -> high
 
             For Gemini Developer API:
                 - GEMINI_API_KEY: Gemini API key
@@ -89,6 +113,7 @@ class LLMFactory:
         if provider is None:
             supported_values = ", ".join(sorted(_SUPPORTED_LLM_PROVIDERS))
             raise ValueError(f"LLM_PROVIDER must be set. Supported values: {supported_values}")
+        effort = LLMFactory._resolve_reasoning_effort(reasoning_effort)
 
         try:
             if provider in {"gemini_api", "gcp_vertexai"}:
@@ -118,8 +143,7 @@ class LLMFactory:
                 if seed is not None:
                     gemini_kwargs["seed"] = seed
 
-                if reasoning_effort in _GEMINI_THINKING_LEVELS:
-                    gemini_kwargs["thinking_level"] = reasoning_effort
+                gemini_kwargs["thinking_level"] = _GEMINI_THINKING_LEVEL_MAP.get(effort, effort)
 
                 return ChatGoogleGenerativeAI(**gemini_kwargs)
 
@@ -128,7 +152,7 @@ class LLMFactory:
                     azure_deployment=os.getenv("AZURE_OPENAI_DEPLOYMENT", resolved_model),
                     api_version=os.getenv("AZURE_OPENAI_API_VERSION", "2024-10-21"),
                     temperature=temperature,
-                    reasoning_effort=reasoning_effort,
+                    reasoning_effort=effort,
                     timeout=timeout,
                     max_retries=0,  # Disable SDK retries; handled by call_with_retry
                 )
@@ -137,7 +161,7 @@ class LLMFactory:
                 return ChatOpenAI(
                     model=resolved_model,
                     temperature=temperature,
-                    reasoning={"effort": reasoning_effort},
+                    reasoning={"effort": effort},
                     output_version="responses/v1",
                     timeout=timeout,
                     max_retries=0,  # Disable SDK retries; handled by call_with_retry
