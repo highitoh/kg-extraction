@@ -227,7 +227,7 @@
                 "Do not extract as Product a function or capability that the product provides to its users; those belong to Feature.",
                 "Do not extract as Product a constraint or condition that the product must satisfy; those belong to Product Requirement.",
                 "Do not extract as Product an internal building block, module, or system element that composes the product rather than being offered in its own right; those belong to Component.",
-                "Do not extract as Product the short form the document uses to point back at its own subject, such as \"this application\" or \"the system\"; extract it under the name the document gives it instead.",
+                "Do not extract as Product the short form the document uses to point back at its own subject; use the name the document gives it. A label that carries that name together with the short form is corrected by removing the short form, not rejected.",
                 "Do not extract as Product a system the product connects to, exchanges data with, or depends on, even when another party offers it in its own right.",
                 "Do not extract as Product a variant, edition, or release of the product, such as a trial or beta build; those are the same Product.",
                 "Do not extract as Product the platform or environment the product runs on, such as a cloud service or an operating system."
