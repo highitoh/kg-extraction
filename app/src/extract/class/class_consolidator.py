@@ -8,7 +8,7 @@ from langchain_core.runnables import Runnable
 
 from src.utils.id_generator import generate_class_id
 from src.utils.label_normalizer import normalize_label
-from src.utils.llm_factory import DEFAULT_CONSOLIDATE_LLM_MODEL, LLMFactory
+from src.utils.llm_factory import LLMFactory
 from src.utils.llm_retry import call_with_retry
 from src.utils.logger import Logger
 from src.utils.prompt_utils import fill_prompt_template
@@ -43,7 +43,7 @@ class ClassConsolidator(Runnable):
         log_dir: str = "/workspace/app/log/class_consolidator",
         metamodel_path: str = None,
     ):
-        self.model = model or DEFAULT_CONSOLIDATE_LLM_MODEL
+        self.model = model
         self.temperature = temperature
         self.progress = progress
         self.max_concurrency = max_concurrency
