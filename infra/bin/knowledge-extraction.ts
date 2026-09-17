@@ -27,6 +27,8 @@ const gcpProjectNumber = getConfig('gcpProjectNumber');
 const gcpLocation = getConfig('gcpLocation') || 'global';
 const gcpWifPool = getConfig('gcpWifPool') || 'aws-extraction-pool';
 const gcpWifProvider = getConfig('gcpWifProvider') || 'aws-provider';
+const llmExtractModel = getConfig('llmExtractModel');
+const llmEvalModel = getConfig('llmEvalModel');
 const llmReasoningEffort = getConfig('llmReasoningEffort') || 'low';
 
 // Resource names carry no region component, so deploying to an unintended
@@ -97,6 +99,8 @@ const computeStack = new ComputeStack(app, `KnowledgeExtractionCompute-${environ
   gcpWifPool,
   gcpWifProvider,
   gcpLocation,
+  llmExtractModel,
+  llmEvalModel,
   llmReasoningEffort,
   extractionBucket: storageStack.extractionBucket,
   jobsTable: storageStack.jobsTable,

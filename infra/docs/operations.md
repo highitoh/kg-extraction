@@ -31,7 +31,9 @@
      "awsRegion": "ap-northeast-1",
      "gcpProjectId": "my-gcp-project",
      "gcpLocation": "global",
-     "llmReasoningEffort": "low"
+     "llmExtractModel": "gemini-3.5-flash-lite"
+     "llmEvalModel": "gemini-3.7-flash",
+     "llmReasoningEffort": "low",
    }
    ```
 

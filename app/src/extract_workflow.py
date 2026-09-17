@@ -44,7 +44,7 @@ def run_knowledge_extraction(
         source: File path or URL to extract from (PDF, DOCX, etc.)
         pdf_path: PDF file path to extract from (deprecated, use source)
         output_dir: Output directory
-        model: LLM model name (if None, use default for each node)
+        model: LLM model name (if None, use LLM_EXTRACT_MODEL, then the default for each node)
         project: Project name (output files classified by project)
         create_snapshot: If True, create snapshot after successful extraction
         date: Date in YYYYMMDD format for GitHub extraction at specific point in time
@@ -84,6 +84,7 @@ def run_knowledge_extraction(
             initial_state["existing_knowledge"] = existing_knowledge
 
     # Add model to State if specified
+    model = model or os.getenv("LLM_EXTRACT_MODEL")
     if model:
         initial_state["model"] = model
 
@@ -188,7 +189,10 @@ if __name__ == "__main__":
     )
     parser.add_argument("pdf_path", nargs="?", default="../doc/sample.pdf", help="PDF file path to extract from")
     parser.add_argument(
-        "--model", type=str, default=None, help="LLM model name to use (default: default model for each node)"
+        "--model",
+        type=str,
+        default=None,
+        help="LLM model name to use (default: LLM_EXTRACT_MODEL, then the default model for each node)",
     )
     parser.add_argument(
         "--reasoning",
@@ -241,8 +245,9 @@ if __name__ == "__main__":
     else:
         print(f"PDF file: {pdf_path}")
     print(f"Project: {args.project}")
-    if args.model:
-        print(f"LLM model: {args.model}")
+    extract_model = args.model or os.getenv("LLM_EXTRACT_MODEL")
+    if extract_model:
+        print(f"LLM model: {extract_model}")
     else:
         print("LLM model: Using default models for each node")
     print(f"Reasoning effort: {os.getenv('LLM_REASONING_EFFORT') or DEFAULT_REASONING_EFFORT}")

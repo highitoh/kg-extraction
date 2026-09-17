@@ -16,6 +16,8 @@ interface ComputeStackProps extends cdk.StackProps {
   gcpWifPool: string;
   gcpWifProvider: string;
   gcpLocation?: string;
+  llmExtractModel?: string;
+  llmEvalModel?: string;
   llmReasoningEffort?: string;
   extractionBucket: s3.Bucket;
   jobsTable: dynamodb.Table;
@@ -126,6 +128,10 @@ export class ComputeStack extends cdk.Stack {
           // Required by llm_factory; selects Vertex AI,
           // authenticated via Workload Identity Federation
           LLM_PROVIDER: 'gcp_vertexai',
+          // Models for the extraction and evaluation workflows; when unset,
+          // the workflows use the defaults in llm_factory
+          ...(props.llmExtractModel && { LLM_EXTRACT_MODEL: props.llmExtractModel }),
+          ...(props.llmEvalModel && { LLM_EVAL_MODEL: props.llmEvalModel }),
           // Reasoning effort applied by llm_factory to every LLM call
           LLM_REASONING_EFFORT: props.llmReasoningEffort || 'low',
           GOOGLE_CLOUD_PROJECT: props.gcpProjectId,

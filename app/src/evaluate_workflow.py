@@ -22,6 +22,11 @@ from src.utils.llm_factory import DEFAULT_EVAL_LLM_MODEL, DEFAULT_REASONING_EFFO
 load_dotenv()
 
 
+def resolve_eval_model(model: str | None = None) -> str:
+    """Resolve the evaluation model: explicit value, then LLM_EVAL_MODEL, then DEFAULT_EVAL_LLM_MODEL."""
+    return model or os.getenv("LLM_EVAL_MODEL") or DEFAULT_EVAL_LLM_MODEL
+
+
 def run_evaluation(
     project: str = "default",
     model: str | None = None,
@@ -38,6 +43,7 @@ def run_evaluation(
     Returns:
         Combined evaluation results
     """
+    model = resolve_eval_model(model)
     output_dir = "/workspace/app/output"
 
     results = {
@@ -113,8 +119,8 @@ if __name__ == "__main__":
     parser.add_argument(
         "--model",
         type=str,
-        default=DEFAULT_EVAL_LLM_MODEL,
-        help="LLM model for validation (default: %(default)s)",
+        default=None,
+        help=f"LLM model for validation (default: LLM_EVAL_MODEL, then {DEFAULT_EVAL_LLM_MODEL})",
     )
     parser.add_argument(
         "--reasoning",
@@ -135,7 +141,7 @@ if __name__ == "__main__":
 
     print("\n=== Knowledge Extraction Evaluation ===")
     print(f"Project: {args.project}")
-    print(f"Model: {args.model}")
+    print(f"Model: {resolve_eval_model(args.model)}")
     print(f"Reasoning effort: {os.getenv('LLM_REASONING_EFFORT') or DEFAULT_REASONING_EFFORT}")
 
     try:
