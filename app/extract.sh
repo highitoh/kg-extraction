@@ -4,7 +4,7 @@
 # Usage:
 #   Single file: ./extract.sh <pdf_path> [OPTIONS]
 #   Batch mode:  ./extract.sh --batch <batch_file> [OPTIONS]
-# Options: [--project PROJECT] [--model MODEL] [--output-dir DIR] [--timestamp YYYYMMDD] [--max-retries N]
+# Options: [--project PROJECT] [--model MODEL] [--reasoning EFFORT] [--output-dir DIR] [--timestamp YYYYMMDD] [--max-retries N]
 
 cd /workspace/app
 

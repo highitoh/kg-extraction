@@ -16,7 +16,7 @@ from dotenv import load_dotenv
 
 from src.evaluate.knowledge_validator import KnowledgeValidator
 from src.evaluate.reward_calculator import RewardCalculator
-from src.utils.llm_factory import DEFAULT_EVAL_LLM_MODEL
+from src.utils.llm_factory import DEFAULT_EVAL_LLM_MODEL, DEFAULT_REASONING_EFFORT, SUPPORTED_REASONING_EFFORTS
 
 # Load environment variables from .env file
 load_dotenv()
@@ -117,14 +117,26 @@ if __name__ == "__main__":
         help="LLM model for validation (default: %(default)s)",
     )
     parser.add_argument(
+        "--reasoning",
+        type=str,
+        choices=sorted(SUPPORTED_REASONING_EFFORTS),
+        default=None,
+        help=f"LLM reasoning effort (default: {DEFAULT_REASONING_EFFORT})",
+    )
+    parser.add_argument(
         "--max-concurrency", type=int, default=4, help="Maximum concurrent validation LLM calls (default: 4)"
     )
 
     args = parser.parse_args()
 
+    # LLMFactory reads the reasoning effort from LLM_REASONING_EFFORT
+    if args.reasoning:
+        os.environ["LLM_REASONING_EFFORT"] = args.reasoning
+
     print("\n=== Knowledge Extraction Evaluation ===")
     print(f"Project: {args.project}")
     print(f"Model: {args.model}")
+    print(f"Reasoning effort: {os.getenv('LLM_REASONING_EFFORT') or DEFAULT_REASONING_EFFORT}")
 
     try:
         results = run_evaluation(

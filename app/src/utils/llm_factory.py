@@ -10,7 +10,7 @@ DEFAULT_LLM_MODEL = "gemini-3.5-flash-lite"
 DEFAULT_EVAL_LLM_MODEL = "gemini-3.7-flash"
 _SUPPORTED_LLM_PROVIDERS = {"gemini_api", "gcp_vertexai", "openai_api", "azure_openai"}
 DEFAULT_REASONING_EFFORT = "low"
-_SUPPORTED_REASONING_EFFORTS = {"none", "minimal", "low", "medium", "high", "xhigh"}
+SUPPORTED_REASONING_EFFORTS = {"none", "minimal", "low", "medium", "high", "xhigh"}
 # Gemini thinking_level supports minimal/low/medium/high; map the OpenAI-only levels to the nearest one
 _GEMINI_THINKING_LEVEL_MAP = {"none": "minimal", "xhigh": "high"}
 
@@ -51,10 +51,10 @@ class LLMFactory:
         if not effort:
             return DEFAULT_REASONING_EFFORT
 
-        if effort in _SUPPORTED_REASONING_EFFORTS:
+        if effort in SUPPORTED_REASONING_EFFORTS:
             return effort
 
-        supported_values = ", ".join(sorted(_SUPPORTED_REASONING_EFFORTS))
+        supported_values = ", ".join(sorted(SUPPORTED_REASONING_EFFORTS))
         raise ValueError(f"Unsupported {source} {reasoning_effort!r}. Supported values: {supported_values}")
 
     @staticmethod

@@ -17,6 +17,7 @@ from dotenv import load_dotenv
 
 from src.extract.core.graph import create_knowledge_extraction_graph
 from src.extract.core.state import KnowledgeExtractionState
+from src.utils.llm_factory import DEFAULT_REASONING_EFFORT, SUPPORTED_REASONING_EFFORTS
 from src.utils.snapshot_manager import SnapshotManager
 
 # Load environment variables from .env file
@@ -190,6 +191,14 @@ if __name__ == "__main__":
         "--model", type=str, default=None, help="LLM model name to use (default: default model for each node)"
     )
     parser.add_argument(
+        "--reasoning",
+        type=str,
+        choices=sorted(SUPPORTED_REASONING_EFFORTS),
+        default=None,
+        help=f"LLM reasoning effort (default: {DEFAULT_REASONING_EFFORT}). "
+        "Stages that set an explicit reasoning effort in code keep their own value.",
+    )
+    parser.add_argument(
         "--output-dir",
         type=str,
         default="/workspace/app/output",
@@ -215,6 +224,10 @@ if __name__ == "__main__":
     args = parser.parse_args()
     pdf_path = args.pdf_path
 
+    # LLMFactory reads the reasoning effort from LLM_REASONING_EFFORT
+    if args.reasoning:
+        os.environ["LLM_REASONING_EFFORT"] = args.reasoning
+
     # Check if input is a URL
     is_url = pdf_path.startswith("http://") or pdf_path.startswith("https://")
 
@@ -232,6 +245,7 @@ if __name__ == "__main__":
         print(f"LLM model: {args.model}")
     else:
         print("LLM model: Using default models for each node")
+    print(f"Reasoning effort: {os.getenv('LLM_REASONING_EFFORT') or DEFAULT_REASONING_EFFORT}")
     if args.date:
         print(f"Date: {args.date}")
     if args.miro_url:
