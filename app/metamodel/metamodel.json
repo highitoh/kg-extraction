@@ -125,7 +125,8 @@
             "prohibit_rules": [
                 "Do not extract as Stakeholder an internal organizational unit, team, or system that only performs work and does not receive value.",
                 "Do not extract as Stakeholder a benefit, need, or expectation attributed to a party; the party itself is the Stakeholder and the worth it perceives belongs to Value.",
-                "Do not extract as Stakeholder an interaction, channel, or phase at which a party engages with the business; those belong to Touchpoint or Customer Journey Stage."
+                "Do not extract as Stakeholder an interaction, channel, or phase at which a party engages with the business; those belong to Touchpoint or Customer Journey Stage.",
+                "Do not extract as Stakeholder one particular party the text refers to, whether a person or a single organization, including one identified only by a grade, title or code that stands in for its name; a Stakeholder is a class of party, not one of its members."
             ]
         },
         {
