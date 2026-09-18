@@ -329,7 +329,8 @@
                 "Do not extract as Component the product that is offered as a whole to a party outside the work of producing it; the offered thing belongs to Product.",
                 "Do not extract as Component an organizational unit, team, or role that performs work; organizational work belongs to Business Activity.",
                 "Do not extract as Component the data that the element produces or stores; data belongs to Source Dataset.",
-                "Do not extract as Component a condition that the element must satisfy; a stated need belongs to Product Requirement."
+                "Do not extract as Component a condition that the element must satisfy; a stated need belongs to Product Requirement.",
+                "Do not extract as Component a generic word for a kind of element rather than the element itself; the label has to say which element of the solution it is."
             ]
         },
         {
