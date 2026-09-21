@@ -42,12 +42,15 @@ class LLMFactory:
 
     @staticmethod
     def _resolve_reasoning_effort(reasoning_effort: Optional[str]) -> str:
-        source = "reasoning_effort"
-        if reasoning_effort is None:
-            source = "LLM_REASONING_EFFORT"
-            reasoning_effort = os.getenv("LLM_REASONING_EFFORT")
+        # LLM_REASONING_EFFORT wins over what a stage asks for in code, so a run can lift
+        # the effort for a model that rejects the value the stage hard-codes.
+        env_effort = os.getenv("LLM_REASONING_EFFORT")
+        if env_effort and env_effort.strip():
+            source, requested = "LLM_REASONING_EFFORT", env_effort
+        else:
+            source, requested = "reasoning_effort", reasoning_effort
 
-        effort = (reasoning_effort or "").strip().lower()
+        effort = (requested or "").strip().lower()
         if not effort:
             return DEFAULT_REASONING_EFFORT
 
@@ -55,7 +58,7 @@ class LLMFactory:
             return effort
 
         supported_values = ", ".join(sorted(SUPPORTED_REASONING_EFFORTS))
-        raise ValueError(f"Unsupported {source} {reasoning_effort!r}. Supported values: {supported_values}")
+        raise ValueError(f"Unsupported {source} {requested!r}. Supported values: {supported_values}")
 
     @staticmethod
     def create_llm(
@@ -71,8 +74,8 @@ class LLMFactory:
         Args:
             model: The model or deployment name to use
             temperature: The temperature setting for the model (default: 0.0)
-            reasoning_effort: Explicit reasoning effort that overrides LLM_REASONING_EFFORT
-                (default: None, which uses LLM_REASONING_EFFORT)
+            reasoning_effort: Reasoning effort for this call, used when LLM_REASONING_EFFORT
+                is unset (default: None, which falls back to LLM_REASONING_EFFORT)
             timeout: The client-side request timeout in seconds (default: 90)
 
         Returns:

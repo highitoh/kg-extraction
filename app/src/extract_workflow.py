@@ -200,7 +200,7 @@ if __name__ == "__main__":
         choices=sorted(SUPPORTED_REASONING_EFFORTS),
         default=None,
         help=f"LLM reasoning effort (default: {DEFAULT_REASONING_EFFORT}). "
-        "Stages that set an explicit reasoning effort in code keep their own value.",
+        "Applies to every stage, including those that set their own value in code.",
     )
     parser.add_argument(
         "--output-dir",
