@@ -39,33 +39,37 @@ def parse_board_id_from_url(miro_url: str) -> str:
 
 
 def extract_text_from_miro_board(miro_url: str) -> list[dict]:
-    """Extract text chunks from Miro board.
+    """Extract one text entry per item from a Miro board.
 
-    This function is parallel to extract_text_from_document() for PDFs.
+    This function is parallel to extract_text_from_document() for PDFs. The
+    entries are sentence-level; they are grouped by region and split into chunks
+    further down the pipeline.
 
     Args:
         miro_url: Miro board URL (e.g., "https://miro.com/app/board/o9J_abc123")
 
     Returns:
-        List of text chunks with metadata:
+        One entry per item, with metadata:
         [
             {
                 "text": str,
+                "file_id": str,  # "miro:{board_id}:{region_id}"
                 "metadata": {
                     "item_id": str,
                     "item_type": str,
+                    "region_id": str,
                     "position": {"x": float, "y": float}
                 },
-                "_miro_raw_data": dict  # Attached to first chunk for snapshot storage
+                "_miro_raw_data": dict  # Attached to first entry for snapshot storage
             },
             ...
         ]
 
     Example:
-        >>> chunks = extract_text_from_miro_board("https://miro.com/app/board/o9J_abc123")
-        >>> print(len(chunks))
+        >>> item_texts = extract_text_from_miro_board("https://miro.com/app/board/o9J_abc123")
+        >>> print(len(item_texts))
         15
-        >>> print(chunks[0]["text"])
+        >>> print(item_texts[0]["text"])
         "Customer needs faster service"
     """
     # 1. Parse board ID from URL
@@ -84,25 +88,25 @@ def extract_text_from_miro_board(miro_url: str) -> list[dict]:
     # 3. Transform via MiroItemAnalyzer
     analyzer = MiroItemAnalyzer()
     analyzed_items = analyzer.analyze({"items": board_items})
-    chunks = analyzer.to_text_chunks(analyzed_items)
+    item_texts = analyzer.to_item_texts(analyzed_items)
 
-    if not chunks:
-        # Return empty chunk to maintain flow
-        chunks = [{"text": "", "metadata": {}}]
+    if not item_texts:
+        # Return an empty entry to maintain flow
+        item_texts = [{"text": "", "metadata": {}}]
 
     # 4. Generate region-specific file_ids
     board_file_id_prefix = f"miro:{board_id}"
     region_of = group_items_by_region(board_items)
 
-    # 5. Attach region-specific file_id to each chunk
-    for chunk in chunks:
-        item_id = chunk["metadata"].get("item_id", "unknown")
+    # 5. Attach region-specific file_id to each entry
+    for item_text in item_texts:
+        item_id = item_text["metadata"].get("item_id", "unknown")
         region_id = region_of.get(item_id, item_id)
-        chunk["metadata"]["region_id"] = region_id
-        chunk["file_id"] = f"{board_file_id_prefix}:{region_id}"
+        item_text["metadata"]["region_id"] = region_id
+        item_text["file_id"] = f"{board_file_id_prefix}:{region_id}"
 
-    # 6. Store raw data for snapshot (attached to first chunk)
-    chunks[0]["_miro_raw_data"] = {
+    # 6. Store raw data for snapshot (attached to first entry)
+    item_texts[0]["_miro_raw_data"] = {
         "id": board_id,
         "name": board_data.get("name", "Unnamed Board"),
         "items": board_items,
@@ -110,4 +114,4 @@ def extract_text_from_miro_board(miro_url: str) -> list[dict]:
         "modifiedAt": board_data.get("modifiedAt"),
     }
 
-    return chunks
+    return item_texts

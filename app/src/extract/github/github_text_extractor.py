@@ -27,7 +27,8 @@ def extract_text_from_github(
               (e.g., "20230115" for January 15, 2023)
 
     Returns:
-        List of text chunks with metadata:
+        One entry per item, with metadata. The entries are sentence-level; they
+        are split into chunks further down the pipeline:
         [
             {
                 "text": str,
@@ -46,10 +47,10 @@ def extract_text_from_github(
         ]
 
     Examples:
-        >>> chunks = extract_text_from_github("https://github.com/facebook/react")
-        >>> len(chunks) > 0
+        >>> item_texts = extract_text_from_github("https://github.com/facebook/react")
+        >>> len(item_texts) > 0
         True
-        >>> chunks = extract_text_from_github("https://github.com/facebook/react", date="20230115")
+        >>> item_texts = extract_text_from_github("https://github.com/facebook/react", date="20230115")
     """
     print(f"[GitHubExtractor] Extracting text from GitHub URL: {github_url}")
 
@@ -164,24 +165,24 @@ def extract_text_from_github(
     analyzed_items = analyzer.analyze(raw_repo_data)
     print("[GitHubExtractor] " + f"Analyzed {len(analyzed_items)} items after filtering")
 
-    # Convert to text chunks
-    chunks = analyzer.to_text_chunks(analyzed_items)
+    # Convert to one text entry per item
+    item_texts = analyzer.to_item_texts(analyzed_items)
 
-    # Add standardized metadata to all chunks
-    for chunk in chunks:
-        chunk["metadata"]["owner"] = owner
-        chunk["metadata"]["repo"] = repo
-        chunk["metadata"]["ref"] = ref
-        chunk["metadata"]["commit_sha"] = commit_sha
+    # Add standardized metadata to all entries
+    for item_text in item_texts:
+        item_text["metadata"]["owner"] = owner
+        item_text["metadata"]["repo"] = repo
+        item_text["metadata"]["ref"] = ref
+        item_text["metadata"]["commit_sha"] = commit_sha
 
         # Generate stable file ID
-        path = chunk["metadata"]["file_path"]
-        sha = chunk["metadata"].get("sha", chunk["file_id"])
-        chunk["file_id"] = get_file_identifier(owner, repo, path, sha)
+        path = item_text["metadata"]["file_path"]
+        sha = item_text["metadata"].get("sha", item_text["file_id"])
+        item_text["file_id"] = get_file_identifier(owner, repo, path, sha)
 
-    # Add raw data for snapshot (first chunk only to avoid duplication)
-    if chunks:
-        chunks[0]["_github_raw_data"] = {
+    # Add raw data for snapshot (first entry only to avoid duplication)
+    if item_texts:
+        item_texts[0]["_github_raw_data"] = {
             "owner": owner,
             "repo": repo,
             "ref": ref,
@@ -193,6 +194,6 @@ def extract_text_from_github(
             "file_map": analyzer.get_file_map(analyzed_items),
         }
 
-    print("[GitHubExtractor] " + f"Extracted {len(chunks)} text chunks from {owner}/{repo}")
+    print("[GitHubExtractor] " + f"Extracted {len(item_texts)} text entries from {owner}/{repo}")
 
-    return chunks
+    return item_texts

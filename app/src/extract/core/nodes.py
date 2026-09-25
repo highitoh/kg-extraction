@@ -487,8 +487,8 @@ def detect_miro_changes_node(state: KnowledgeExtractionState) -> KnowledgeExtrac
 def extract_text_miro_node(state: KnowledgeExtractionState) -> KnowledgeExtractionState:
     """
     Node that extracts text from Miro board.
-    Supports incremental mode (only extract changed items).
-    miro_url -> text_chunks, miro_raw_data
+    Supports incremental mode (only extract changed regions).
+    miro_url -> sentences, miro_raw_data
     """
     try:
         from src.extract.miro.miro_board_renderer import group_items_by_region
@@ -496,10 +496,10 @@ def extract_text_miro_node(state: KnowledgeExtractionState) -> KnowledgeExtracti
         from src.utils.source_change_detector import load_source_raw
 
         miro_url = state["files"][0]["path"]
-        chunks = extract_text_from_miro_board(miro_url)
+        item_texts = extract_text_from_miro_board(miro_url)
 
-        # Extract miro_raw_data from first chunk
-        miro_raw_data = chunks[0].pop("_miro_raw_data", None)
+        # Extract miro_raw_data from first entry
+        miro_raw_data = item_texts[0].pop("_miro_raw_data", None)
 
         # Apply incremental filtering if enabled
         if state.get("incremental_mode"):
@@ -531,15 +531,17 @@ def extract_text_miro_node(state: KnowledgeExtractionState) -> KnowledgeExtracti
                     item_id for item_id, region_id in curr_region_of.items() if region_id in changed_regions
                 }
 
-                filtered_chunks = [
-                    chunk for chunk in chunks if chunk.get("metadata", {}).get("region_id") in changed_regions
+                filtered_item_texts = [
+                    item_text
+                    for item_text in item_texts
+                    if item_text.get("metadata", {}).get("region_id") in changed_regions
                 ]
 
                 print(
                     f"[ExtractTextMiroNode] Incremental mode: "
                     f"new={len(new_ids)}, modified={len(modified_ids)}, "
                     f"deleted={len(deleted_ids)}, regions={len(changed_regions)}, "
-                    f"processing={len(filtered_chunks)} chunks"
+                    f"processing={len(filtered_item_texts)} items"
                 )
 
                 # Store deleted/changed item IDs for cleanup and merging.
@@ -553,21 +555,21 @@ def extract_text_miro_node(state: KnowledgeExtractionState) -> KnowledgeExtracti
                 board_id = parse_board_id_from_url(miro_url)
                 state["stale_file_ids"] = [f"miro:{board_id}:{region_id}" for region_id in sorted(changed_regions)]
 
-                chunks = filtered_chunks
+                item_texts = filtered_item_texts
             else:
                 print("[ExtractTextMiroNode] Could not load previous data, using full extraction")
                 state["incremental_mode"] = False
 
-        # Convert chunks to sentences format expected by downstream nodes
+        # Convert to the sentences format expected by downstream nodes
         sentences = []
 
-        for chunk in chunks:
-            if chunk.get("text"):
+        for item_text in item_texts:
+            if item_text.get("text"):
                 sentences.append(
                     {
-                        "text": chunk["text"],
-                        "metadata": chunk.get("metadata", {}),
-                        "file_id": chunk.get("file_id"),  # Preserve region-level file_id
+                        "text": item_text["text"],
+                        "metadata": item_text.get("metadata", {}),
+                        "file_id": item_text.get("file_id"),  # Preserve region-level file_id
                     }
                 )
 
@@ -652,7 +654,7 @@ def extract_text_github_node(state: KnowledgeExtractionState) -> KnowledgeExtrac
     """
     Node that extracts text from GitHub repository.
     Supports incremental mode (only extract changed files).
-    github_url -> text_chunks, github_raw_data
+    github_url -> sentences, github_raw_data
     """
     try:
         from src.extract.github.github_text_extractor import extract_text_from_github
@@ -660,10 +662,10 @@ def extract_text_github_node(state: KnowledgeExtractionState) -> KnowledgeExtrac
 
         github_url = state["files"][0]["path"]
         date = state.get("date")
-        chunks = extract_text_from_github(github_url, date=date)
+        item_texts = extract_text_from_github(github_url, date=date)
 
-        # Extract github_raw_data from first chunk
-        github_raw_data = chunks[0].pop("_github_raw_data", None) if chunks else None
+        # Extract github_raw_data from first entry
+        github_raw_data = item_texts[0].pop("_github_raw_data", None) if item_texts else None
 
         # Apply incremental filtering if enabled
         if state.get("incremental_mode") and github_raw_data:
@@ -694,40 +696,40 @@ def extract_text_github_node(state: KnowledgeExtractionState) -> KnowledgeExtrac
 
                 changed_ids = new_ids | modified_ids
 
-                # Filter chunks to only changed files
-                filtered_chunks = [chunk for chunk in chunks if chunk.get("file_id") in changed_ids]
+                # Filter entries to only changed files
+                filtered_item_texts = [item_text for item_text in item_texts if item_text.get("file_id") in changed_ids]
 
                 print(
                     f"[ExtractTextGitHubNode] Incremental mode: "
                     f"new={len(new_ids)}, modified={len(modified_ids)}, "
-                    f"deleted={len(deleted_ids)}, processing={len(filtered_chunks)} chunks"
+                    f"deleted={len(deleted_ids)}, processing={len(filtered_item_texts)} items"
                 )
 
                 # Store deleted/changed file IDs for cleanup and merging
                 state["deleted_item_ids"] = list(deleted_ids)
                 state["changed_item_ids"] = list(changed_ids)
 
-                chunks = filtered_chunks
+                item_texts = filtered_item_texts
             else:
                 print("[ExtractTextGitHubNode] Could not load previous data, using full extraction")
                 state["incremental_mode"] = False
 
-        # Convert chunks to sentences format expected by downstream nodes
+        # Convert to the sentences format expected by downstream nodes
         sentences = []
 
-        for chunk in chunks:
-            if chunk.get("text"):
+        for item_text in item_texts:
+            if item_text.get("text"):
                 sentences.append(
                     {
-                        "text": chunk["text"],
-                        "metadata": chunk.get("metadata", {}),
-                        "file_id": chunk.get("file_id"),  # Preserve file-level file_id
+                        "text": item_text["text"],
+                        "metadata": item_text.get("metadata", {}),
+                        "file_id": item_text.get("file_id"),  # Preserve file-level file_id
                     }
                 )
 
         # Store results in State
         state["sentences"] = sentences
-        state["file_id"] = chunks[0].get("file_id", "") if chunks else ""
+        state["file_id"] = item_texts[0].get("file_id", "") if item_texts else ""
         state["file_name"] = (
             f"{github_raw_data['owner']}/{github_raw_data['repo']}" if github_raw_data else "GitHub Repository"
         )

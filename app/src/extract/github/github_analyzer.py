@@ -245,39 +245,42 @@ class GitHubAnalyzer:
         # Default to doc
         return "doc"
 
-    def to_text_chunks(self, analyzed_items: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
-        """Convert analyzed items to text chunks ready for extraction.
+    def to_item_texts(self, analyzed_items: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        """Convert analyzed items to one text entry per item.
+
+        These are sentence-level entries, not the chunks the LLM is given: chunking
+        happens later, once the items have been grouped by source.
 
         Args:
             analyzed_items: List of analyzed item dictionaries
 
         Returns:
-            List of text chunks with metadata
+            One entry per item, with metadata
 
         Examples:
             >>> items = analyzer.analyze(raw_data)
-            >>> chunks = analyzer.to_text_chunks(items)
+            >>> item_texts = analyzer.to_item_texts(items)
         """
-        chunks = []
+        item_texts = []
 
         for item in analyzed_items:
             if not item.get("content"):
                 continue
 
-            chunk = {
-                "text": item["content"],
-                "metadata": {
-                    "file_path": item["path"],
-                    "item_type": item["type"],
-                    "title": item["title"],
-                    **item["metadata"],  # Merge in all metadata fields
-                },
-                "file_id": item["id"],
-            }
+            item_texts.append(
+                {
+                    "text": item["content"],
+                    "metadata": {
+                        "file_path": item["path"],
+                        "item_type": item["type"],
+                        "title": item["title"],
+                        **item["metadata"],  # Merge in all metadata fields
+                    },
+                    "file_id": item["id"],
+                }
+            )
 
-            chunks.append(chunk)
-
-        return chunks
+        return item_texts
 
     def filter_by_file_ids(self, items: List[Dict[str, Any]], file_ids: List[str]) -> List[Dict[str, Any]]:
         """Filter items to only include specific file IDs.

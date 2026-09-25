@@ -152,14 +152,17 @@ class MiroItemAnalyzer:
             "position": position,
         }
 
-    def to_text_chunks(self, analyzed_items: list[dict]) -> list[dict]:
-        """Convert analyzed items to text chunks for LLM extraction.
+    def to_item_texts(self, analyzed_items: list[dict]) -> list[dict]:
+        """Convert analyzed items to one text entry per item.
+
+        These are sentence-level entries, not the chunks the LLM is given: chunking
+        happens later, once the items have been grouped by region.
 
         Args:
             analyzed_items: Output from analyze()
 
         Returns:
-            List of text chunks compatible with existing extraction pipeline:
+            One entry per item:
             {
                 "text": str,
                 "metadata": {
@@ -169,21 +172,22 @@ class MiroItemAnalyzer:
                 }
             }
         """
-        chunks = []
+        item_texts = []
 
         for item in analyzed_items:
             # Skip connectors in text extraction (they're metadata for relationships)
             if item["item_type"] == "connector":
                 continue
 
-            chunk = {
-                "text": item["content"],
-                "metadata": {
-                    "item_id": item["item_id"],
-                    "item_type": item["item_type"],
-                    "position": item["position"],
-                },
-            }
-            chunks.append(chunk)
+            item_texts.append(
+                {
+                    "text": item["content"],
+                    "metadata": {
+                        "item_id": item["item_id"],
+                        "item_type": item["item_type"],
+                        "position": item["position"],
+                    },
+                }
+            )
 
-        return chunks
+        return item_texts
