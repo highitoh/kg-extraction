@@ -37,6 +37,44 @@ def _load_metamodel() -> Dict[str, Any]:
         return json.load(f)
 
 
+def _miro_containers_of(items: List[Dict[str, Any]], item_ids: Set[str]) -> Set[str]:
+    """Resolve each item id to the Frame/Diagram holding it, or to itself when top-level.
+
+    In Miro PDF+URL mode a file_id is keyed by container, so this returns the ids
+    the knowledge of those items is filed under.
+
+    Args:
+        items: Raw Miro API items to resolve against
+        item_ids: Item ids to resolve
+
+    Returns:
+        Set of container ids (or the items' own ids when they have no container)
+    """
+    from src.extract.miro.miro_board_renderer import CONTAINER_TYPES
+
+    by_id = {item["id"]: item for item in items}
+    containers: Set[str] = set()
+
+    for item_id in item_ids:
+        resolved = item_id
+        current = item_id
+        seen: Set[str] = set()
+
+        while current and current not in seen:
+            seen.add(current)
+            parent_id = ((by_id.get(current) or {}).get("parent") or {}).get("id")
+            if not parent_id:
+                break
+            if (by_id.get(parent_id) or {}).get("type") in CONTAINER_TYPES:
+                resolved = parent_id
+                break
+            current = parent_id
+
+        containers.add(resolved)
+
+    return containers
+
+
 def _detect_miro_item_changes(
     prev_raw: Dict[str, Any], curr_raw: Dict[str, Any]
 ) -> Tuple[Set[str], Set[str], Set[str]]:
@@ -123,6 +161,40 @@ def _create_chunks_by_source(sentences: List[Dict[str, Any]], source_type: str) 
         # Split using ChunkCreator (handles long text automatically)
         source_chunks = chunk_creator.create(source_text)
         chunks.extend(source_chunks)
+
+    return chunks
+
+
+def _create_chunks_by_file_id(sentences: List[Dict[str, Any]], fallback_file_id: str) -> List[Dict[str, Any]]:
+    """Create chunks by grouping sentences by their file_id.
+
+    Used by sources whose sentences already carry the file_id the extracted
+    knowledge should be attributed to (Miro regions). Keeping the file_id on the
+    chunk lets downstream extraction record which part of the source a class came
+    from, which is what makes replacing the knowledge of a single changed region
+    possible. A group that is too large is split with ChunkCreator.
+
+    Args:
+        sentences: List of sentence dicts, each with an optional "file_id"
+        fallback_file_id: file_id for sentences that carry none
+
+    Returns:
+        List of {"text": str, "file_id": str}
+    """
+    from collections import defaultdict
+
+    file_id_groups = defaultdict(list)
+    for sentence in sentences:
+        file_id = sentence.get("file_id") or fallback_file_id
+        file_id_groups[file_id].append(sentence["text"])
+
+    chunk_creator = ChunkCreator(chunk_mode="char", max_chars=2000, overlap_chars=100)
+    chunks = []
+
+    for file_id in sorted(file_id_groups.keys()):
+        group_text = " ".join(file_id_groups[file_id])
+        for chunk_text in chunk_creator.create(group_text):
+            chunks.append({"text": chunk_text, "file_id": file_id})
 
     return chunks
 
@@ -419,7 +491,8 @@ def extract_text_miro_node(state: KnowledgeExtractionState) -> KnowledgeExtracti
     miro_url -> text_chunks, miro_raw_data
     """
     try:
-        from src.extract.miro.miro_text_extractor import extract_text_from_miro_board
+        from src.extract.miro.miro_board_renderer import group_items_by_region
+        from src.extract.miro.miro_text_extractor import extract_text_from_miro_board, parse_board_id_from_url
         from src.utils.source_change_detector import load_source_raw
 
         miro_url = state["files"][0]["path"]
@@ -442,18 +515,43 @@ def extract_text_miro_node(state: KnowledgeExtractionState) -> KnowledgeExtracti
                 new_ids, modified_ids, deleted_ids = _detect_miro_item_changes(prev_raw, miro_raw_data)
                 changed_ids = new_ids | modified_ids
 
-                # Filter chunks to only changed items
-                filtered_chunks = [chunk for chunk in chunks if chunk.get("metadata", {}).get("item_id") in changed_ids]
+                # Knowledge is recorded per region, so a region is the unit of change:
+                # touching one item invalidates everything extracted from its region.
+                # Both sides are consulted so that an item which moved between regions,
+                # or a region that no longer exists, still invalidates its old region.
+                prev_region_of = group_items_by_region(prev_raw.get("items", []))
+                curr_region_of = group_items_by_region(miro_raw_data.get("items", []))
+
+                changed_regions = {curr_region_of[i] for i in changed_ids if i in curr_region_of}
+                changed_regions |= {prev_region_of[i] for i in deleted_ids if i in prev_region_of}
+
+                # Re-read a changed region in full: its knowledge is replaced as a unit,
+                # so the untouched items sharing it have to go back through extraction.
+                reextracted_ids = {
+                    item_id for item_id, region_id in curr_region_of.items() if region_id in changed_regions
+                }
+
+                filtered_chunks = [
+                    chunk for chunk in chunks if chunk.get("metadata", {}).get("region_id") in changed_regions
+                ]
 
                 print(
                     f"[ExtractTextMiroNode] Incremental mode: "
                     f"new={len(new_ids)}, modified={len(modified_ids)}, "
-                    f"deleted={len(deleted_ids)}, processing={len(filtered_chunks)} chunks"
+                    f"deleted={len(deleted_ids)}, regions={len(changed_regions)}, "
+                    f"processing={len(filtered_chunks)} chunks"
                 )
 
-                # Store deleted/changed item IDs for cleanup and merging
-                state["deleted_item_ids"] = list(deleted_ids)
-                state["changed_item_ids"] = list(changed_ids)
+                # Store deleted/changed item IDs for cleanup and merging.
+                # changed_item_ids also drives image-region filtering, which keeps a
+                # region when any of its items is listed - hence the full region.
+                state["deleted_item_ids"] = sorted(deleted_ids)
+                state["changed_item_ids"] = sorted(reextracted_ids)
+
+                # Whatever was extracted from these regions no longer holds: the
+                # regions are either gone or about to be extracted again.
+                board_id = parse_board_id_from_url(miro_url)
+                state["stale_file_ids"] = [f"miro:{board_id}:{region_id}" for region_id in sorted(changed_regions)]
 
                 chunks = filtered_chunks
             else:
@@ -469,13 +567,14 @@ def extract_text_miro_node(state: KnowledgeExtractionState) -> KnowledgeExtracti
                     {
                         "text": chunk["text"],
                         "metadata": chunk.get("metadata", {}),
-                        "file_id": chunk.get("file_id"),  # Preserve item-level file_id
+                        "file_id": chunk.get("file_id"),  # Preserve region-level file_id
                     }
                 )
 
         # Store results in State
         state["sentences"] = sentences
-        state["file_id"] = chunks[0].get("file_id", "") if chunks else ""
+        # Board-level fallback for anything that has no region of its own
+        state["file_id"] = f"miro:{miro_raw_data['id']}" if miro_raw_data else ""
         state["file_name"] = miro_raw_data.get("name", "Miro Board") if miro_raw_data else "Miro Board"
         state["miro_raw_data"] = miro_raw_data
         state["structured_blocks"] = []
@@ -1027,8 +1126,21 @@ def transform_to_chunks_node(state: KnowledgeExtractionState) -> KnowledgeExtrac
         content_type = state.get("content_type")
         sentences = state.get("sentences", []) or []
 
+        # For Miro, group sentences by the region they belong to so each chunk keeps
+        # the file_id its knowledge will be attributed to
+        if source_type == "miro_board":
+            chunks = _create_chunks_by_file_id(sentences, state.get("file_id", ""))
+            state["chunks"] = chunks
+            state["current_stage"] = "chunks_created"
+
+            print(
+                f"[TransformToChunksNode] Starting chunk creation: "
+                f"source_type={source_type} mode=by_file_id sentences={len(sentences)}"
+            )
+            print(f"[TransformToChunksNode] done: chunks={len(chunks)}")
+
         # For Confluence/Jira/GitHub, group sentences by page/issue/file and create chunks per source
-        if source_type in ("confluence_space", "jira_project", "github_repo"):
+        elif source_type in ("confluence_space", "jira_project", "github_repo"):
             chunk_texts = _create_chunks_by_source(sentences, source_type)
             state["chunks"] = [{"text": chunk} for chunk in chunk_texts]
             state["current_stage"] = "chunks_created"
@@ -1414,49 +1526,28 @@ def extract_properties_node(state: KnowledgeExtractionState) -> KnowledgeExtract
     return state
 
 
-def cleanup_deleted_items_node(state: KnowledgeExtractionState) -> KnowledgeExtractionState:
+def cleanup_stale_items_node(state: KnowledgeExtractionState) -> KnowledgeExtractionState:
     """
-    Node that removes knowledge from deleted items.
-    Runs only in incremental mode when items were deleted.
-    Supports Miro, GitHub, and Jira sources.
+    Node that removes knowledge which the current incremental run invalidates.
+
+    Two kinds of knowledge go stale: what came from items that are gone from the
+    source, and what came from items being extracted again because they changed.
+    The second kind has to go before the merge, otherwise a class that the updated
+    content no longer supports would linger in knowledge.json forever.
+
+    The file_ids to drop are supplied by the extraction node, which knows how
+    file_ids are shaped for its source.
     """
     try:
-        # Only run in incremental mode with deletions
+        # Only run in incremental mode
         if not state.get("incremental_mode"):
             return state
 
-        deleted_item_ids = state.get("deleted_item_ids", [])
-        if not deleted_item_ids:
+        stale_file_ids = set(state.get("stale_file_ids") or [])
+        if not stale_file_ids:
             return state
 
-        file_type = state.get("file_type")
-
-        # Build file_ids for deleted items based on source type
-        if file_type == "miro_board":
-            from src.extract.miro.miro_text_extractor import parse_board_id_from_url
-
-            miro_url = state["files"][0]["path"]
-            board_id = parse_board_id_from_url(miro_url)
-            deleted_file_ids = {f"miro:{board_id}:{item_id}" for item_id in deleted_item_ids}
-
-        elif file_type == "jira_project":
-            from src.extract.jira.jira_url_parser import get_issue_identifier, parse_jira_url
-
-            jira_url = state["files"][0]["path"]
-            parsed = parse_jira_url(jira_url)
-            domain = parsed["domain"]
-            # deleted_item_ids are issue keys like "PROJ-123"
-            deleted_file_ids = {get_issue_identifier(domain, issue_key) for issue_key in deleted_item_ids}
-
-        elif file_type == "github_repo":
-            # Deleted file_ids already in format "github:owner:repo:path:sha"
-            deleted_file_ids = set(deleted_item_ids)
-
-        else:
-            print(f"[CleanupDeletedItems] Unsupported file_type: {file_type}, skipping")
-            return state
-
-        print(f"[CleanupDeletedItems] Removing knowledge from {len(deleted_file_ids)} deleted items")
+        print(f"[CleanupStaleItems] Dropping knowledge recorded against {len(stale_file_ids)} file_ids")
 
         # Load existing knowledge.json
         output_dir = state.get("output_dir", "/workspace/app/output")
@@ -1469,7 +1560,7 @@ def cleanup_deleted_items_node(state: KnowledgeExtractionState) -> KnowledgeExtr
         with open(knowledge_path, "r", encoding="utf-8") as f:
             knowledge = json.load(f)
 
-        # Clean up classes: remove deleted file_ids
+        # Clean up classes: drop the stale file_ids they were extracted from
         cleaned_classes = []
         removed_class_ids = set()
 
@@ -1477,23 +1568,24 @@ def cleanup_deleted_items_node(state: KnowledgeExtractionState) -> KnowledgeExtr
             file_ids = cls.get("file_ids", [])
             sources = cls.get("sources", [])
 
-            # Filter out deleted file_ids (maintain alignment with sources)
+            # Filter out stale file_ids (maintain alignment with sources)
             filtered_pairs = [
-                (src, fid) for src, fid in zip(sources, file_ids, strict=True) if fid not in deleted_file_ids
+                (src, fid) for src, fid in zip(sources, file_ids, strict=True) if fid not in stale_file_ids
             ]
 
             if filtered_pairs:
-                # Class still has sources from non-deleted items
+                # Class is still backed by a part of the source that did not change
                 new_sources, new_file_ids = zip(*filtered_pairs, strict=True)
                 cls["sources"] = list(new_sources)
                 cls["file_ids"] = list(new_file_ids)
                 cleaned_classes.append(cls)
             else:
-                # Class has no remaining sources → remove it
+                # Nothing backs this class any more → remove it. If the re-extraction
+                # still finds it, the merge puts it back with a current file_id.
                 removed_class_ids.add(cls["id"])
-                print(f"[CleanupDeletedItems] Removing class: {cls.get('label')} (no sources remain)")
+                print(f"[CleanupStaleItems] Removing class: {cls.get('label')} (no sources remain)")
 
-        # Clean up properties: remove those referencing deleted classes
+        # Clean up properties: remove those referencing removed classes
         cleaned_properties = [
             prop
             for prop in knowledge.get("properties", [])
@@ -1507,16 +1599,16 @@ def cleanup_deleted_items_node(state: KnowledgeExtractionState) -> KnowledgeExtr
             json.dump(cleaned_knowledge, f, ensure_ascii=False, indent=2)
 
         print(
-            f"[CleanupDeletedItems] Removed {len(removed_class_ids)} classes, "
+            f"[CleanupStaleItems] Removed {len(removed_class_ids)} classes, "
             f"{len(knowledge['properties']) - len(cleaned_properties)} properties"
         )
 
-        state["current_stage"] = "deleted_items_cleaned"
+        state["current_stage"] = "stale_items_cleaned"
 
     except Exception as e:
-        print(f"[CleanupDeletedItems] Warning: Cleanup failed: {e}")
+        print(f"[CleanupStaleItems] Warning: Cleanup failed: {e}")
         state.setdefault("errors", [])
-        state["errors"].append(f"Deleted item cleanup failed: {e}")
+        state["errors"].append(f"Stale item cleanup failed: {e}")
 
     return state
 
@@ -1754,7 +1846,12 @@ def extract_text_miro_board_node(state: KnowledgeExtractionState) -> KnowledgeEx
                     f"{len(deleted_ids)} deleted"
                 )
 
-                if changed_ids:
+                # A Frame that merely lost a child looks untouched from the current
+                # board alone, so the containers the deleted items used to sit in
+                # are read from the previous snapshot and refreshed as well.
+                emptied_containers = _miro_containers_of(prev_raw.get("items", []), deleted_ids)
+
+                if changed_ids or emptied_containers:
                     # Filter visual_items to only include Frames/Diagrams with changed children
                     changed_visual_items = []
                     for visual_item in result["miro_visual_items"]:
@@ -1762,7 +1859,7 @@ def extract_text_miro_board_node(state: KnowledgeExtractionState) -> KnowledgeEx
                         item_id = visual_item["item_id"]
                         child_ids = {child["id"] for child in visual_item.get("child_items", [])}
 
-                        if item_id in changed_ids or child_ids & changed_ids:
+                        if item_id in changed_ids or child_ids & changed_ids or item_id in emptied_containers:
                             changed_visual_items.append(visual_item)
 
                     result["miro_visual_items"] = changed_visual_items
@@ -1792,17 +1889,25 @@ def extract_text_miro_board_node(state: KnowledgeExtractionState) -> KnowledgeEx
                     state["changed_item_ids"] = list(changed_ids)
                     state["deleted_item_ids"] = list(deleted_ids)
 
+                    # Everything under these ids is about to be extracted again, or
+                    # has gone from the board, so the knowledge recorded against them
+                    # must not survive into the merge.
+                    board_id = result["miro_board_id"]
+                    stale_ids = keep_ids | deleted_ids | emptied_containers
+                    state["stale_file_ids"] = [f"miro_board:{board_id}:{item_id}" for item_id in sorted(stale_ids)]
+
                     print(f"[ExtractTextMiroBoard] Filtered to {len(result['miro_visual_items'])} changed visual items")
                     print(
                         f"[ExtractTextMiroBoard] Filtered to {len(result['item_page_mappings'])} changed page mappings"
                     )
                 else:
                     print("[ExtractTextMiroBoard] No changes detected, skipping extraction")
-                    state["incremental_mode"] = False
                     result["sentences"] = []
                     result["miro_visual_items"] = []
                     result["item_page_mappings"] = []
-                    state["deleted_item_ids"] = list(deleted_ids) if deleted_ids else []
+                    state["changed_item_ids"] = []
+                    state["deleted_item_ids"] = list(deleted_ids)
+                    state["stale_file_ids"] = []
             else:
                 print("[ExtractTextMiroBoard] Could not load previous snapshot, doing full extraction")
                 state["incremental_mode"] = False

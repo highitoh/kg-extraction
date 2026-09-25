@@ -2,7 +2,7 @@
 
 import re
 
-from src.extract.miro.miro_board_renderer import attach_container_children
+from src.extract.miro.miro_board_renderer import attach_container_children, group_items_by_region
 from src.extract.miro.miro_item_analyzer import MiroItemAnalyzer
 from src.utils.miro_client import MiroClient
 
@@ -90,13 +90,16 @@ def extract_text_from_miro_board(miro_url: str) -> list[dict]:
         # Return empty chunk to maintain flow
         chunks = [{"text": "", "metadata": {}}]
 
-    # 4. Generate item-specific file_ids
+    # 4. Generate region-specific file_ids
     board_file_id_prefix = f"miro:{board_id}"
+    region_of = group_items_by_region(board_items)
 
-    # 5. Attach item-specific file_id to each chunk
+    # 5. Attach region-specific file_id to each chunk
     for chunk in chunks:
         item_id = chunk["metadata"].get("item_id", "unknown")
-        chunk["file_id"] = f"{board_file_id_prefix}:{item_id}"
+        region_id = region_of.get(item_id, item_id)
+        chunk["metadata"]["region_id"] = region_id
+        chunk["file_id"] = f"{board_file_id_prefix}:{region_id}"
 
     # 6. Store raw data for snapshot (attached to first chunk)
     chunks[0]["_miro_raw_data"] = {

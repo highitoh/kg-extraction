@@ -68,6 +68,7 @@ class KnowledgeExtractionState(TypedDict, total=False):
     previous_snapshot_id: Optional[str]  # Previous snapshot for comparison
     changed_item_ids: Optional[List[str]]  # Item IDs to process (new/modified)
     deleted_item_ids: Optional[List[str]]  # Item IDs deleted from board
+    stale_file_ids: Optional[List[str]]  # file_ids whose accumulated knowledge is no longer valid
 
     # ========== Jira-Specific Fields ==========
     jira_instance_url: Optional[str]  # Jira instance URL (e.g., "https://company.atlassian.net")

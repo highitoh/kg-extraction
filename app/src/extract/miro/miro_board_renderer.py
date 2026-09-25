@@ -206,8 +206,8 @@ class MiroBoardRenderer:
             )
 
         orphans = [i for i in parsed if i.item_type not in CONTAINER_TYPES and not self._container_of(i, by_id)]
-        for index, cluster in enumerate(self._cluster(orphans)):
-            regions.append(self._render_region(cluster, connectors, "cluster", f"cluster_{index}", ""))
+        for cluster in self._cluster(orphans):
+            regions.append(self._render_region(cluster, connectors, "cluster", _cluster_id(cluster), ""))
 
         return regions
 
@@ -677,6 +677,54 @@ class MiroBoardRenderer:
         except ValueError, IndexError:
             return False
         return (0.299 * r + 0.587 * g + 0.114 * b) < 100
+
+
+def _cluster_id(cluster: List[RenderItem]) -> str:
+    """Name a cluster after its lowest member id.
+
+    The name has to survive across extractions: a positional index shifts as
+    soon as an item is added or moved, which would orphan the knowledge already
+    recorded under the old name.
+    """
+    return f"cluster_{min(item.item_id for item in cluster)}"
+
+
+def group_items_by_region(items: List[Dict[str, Any]]) -> Dict[str, str]:
+    """Map every item id to the id of the region it is rendered in.
+
+    Mirrors the grouping in MiroBoardRenderer.render() so that text chunks and
+    rendered images share one file_id namespace: an item nested in a frame or
+    diagram belongs to that container, and the rest fall into spatial clusters.
+
+    Args:
+        items: Raw Miro API items, with container children already attached
+
+    Returns:
+        Dictionary mapping item_id to region_id
+    """
+    renderer = MiroBoardRenderer()
+    parsed = renderer._parse_items(items)
+    by_id = {i.item_id: i for i in parsed}
+
+    region_of: Dict[str, str] = {}
+    orphans: List[RenderItem] = []
+
+    for item in parsed:
+        container_id = renderer._container_of(item, by_id)
+        if container_id:
+            region_of[item.item_id] = container_id
+        elif item.item_type in CONTAINER_TYPES:
+            # A top-level container is the region its own children belong to
+            region_of[item.item_id] = item.item_id
+        else:
+            orphans.append(item)
+
+    for cluster in renderer._cluster(orphans):
+        region_id = _cluster_id(cluster)
+        for item in cluster:
+            region_of[item.item_id] = region_id
+
+    return region_of
 
 
 def main() -> None:

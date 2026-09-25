@@ -248,6 +248,11 @@ class ViewExtractor(Runnable):
         # Get list of chunk texts
         chunks = [chunk["text"] for chunk in chunks_data]
 
+        # A chunk that names its own origin (a Miro region, an analyzed image)
+        # keeps it, so the knowledge extracted downstream stays traceable to that
+        # part of the source. Everything else falls back to the target's file_id.
+        chunk_file_ids = [chunk.get("file_id") or file_id for chunk in chunks_data]
+
         # Extract views with parallel execution
         chunk_results = asyncio.run(self._process_chunks_parallel(chunks))
 
@@ -260,7 +265,7 @@ class ViewExtractor(Runnable):
                 for span in spans:
                     texts.append(
                         {
-                            "file_id": file_id,
+                            "file_id": chunk_file_ids[result["index"]],
                             "text": span,
                         }
                     )

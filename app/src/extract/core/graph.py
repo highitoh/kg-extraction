@@ -7,7 +7,7 @@ from langgraph.graph import END, StateGraph
 
 from src.extract.core.nodes import (
     classify_file_type_node,
-    cleanup_deleted_items_node,
+    cleanup_stale_items_node,
     detect_confluence_changes_node,
     detect_github_changes_node,
     detect_jira_changes_node,
@@ -62,7 +62,7 @@ def create_knowledge_extraction_graph():
                        ↓
                   extract_properties
                        ↓
-                  cleanup_deleted_items (incremental mode only)
+                  cleanup_stale_items (incremental mode only)
                        ↓
                   save_accumulated_knowledge
                        ↓
@@ -99,7 +99,7 @@ def create_knowledge_extraction_graph():
     workflow.add_node("extract_views", extract_views_node)
     workflow.add_node("extract_classes", extract_classes_node)
     workflow.add_node("extract_properties", extract_properties_node)
-    workflow.add_node("cleanup_deleted_items", cleanup_deleted_items_node)
+    workflow.add_node("cleanup_stale_items", cleanup_stale_items_node)
     workflow.add_node("save_accumulated_knowledge", save_accumulated_knowledge_node)
     workflow.add_node("generate_outputs", generate_outputs_node)
 
@@ -235,8 +235,8 @@ def create_knowledge_extraction_graph():
     workflow.add_edge("merge_chunks", "extract_views")
     workflow.add_edge("extract_views", "extract_classes")
     workflow.add_edge("extract_classes", "extract_properties")
-    workflow.add_edge("extract_properties", "cleanup_deleted_items")
-    workflow.add_edge("cleanup_deleted_items", "save_accumulated_knowledge")
+    workflow.add_edge("extract_properties", "cleanup_stale_items")
+    workflow.add_edge("cleanup_stale_items", "save_accumulated_knowledge")
     workflow.add_edge("save_accumulated_knowledge", "generate_outputs")
 
     # After output generation, end
