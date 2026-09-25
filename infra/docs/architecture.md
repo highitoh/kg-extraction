@@ -177,9 +177,11 @@ s3://{account_name}-kg-extraction-{env}/
 
 ## Cross-Cloud Integration
 
-### AWS -> GCP Gemini API
+### AWS -> GCP Vertex AI
 
-All LLM inference uses GCP Gemini API. GCP API key stored in AWS Secrets Manager
+All LLM inference uses GCP Vertex AI, authenticated with Workload Identity
+Federation. The Batch job role is the principal GCP trusts, so no LLM
+credential is stored on the AWS side.
 
 ## Deployment with AWS CDK
 
@@ -210,16 +212,20 @@ Context variables control environment-specific settings:
    for how to fetch its value. For per-user identity and authorization, add
    Cognito on top.
 
-2. **Gemini API Key Secret**: The secret (`gemini-api-key-{environment}`) is
-   created during CDK deployment with a placeholder value and injected into
-   Batch containers as `GEMINI_API_KEY` at task start. You must update it with
-   your actual Gemini API key before running extraction jobs:
+2. **Miro API Key Secret**: The secret (`miro-api-key-{environment}`) is created
+   by the ComputeStack with placeholder value
+   `PLACEHOLDER_UPDATE_ME_AFTER_DEPLOYMENT` and injected into Batch containers
+   as `MIRO_API_KEY`, read by the Batch **execution** role at task start. Only
+   Miro sources need it; until it is set they exit with code 2. Set it once
+   (no redeployment needed):
    ```bash
-   aws secretsmanager update-secret \
-     --secret-id gemini-api-key-dev \
-     --secret-string "YOUR_ACTUAL_GEMINI_API_KEY"
+   aws secretsmanager put-secret-value \
+     --secret-id miro-api-key-dev \
+     --secret-string "YOUR_MIRO_API_TOKEN"
    ```
-   The secret is created with placeholder value `PLACEHOLDER_UPDATE_ME_AFTER_DEPLOYMENT`. Jobs will fail until updated.
+   The secret is retained on stack deletion; `delete-secret
+   --force-delete-without-recovery` is required before the same name can be
+   recreated.
 
 3. **Known gap**: Lambda IAM grants are broader than needed (all functions
    share one grant set); tightening to per-function least privilege is

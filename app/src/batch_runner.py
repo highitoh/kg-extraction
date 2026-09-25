@@ -17,8 +17,10 @@ Environment variables:
 - JOB_TYPE: extraction (default) | scheduled
 - PROJECT: Project name
 - SOURCE: S3 path or external URL
-- SOURCE_TYPE: Optional source type hint (pdf, confluence, ...)
+- SOURCE_TYPE: Optional source type hint (pdf, miro, confluence, ...)
 - STORAGE_BACKEND: 's3' (required for AWS)
+- MIRO_API_KEY: Miro REST API token, injected from Secrets Manager by the
+  Batch job definition; required for Miro sources
 - BUCKET_NAME: S3 bucket name
 - JOBS_TABLE: DynamoDB Jobs table name
 - CLASSES_TABLE: DynamoDB Classes table name
@@ -101,6 +103,8 @@ def property_name_from_iri(property_iri: str) -> str:
 
 def infer_source_type(source: str) -> str:
     """Best-effort source type when SOURCE_TYPE is not provided."""
+    if source.startswith("miro:"):
+        return "miro"
     if source.startswith(("http://", "https://")):
         for marker, source_type in (
             ("miro.com", "miro"),
@@ -671,6 +675,46 @@ def latest_snapshot_id() -> str:
 # ---------------------------------------------------------------------------
 
 
+# Credentials a source type cannot run without, injected from Secrets Manager
+# by the Batch job definition (infra/lib/stacks/compute-stack.ts).
+SOURCE_CREDENTIALS = {
+    "miro": ("MIRO_API_KEY", "miro-api-key-<environment>"),
+}
+
+# Secrets are created with a placeholder so task startup never fails on a
+# missing secret; must match the placeholder in compute-stack.ts.
+SECRET_PLACEHOLDER_PREFIX = "PLACEHOLDER"
+
+
+def preflight_source_config():
+    """Verify the credential the source type needs is present and real.
+
+    Without it the job fails at the first API call, minutes into a paid run.
+    Exit code 2 marks a configuration error (not retryable).
+    """
+    source_type = SOURCE_TYPE or infer_source_type(SOURCE)
+    required = SOURCE_CREDENTIALS.get(source_type)
+    if not required:
+        return
+
+    env_name, secret_name = required
+    value = (os.environ.get(env_name) or "").strip()
+    if not value:
+        logger.error(
+            f"{env_name} must be set for {source_type} sources. "
+            f"Set the Secrets Manager secret '{secret_name}' with: "
+            f"aws secretsmanager put-secret-value --secret-id {secret_name} "
+            "--secret-string YOUR_TOKEN"
+        )
+        sys.exit(2)
+    if value.startswith(SECRET_PLACEHOLDER_PREFIX):
+        logger.error(
+            f"{env_name} still holds the placeholder value created at deploy time. "
+            f"Set the real token in the Secrets Manager secret '{secret_name}'."
+        )
+        sys.exit(2)
+
+
 def preflight_llm_config():
     """Preflight LLM configuration checks.
 
@@ -716,6 +760,8 @@ def main():
         logger.error(f"Missing required environment variables: {', '.join(missing)}")
         sys.exit(2)
 
+    # Cheaper than the LLM check (no WIF token exchange)
+    preflight_source_config()
     preflight_llm_config()
 
     job_id = resolve_job_id()

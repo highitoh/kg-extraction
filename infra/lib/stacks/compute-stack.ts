@@ -7,6 +7,7 @@ import * as s3 from 'aws-cdk-lib/aws-s3';
 import * as dynamodb from 'aws-cdk-lib/aws-dynamodb';
 import * as ecr from 'aws-cdk-lib/aws-ecr';
 import * as logs from 'aws-cdk-lib/aws-logs';
+import * as secretsmanager from 'aws-cdk-lib/aws-secretsmanager';
 import { Construct } from 'constructs';
 
 interface ComputeStackProps extends cdk.StackProps {
@@ -85,6 +86,15 @@ export class ComputeStack extends cdk.Stack {
     // Grant ECR pull permissions
     this.ecrRepository.grantPull(executionRole);
 
+    // An operator replaces the placeholder post-deploy; redeploys keep it,
+    // and preflight in app/src/batch_runner.py rejects it by prefix.
+    const miroApiKeySecret = new secretsmanager.Secret(this, 'MiroApiKeySecret', {
+      secretName: `miro-api-key-${environment}`,
+      description: 'Miro REST API v2 access token for knowledge extraction batch jobs',
+      secretStringValue: cdk.SecretValue.unsafePlainText('PLACEHOLDER_UPDATE_ME_AFTER_DEPLOYMENT'),
+      removalPolicy: cdk.RemovalPolicy.RETAIN,
+    });
+
     // Compute Environment (Fargate Spot)
     const computeEnvironment = new batch.FargateComputeEnvironment(this, 'ExtractionComputeEnv', {
       computeEnvironmentName: `extraction-compute-env-${environment}`,
@@ -117,7 +127,7 @@ export class ComputeStack extends cdk.Stack {
       container: new batch.EcsFargateContainerDefinition(this, 'ExtractionContainer', {
         image: ecs.ContainerImage.fromEcrRepository(this.ecrRepository, 'latest'),
         cpu: 1,
-        memory: cdk.Size.mebibytes(2048),
+        memory: cdk.Size.mebibytes(4096),
         jobRole,
         executionRole,
         // The default VPC has public subnets and no NAT gateway; without a
@@ -150,6 +160,9 @@ export class ComputeStack extends cdk.Stack {
           SNAPSHOTS_TABLE: props.snapshotsTable.tableName,
           PROJECTS_TABLE: props.projectsTable.tableName,
           CHANGESETS_TABLE: props.changesetsTable.tableName,
+        },
+        secrets: {
+          MIRO_API_KEY: batch.Secret.fromSecretsManager(miroApiKeySecret),
         },
         logging: ecs.LogDriver.awsLogs({
           logGroup: jobLogGroup,
@@ -200,6 +213,11 @@ export class ComputeStack extends cdk.Stack {
     new cdk.CfnOutput(this, 'JobLogGroup', {
       value: jobLogGroup.logGroupName,
       description: 'CloudWatch log group for batch job output',
+    });
+
+    new cdk.CfnOutput(this, 'MiroApiKeySecretName', {
+      value: miroApiKeySecret.secretName,
+      description: 'Secrets Manager secret holding the Miro API token',
     });
   }
 }

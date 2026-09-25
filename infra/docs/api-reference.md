@@ -67,15 +67,28 @@ Generate presigned S3 URL for file upload (step 1 of file upload flow).
 
 ### POST /v1/extract
 
-Submit extraction job after file upload (step 2 of file upload flow).
+Submit an extraction job. Takes either a `jobId` (uploaded file) or a
+`sourceUrl` (Miro board) — not both.
 
-**Request**:
+**Request** (uploaded file, step 2 of the file upload flow):
 ```json
 {
   "jobId": "job-abc123",
   "project": "backend"
 }
 ```
+
+**Request** (Miro board, single step — no upload, `jobId` is generated here):
+```json
+{
+  "sourceUrl": "https://miro.com/app/board/uXjVAbc123=/",
+  "project": "backend"
+}
+```
+
+Miro board URLs only; Confluence, Jira and GitHub are engine/CLI-only for now.
+Requires the `miro-api-key-{environment}` secret — see
+[architecture.md](architecture.md) §Security.
 
 **Response** (200 OK):
 ```json
@@ -87,8 +100,9 @@ Submit extraction job after file upload (step 2 of file upload flow).
 ```
 
 **Errors**:
-- `400 Bad Request`: Missing jobId or project
-- `404 Not Found`: File not uploaded to S3 yet
+- `400 Bad Request`: Missing project; jobId and sourceUrl both given or both missing
+- `400 Bad Request`: sourceUrl is not a Miro board URL, or exceeds 2048 characters
+- `404 Not Found`: File not uploaded to S3 yet (jobId flow only)
 - `500 Internal Server Error`: Batch job submission failed
 
 ---

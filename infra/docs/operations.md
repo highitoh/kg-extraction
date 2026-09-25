@@ -560,9 +560,9 @@ aws batch describe-job-queues --job-queues extraction-queue-dev
 - Check Fargate Spot availability (may fall back to on-demand)
 - Verify IAM roles have correct permissions
 
-#### 2. Extraction fails with Gemini API error
+#### 2. Extraction fails with an LLM API error
 
-**Symptom**: Job status=FAILED, errorMessage contains "Gemini API"
+**Symptom**: Job status=FAILED, errorMessage names the LLM API
 
 **Diagnosis**:
 ```bash
@@ -571,14 +571,16 @@ aws logs tail /aws/batch/kg-extraction-dev --follow --filter-pattern "Gemini"
 ```
 
 **Common causes**:
-- API key expired or invalid (check Secrets Manager)
-- Rate limit exceeded (Gemini API throttling)
+- Workload Identity Federation misconfigured (no LLM API key exists to expire)
+- Rate limit exceeded (Vertex AI throttling)
 - Network timeout (increase retry backoff)
 
 **Solutions**:
-- Rotate API key in Secrets Manager
+- Verify the GCP workload identity pool and provider still bind the Batch job
+  role ARN (`BatchJobRoleArn` stack output), and that `GOOGLE_WIF_AUDIENCE` on
+  the job definition names that provider
 - Add exponential backoff in llm_retry.py
-- Check Gemini API quota in GCP console
+- Check the Vertex AI quota in the GCP console
 
 #### 3. S3 presigned URL expired
 
@@ -591,7 +593,30 @@ aws logs tail /aws/batch/kg-extraction-dev --follow --filter-pattern "Gemini"
 - User should upload immediately after getting URL
 - Implement retry logic in client
 
-#### 4. DynamoDB throttling
+#### 4. Miro extraction exits immediately with code 2
+
+**Symptom**: Log reads `MIRO_API_KEY must be set...` or `...still holds the
+placeholder value`; Batch shows one attempt (code 2 is non-retryable).
+
+**Diagnosis**: The `miro-api-key-{environment}` secret was never set.
+
+**Solutions**: `put-secret-value` (see [architecture.md](architecture.md)
+§Security), then resubmit. No redeployment needed.
+
+#### 5. Every job fails with ResourceInitializationError
+
+**Symptom**: All jobs, including PDF, fail at startup with `unable to pull
+secrets or registry auth`. The ECS agent resolves the container's `secrets`
+before start, so a missing secret breaks every job, not just Miro ones.
+
+**Diagnosis**: `aws secretsmanager describe-secret --secret-id miro-api-key-dev`
+
+**Solutions**:
+- Deleted secret: `restore-secret`, or redeploy the compute stack
+- Otherwise confirm the Batch **execution** role still holds
+  `secretsmanager:GetSecretValue` on the secret ARN
+
+#### 6. DynamoDB throttling
 
 **Symptom**: Job status updates fail, logs show "ProvisionedThroughputExceededException"
 
@@ -609,7 +634,7 @@ aws cloudwatch get-metric-statistics \
 - If using provisioned capacity, increase WCU/RCU
 - Implement exponential backoff in batch_runner.py
 
-#### 5. Docker image pull fails
+#### 7. Docker image pull fails
 
 **Symptom**: Batch job fails immediately, logs show "CannotPullContainerError"
 
@@ -642,14 +667,14 @@ aws ecr describe-images --repository-name kg-extraction-dev
    cdk deploy KnowledgeExtractionCompute-dev
    ```
 
-### Rotate GCP API Key
+### Rotate the Miro API Key
 
-1. **Create new API key** in GCP Console
+1. **Create a new access token** in the [Miro Developer Portal](https://developers.miro.com/)
 2. **Update Secrets Manager**:
    ```bash
-   aws secretsmanager update-secret \
-     --secret-id gemini-api-key-dev \
-     --secret-string "new-api-key-value"
+   aws secretsmanager put-secret-value \
+     --secret-id miro-api-key-dev \
+     --secret-string "new-api-token-value"
    ```
 3. **No redeployment needed** (Batch jobs fetch secret at runtime)
 

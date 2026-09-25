@@ -28,14 +28,16 @@ The AWS deployment supports five use cases organized into three categories.
 **Actors**: Data analysts, knowledge engineers, content managers
 
 **Flow**:
-1. User uploads a PDF/DOCX file or provides a URL (Miro board, GitHub repo, Confluence space) via REST API
+1. User uploads a PDF/DOCX file, or provides a Miro board URL, via REST API
+   (GitHub and Confluence URLs are engine/CLI-only for now)
 2. System validates the input and returns a job ID immediately
 3. Extraction runs asynchronously on AWS Batch (Fargate)
 4. User polls job status or receives webhook notification upon completion
 5. User downloads results (Turtle file, CSV files, knowledge JSON) via presigned URLs
 6. User can view snapshot history and compare versions
 
-**Trigger**: `POST /v1/upload-url` → user uploads to S3 → `POST /v1/extract`
+**Trigger**: files — `POST /v1/upload-url` → user uploads to S3 → `POST /v1/extract`;
+Miro boards — `POST /v1/extract` with `sourceUrl` (single step, no upload)
 
 **AWS Components**: API Gateway → Lambda (presigned URL) → S3 (user upload) → Lambda (submit) → AWS Batch → DynamoDB
 
@@ -173,7 +175,7 @@ The AWS deployment supports five use cases organized into three categories.
 
 All use cases share these capabilities:
 
-- **Incremental Extraction**: For API sources (Miro, GitHub, Jira, Confluence), only changed content is re-extracted
+- **Incremental Extraction**: For API sources (Miro, GitHub, Jira, Confluence), only changed content is re-extracted (CLI only; AWS runs are always full re-extractions)
 - **Automatic Snapshots**: Each successful extraction creates a timestamped snapshot
 - **Multi-Project Support**: Projects are isolated with separate knowledge graphs and snapshots
 - **Fault Tolerance**: AWS Batch retries failed jobs automatically with exponential backoff

@@ -119,6 +119,16 @@ gcloud projects add-iam-policy-binding "$GCP_PROJECT_ID" \
   --role="roles/aiplatform.user"
 ```
 
+### 5. Set Service Keys
+
+Only needed if you extract from Miro boards. 
+
+```bash
+aws secretsmanager put-secret-value \
+  --secret-id miro-api-key-dev \
+  --secret-string "YOUR_MIRO_API_TOKEN"
+```
+
 
 ## Using the API
 
@@ -144,6 +154,15 @@ curl -H "x-api-key: $API_KEY" $API_URL/v1/jobs/{jobId}
 
 # 5. Download results
 curl -H "x-api-key: $API_KEY" $API_URL/v1/jobs/{jobId}/results
+```
+
+A Miro board needs no upload, so steps 1-3 become one call:
+
+```bash
+curl -X POST $API_URL/v1/extract \
+  -H "x-api-key: $API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"sourceUrl":"https://miro.com/app/board/BOARD_ID","project":"myproject"}'
 ```
 
 See [docs/api-reference.md](docs/api-reference.md) for complete API documentation.
