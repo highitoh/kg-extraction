@@ -126,6 +126,11 @@ export class ApiStack extends cdk.Stack {
     const listSnapshots = createLambda('ListSnapshots', 'project_management.list_snapshots.handler');
     const getChangeset = createLambda('GetChangeset', 'project_management.get_changeset.handler');
     const listChangesets = createLambda('ListChangesets', 'project_management.list_changesets.handler');
+    const deleteProject = createLambda('DeleteProject', 'project_management.delete_project.handler', 29);
+    props.classesTable.grantReadWriteData(deleteProject);
+    props.propertiesTable.grantReadWriteData(deleteProject);
+    props.instancesTable.grantReadWriteData(deleteProject);
+    props.projectsTable.grantReadWriteData(deleteProject);
 
     // Knowledge Graph API Lambdas
     const getKnowledgeClasses = createLambda('GetKnowledgeClasses', 'knowledge_api.get_knowledge_classes.handler');
@@ -153,6 +158,7 @@ export class ApiStack extends cdk.Stack {
 
     const project = projects.addResource('{project}');
     project.addMethod('GET', new apigateway.LambdaIntegration(getProject));
+    project.addMethod('DELETE', new apigateway.LambdaIntegration(deleteProject));
 
     const snapshots = project.addResource('snapshots');
     snapshots.addMethod('GET', new apigateway.LambdaIntegration(listSnapshots));

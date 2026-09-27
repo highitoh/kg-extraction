@@ -237,6 +237,32 @@ Get project metadata and statistics.
 
 ---
 
+### DELETE /v1/projects/{project}
+
+Delete a project's knowledge graph: everything under `projects/{project}/` in S3 and the project's records in the Jobs, Snapshots, Changesets, Classes, Properties, Instances and Projects tables. Safe to retry if it fails partway.
+
+**Response** (200 OK):
+```json
+{
+  "project": "backend",
+  "deleted": {
+    "s3Objects": 42,
+    "instances": 860,
+    "properties": 210,
+    "classes": 120,
+    "snapshots": 15,
+    "changesets": 14,
+    "jobs": 23
+  }
+}
+```
+
+**Errors**:
+- `404 Not Found`: Project does not exist
+- `409 Conflict`: An extraction holds the project lock
+
+---
+
 ### GET /v1/projects/{project}/extractions
 
 Get extraction history for a project.
