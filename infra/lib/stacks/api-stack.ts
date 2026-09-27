@@ -60,8 +60,23 @@ export class ApiStack extends cdk.Stack {
       `${jobDefinitionArnBase}:*`,
     ];
 
+    // Tables the API writes directly
+    const operationalTables = [props.jobsTable, props.snapshotsTable, props.changesetsTable, props.sessionsTable];
+    // Tables written by Batch extraction; the API only reads them, except for project deletion
+    const knowledgeTables = [props.classesTable, props.propertiesTable, props.instancesTable, props.projectsTable];
+
+    const grantDataAccess = (fn: lambda.Function, { writeKnowledge = false } = {}) => {
+      props.extractionBucket.grantReadWrite(fn);
+      operationalTables.forEach((t) => t.grantReadWriteData(fn));
+      knowledgeTables.forEach((t) => (writeKnowledge ? t.grantReadWriteData(fn) : t.grantReadData(fn)));
+    };
+
     // Helper function to create Lambda with common settings
-    const createLambda = (name: string, handler: string, timeout = 30): lambda.Function => {
+    const createLambda = (
+      name: string,
+      handler: string,
+      { timeout = 30, writeKnowledge = false } = {},
+    ): lambda.Function => {
       const fn = new lambda.Function(this, name, {
         runtime: lambda.Runtime.PYTHON_3_14,
         code: lambdaCode,
@@ -72,16 +87,7 @@ export class ApiStack extends cdk.Stack {
         architecture: lambda.Architecture.ARM_64,
       });
 
-      // Grant permissions
-      props.extractionBucket.grantReadWrite(fn);
-      props.jobsTable.grantReadWriteData(fn);
-      props.snapshotsTable.grantReadWriteData(fn);
-      props.changesetsTable.grantReadWriteData(fn);
-      props.sessionsTable.grantReadWriteData(fn);
-      props.classesTable.grantReadData(fn);
-      props.propertiesTable.grantReadData(fn);
-      props.instancesTable.grantReadData(fn);
-      props.projectsTable.grantReadData(fn);
+      grantDataAccess(fn, { writeKnowledge });
 
       // Grant Batch permissions
       fn.addToRolePolicy(new iam.PolicyStatement({
@@ -126,11 +132,11 @@ export class ApiStack extends cdk.Stack {
     const listSnapshots = createLambda('ListSnapshots', 'project_management.list_snapshots.handler');
     const getChangeset = createLambda('GetChangeset', 'project_management.get_changeset.handler');
     const listChangesets = createLambda('ListChangesets', 'project_management.list_changesets.handler');
-    const deleteProject = createLambda('DeleteProject', 'project_management.delete_project.handler', 29);
-    props.classesTable.grantReadWriteData(deleteProject);
-    props.propertiesTable.grantReadWriteData(deleteProject);
-    props.instancesTable.grantReadWriteData(deleteProject);
-    props.projectsTable.grantReadWriteData(deleteProject);
+    // Outlives API Gateway's 29s timeout so a large delete still finishes after the client gets a 504
+    const deleteProject = createLambda('DeleteProject', 'project_management.delete_project.handler', {
+      timeout: 300,
+      writeKnowledge: true,
+    });
 
     // Knowledge Graph API Lambdas
     const getKnowledgeClasses = createLambda('GetKnowledgeClasses', 'knowledge_api.get_knowledge_classes.handler');
@@ -197,16 +203,7 @@ export class ApiStack extends cdk.Stack {
       memorySize: 512,
     });
 
-    // Grant permissions for MCP server
-    props.extractionBucket.grantReadWrite(mcpLambda);
-    props.sessionsTable.grantReadWriteData(mcpLambda);
-    props.jobsTable.grantReadWriteData(mcpLambda);
-    props.snapshotsTable.grantReadWriteData(mcpLambda);
-    props.changesetsTable.grantReadWriteData(mcpLambda);
-    props.classesTable.grantReadData(mcpLambda);
-    props.propertiesTable.grantReadData(mcpLambda);
-    props.instancesTable.grantReadData(mcpLambda);
-    props.projectsTable.grantReadData(mcpLambda);
+    grantDataAccess(mcpLambda);
 
     mcpLambda.addToRolePolicy(new iam.PolicyStatement({
       actions: ['batch:SubmitJob', 'batch:DescribeJobs'],
