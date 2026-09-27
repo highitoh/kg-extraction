@@ -110,13 +110,13 @@ Extract knowledge from multiple PDF files using a batch file:
 cd app && ./extract.sh --batch ../doc/batch-sample.txt --project myproject
 
 # With model override
-cd app && ./extract.sh --batch ../doc/batch-sample.txt --project myproject --model gpt-5-nano
+cd app && ./extract.sh --batch ../doc/batch-sample.txt --project myproject --model gemini-3.7-flash
 
 # With retry configuration (retry failed files up to 2 times)
 cd app && ./extract.sh --batch ../doc/batch-sample.txt --project myproject --max-retries 2
 
 # Full example with all options
-cd app && ./extract.sh --batch ../doc/batch-sample.txt --project myproject --model gpt-5-nano --max-retries 2
+cd app && ./extract.sh --batch ../doc/batch-sample.txt --project myproject --model gemini-3.7-flash --max-retries 2
 ```
 
 **Batch file format** (plain text, one PDF path per line):
@@ -155,21 +155,21 @@ docker exec -it app_container bash
 ```
 
 ## Testing and Quality
-Use **gpt-5-nano** when testing the entire process to reduce costs
+Test the entire process on the default model, `gemini-3.5-flash-lite` (Vertex AI; `DEFAULT_LLM_MODEL` in [`llm_factory.py`](app/src/utils/llm_factory.py)): omit `--model`
 
 ### Single file extraction
 ```bash
 # Default project
-cd app && uv run python src/extract_workflow.py ../doc/sample.pdf --model gpt-5-nano
+cd app && uv run python src/extract_workflow.py ../doc/sample.pdf
 
 # Specific project
-cd app && uv run python src/extract_workflow.py ../doc/sample.pdf --project test-project --model gpt-5-nano
+cd app && uv run python src/extract_workflow.py ../doc/sample.pdf --project test-project
 ```
 
 ### Multiple files extraction
 ```bash
-cd app && uv run python src/extract_workflow.py ../doc/sample.pdf --project test-project --model gpt-5-nano
-cd app && uv run python src/extract_workflow.py ../doc/sample2.pdf --project test-project --model gpt-5-nano
+cd app && uv run python src/extract_workflow.py ../doc/sample.pdf --project test-project
+cd app && uv run python src/extract_workflow.py ../doc/sample2.pdf --project test-project
 ```
 
 ## Environment Variables
