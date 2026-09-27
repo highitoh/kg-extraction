@@ -25,7 +25,7 @@ class MiroClient:
         - 401 Unauthorized: Invalid or missing API key
         - 403 Forbidden: No access to requested board
         - 404 Not Found: Board or item not found
-        - 429 Rate Limit: Retry with exponential backoff
+        - 429 Rate Limit, 5xx, timeouts, connection errors: Retry with exponential backoff
     """
 
     def __init__(
@@ -104,14 +104,15 @@ class MiroClient:
                 elif response.status_code == 404:
                     board_id = endpoint.split("/")[2] if "/boards/" in endpoint else "unknown"
                     raise ValueError(f"Board or resource not found: {board_id}")
-                elif response.status_code == 429:
-                    # Rate limit - retry with exponential backoff
+                elif response.status_code == 429 or response.status_code >= 500:
+                    # Rate limit or transient server error - retry with exponential backoff
                     if attempt < self.max_retries:
-                        retry_after = int(response.headers.get("Retry-After", 2**attempt))
+                        header = response.headers.get("Retry-After", "")
+                        retry_after = int(header) if header.isdigit() else 2**attempt
                         jitter = 0.1 * retry_after  # 10% jitter
                         sleep_time = retry_after + jitter
                         print(
-                            f"Rate limited (429). Retrying in {sleep_time:.2f}s "
+                            f"Miro API returned {response.status_code}. Retrying in {sleep_time:.2f}s "
                             f"(attempt {attempt + 1}/{self.max_retries})"
                         )
                         time.sleep(sleep_time)
@@ -122,9 +123,10 @@ class MiroClient:
                 response.raise_for_status()
                 return response.json()
 
-            except requests.exceptions.Timeout:
+            except (requests.exceptions.Timeout, requests.exceptions.ConnectionError) as e:
                 if attempt < self.max_retries:
-                    print(f"Request timeout. Retrying (attempt {attempt + 1}/{self.max_retries})")
+                    print(f"{type(e).__name__}. Retrying (attempt {attempt + 1}/{self.max_retries})")
+                    time.sleep(2**attempt)
                     continue
                 raise
             except requests.exceptions.RequestException as e:

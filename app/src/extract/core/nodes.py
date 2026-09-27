@@ -601,11 +601,8 @@ def extract_text_miro_node(state: KnowledgeExtractionState) -> KnowledgeExtracti
         print(f"[ExtractTextMiroNode] Extracted {len(sentences)} items from Miro board")
 
     except Exception as e:
-        state.setdefault("errors", [])
-        state["errors"].append(f"Miro text extraction failed: {e}")
-        state["sentences"] = []
-        state["structured_blocks"] = []
-        state["current_stage"] = "text_extraction_failed"
+        # Carrying on with no text would record an empty extraction as a snapshot
+        raise RuntimeError(f"Miro text extraction failed: {e}") from e
 
     return state
 
