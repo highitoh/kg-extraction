@@ -165,6 +165,8 @@ curl -X POST $API_URL/v1/extract \
   -d '{"sourceUrl":"https://miro.com/app/board/BOARD_ID","project":"myproject"}'
 ```
 
+Add `"asOf":"YYYYMMDD"` to extract the board as it stood at the end of that day (UTC).
+
 See [docs/api-reference.md](docs/api-reference.md) for complete API documentation.
 
 ## Infrastructure Components

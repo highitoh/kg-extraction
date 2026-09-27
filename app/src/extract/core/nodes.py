@@ -462,9 +462,10 @@ def detect_miro_changes_node(state: KnowledgeExtractionState) -> KnowledgeExtrac
         project = state.get("project", "default")
         output_dir = state.get("output_dir", "/workspace/app/output")
 
-        # Find previous snapshot for this board
-        repo = SnapshotRepository(output_dir=output_dir)
-        prev_snapshot_id = repo.find_latest_for_board(board_id, project)
+        # A caller without a local snapshot index (AWS Batch) passes the previous snapshot in
+        prev_snapshot_id = state.get("previous_snapshot_id") or SnapshotRepository(
+            output_dir=output_dir
+        ).find_latest_for_board(board_id, project)
 
         if not prev_snapshot_id:
             print("[DetectMiroChanges] No previous snapshot found, doing full extraction")
@@ -496,7 +497,7 @@ def extract_text_miro_node(state: KnowledgeExtractionState) -> KnowledgeExtracti
         from src.utils.source_change_detector import load_source_raw
 
         miro_url = state["files"][0]["path"]
-        item_texts = extract_text_from_miro_board(miro_url)
+        item_texts = extract_text_from_miro_board(miro_url, as_of=state.get("as_of"))
 
         # Extract miro_raw_data from first entry
         miro_raw_data = item_texts[0].pop("_miro_raw_data", None)
@@ -524,6 +525,21 @@ def extract_text_miro_node(state: KnowledgeExtractionState) -> KnowledgeExtracti
 
                 changed_regions = {curr_region_of[i] for i in changed_ids if i in curr_region_of}
                 changed_regions |= {prev_region_of[i] for i in deleted_ids if i in prev_region_of}
+
+                # An untouched item can still change region, when a new item bridges two
+                # clusters or a new frame encloses it. Its old and new regions then go
+                # stale together, so spread the change along such items until it settles.
+                shared_ids = curr_region_of.keys() & prev_region_of.keys()
+                while True:
+                    spread = {
+                        region
+                        for i in shared_ids
+                        if prev_region_of[i] in changed_regions or curr_region_of[i] in changed_regions
+                        for region in (prev_region_of[i], curr_region_of[i])
+                    }
+                    if spread <= changed_regions:
+                        break
+                    changed_regions |= spread
 
                 # Re-read a changed region in full: its knowledge is replaced as a unit,
                 # so the untouched items sharing it have to go back through extraction.
@@ -661,8 +677,7 @@ def extract_text_github_node(state: KnowledgeExtractionState) -> KnowledgeExtrac
         from src.utils.source_change_detector import load_source_raw
 
         github_url = state["files"][0]["path"]
-        date = state.get("date")
-        item_texts = extract_text_from_github(github_url, date=date)
+        item_texts = extract_text_from_github(github_url, as_of=state.get("as_of"))
 
         # Extract github_raw_data from first entry
         github_raw_data = item_texts[0].pop("_github_raw_data", None) if item_texts else None

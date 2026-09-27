@@ -3,6 +3,7 @@ import os
 import re
 import time
 import uuid
+from datetime import datetime, timezone
 from urllib.parse import urlparse
 
 import boto3
@@ -46,7 +47,20 @@ def validate_miro_url(source_url):
     return ("miro", match.group("board_id")) if match else (None, None)
 
 
-def resolve_url_source(source_url, requested_source_type, project):
+def validate_as_of(as_of):
+    """Return an error message for an invalid asOf, or None when it is valid."""
+    if not isinstance(as_of, str) or len(as_of) != 8 or not as_of.isdigit():
+        return "asOf must be a date in YYYYMMDD format"
+    try:
+        date = datetime.strptime(as_of, "%Y%m%d").date()
+    except ValueError:
+        return f"asOf {as_of} is not a valid date"
+    if date > datetime.now(timezone.utc).date():
+        return f"asOf {as_of} is in the future"
+    return None
+
+
+def resolve_url_source(source_url, requested_source_type, project, as_of=None):
     """Validate a URL source and create its Jobs record.
 
     Returns (job_id, source_type) or an error response dict.
@@ -93,6 +107,7 @@ def resolve_url_source(source_url, requested_source_type, project):
             "createdAt": {"S": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())},
             "progress": {"N": "0"},
             "progressMessage": {"S": "Waiting for worker to start"},
+            **({"asOf": {"S": as_of}} if as_of else {}),
         },
         ConditionExpression="attribute_not_exists(jobId)",
     )
@@ -136,8 +151,8 @@ def handler(event, context):
     Request: POST /v1/extract
     Body (uploaded file, step 2 of the upload flow):
         {"jobId": "job-xxx", "project": "backend"}
-    Body (URL source, single step):
-        {"sourceUrl": "https://miro.com/app/board/BOARD_ID", "project": "backend"}
+    Body (URL source, single step; asOf is optional):
+        {"sourceUrl": "https://miro.com/app/board/BOARD_ID", "project": "backend", "asOf": "20260131"}
 
     Response: {"jobId": "job-xxx", "status": "PENDING"}
     """
@@ -147,6 +162,7 @@ def handler(event, context):
         job_id = body.get("jobId")
         source_url = body.get("sourceUrl")
         project = body.get("project")
+        as_of = body.get("asOf")
 
         if job_id and source_url:
             return error_response(
@@ -162,8 +178,15 @@ def handler(event, context):
                 "Missing required fields: project, and one of jobId or sourceUrl",
             )
 
+        if as_of is not None:
+            if not source_url:
+                return error_response(400, "VALIDATION_ERROR", "asOf is only supported with sourceUrl")
+            as_of_error = validate_as_of(as_of)
+            if as_of_error:
+                return error_response(400, "VALIDATION_ERROR", as_of_error)
+
         if source_url:
-            resolved = resolve_url_source(source_url, body.get("sourceType"), project)
+            resolved = resolve_url_source(source_url, body.get("sourceType"), project, as_of)
             if isinstance(resolved, dict):
                 return resolved
             job_id, source_type = resolved
@@ -184,6 +207,8 @@ def handler(event, context):
         ]
         if source_type:
             container_environment.append({"name": "SOURCE_TYPE", "value": source_type})
+        if as_of:
+            container_environment.append({"name": "AS_OF", "value": as_of})
 
         try:
             batch_response = batch.submit_job(

@@ -94,7 +94,7 @@ class KnowledgeExtractionState(TypedDict, total=False):
     # }
 
     # ========== GitHub-Specific Fields ==========
-    date: Optional[str]  # Date in YYYYMMDD format for GitHub extraction at specific point in time
+    as_of: Optional[str]  # YYYYMMDD; extract the source as of 23:59:59 UTC that day (GitHub, Miro)
     github_scope: Optional[str]  # Extraction scope: "readme-only", "documentation", "diff", etc.
     github_profile: Optional[Dict[str, Any]]  # Active profile definition
     github_patterns: Optional[List[str]]  # Include patterns from profile

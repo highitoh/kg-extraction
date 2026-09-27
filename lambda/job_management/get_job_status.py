@@ -78,6 +78,8 @@ def handler(event, context):
             result["batchJobId"] = item["batchJobId"]["S"]
         if "errorMessage" in item:
             result["errorMessage"] = item["errorMessage"]["S"]
+        if "asOf" in item:
+            result["asOf"] = item["asOf"]["S"]
         if "tokenUsage" in item:
             token_usage = item["tokenUsage"]["M"]
             result["tokenUsage"] = {

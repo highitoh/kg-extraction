@@ -1,8 +1,9 @@
 """Text extraction from Miro boards (parallel to PDF text extraction)."""
 
 import re
+from datetime import datetime, timedelta, timezone
 
-from src.extract.miro.miro_board_renderer import attach_container_children, group_items_by_region
+from src.extract.miro.miro_board_renderer import MiroBoardRenderer, attach_container_children, group_items_by_region
 from src.extract.miro.miro_item_analyzer import MiroItemAnalyzer
 from src.utils.miro_client import MiroClient
 
@@ -38,7 +39,71 @@ def parse_board_id_from_url(miro_url: str) -> str:
     )
 
 
-def extract_text_from_miro_board(miro_url: str) -> list[dict]:
+def _filter_board_as_of(items: list[dict], connectors: list[dict], as_of: str) -> tuple[list[dict], list[dict]]:
+    """Keep what had been created on the board by 23:59:59 UTC on the as_of date.
+
+    The API keeps no history, so kept items carry their current content and position.
+
+    Args:
+        items: Raw Miro API items, with container children already attached
+        connectors: Raw Miro API connectors
+        as_of: Date in YYYYMMDD format
+
+    Returns:
+        (items, connectors) that existed at the cutoff
+    """
+    try:
+        cutoff = datetime.strptime(as_of, "%Y%m%d").replace(tzinfo=timezone.utc) + timedelta(days=1)
+    except ValueError as e:
+        raise ValueError(f"Invalid date format: {as_of}. Expected YYYYMMDD (e.g., 20230115)") from e
+
+    undated = 0
+
+    def existed(obj: dict) -> bool:
+        nonlocal undated
+        created_at = obj.get("createdAt")
+        if not created_at:
+            undated += 1
+            return True
+        created = datetime.fromisoformat(created_at)
+        if created.tzinfo is None:
+            created = created.replace(tzinfo=timezone.utc)
+        return created < cutoff
+
+    by_id = {item.get("id"): item for item in items}
+    kept = [item for item in items if existed(item)]
+    dropped_ids = set(by_id) - {item.get("id") for item in kept}
+
+    # A child's position is relative to its parent, so resolve it before the parent goes
+    renderer = MiroBoardRenderer()
+    for item in kept:
+        if (item.get("parent") or {}).get("id") in dropped_ids:
+            left, top = renderer._absolute_topleft(item, by_id)
+            geometry = item.get("geometry") or {}
+            item["position"] = {
+                **(item.get("position") or {}),
+                "x": left + float(geometry.get("width") or 0.0) / 2,
+                "y": top + float(geometry.get("height") or 0.0) / 2,
+                "relativeTo": "canvas_center",
+            }
+            item["parent"] = None
+
+    kept_connectors = [
+        connector
+        for connector in connectors
+        if existed(connector)
+        and not {(connector.get("startItem") or {}).get("id"), (connector.get("endItem") or {}).get("id")} & dropped_ids
+    ]
+
+    print(
+        f"[MiroExtractor] As of {as_of} 23:59:59 UTC: kept {len(kept)}/{len(items)} items, "
+        f"{len(kept_connectors)}/{len(connectors)} connectors"
+    )
+
+    return kept, kept_connectors
+
+
+def extract_text_from_miro_board(miro_url: str, as_of: str | None = None) -> list[dict]:
     """Extract one text entry per item from a Miro board.
 
     This function is parallel to extract_text_from_document() for PDFs. The
@@ -47,6 +112,7 @@ def extract_text_from_miro_board(miro_url: str) -> list[dict]:
 
     Args:
         miro_url: Miro board URL (e.g., "https://miro.com/app/board/o9J_abc123")
+        as_of: Optional YYYYMMDD; only items created by 23:59:59 UTC that day are used
 
     Returns:
         One entry per item, with metadata:
@@ -84,6 +150,9 @@ def extract_text_from_miro_board(miro_url: str) -> list[dict]:
     # Diagram children come back with parent=null, so read the relationship
     # back per container - the renderer needs it to group them
     attach_container_children(client, board_id, board_items)
+
+    if as_of:
+        board_items, connectors = _filter_board_as_of(board_items, connectors, as_of)
 
     # 3. Transform via MiroItemAnalyzer
     analyzer = MiroItemAnalyzer()

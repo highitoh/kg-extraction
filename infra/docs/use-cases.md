@@ -175,7 +175,7 @@ Miro boards — `POST /v1/extract` with `sourceUrl` (single step, no upload)
 
 All use cases share these capabilities:
 
-- **Incremental Extraction**: For API sources (Miro, GitHub, Jira, Confluence), only changed content is re-extracted (CLI only; AWS runs are always full re-extractions)
+- **Incremental Extraction**: For API sources (Miro, GitHub, Jira, Confluence), only changed content is re-extracted (on AWS, Miro only; other sources are always fully re-extracted)
 - **Automatic Snapshots**: Each successful extraction creates a timestamped snapshot
 - **Multi-Project Support**: Projects are isolated with separate knowledge graphs and snapshots
 - **Fault Tolerance**: AWS Batch retries failed jobs automatically with exponential backoff

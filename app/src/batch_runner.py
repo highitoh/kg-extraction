@@ -18,6 +18,7 @@ Environment variables:
 - PROJECT: Project name
 - SOURCE: S3 path or external URL
 - SOURCE_TYPE: Optional source type hint (pdf, miro, confluence, ...)
+- AS_OF: Optional YYYYMMDD; extract a Miro board as of 23:59:59 UTC that day
 - STORAGE_BACKEND: 's3' (required for AWS)
 - MIRO_API_KEY: Miro REST API token, injected from Secrets Manager by the
   Batch job definition; required for Miro sources
@@ -58,6 +59,7 @@ JOB_TYPE = os.environ.get("JOB_TYPE", "extraction")
 PROJECT = os.environ.get("PROJECT")
 SOURCE = os.environ.get("SOURCE")
 SOURCE_TYPE = os.environ.get("SOURCE_TYPE")
+AS_OF = os.environ.get("AS_OF")
 BUCKET_NAME = os.environ.get("BUCKET_NAME")
 JOBS_TABLE = os.environ.get("JOBS_TABLE")
 CLASSES_TABLE = os.environ.get("CLASSES_TABLE")
@@ -289,6 +291,8 @@ def create_snapshot(
     class_count: int,
     property_count: int,
     source_raw_path: Path = None,
+    snapshot_id: str = None,
+    source_identifier: str = None,
 ) -> str:
     """Create a snapshot: claim the DynamoDB record, then upload files to S3.
 
@@ -297,23 +301,26 @@ def create_snapshot(
     """
     import json
 
-    base_id = time.strftime("%Y%m%d%H%M%S", time.gmtime())
+    base_id = snapshot_id or time.strftime("%Y%m%d%H%M%S", time.gmtime())
     for snapshot_id in (base_id, f"{base_id}_{uuid.uuid4().hex[:6]}"):
         s3_prefix = f"projects/{PROJECT}/snapshots/{snapshot_id}"
         s3_location = f"s3://{BUCKET_NAME}/{s3_prefix}/snapshot.json"
+        item = {
+            "project": {"S": PROJECT},
+            "snapshotId": {"S": snapshot_id},
+            "triggerType": {"S": "extraction"},
+            "sourceType": {"S": source_type},
+            "s3Location": {"S": s3_location},
+            "classCount": {"N": str(class_count)},
+            "propertyCount": {"N": str(property_count)},
+            "createdAt": {"S": now_iso()},
+        }
+        if source_identifier:
+            item["sourceIdentifier"] = {"S": source_identifier}
         try:
             dynamodb.put_item(
                 TableName=SNAPSHOTS_TABLE,
-                Item={
-                    "project": {"S": PROJECT},
-                    "snapshotId": {"S": snapshot_id},
-                    "triggerType": {"S": "extraction"},
-                    "sourceType": {"S": source_type},
-                    "s3Location": {"S": s3_location},
-                    "classCount": {"N": str(class_count)},
-                    "propertyCount": {"N": str(property_count)},
-                    "createdAt": {"S": now_iso()},
-                },
+                Item=item,
                 ConditionExpression="attribute_not_exists(snapshotId)",
             )
         except dynamodb.exceptions.ConditionalCheckFailedException:
@@ -670,6 +677,48 @@ def latest_snapshot_id() -> str:
     return items[0]["snapshotId"]["S"] if items else ""
 
 
+def miro_source_identifier(board_url: str) -> str:
+    """Source identifier of a Miro board, in the form snapshot_manager records locally."""
+    sys.path.insert(0, str(Path(__file__).parent.parent))
+    from src.extract.miro.miro_text_extractor import parse_board_id_from_url
+
+    return f"miro:{parse_board_id_from_url(board_url)}"
+
+
+def stage_previous_miro_snapshot(source_identifier: str) -> str:
+    """Download the board's latest source_raw.json to where the workflow diffs against it.
+
+    Returns the snapshot ID, or an empty string when there is nothing to diff
+    against and the board is extracted in full.
+    """
+    pages = dynamodb.get_paginator("query").paginate(
+        TableName=SNAPSHOTS_TABLE,
+        KeyConditionExpression="#project = :project",
+        # Applied after each page is read, so keep paging until a match
+        FilterExpression="sourceIdentifier = :source",
+        ExpressionAttributeNames={"#project": "project"},
+        ExpressionAttributeValues={":project": {"S": PROJECT}, ":source": {"S": source_identifier}},
+        ScanIndexForward=False,
+    )
+    for page in pages:
+        for item in page.get("Items", []):
+            snapshot_id = item["snapshotId"]["S"]
+            # The layout load_source_raw reads (src/utils/source_change_detector.py)
+            local_path = WORK_DIR / "output" / PROJECT / "snapshots" / snapshot_id / "source_raw.json"
+            local_path.parent.mkdir(parents=True, exist_ok=True)
+            try:
+                download_from_s3(
+                    f"s3://{BUCKET_NAME}/projects/{PROJECT}/snapshots/{snapshot_id}/source_raw.json", local_path
+                )
+            except Exception as e:
+                logger.warning(f"Could not download source_raw.json of snapshot {snapshot_id}: {e}")
+                return ""
+            return snapshot_id
+
+    logger.info(f"No earlier snapshot of {source_identifier}; extracting in full")
+    return ""
+
+
 # ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
@@ -712,6 +761,17 @@ def preflight_source_config():
             f"{env_name} still holds the placeholder value created at deploy time. "
             f"Set the real token in the Secrets Manager secret '{secret_name}'."
         )
+        sys.exit(2)
+
+
+def preflight_as_of():
+    """Verify AS_OF is a real YYYYMMDD date. Exit code 2: not retryable."""
+    if not AS_OF:
+        return
+    try:
+        datetime.strptime(AS_OF, "%Y%m%d")
+    except ValueError:
+        logger.error(f"AS_OF must be a YYYYMMDD date, got: {AS_OF}")
         sys.exit(2)
 
 
@@ -762,6 +822,7 @@ def main():
 
     # Cheaper than the LLM check (no WIF token exchange)
     preflight_source_config()
+    preflight_as_of()
     preflight_llm_config()
 
     job_id = resolve_job_id()
@@ -822,6 +883,26 @@ def main():
         knowledge_before_path = WORK_DIR / "knowledge_before.json"
         shutil.copy2(knowledge_json_path, knowledge_before_path)
 
+        # Snapshots must stay in time order; check before any LLM call
+        as_of_snapshot_id = f"{AS_OF}235959" if AS_OF else None
+        if as_of_snapshot_id and previous_snapshot_id and as_of_snapshot_id <= previous_snapshot_id:
+            message = (
+                f"asOf {AS_OF} must be later than the latest snapshot {previous_snapshot_id}; "
+                "extract earlier dates first"
+            )
+            logger.error(message)
+            update_job(
+                job_id,
+                "SET #status = :status, errorMessage = :error",
+                {"#status": "status"},
+                {":status": {"S": "FAILED"}, ":error": {"S": message}},
+            )
+            # Not retryable; the finally block releases the lock
+            sys.exit(2)
+
+        source_identifier = miro_source_identifier(SOURCE) if source_type == "miro" else None
+        source_previous_snapshot_id = stage_previous_miro_snapshot(source_identifier) if source_identifier else ""
+
         # Stage 2-4: Run extraction workflow (15-85%)
         update_progress(job_id, 15, "Starting knowledge extraction")
 
@@ -840,6 +921,8 @@ def main():
             knowledge_json_path=str(knowledge_json_path),
             create_snapshot=False,
             progress_callback=progress_callback,
+            as_of=AS_OF,
+            previous_snapshot_id=source_previous_snapshot_id or None,
         )
 
         if not result.get("summary"):
@@ -887,6 +970,8 @@ def main():
             class_count=len(knowledge.get("classes", [])),
             property_count=len(knowledge.get("properties", [])),
             source_raw_path=source_raw_path,
+            snapshot_id=as_of_snapshot_id,
+            source_identifier=source_identifier,
         )
 
         # Record what this extraction changed and why. Best effort: the

@@ -90,6 +90,15 @@ Miro board URLs only; Confluence, Jira and GitHub are engine/CLI-only for now.
 Requires the `miro-api-key-{environment}` secret — see
 [architecture.md](architecture.md) §Security.
 
+Optional `asOf` (`YYYYMMDD`, `sourceUrl` only) extracts the board as of
+23:59:59 UTC that day — only items created by then, with their current
+content and position — under snapshot ID `YYYYMMDD235959`. It must be later
+than the project's latest snapshot, so replay history oldest first; otherwise
+the job fails before extracting.
+
+A Miro board is diffed against its previous snapshot, so only changed regions
+are re-extracted.
+
 **Response** (200 OK):
 ```json
 {
@@ -102,6 +111,7 @@ Requires the `miro-api-key-{environment}` secret — see
 **Errors**:
 - `400 Bad Request`: Missing project; jobId and sourceUrl both given or both missing
 - `400 Bad Request`: sourceUrl is not a Miro board URL, or exceeds 2048 characters
+- `400 Bad Request`: asOf is not a valid `YYYYMMDD` date, is in the future, or is given with jobId
 - `404 Not Found`: File not uploaded to S3 yet (jobId flow only)
 - `500 Internal Server Error`: Batch job submission failed
 
@@ -138,6 +148,8 @@ Get job status and progress.
 - `RUNNING`: Extraction in progress
 - `COMPLETED`: Extraction successful
 - `FAILED`: Extraction failed (see errorMessage)
+
+`asOf` is included when the job was submitted with one.
 
 **Errors**:
 - `404 Not Found`: Job ID does not exist

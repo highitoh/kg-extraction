@@ -89,10 +89,14 @@ cd app && uv run python src/extract_workflow.py [FILE_PATH]
 cd app && ./extract.sh [FILE_PATH] --project [PROJECT_NAME]
 
 # All options
-cd app && uv run python src/extract_workflow.py [FILE_PATH] --project [PROJECT_NAME] --model [MODEL_NAME] --output-dir [OUTPUT_DIR] --timestamp [YYYYMMDD]
+cd app && uv run python src/extract_workflow.py [FILE_PATH] --project [PROJECT_NAME] --model [MODEL_NAME] --output-dir [OUTPUT_DIR] --timestamp [YYYYMMDD] --as-of [YYYYMMDD]
 
 # Miro board extraction
 cd app && ./extract.sh "https://miro.com/app/board/BOARD_ID" --project [PROJECT_NAME]
+
+# Replay a Miro board's history, oldest first (snapshot IDs YYYYMMDD235959 [UTC])
+cd app && ./extract.sh "https://miro.com/app/board/BOARD_ID" --project [PROJECT_NAME] --as-of 20260131
+cd app && ./extract.sh "https://miro.com/app/board/BOARD_ID" --project [PROJECT_NAME] --as-of 20260331
 
 # Confluence space extraction
 cd app && ./extract.sh "https://company.atlassian.net/wiki/spaces/DOCS" --project [PROJECT_NAME]

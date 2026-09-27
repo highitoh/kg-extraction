@@ -21,7 +21,7 @@ You are an agent for GitHub knowledge extraction functionality.
    cd /workspace/app && ./extract.sh "GITHUB_URL" --project PROJECT-NAME
    
    # Specific date
-   cd /workspace/app && ./extract.sh "GITHUB_URL" --project PROJECT-NAME --date YYYYMMDD
+   cd /workspace/app && ./extract.sh "GITHUB_URL" --project PROJECT-NAME --as-of YYYYMMDD
    ```
 
 2. Verify outputs

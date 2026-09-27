@@ -31,11 +31,12 @@ def run_knowledge_extraction(
     model: str = None,
     project: str = "default",
     create_snapshot: bool = True,
-    date: str = None,
+    as_of: str = None,
     miro_board_url: str = None,
     timestamp: str = None,
     knowledge_json_path: str = None,
     progress_callback: callable = None,
+    previous_snapshot_id: str = None,
 ) -> Dict[str, Any]:
     """
     Execute knowledge extraction from PDF file
@@ -47,11 +48,14 @@ def run_knowledge_extraction(
         model: LLM model name (if None, use LLM_EXTRACT_MODEL, then the default for each node)
         project: Project name (output files classified by project)
         create_snapshot: If True, create snapshot after successful extraction
-        date: Date in YYYYMMDD format for GitHub extraction at specific point in time
+        as_of: YYYYMMDD; extract the source as of 23:59:59 UTC that day (GitHub, Miro).
+            Without a timestamp, the snapshot ID becomes YYYYMMDD235959.
         miro_board_url: Miro board URL (for PDF exports of Miro boards)
         timestamp: Manual timestamp in YYYYMMDD format (converted to YYYYMMDD000000)
         knowledge_json_path: Path to existing knowledge.json (for AWS Batch)
         progress_callback: Optional callback function(progress: int, message: str)
+        previous_snapshot_id: Snapshot to diff a Miro board against, for callers
+            without a local snapshot index (AWS Batch)
 
     Returns:
         Extraction result dictionary
@@ -88,13 +92,20 @@ def run_knowledge_extraction(
     if model:
         initial_state["model"] = model
 
-    # Add date to State if specified (for GitHub extraction)
-    if date:
-        initial_state["date"] = date
+    if as_of:
+        initial_state["as_of"] = as_of
+        # Name the snapshot after the moment it represents
+        timestamp = timestamp or f"{as_of}235959"
+
+    if previous_snapshot_id:
+        initial_state["previous_snapshot_id"] = previous_snapshot_id
 
     # Add miro_board_url to State if specified (for Miro board PDF extraction)
     if miro_board_url:
         initial_state["miro_board_url"] = miro_board_url
+
+    if create_snapshot and timestamp:
+        SnapshotManager(output_dir=output_dir, timestamp=timestamp).validate_time_order(project)
 
     # Execute graph
     result = app.invoke(initial_state)
@@ -211,10 +222,11 @@ if __name__ == "__main__":
     parser.add_argument("--project", type=str, default="default", help="Project name (default: default)")
     parser.add_argument("--no-snapshot", action="store_true", help="Skip snapshot creation (default: create snapshot)")
     parser.add_argument(
-        "--date",
+        "--as-of",
         type=str,
         default=None,
-        help="Extract from GitHub at specific date in YYYYMMDD format (e.g., 20230115)",
+        help="Extract the source as of 23:59:59 UTC on this YYYYMMDD date (GitHub, Miro). "
+        "The snapshot ID becomes YYYYMMDD235959 unless --timestamp is given.",
     )
     parser.add_argument("--miro-url", type=str, default=None, help="Miro board URL (for PDF exports of Miro boards)")
     parser.add_argument(
@@ -251,8 +263,8 @@ if __name__ == "__main__":
     else:
         print("LLM model: Using default models for each node")
     print(f"Reasoning effort: {os.getenv('LLM_REASONING_EFFORT') or DEFAULT_REASONING_EFFORT}")
-    if args.date:
-        print(f"Date: {args.date}")
+    if args.as_of:
+        print(f"As of: {args.as_of} 23:59:59 UTC")
     if args.miro_url:
         print(f"Miro board URL: {args.miro_url}")
     if args.timestamp:
@@ -266,7 +278,7 @@ if __name__ == "__main__":
             model=args.model,
             project=args.project,
             create_snapshot=create_snapshot,
-            date=args.date,
+            as_of=args.as_of,
             miro_board_url=args.miro_url,
             timestamp=args.timestamp,
         )

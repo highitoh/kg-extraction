@@ -58,6 +58,7 @@ itself, so scheduled runs are tracked exactly like on-demand ones.
 | `completedAt` | String | ISO timestamp when extraction completed |
 | `outputLocation` | String | S3 project root (no trailing slash); readers append `/outputs/` |
 | `errorMessage` | String | Error details if status=FAILED |
+| `asOf` | String | `YYYYMMDD` the source was extracted as of (optional; Miro only) |
 | `metadata` | Map | `{fileSize: 5242880, pageCount: 12}` |
 | `tokenUsage` | Map | `{inputTokens: 23700, outputTokens: 40700, totalTokens: 64400}` |
 | `progress` | Number | 0-100 (updated during extraction) |
@@ -120,7 +121,8 @@ The fixed-width timestamp keeps lexicographic order chronological. Because the
 resolution is one second, writers must use
 `ConditionExpression: attribute_not_exists(snapshotId)` and, on collision,
 append a short random suffix (`YYYYMMDDHHMMSS_xxxxxx`) rather than silently
-overwriting an existing snapshot. Timestamps are UTC.
+overwriting an existing snapshot. Timestamps are UTC. An `asOf` extraction
+uses `YYYYMMDD235959` for its date instead of the current time.
 
 **Attributes**:
 
@@ -128,6 +130,7 @@ overwriting an existing snapshot. Timestamps are UTC.
 |-------|------|-------------|
 | `triggerType` | String | extraction \| optimization \| manual |
 | `sourceType` | String | pdf \| confluence \| etc. |
+| `sourceIdentifier` | String | Source of `source_raw.json` (e.g., `miro:{boardId}`); the next extraction of that source diffs against the latest match (optional) |
 | `s3Location` | String | S3 path to snapshot.json |
 | `classCount` | Number | Number of classes in this snapshot |
 | `propertyCount` | Number | Number of properties in this snapshot |

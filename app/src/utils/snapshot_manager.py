@@ -24,7 +24,8 @@ class SnapshotManager:
 
         Args:
             output_dir: Base output directory for all projects
-            timestamp: Optional manual timestamp in YYYYMMDD format (converted to YYYYMMDD000000)
+            timestamp: Optional manual timestamp, YYYYMMDD (converted to YYYYMMDD000000)
+                or YYYYMMDDHHMMSS
         """
         self.output_dir = Path(output_dir)
         self.manual_timestamp = self._normalize_timestamp(timestamp) if timestamp else None
@@ -67,19 +68,9 @@ class SnapshotManager:
         with open(knowledge_file, "r", encoding="utf-8") as f:
             knowledge = json.load(f)
 
-        # Get latest snapshot timestamp for validation
         snapshots_dir = project_dir / "snapshots"
-        latest_snapshot = self._get_latest_snapshot_timestamp(snapshots_dir)
-
-        # Generate snapshot ID
         snapshot_id = self._generate_snapshot_id()
-
-        # Validate time-ordering constraint
-        if latest_snapshot and snapshot_id <= latest_snapshot:
-            raise ValueError(
-                f"Timestamp {snapshot_id} must be later than latest snapshot {latest_snapshot}. "
-                f"Time-ordered extraction is required to maintain snapshot consistency."
-            )
+        self.validate_time_order(project, snapshot_id)
 
         # Handle potential collision (same-second extraction)
         snapshot_dir = snapshots_dir / snapshot_id
@@ -204,29 +195,43 @@ class SnapshotManager:
 
         return snapshot_metadata
 
+    def validate_time_order(self, project: str, snapshot_id: Optional[str] = None) -> None:
+        """Raise ValueError unless the snapshot ID is later than the project's latest snapshot.
+
+        Callers with a manual timestamp run this before extracting, so an
+        out-of-order run fails before any LLM call rather than after.
+        """
+        snapshot_id = snapshot_id or self._generate_snapshot_id()
+        latest_snapshot = self._get_latest_snapshot_timestamp(self.output_dir / project / "snapshots")
+        if latest_snapshot and snapshot_id <= latest_snapshot:
+            raise ValueError(
+                f"Timestamp {snapshot_id} must be later than latest snapshot {latest_snapshot}. "
+                f"Time-ordered extraction is required to maintain snapshot consistency."
+            )
+
     def _normalize_timestamp(self, timestamp: str) -> str:
         """
-        Normalize timestamp from YYYYMMDD to YYYYMMDD000000.
+        Normalize timestamp from YYYYMMDD to YYYYMMDD000000; YYYYMMDDHHMMSS is kept as is.
 
         Args:
-            timestamp: Timestamp in YYYYMMDD format
+            timestamp: Timestamp in YYYYMMDD or YYYYMMDDHHMMSS format
 
         Returns:
-            Normalized timestamp in YYYYMMDD000000 format
+            Normalized timestamp in YYYYMMDDHHMMSS format
 
         Raises:
             ValueError: If timestamp format is invalid
         """
-        if len(timestamp) != 8:
-            raise ValueError(f"Timestamp must be in YYYYMMDD format (8 digits), got: {timestamp}")
+        formats = {8: "%Y%m%d", 14: "%Y%m%d%H%M%S"}
+        if len(timestamp) not in formats:
+            raise ValueError(f"Timestamp must be YYYYMMDD or YYYYMMDDHHMMSS, got: {timestamp}")
 
         try:
-            # Validate it's a valid date
-            datetime.strptime(timestamp, "%Y%m%d")
+            datetime.strptime(timestamp, formats[len(timestamp)])
         except ValueError as e:
-            raise ValueError(f"Invalid date format: {timestamp}. Expected YYYYMMDD.") from e
+            raise ValueError(f"Invalid timestamp: {timestamp}. Expected YYYYMMDD or YYYYMMDDHHMMSS.") from e
 
-        return f"{timestamp}000000"
+        return timestamp.ljust(14, "0")
 
     def _generate_snapshot_id(self) -> str:
         """

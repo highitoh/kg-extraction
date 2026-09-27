@@ -9,7 +9,7 @@ from src.utils.github_client import GitHubClient
 
 
 def extract_text_from_github(
-    github_url: str, profile_override: Optional[str] = None, date: Optional[str] = None
+    github_url: str, profile_override: Optional[str] = None, as_of: Optional[str] = None
 ) -> List[Dict[str, Any]]:
     """Extract text content from GitHub repository.
 
@@ -23,8 +23,8 @@ def extract_text_from_github(
     Args:
         github_url: GitHub repository URL or shorthand
         profile_override: Optional profile name to override URL-detected profile
-        date: Optional date in YYYYMMDD format to extract from specific point in time
-              (e.g., "20230115" for January 15, 2023)
+        as_of: Optional date in YYYYMMDD format; extracts the latest commit on or
+               before 23:59:59 UTC that day (e.g., "20230115")
 
     Returns:
         One entry per item, with metadata. The entries are sentence-level; they
@@ -50,7 +50,7 @@ def extract_text_from_github(
         >>> item_texts = extract_text_from_github("https://github.com/facebook/react")
         >>> len(item_texts) > 0
         True
-        >>> item_texts = extract_text_from_github("https://github.com/facebook/react", date="20230115")
+        >>> item_texts = extract_text_from_github("https://github.com/facebook/react", as_of="20230115")
     """
     print(f"[GitHubExtractor] Extracting text from GitHub URL: {github_url}")
 
@@ -67,12 +67,12 @@ def extract_text_from_github(
     # Initialize GitHub client
     client = GitHubClient()
 
-    # Convert date from YYYYMMDD to ISO 8601 format if provided
+    # A bare date would be read as midnight, leaving out that day's commits
     iso_date = None
-    if date:
-        if len(date) != 8 or not date.isdigit():
-            raise ValueError(f"Invalid date format: {date}. Expected YYYYMMDD (e.g., 20230115)")
-        iso_date = f"{date[:4]}-{date[4:6]}-{date[6:8]}"
+    if as_of:
+        if len(as_of) != 8 or not as_of.isdigit():
+            raise ValueError(f"Invalid date format: {as_of}. Expected YYYYMMDD (e.g., 20230115)")
+        iso_date = f"{as_of[:4]}-{as_of[4:6]}-{as_of[6:8]}T23:59:59Z"
 
     # Get repository metadata (always needed)
     try:
