@@ -1,0 +1,6 @@
+# Inbound IP allowlist for the API and presigned S3 URLs. Copy to allowed-ips.txt;
+# without that file, or with no addresses in it, access is unrestricted.
+# One IPv4/IPv6 address or CIDR per line; '#' starts a comment.
+203.0.113.0/24
+198.51.100.10  # office
+2001:db8::/32

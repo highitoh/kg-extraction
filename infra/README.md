@@ -51,6 +51,13 @@ Edit `cdk.local.json` with your values:
 }
 ```
 
+Optionally, accept inbound requests (API and presigned S3 URLs) only from
+listed IP addresses; without this file, access is unrestricted. Redeploy after
+editing it.
+
+```bash
+cp allowed-ips.example.txt allowed-ips.txt
+```
 
 Then bootstrap CDK (once per account/region):
 

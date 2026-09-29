@@ -9,6 +9,7 @@ import { Construct } from 'constructs';
 
 interface ApiStackProps extends cdk.StackProps {
   environment: string;
+  allowedIps?: string[];
   extractionBucket: s3.Bucket;
   jobsTable: dynamodb.Table;
   snapshotsTable: dynamodb.Table;
@@ -98,12 +99,30 @@ export class ApiStack extends cdk.Stack {
       return fn;
     };
 
+    const invokeAny = {
+      principals: [new iam.AnyPrincipal()],
+      actions: ['execute-api:Invoke'],
+      resources: ['execute-api:/*'],
+    };
+    // Once a resource policy exists, API Gateway denies whatever it does not explicitly allow
+    const ipAllowlistPolicy = props.allowedIps && new iam.PolicyDocument({
+      statements: [
+        new iam.PolicyStatement(invokeAny),
+        new iam.PolicyStatement({
+          ...invokeAny,
+          effect: iam.Effect.DENY,
+          conditions: { NotIpAddress: { 'aws:SourceIp': props.allowedIps } },
+        }),
+      ],
+    });
+
     // API Gateway. Every method requires an API key (x-api-key header);
     // CORS preflight OPTIONS methods are exempt (CDK sets apiKeyRequired
     // false on them, so browser preflights still work).
     this.api = new apigateway.RestApi(this, 'ExtractionApi', {
       restApiName: `knowledge-extraction-api-${props.environment}`,
       description: 'API for knowledge extraction from documents',
+      policy: ipAllowlistPolicy,
       defaultCorsPreflightOptions: {
         allowOrigins: apigateway.Cors.ALL_ORIGINS,
         allowMethods: apigateway.Cors.ALL_METHODS,

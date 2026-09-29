@@ -7,6 +7,7 @@ import { StorageStack } from '../lib/stacks/storage-stack';
 import { ComputeStack } from '../lib/stacks/compute-stack';
 import { ApiStack } from '../lib/stacks/api-stack';
 import { EventsStack } from '../lib/stacks/events-stack';
+import { readAllowedIps } from '../lib/allowed-ips';
 
 const app = new cdk.App();
 
@@ -30,6 +31,9 @@ const gcpWifProvider = getConfig('gcpWifProvider') || 'aws-provider';
 const llmExtractModel = getConfig('llmExtractModel');
 const llmEvalModel = getConfig('llmEvalModel');
 const llmReasoningEffort = getConfig('llmReasoningEffort') || 'low';
+
+// Inbound IP allowlist (gitignored; see allowed-ips.example.txt); absent or empty means unrestricted
+const allowedIps = readAllowedIps(path.join(__dirname, '..', 'allowed-ips.txt'));
 
 // Resource names carry no region component, so deploying to an unintended
 // region silently creates a parallel copy of the whole system instead of
@@ -87,6 +91,7 @@ const storageStack = new StorageStack(app, `KnowledgeExtractionStorage-${environ
   env,
   orgName,
   environment,
+  allowedIps,
   description: 'Storage layer for knowledge extraction system (S3 + DynamoDB)',
 });
 
@@ -118,6 +123,7 @@ computeStack.addDependency(storageStack);
 const apiStack = new ApiStack(app, `KnowledgeExtractionApi-${environment}`, {
   env,
   environment,
+  allowedIps,
   extractionBucket: storageStack.extractionBucket,
   jobsTable: storageStack.jobsTable,
   snapshotsTable: storageStack.snapshotsTable,

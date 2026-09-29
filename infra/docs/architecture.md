@@ -227,6 +227,11 @@ Context variables control environment-specific settings:
    --force-delete-without-recovery` is required before the same name can be
    recreated.
 
-3. **Known gap**: Lambda IAM grants are broader than needed (all functions
+3. **IP Allowlist**: With `allowed-ips.txt` (see [README.md](../README.md)),
+   the API Gateway resource policy and the S3 bucket policy reject API calls
+   and presigned URL requests from unlisted addresses. Batch tasks accept no
+   inbound traffic.
+
+4. **Known gap**: Lambda IAM grants are broader than needed (all functions
    share one grant set); tightening to per-function least privilege is
    planned.

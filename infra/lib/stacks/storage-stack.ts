@@ -1,11 +1,13 @@
 import * as cdk from 'aws-cdk-lib';
 import * as s3 from 'aws-cdk-lib/aws-s3';
 import * as dynamodb from 'aws-cdk-lib/aws-dynamodb';
+import * as iam from 'aws-cdk-lib/aws-iam';
 import { Construct } from 'constructs';
 
 interface StorageStackProps extends cdk.StackProps {
   orgName: string;
   environment: string;
+  allowedIps?: string[];
 }
 
 export class StorageStack extends cdk.Stack {
@@ -22,7 +24,7 @@ export class StorageStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props: StorageStackProps) {
     super(scope, id, props);
 
-    const { orgName, environment } = props;
+    const { orgName, environment, allowedIps } = props;
     const bucketName = `${orgName}-kg-extraction-${environment}`;
 
     // S3 Bucket
@@ -54,6 +56,20 @@ export class StorageStack extends cdk.Stack {
       ],
       removalPolicy: cdk.RemovalPolicy.RETAIN,
     });
+
+    // Matches only client-direct requests (presigned URLs, POST forms); Lambda and Batch sign headers
+    if (allowedIps) {
+      this.extractionBucket.addToResourcePolicy(new iam.PolicyStatement({
+        effect: iam.Effect.DENY,
+        principals: [new iam.AnyPrincipal()],
+        actions: ['s3:*'],
+        resources: [this.extractionBucket.bucketArn, this.extractionBucket.arnForObjects('*')],
+        conditions: {
+          StringEquals: { 's3:authType': ['REST-QUERY-STRING', 'POST'] },
+          NotIpAddress: { 'aws:SourceIp': allowedIps },
+        },
+      }));
+    }
 
     // DynamoDB Tables
 

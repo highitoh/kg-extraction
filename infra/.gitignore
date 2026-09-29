@@ -148,6 +148,9 @@ cdk.out/
 # Per-developer deployment settings (copy cdk.local.example.json)
 cdk.local.json
 
+# Inbound IP allowlist (copy allowed-ips.example.txt)
+allowed-ips.txt
+
 # Cached context lookups; holds account-specific VPC and subnet IDs
 cdk.context.json
 

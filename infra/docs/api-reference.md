@@ -23,7 +23,9 @@ aws apigateway get-api-key --api-key API_KEY_ID --include-value --query 'value' 
 
 Requests without a valid key receive `403 Forbidden`. CORS preflight
 (OPTIONS) requests are exempt. Presigned S3 URLs (upload/download) are
-authorized by their signature and need no API key.
+authorized by their signature and need no API key. When an IP allowlist is
+deployed, requests from unlisted addresses (presigned URLs included) also
+receive `403 Forbidden`.
 
 ### Rate Limiting
 
