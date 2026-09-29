@@ -117,7 +117,7 @@ const computeStack = new ComputeStack(app, `KnowledgeExtractionCompute-${environ
   changesetsTable: storageStack.changesetsTable,
   description: 'Compute layer for knowledge extraction system (AWS Batch + Fargate)',
 });
-computeStack.addDependency(storageStack);
+computeStack.addStackDependency(storageStack);
 
 // Stack 3: API (API Gateway + Lambda + MCP Server)
 const apiStack = new ApiStack(app, `KnowledgeExtractionApi-${environment}`, {
@@ -137,7 +137,7 @@ const apiStack = new ApiStack(app, `KnowledgeExtractionApi-${environment}`, {
   jobDefinition: computeStack.jobDefinition,
   description: 'API layer for knowledge extraction system (API Gateway + Lambda + MCP)',
 });
-apiStack.addDependency(computeStack);
+apiStack.addStackDependency(computeStack);
 
 // Stack 4: Events (EventBridge scheduled jobs)
 const eventsStack = new EventsStack(app, `KnowledgeExtractionEvents-${environment}`, {
@@ -146,6 +146,6 @@ const eventsStack = new EventsStack(app, `KnowledgeExtractionEvents-${environmen
   jobDefinition: computeStack.jobDefinition,
   description: 'Event-driven triggers for knowledge extraction system (EventBridge)',
 });
-eventsStack.addDependency(computeStack);
+eventsStack.addStackDependency(computeStack);
 
 app.synth();

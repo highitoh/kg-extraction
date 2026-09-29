@@ -90,12 +90,6 @@ export class ApiStack extends cdk.Stack {
 
       grantDataAccess(fn, { writeKnowledge });
 
-      // Grant Batch permissions
-      fn.addToRolePolicy(new iam.PolicyStatement({
-        actions: ['batch:SubmitJob', 'batch:DescribeJobs'],
-        resources: batchSubmitResources,
-      }));
-
       return fn;
     };
 
@@ -142,6 +136,10 @@ export class ApiStack extends cdk.Stack {
     // Job Management Lambdas
     const getUploadUrl = createLambda('GetUploadUrl', 'job_management.get_upload_url.handler');
     const submitExtraction = createLambda('SubmitExtraction', 'job_management.submit_extraction.handler');
+    submitExtraction.addToRolePolicy(new iam.PolicyStatement({
+      actions: ['batch:SubmitJob'],
+      resources: batchSubmitResources,
+    }));
     const getJobStatus = createLambda('GetJobStatus', 'job_management.get_job_status.handler');
     const downloadResults = createLambda('DownloadResults', 'job_management.download_results.handler');
 
@@ -223,11 +221,6 @@ export class ApiStack extends cdk.Stack {
     });
 
     grantDataAccess(mcpLambda);
-
-    mcpLambda.addToRolePolicy(new iam.PolicyStatement({
-      actions: ['batch:SubmitJob', 'batch:DescribeJobs'],
-      resources: batchSubmitResources,
-    }));
 
     // Add /mcp endpoint
     const mcpResource = this.api.root.addResource('mcp');
