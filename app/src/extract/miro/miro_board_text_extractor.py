@@ -1,5 +1,6 @@
 """Text extraction from Miro boards with PDF page matching."""
 
+import asyncio
 import re
 from typing import Any, Dict, List
 
@@ -53,6 +54,37 @@ def _process_visual_item(
     }
 
     return visual_item, analyzed_children
+
+
+async def _fetch_board_async(client: MiroClient, board_id: str) -> tuple:
+    """Fetch board metadata, container items by type, and Frame/Diagram children concurrently.
+
+    Returns:
+        (board_data, frames, diagrams, documents, tables, children_results), where
+        children_results holds each Frame/Diagram's children (or the Exception raised) in order.
+    """
+    sem = asyncio.Semaphore(client.max_concurrency)
+
+    async def _call(fn, *args, **kwargs):
+        async with sem:
+            return await asyncio.to_thread(fn, *args, **kwargs)
+
+    # The API "type" query values differ from the "type" field returned
+    # in responses for some items (e.g. Miro Docs use "doc_format").
+    board_data, frames, diagrams, documents, tables = await asyncio.gather(
+        _call(client.get_board, board_id),
+        *[
+            _call(client.get_board_items, board_id, item_type=t)
+            for t in ("frame", "diagram", "doc_format", "data_table_format")
+        ],
+    )
+
+    # Both containers expose their children the same way through parent_item_id
+    children_results = await asyncio.gather(
+        *[_call(client.get_board_items, board_id, parent_item_id=c["id"]) for c in frames + diagrams],
+        return_exceptions=True,
+    )
+    return board_data, frames, diagrams, documents, tables, children_results
 
 
 def parse_board_id_from_url(miro_url: str) -> str:
@@ -115,43 +147,31 @@ def extract_text_from_miro_board(pdf_path: str, miro_board_url: str) -> Dict[str
     board_id = parse_board_id_from_url(miro_board_url)
     print(f"Extracting from Miro board: {board_id}")
 
-    # 2. Fetch Miro API data
-    client = MiroClient()
-    board_data = client.get_board(board_id)
+    # 2. Fetch board metadata, containers by type, and Frame/Diagram children
+    board_data, frames, diagrams, documents, tables, children_results = asyncio.run(
+        _fetch_board_async(MiroClient(), board_id)
+    )
     print(f"Board name: {board_data.get('name', 'Unnamed')}")
-
-    # 3. Fetch top-level container items by type.
-    # Note: the API "type" query values differ from the "type" field returned
-    # in responses for some items (e.g. Miro Docs use "doc_format").
-    frames = client.get_board_items(board_id, item_type="frame")
-    diagrams = client.get_board_items(board_id, item_type="diagram")
-    documents = client.get_board_items(board_id, item_type="doc_format")
-    tables = client.get_board_items(board_id, item_type="data_table_format")
-
     print(f"  - Frames: {len(frames)}")
     print(f"  - Diagrams: {len(diagrams)}")
     print(f"  - Documents: {len(documents)}")
     print(f"  - Tables: {len(tables)}")
 
-    # 4. Fetch children of each Frame and Diagram via parent_item_id.
-    # Both containers expose their children the same way through this endpoint.
     parent_to_children = {}
     all_items = frames + diagrams + documents + tables
 
-    for container in frames + diagrams:
+    for container, children in zip(frames + diagrams, children_results, strict=True):
         container_id = container["id"]
-        try:
-            children = client.get_board_items(board_id, parent_item_id=container_id)
-            if children:
-                parent_to_children[container_id] = children
-                all_items.extend(children)
-                print(f"  - {container.get('type')} {container_id} children: {len(children)}")
-        except Exception as e:
-            print(f"  - Warning: Failed to fetch children for {container_id}: {e}")
+        if isinstance(children, Exception):
+            print(f"  - Warning: Failed to fetch children for {container_id}: {children}")
+        elif children:
+            parent_to_children[container_id] = children
+            all_items.extend(children)
+            print(f"  - {container.get('type')} {container_id} children: {len(children)}")
 
     print(f"Total items fetched: {len(all_items)}")
 
-    # 5. Extract text from all relevant items
+    # 3. Extract text from all relevant items
     analyzer = MiroItemAnalyzer()
 
     # Process Frames and Diagrams using common logic
@@ -196,10 +216,10 @@ def extract_text_from_miro_board(pdf_path: str, miro_board_url: str) -> Dict[str
     print(f"Visual items (Frames + Diagrams): {len(visual_items)}")
     print(f"Text chunks created: {len(text_chunks)}")
 
-    # 6. Prepare sentences for knowledge extraction
+    # 4. Prepare sentences for knowledge extraction
     sentences = [{"text": chunk["text"], "file_id": chunk["file_id"]} for chunk in text_chunks]
 
-    # 7. Extract PDF page text for matching
+    # 5. Extract PDF page text for matching
     print(f"Extracting PDF page text from: {pdf_path}")
     pdf_page_texts = []
     try:
@@ -213,13 +233,13 @@ def extract_text_from_miro_board(pdf_path: str, miro_board_url: str) -> Dict[str
 
     print(f"PDF pages: {len(pdf_page_texts)}")
 
-    # 8. Match PDF pages to Frames/Diagrams via text similarity
+    # 6. Match PDF pages to Frames/Diagrams via text similarity
     item_page_mappings = []
     if pdf_page_texts and visual_items:
         item_page_mappings = match_pages_to_items(pdf_page_texts, visual_items, threshold=0.3)
         print(f"Matched {len(item_page_mappings)} pages to Frames/Diagrams")
 
-    # 9. Prepare return data
+    # 7. Prepare return data
     return {
         "sentences": sentences,
         "miro_visual_items": visual_items,

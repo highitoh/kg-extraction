@@ -1,5 +1,6 @@
 """Text extraction from Miro boards (parallel to PDF text extraction)."""
 
+import asyncio
 import re
 from datetime import datetime, timedelta, timezone
 
@@ -37,6 +38,39 @@ def parse_board_id_from_url(miro_url: str) -> str:
     raise ValueError(
         f"Invalid Miro URL format: {miro_url}. Expected format: https://miro.com/app/board/BOARD_ID or miro:BOARD_ID"
     )
+
+
+async def _fetch_board_async(client: MiroClient, board_id: str) -> tuple:
+    """Fetch board metadata, items, connectors and diagram children concurrently."""
+    sem = asyncio.Semaphore(client.max_concurrency)
+
+    async def _call(fn, *args, **kwargs):
+        async with sem:
+            return await asyncio.to_thread(fn, *args, **kwargs)
+
+    # Diagram IDs come from a type query so their children load while the bulk item pages are still paging
+    async def _diagram_children() -> dict:
+        diagrams = await _call(client.get_board_items, board_id, item_type="diagram")
+        ids = [d["id"] for d in diagrams]
+        children = await asyncio.gather(*[_call(client.get_board_items, board_id, parent_item_id=i) for i in ids])
+        return dict(zip(ids, children, strict=True))
+
+    return await asyncio.gather(
+        _call(client.get_board, board_id),
+        _call(client.get_board_items, board_id),
+        _call(client.get_connectors, board_id),
+        _diagram_children(),
+    )
+
+
+def fetch_board(client: MiroClient, board_id: str) -> tuple:
+    """Fetch a board via the Miro API.
+
+    Returns:
+        (board_data, items, connectors, children_by_container), where
+        children_by_container maps each diagram ID to its children.
+    """
+    return tuple(asyncio.run(_fetch_board_async(client, board_id)))
 
 
 def _filter_board_as_of(items: list[dict], connectors: list[dict], as_of: str) -> tuple[list[dict], list[dict]]:
@@ -142,14 +176,11 @@ def extract_text_from_miro_board(miro_url: str, as_of: str | None = None) -> lis
     board_id = parse_board_id_from_url(miro_url)
 
     # 2. Fetch via MiroClient
-    client = MiroClient()
-    board_data = client.get_board(board_id)
-    board_items = client.get_board_items(board_id)
-    connectors = client.get_connectors(board_id)
+    board_data, board_items, connectors, children_by_container = fetch_board(MiroClient(), board_id)
 
     # Diagram children come back with parent=null, so read the relationship
     # back per container - the renderer needs it to group them
-    attach_container_children(client, board_id, board_items)
+    attach_container_children(board_items, children_by_container)
 
     if as_of:
         board_items, connectors = _filter_board_as_of(board_items, connectors, as_of)

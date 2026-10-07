@@ -81,22 +81,25 @@ def _resolve_font_path() -> Optional[Tuple[str, int]]:
     return None
 
 
-def attach_container_children(client, board_id: str, items: List[Dict[str, Any]]) -> int:
+def attach_container_children(
+    items: List[Dict[str, Any]], children_by_container: Dict[str, List[Dict[str, Any]]]
+) -> int:
     """Fill in the parent of items nested in a diagram.
 
     The bulk items endpoint returns parent=null for diagram children, so the
-    relationship has to be read back per container.
+    relationship is read back per container and passed in here.
+
+    Args:
+        items: Board items from the bulk items endpoint (updated in place)
+        children_by_container: Diagram ID -> its children, from parent_item_id queries
 
     Returns:
         Number of items whose parent was filled in.
     """
     by_id = {item.get("id"): item for item in items}
     attached = 0
-    for item in items:
-        if item.get("type") != "diagram":
-            continue
-        container_id = item.get("id")
-        for child in client.get_board_items(board_id, parent_item_id=container_id):
+    for container_id, children in children_by_container.items():
+        for child in children:
             target = by_id.get(child.get("id"))
             if target is not None and not (target.get("parent") or {}).get("id"):
                 target["parent"] = {"id": container_id}
@@ -738,15 +741,13 @@ def main() -> None:
     args = parser.parse_args()
 
     if args.source.startswith("http") or args.source.startswith("miro:"):
-        from src.extract.miro.miro_text_extractor import parse_board_id_from_url
+        from src.extract.miro.miro_text_extractor import fetch_board, parse_board_id_from_url
         from src.utils.miro_client import MiroClient
 
         board_id = parse_board_id_from_url(args.source)
-        client = MiroClient()
         print(f"Fetching items from board {board_id} ...")
-        items = client.get_board_items(board_id)
-        connectors = client.get_connectors(board_id)
-        attached = attach_container_children(client, board_id, items)
+        _, items, connectors, children_by_container = fetch_board(MiroClient(), board_id)
+        attached = attach_container_children(items, children_by_container)
         print(f"Fetched {len(items)} items and {len(connectors)} connectors ({attached} nested in diagrams)")
     else:
         with open(args.source, encoding="utf-8") as f:

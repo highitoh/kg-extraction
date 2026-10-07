@@ -34,6 +34,7 @@ class MiroClient:
         base_url: Optional[str] = None,
         max_retries: int = 3,
         timeout: float = 30.0,
+        max_concurrency: int = 8,
     ):
         """Initialize Miro API client.
 
@@ -42,6 +43,7 @@ class MiroClient:
             base_url: Miro API base URL (defaults to MIRO_BASE_URL env var or https://api.miro.com/v2)
             max_retries: Maximum number of retries for rate limiting (default: 3)
             timeout: Request timeout in seconds (default: 30.0)
+            max_concurrency: Maximum concurrent requests when callers fan out (default: 8)
 
         Raises:
             ValueError: If API key is not provided and MIRO_API_KEY is not set
@@ -56,6 +58,7 @@ class MiroClient:
         self.base_url = base_url or os.getenv("MIRO_BASE_URL", "https://api.miro.com/v2")
         self.max_retries = max_retries
         self.timeout = timeout
+        self.max_concurrency = max_concurrency
         self.session = requests.Session()
         self.session.headers.update(
             {
