@@ -7,6 +7,7 @@ from datetime import datetime, timedelta, timezone
 from src.extract.miro.miro_board_renderer import MiroBoardRenderer, attach_container_children, group_items_by_region
 from src.extract.miro.miro_item_analyzer import MiroItemAnalyzer
 from src.utils.miro_client import MiroClient
+from src.utils.source_cache import SourceCache
 
 
 def parse_board_id_from_url(miro_url: str) -> str:
@@ -137,7 +138,9 @@ def _filter_board_as_of(items: list[dict], connectors: list[dict], as_of: str) -
     return kept, kept_connectors
 
 
-def extract_text_from_miro_board(miro_url: str, as_of: str | None = None) -> list[dict]:
+def extract_text_from_miro_board(
+    miro_url: str, as_of: str | None = None, cache: SourceCache | None = None
+) -> list[dict]:
     """Extract one text entry per item from a Miro board.
 
     This function is parallel to extract_text_from_document() for PDFs. The
@@ -147,6 +150,7 @@ def extract_text_from_miro_board(miro_url: str, as_of: str | None = None) -> lis
     Args:
         miro_url: Miro board URL (e.g., "https://miro.com/app/board/o9J_abc123")
         as_of: Optional YYYYMMDD; only items created by 23:59:59 UTC that day are used
+        cache: Optional cache of the board read; it holds the whole board
 
     Returns:
         One entry per item, with metadata:
@@ -176,7 +180,12 @@ def extract_text_from_miro_board(miro_url: str, as_of: str | None = None) -> lis
     board_id = parse_board_id_from_url(miro_url)
 
     # 2. Fetch via MiroClient
-    board_data, board_items, connectors, children_by_container = fetch_board(MiroClient(), board_id)
+    def fetch() -> tuple:
+        return fetch_board(MiroClient(), board_id)
+
+    board_data, board_items, connectors, children_by_container = (
+        cache.get_or_fetch(f"miro:{board_id}", fetch) if cache else fetch()
+    )
 
     # Diagram children come back with parent=null, so read the relationship
     # back per container - the renderer needs it to group them

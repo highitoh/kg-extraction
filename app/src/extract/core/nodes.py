@@ -494,10 +494,16 @@ def extract_text_miro_node(state: KnowledgeExtractionState) -> KnowledgeExtracti
     try:
         from src.extract.miro.miro_board_renderer import group_items_by_region
         from src.extract.miro.miro_text_extractor import extract_text_from_miro_board, parse_board_id_from_url
+        from src.utils.source_cache import SourceCache
         from src.utils.source_change_detector import load_source_raw
 
         miro_url = state["files"][0]["path"]
-        item_texts = extract_text_from_miro_board(miro_url, as_of=state.get("as_of"))
+        cache = (
+            SourceCache(state.get("project", "default"), state.get("output_dir", "/workspace/app/output"))
+            if state.get("use_cache")
+            else None
+        )
+        item_texts = extract_text_from_miro_board(miro_url, as_of=state.get("as_of"), cache=cache)
 
         # Extract miro_raw_data from first entry
         miro_raw_data = item_texts[0].pop("_miro_raw_data", None)

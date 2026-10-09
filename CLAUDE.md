@@ -98,6 +98,9 @@ cd app && ./extract.sh "https://miro.com/app/board/BOARD_ID" --project [PROJECT_
 cd app && ./extract.sh "https://miro.com/app/board/BOARD_ID" --project [PROJECT_NAME] --as-of 20260131
 cd app && ./extract.sh "https://miro.com/app/board/BOARD_ID" --project [PROJECT_NAME] --as-of 20260331
 
+# Same, reading the board once: --cache reuses output/{project}/cache/ (never expires; delete the directory to fetch the board again)
+cd app && ./extract.sh "https://miro.com/app/board/BOARD_ID" --project [PROJECT_NAME] --as-of 20260131 --cache
+
 # Confluence space extraction
 cd app && ./extract.sh "https://company.atlassian.net/wiki/spaces/DOCS" --project [PROJECT_NAME]
 ```

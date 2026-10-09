@@ -34,6 +34,7 @@ class KnowledgeExtractionState(TypedDict, total=False):
     # ========== Output Destination Settings ==========
     output_dir: str  # Output directory
     project: str  # Project name (output files classified by project)
+    use_cache: Optional[bool]  # Reuse the source read cached under {output_dir}/{project}/cache/ (Miro)
 
     # ========== Intermediate Results: Text Extraction Stage ==========
     file_id: str  # Stable file ID

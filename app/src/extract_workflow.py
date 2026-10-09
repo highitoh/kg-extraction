@@ -37,6 +37,7 @@ def run_knowledge_extraction(
     knowledge_json_path: str = None,
     progress_callback: callable = None,
     previous_snapshot_id: str = None,
+    use_cache: bool = False,
 ) -> Dict[str, Any]:
     """
     Execute knowledge extraction from PDF file
@@ -56,6 +57,8 @@ def run_knowledge_extraction(
         progress_callback: Optional callback function(progress: int, message: str)
         previous_snapshot_id: Snapshot to diff a Miro board against, for callers
             without a local snapshot index (AWS Batch)
+        use_cache: Reuse the source read cached under {output_dir}/{project}/cache/,
+            reading the source and caching it when there is none (Miro)
 
     Returns:
         Extraction result dictionary
@@ -99,6 +102,9 @@ def run_knowledge_extraction(
 
     if previous_snapshot_id:
         initial_state["previous_snapshot_id"] = previous_snapshot_id
+
+    if use_cache:
+        initial_state["use_cache"] = True
 
     # Add miro_board_url to State if specified (for Miro board PDF extraction)
     if miro_board_url:
@@ -228,6 +234,12 @@ if __name__ == "__main__":
         help="Extract the source as of 23:59:59 UTC on this YYYYMMDD date (GitHub, Miro). "
         "The snapshot ID becomes YYYYMMDD235959 unless --timestamp is given.",
     )
+    parser.add_argument(
+        "--cache",
+        action="store_true",
+        help="Reuse the source read cached by an earlier --cache run instead of reading the source again "
+        "(Miro board URLs). Delete output/{project}/cache/ to read it again.",
+    )
     parser.add_argument("--miro-url", type=str, default=None, help="Miro board URL (for PDF exports of Miro boards)")
     parser.add_argument(
         "--timestamp",
@@ -267,6 +279,8 @@ if __name__ == "__main__":
         print(f"As of: {args.as_of} 23:59:59 UTC")
     if args.miro_url:
         print(f"Miro board URL: {args.miro_url}")
+    if args.cache:
+        print("Source cache: enabled")
     if args.timestamp:
         print(f"Manual timestamp: {args.timestamp} (will be normalized to {args.timestamp}000000)")
 
@@ -281,6 +295,7 @@ if __name__ == "__main__":
             as_of=args.as_of,
             miro_board_url=args.miro_url,
             timestamp=args.timestamp,
+            use_cache=args.cache,
         )
 
         # Check for errors
