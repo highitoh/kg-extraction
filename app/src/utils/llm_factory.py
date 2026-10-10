@@ -7,7 +7,7 @@ from langchain_core.language_models.chat_models import BaseChatModel
 from langchain_openai import AzureChatOpenAI, ChatOpenAI
 
 DEFAULT_LLM_MODEL = "gemini-3.5-flash-lite"
-DEFAULT_EVAL_LLM_MODEL = "gemini-3.7-flash"
+DEFAULT_EVAL_LLM_MODEL = "gemini-3.8-flash"
 _SUPPORTED_LLM_PROVIDERS = {"gemini_api", "gcp_vertexai", "openai_api", "azure_openai"}
 DEFAULT_REASONING_EFFORT = "low"
 SUPPORTED_REASONING_EFFORTS = {"none", "minimal", "low", "medium", "high", "xhigh"}

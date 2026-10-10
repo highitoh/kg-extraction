@@ -46,7 +46,7 @@ Edit `cdk.local.json` with your values:
   "gcpProjectNumber": "YOUR_GCP_PROJECT_NUMBER",
   "gcpLocation": "global",
   "llmExtractModel": "gemini-3.5-flash-lite",
-  "llmEvalModel": "gemini-3.7-flash",
+  "llmEvalModel": "gemini-3.8-flash",
   "llmReasoningEffort": "low"
 }
 ```

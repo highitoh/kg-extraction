@@ -113,13 +113,13 @@ Extract knowledge from multiple PDF files using a batch file:
 cd app && ./extract.sh --batch ../doc/batch-sample.txt --project myproject
 
 # With model override
-cd app && ./extract.sh --batch ../doc/batch-sample.txt --project myproject --model gemini-3.7-flash
+cd app && ./extract.sh --batch ../doc/batch-sample.txt --project myproject --model gemini-3.8-flash
 
 # With retry configuration (retry failed files up to 2 times)
 cd app && ./extract.sh --batch ../doc/batch-sample.txt --project myproject --max-retries 2
 
 # Full example with all options
-cd app && ./extract.sh --batch ../doc/batch-sample.txt --project myproject --model gemini-3.7-flash --max-retries 2
+cd app && ./extract.sh --batch ../doc/batch-sample.txt --project myproject --model gemini-3.8-flash --max-retries 2
 ```
 
 **Batch file format** (plain text, one PDF path per line):

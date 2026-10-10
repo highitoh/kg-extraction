@@ -16,10 +16,10 @@
 #
 # Examples:
 #   # Single project iteration
-#   ./iterate.sh --batch ../doc/batch-cocoa.txt --model gemini-3.7-flash
+#   ./iterate.sh --batch ../doc/batch-cocoa.txt --model gemini-3.8-flash
 #
 #   # Multiple projects iteration
-#   ./iterate.sh --batch ../doc/batch-cocoa.txt ../doc/batch-partner.txt --model gemini-3.7-flash
+#   ./iterate.sh --batch ../doc/batch-cocoa.txt ../doc/batch-partner.txt --model gemini-3.8-flash
 #
 #   # Resume a previous run
 #   ./iterate.sh --resume 20260130120000
