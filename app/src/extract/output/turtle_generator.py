@@ -49,6 +49,14 @@ class TurtleGenerator:
         base = self.base_prefix.rstrip("#/") + "#"
         return f"<{base}{path}>"
 
+    def _term(self, iri: str) -> str:
+        """
+        Returns an IRI as a Turtle term: absolute IRIs are wrapped in <>, prefixed names are kept as-is.
+        """
+        if iri.startswith("<") or not re.match(r"^[A-Za-z][A-Za-z0-9+.-]*://", iri):
+            return iri
+        return f"<{iri}>"
+
     def _escape_string(self, s: str) -> str:
         """
         Escape processing for Turtle string literals
@@ -86,8 +94,7 @@ class TurtleGenerator:
         """
         lines = ["# Class Declarations"]
         for class_iri in sorted(class_iris):
-            if class_iri.startswith("ex:"):
-                lines.append(f"{class_iri} a owl:Class .")
+            lines.append(f"{class_iri} a owl:Class .")
         lines.append("")
         return "\n".join(lines)
 
@@ -97,8 +104,7 @@ class TurtleGenerator:
         """
         lines = ["# Property Declarations"]
         for prop_iri in sorted(property_iris):
-            if prop_iri.startswith("ex:"):
-                lines.append(f"{prop_iri} a owl:ObjectProperty .")
+            lines.append(f"{prop_iri} a owl:ObjectProperty .")
         lines.append("")
         return "\n".join(lines)
 
@@ -110,15 +116,15 @@ class TurtleGenerator:
         class_iris = set()
         property_iris = set()
 
-        # Create a map of class instances
-        class_instances = {}
+        # Instance IRI per class instance ID, shared by declarations and relationships
+        instance_iris = {}
         for class_item in class_info.get("classes", []):
-            class_instances[class_item["id"]] = class_item
+            instance_iris.setdefault(class_item["id"], self._iri(f"instance/{_slug(class_item['label'])}-{_uuid8()}"))
 
         # Output class instances
         for class_item in class_info.get("classes", []):
             class_id = class_item["id"]
-            class_iri = class_item["class_iri"]
+            class_iri = self._term(class_item["class_iri"])
             label = class_item["label"]
 
             # Get file_ids field (array or string)
@@ -128,8 +134,7 @@ class TurtleGenerator:
             # Concatenate with comma separation (retain multiple sources)
             file_id = ",".join(file_ids) if file_ids else ""
 
-            # Generate instance IRI
-            instance_iri = self._iri(f"instance/{_slug(label)}-{_uuid8()}")
+            instance_iri = instance_iris[class_id]
 
             # Record class IRI
             class_iris.add(class_iri)
@@ -147,7 +152,7 @@ class TurtleGenerator:
         for prop_item in property_info.get("properties", []):
             src_id = prop_item["src_id"]
             dest_id = prop_item["dest_id"]
-            property_iri = prop_item["property_iri"]
+            property_iri = self._term(prop_item["property_iri"])
 
             # Record property IRI
             property_iris.add(property_iri)
@@ -159,16 +164,10 @@ class TurtleGenerator:
 
         # Add property relationships
         for src_id, relations in property_map.items():
-            if src_id in class_instances:
-                src_class = class_instances[src_id]
-                src_instance_iri = self._iri(f"instance/{_slug(src_class['label'])}-{_uuid8()}")
-
+            if src_id in instance_iris:
                 for property_iri, dest_id in relations:
-                    if dest_id in class_instances:
-                        dest_class = class_instances[dest_id]
-                        dest_instance_iri = self._iri(f"instance/{_slug(dest_class['label'])}-{_uuid8()}")
-
-                        lines.append(f"{src_instance_iri} {property_iri} {dest_instance_iri} .")
+                    if dest_id in instance_iris:
+                        lines.append(f"{instance_iris[src_id]} {property_iri} {instance_iris[dest_id]} .")
 
         if len(lines) > 1:  # If there are lines other than "# Instances"
             lines.append("")
