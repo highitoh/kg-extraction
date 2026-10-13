@@ -1669,11 +1669,17 @@ def save_accumulated_knowledge_node(state: KnowledgeExtractionState) -> Knowledg
         # Keep existing classes to record UUID mapping when UUIDs change
         current_class_map = {(c.get("class_iri"), c.get("label")): c for c in current_classes}
         existing_class_map = {(c.get("class_iri"), c.get("label")): c for c in existing_knowledge.get("classes", [])}
+        existing_key_by_id = {c.get("id"): key for key, c in existing_class_map.items()}
 
         # UUID mapping: old_uuid -> new_uuid (used when replacing classes)
         uuid_map = {}
         for key, new_class in current_class_map.items():
             old_class = existing_class_map.get(key)
+            if not old_class:
+                # A carried-over class relabeled by consolidation keeps its ID
+                old_key = existing_key_by_id.get(new_class.get("id"))
+                if old_key:
+                    old_class = existing_class_map.pop(old_key, None)
             if old_class:
                 # Merge file_ids from both sources
                 new_file_ids = new_class.get("file_ids", [])
@@ -1701,7 +1707,10 @@ def save_accumulated_knowledge_node(state: KnowledgeExtractionState) -> Knowledg
                     uuid_map[old_class["id"]] = new_class["id"]
 
             existing_class_map[key] = new_class
-        merged_classes = list(existing_class_map.values())
+        # One record per ID; current records win over stale relabeled duplicates
+        merged_by_id = {c.get("id"): c for c in existing_class_map.values()}
+        merged_by_id.update({c.get("id"): c for c in current_class_map.values()})
+        merged_classes = list(merged_by_id.values())
 
         # Remap property src_id/dest_id (handle class UUID changes)
         def remap_property_ids(properties, uuid_mapping):
