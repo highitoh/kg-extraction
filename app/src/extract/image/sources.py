@@ -241,9 +241,10 @@ def miro_rendered_regions(
     from src.extract.miro.miro_board_renderer import MiroBoardRenderer
 
     if progress:
-        print(f"[miro_rendered_regions] Rendering {len(items)} items and {len(connectors)} connectors")
+        print(f"[miro_rendered_regions] Grouping {len(items)} items and {len(connectors)} connectors")
 
-    regions = MiroBoardRenderer().render(items, connectors)
+    renderer = MiroBoardRenderer()
+    regions = renderer.regions(items)
 
     subjects: List[ImageSubject] = []
     skipped = 0
@@ -262,7 +263,7 @@ def miro_rendered_regions(
 
         subjects.append(
             ImageSubject(
-                load=_region_loader(region),
+                load=_region_loader(renderer, region, connectors),
                 file_id=f"{file_id}:{region.region_id}",
                 source=source,
             )
@@ -273,9 +274,10 @@ def miro_rendered_regions(
     return subjects
 
 
-def _region_loader(region):
+def _region_loader(renderer, region, connectors):
+    # Drawn on demand so only the images being analyzed are held in memory
     def load() -> Image.Image:
-        return region.image
+        return renderer.draw(region, connectors)
 
     return load
 

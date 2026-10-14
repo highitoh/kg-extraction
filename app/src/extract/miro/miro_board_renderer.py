@@ -3,7 +3,7 @@
 import json
 import math
 import os
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Any, Dict, List, Optional, Tuple
 
 from PIL import Image, ImageDraw, ImageFont
@@ -128,14 +128,18 @@ class RenderItem:
 
 
 @dataclass
-class RenderedRegion:
-    """One rendered image covering a frame or a spatial cluster of items."""
+class BoardRegion:
+    """A frame, diagram or spatial cluster of items, drawn as one image."""
 
-    image: Image.Image
-    region_type: str  # "frame" | "cluster"
+    members: List[RenderItem]
+    region_type: str  # "frame" | "diagram" | "cluster"
     region_id: str
     title: str = ""
-    item_ids: List[str] = field(default_factory=list)
+    frame: Optional[RenderItem] = None  # Bounds the image by the frame's box rather than its contents
+
+    @property
+    def item_ids(self) -> List[str]:
+        return sorted(m.item_id for m in self.members)
 
 
 class MiroBoardRenderer:
@@ -164,14 +168,12 @@ class MiroBoardRenderer:
         margin: float = 60.0,
         cluster_gap: float = 300.0,
         max_scale: float = 2.0,
-        min_scale: float = 0.05,
         background: str = "#FFFFFF",
     ):
         self.max_pixels = max_pixels
         self.margin = margin
         self.cluster_gap = cluster_gap
         self.max_scale = max_scale
-        self.min_scale = min_scale
         self.background = background
         self._font_spec = _resolve_font_path()
         self._font_cache: Dict[int, ImageFont.FreeTypeFont] = {}
@@ -180,19 +182,19 @@ class MiroBoardRenderer:
 
     # ---------- public API ----------
 
-    def render(
-        self, items: List[Dict[str, Any]], connectors: Optional[List[Dict[str, Any]]] = None
-    ) -> List[RenderedRegion]:
-        """Render raw Miro API items into one image per container / spatial cluster.
+    def regions(self, items: List[Dict[str, Any]]) -> List[BoardRegion]:
+        """Split raw Miro API items into one region per container / spatial cluster.
 
-        Frames and diagrams are containers: each gets its own image showing the
-        items nested inside it. Everything else is grouped by proximity.
+        Frames and diagrams are containers: each region holds the items nested
+        inside it. Everything else is grouped by proximity. Nothing is drawn
+        here; draw() renders one region at a time, so a large board never holds
+        all of its images in memory at once.
         """
         parsed = self._parse_items(items)
         by_id = {i.item_id: i for i in parsed}
         containers = {i.item_id: i for i in parsed if i.item_type in CONTAINER_TYPES}
 
-        regions: List[RenderedRegion] = []
+        regions: List[BoardRegion] = []
 
         for container_id, container in containers.items():
             members = [i for i in parsed if i.item_id != container_id and self._is_descendant(i, container_id, by_id)]
@@ -204,13 +206,11 @@ class MiroBoardRenderer:
             # A diagram's own geometry can sit far from the items it holds, so
             # frame its region by the contents instead.
             bounds = container if container.item_type == "frame" else None
-            regions.append(
-                self._render_region(members, connectors, container.item_type, container_id, title, frame=bounds)
-            )
+            regions.append(BoardRegion(members, container.item_type, container_id, title, frame=bounds))
 
         orphans = [i for i in parsed if i.item_type not in CONTAINER_TYPES and not self._container_of(i, by_id)]
         for cluster in self._cluster(orphans):
-            regions.append(self._render_region(cluster, connectors, "cluster", _cluster_id(cluster), ""))
+            regions.append(BoardRegion(cluster, "cluster", _cluster_id(cluster)))
 
         return regions
 
@@ -393,17 +393,11 @@ class MiroBoardRenderer:
 
     # ---------- rendering ----------
 
-    def _render_region(
-        self,
-        members: List[RenderItem],
-        connectors: Optional[List[Dict[str, Any]]],
-        region_type: str,
-        region_id: str,
-        title: str,
-        frame: Optional[RenderItem] = None,
-    ) -> RenderedRegion:
-        if frame is not None:
-            x0, y0, x1, y1 = frame.bbox
+    def draw(self, region: BoardRegion, connectors: Optional[List[Dict[str, Any]]] = None) -> Image.Image:
+        """Draw one region, with the connectors running between its members."""
+        members, title = region.members, region.title
+        if region.frame is not None:
+            x0, y0, x1, y1 = region.frame.bbox
         else:
             x0 = min(i.bbox[0] for i in members)
             y0 = min(i.bbox[1] for i in members)
@@ -418,8 +412,8 @@ class MiroBoardRenderer:
 
         world_w = max(x1 - x0, 1.0)
         world_h = max(y1 - y0 + title_band, 1.0)
-        scale = math.sqrt(self.max_pixels / (world_w * world_h))
-        scale = max(self.min_scale, min(self.max_scale, scale))
+        # max_pixels is a hard cap: a region too large to read at that size stays bounded in memory
+        scale = min(self.max_scale, math.sqrt(self.max_pixels / (world_w * world_h)))
 
         img_w = max(int(world_w * scale), 32)
         img_h = max(int(world_h * scale), 32)
@@ -431,8 +425,6 @@ class MiroBoardRenderer:
 
         if title:
             self._draw_text_in_box(draw, title, (0, 0, img_w, title_band * scale), align="left", bold_bg="#F0F0F0")
-
-        member_ids = {m.item_id for m in members}
 
         # Larger items first so small notes stay on top
         boxes = {}
@@ -446,9 +438,7 @@ class MiroBoardRenderer:
         if connectors:
             self._draw_connectors(draw, connectors, boxes, scale)
 
-        return RenderedRegion(
-            image=image, region_type=region_type, region_id=region_id, title=title, item_ids=sorted(member_ids)
-        )
+        return image
 
     def _draw_connectors(
         self,
@@ -695,7 +685,7 @@ def _cluster_id(cluster: List[RenderItem]) -> str:
 def group_items_by_region(items: List[Dict[str, Any]]) -> Dict[str, str]:
     """Map every item id to the id of the region it is rendered in.
 
-    Mirrors the grouping in MiroBoardRenderer.render() so that text chunks and
+    Mirrors the grouping in MiroBoardRenderer.regions() so that text chunks and
     rendered images share one file_id namespace: an item nested in a frame or
     diagram belongs to that container, and the rest fall into spatial clusters.
 
@@ -760,15 +750,16 @@ def main() -> None:
             connectors = []
 
     renderer = MiroBoardRenderer(cluster_gap=args.cluster_gap)
-    regions = renderer.render(items, connectors)
+    regions = renderer.regions(items)
 
     os.makedirs(args.out, exist_ok=True)
     for region in regions:
+        image = renderer.draw(region, connectors)
         filename = f"{region.region_type}_{region.region_id}.png"
         path = os.path.join(args.out, filename)
-        region.image.save(path)
+        image.save(path)
         label = f" title={region.title!r}" if region.title else ""
-        print(f"  {path}  {region.image.size[0]}x{region.image.size[1]}  items={len(region.item_ids)}{label}")
+        print(f"  {path}  {image.size[0]}x{image.size[1]}  items={len(region.item_ids)}{label}")
     print(f"Rendered {len(regions)} region(s) to {args.out}")
 
 
