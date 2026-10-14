@@ -1343,6 +1343,12 @@ def merge_chunks_node(state: KnowledgeExtractionState) -> KnowledgeExtractionSta
     chunks + image_chunks -> chunks
     """
     try:
+        # The parallel image branch cannot append to errors, so its failure is recorded here
+        failed_message = (state.get("image_statistics") or {}).get("failed_message")
+        if failed_message:
+            state.setdefault("errors", [])
+            state["errors"].append(failed_message)
+
         text_chunks = state.get("chunks", []) or []
         image_chunks = state.get("image_chunks", []) or []
 

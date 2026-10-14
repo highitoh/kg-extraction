@@ -252,6 +252,8 @@ class ClassExtractor(Runnable):
                         if attempt == 4:  # Last attempt
                             if self.progress:
                                 print(f"[ClassExtractor] Error in view={view_type}: {e}")
+                            # Fail the run rather than lose the classes of this view
+                            raise
                         await asyncio.sleep(min(2**attempt, 10))
 
                 async with lock:

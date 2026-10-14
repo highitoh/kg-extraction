@@ -311,6 +311,9 @@ class PropertyReviewer(Runnable):
             )
 
         await asyncio.gather(*[sem_task(prop_iri, grp) for prop_iri, grp in groups.items()])
+        # Fail the run rather than lose the properties of a failed group
+        if failed_groups:
+            raise RuntimeError(f"PropertyReviewer failed for {', '.join(failed_groups)}")
 
         # Map review results using property_id
         result_map = {r["property_id"]: r for r in results_all}

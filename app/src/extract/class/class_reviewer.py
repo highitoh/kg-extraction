@@ -463,19 +463,16 @@ class ClassReviewer(Runnable):
             judgments = parsed["judgments"]
             return judgments
 
-        except asyncio.TimeoutError:
-            if self.progress:
-                print(f"[ClassReviewer] Prohibit rules review timeout for class_iri={class_iri}")
-            return [{"judgment": "REJECT", "justification": "LLM call timed out"} for _ in classes]
         except (json.JSONDecodeError, KeyError) as e:
             if self.progress:
                 print(f"[ClassReviewer] Prohibit rules review JSON parse error: {e}, response: {result_text}")
             # Treat all as REJECT on error
             return [{"judgment": "REJECT", "justification": "Parse error"} for _ in classes]
         except Exception as e:
+            # A failed call fails the run rather than rejecting the classes
             if self.progress:
-                print(f"[ClassReviewer] Prohibit rules review error: {e}")
-            return [{"judgment": "REJECT", "justification": "LLM call failed"} for _ in classes]
+                print(f"[ClassReviewer] Prohibit rules review error for class_iri={class_iri}: {e}")
+            raise
 
     @staticmethod
     def _to_text(content: Any) -> str:

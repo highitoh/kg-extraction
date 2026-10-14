@@ -229,6 +229,8 @@ class ViewExtractor(Runnable):
                         spans = await self._extract_spans_for_chunk(c, i)
                         break
                     except Exception:
+                        if attempt == 4:  # Last attempt: fail the run rather than lose the chunk
+                            raise
                         await asyncio.sleep(min(2**attempt, 10))
                 async with lock:
                     counter += 1

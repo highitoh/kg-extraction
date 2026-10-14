@@ -128,7 +128,7 @@ def run_knowledge_extraction(
         json.dump(result_copy, f, ensure_ascii=False, indent=2)
 
     # Create snapshot if requested and extraction was successful
-    if create_snapshot and result.get("summary"):
+    if create_snapshot and result.get("summary") and not result.get("errors"):
         try:
             snapshot_mgr = SnapshotManager(output_dir=output_dir, timestamp=timestamp)
 
@@ -298,14 +298,8 @@ if __name__ == "__main__":
             use_cache=args.cache,
         )
 
-        # Check for errors
-        if result.get("errors"):
-            print("\n=== Warnings/Errors ===")
-            for error in result["errors"]:
-                print(f"  - {error}")
-
         # Display results
-        if "summary" in result:
+        if "summary" in result and not result.get("errors"):
             print("\n=== Extraction Complete ===")
             print(f"Final stage: {result.get('current_stage', 'unknown')}")
             print("\nGenerated files:")

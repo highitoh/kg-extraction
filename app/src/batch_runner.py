@@ -925,7 +925,7 @@ def main():
             previous_snapshot_id=source_previous_snapshot_id or None,
         )
 
-        if not result.get("summary"):
+        if not result.get("summary") or result.get("errors"):
             errors = "; ".join(result.get("errors", [])) or "unknown error"
             raise RuntimeError(f"Extraction failed: {errors}")
 

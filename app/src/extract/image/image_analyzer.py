@@ -189,19 +189,24 @@ class ImageAnalyzer:
         async def _one(subject: ImageSubject) -> Tuple[ImageSubject, float]:
             nonlocal counter
             async with semaphore:
+                score = 0.0
                 try:
                     base64_img = self._to_base64(subject.load(), self.screen_width)
+                except Exception as exc:
+                    status = f"failed ({exc})"
+                else:
+                    # A failed call fails the run rather than dropping the image
                     response = await call_with_retry(
                         lambda: self.llm_relevance.ainvoke([self._message(self.relevance_prompt, base64_img)]),
                         timeout=60.0,
                         label=f"{self.label}.relevance",
                     )
-                    data = json.loads(self._to_text(response.content))
-                    score = float(data.get("relevance_score", 0.0))
-                    status = "ok"
-                except Exception as exc:
-                    score = 0.0
-                    status = f"failed ({exc})"
+                    try:
+                        data = json.loads(self._to_text(response.content))
+                        score = float(data.get("relevance_score", 0.0))
+                        status = "ok"
+                    except Exception as exc:
+                        status = f"failed ({exc})"
 
                 async with lock:
                     counter += 1
@@ -231,27 +236,34 @@ class ImageAnalyzer:
             status = "ok"
             text_len = 0
             has_structural = False
-            try:
-                async with semaphore:
+            response = None
+            async with semaphore:
+                try:
                     base64_img = self._to_base64(subject.load(), self.describe_width)
+                except Exception as exc:
+                    status = f"failed ({exc})"
+                else:
+                    # A failed call fails the run rather than dropping the image
                     response = await call_with_retry(
                         lambda: self.llm_description.ainvoke([self._message(self.description_prompt, base64_img)]),
                         timeout=90.0,
                         label=f"{self.label}.description",
                     )
-                data = json.loads(self._to_text(response.content))
+            if response is not None:
+                try:
+                    data = json.loads(self._to_text(response.content))
 
-                structural = data.get("structural_description", "") or ""
-                has_structural = bool(data.get("has_structural_content", False))
-                text = build_chunk_text(structural, has_structural)
+                    structural = data.get("structural_description", "") or ""
+                    has_structural = bool(data.get("has_structural_content", False))
+                    text = build_chunk_text(structural, has_structural)
 
-                if not text:
-                    status = "empty"
-                else:
-                    text_len = len(text)
-                    chunk = self._build_chunk(subject, score, text, structural, has_structural)
-            except Exception as exc:
-                status = f"failed ({exc})"
+                    if not text:
+                        status = "empty"
+                    else:
+                        text_len = len(text)
+                        chunk = self._build_chunk(subject, score, text, structural, has_structural)
+                except Exception as exc:
+                    status = f"failed ({exc})"
 
             async with lock:
                 counter += 1

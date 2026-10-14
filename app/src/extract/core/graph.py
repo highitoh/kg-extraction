@@ -37,6 +37,11 @@ from src.extract.core.nodes import (
 from src.extract.core.state import KnowledgeExtractionState
 
 
+def route_after_properties(state: KnowledgeExtractionState) -> str:
+    """Stop a failed run before it touches knowledge.json, so no snapshot or changeset is recorded."""
+    return END if state.get("errors") else "cleanup_stale_items"
+
+
 def create_knowledge_extraction_graph():
     """
     Build the LangGraph for knowledge extraction processing
@@ -61,7 +66,7 @@ def create_knowledge_extraction_graph():
                   extract_classes
                        ↓
                   extract_properties
-                       ↓
+                       ↓ (END if any stage recorded an error)
                   cleanup_stale_items (incremental mode only)
                        ↓
                   save_accumulated_knowledge
@@ -235,7 +240,11 @@ def create_knowledge_extraction_graph():
     workflow.add_edge("merge_chunks", "extract_views")
     workflow.add_edge("extract_views", "extract_classes")
     workflow.add_edge("extract_classes", "extract_properties")
-    workflow.add_edge("extract_properties", "cleanup_stale_items")
+    workflow.add_conditional_edges(
+        "extract_properties",
+        route_after_properties,
+        {END: END, "cleanup_stale_items": "cleanup_stale_items"},
+    )
     workflow.add_edge("cleanup_stale_items", "save_accumulated_knowledge")
     workflow.add_edge("save_accumulated_knowledge", "generate_outputs")
 
