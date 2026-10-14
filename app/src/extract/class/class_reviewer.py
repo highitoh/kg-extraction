@@ -23,6 +23,7 @@ class ClassReviewer(Runnable):
         temperature: float = 0.0,
         progress: bool = True,
         max_concurrency: int = 8,
+        batch_size: int = 50,
         log_dir: str = "/workspace/app/log/class_reviewer",
         metamodel_path: str = None,
     ):
@@ -30,6 +31,7 @@ class ClassReviewer(Runnable):
         self.temperature = temperature
         self.progress = progress
         self.max_concurrency = max_concurrency
+        self.batch_size = batch_size
         self.logger = Logger(log_dir)
 
         # Load metamodel
@@ -359,7 +361,11 @@ class ClassReviewer(Runnable):
 
                 # Run LLM-backed review steps serially to avoid reusing async client
                 # resources concurrently within the same reviewer instance.
-                prohibit_judgments = await self._review_prohibit_rules_async(llm, class_instances, class_iri)
+                # Batched to keep minItems/maxItems small; duplicate detection still sees the whole group.
+                prohibit_judgments = []
+                for i in range(0, len(class_instances), self.batch_size):
+                    batch = class_instances[i : i + self.batch_size]
+                    prohibit_judgments.extend(await self._review_prohibit_rules_async(llm, batch, class_iri))
                 duplicate_groups = await self._detect_duplicates_async(llm, class_instances, class_iri)
 
                 # Merge results
