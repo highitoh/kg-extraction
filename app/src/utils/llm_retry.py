@@ -7,6 +7,7 @@ import random
 from datetime import datetime
 from typing import Awaitable, Callable, Optional
 
+from google.genai.errors import ServerError
 from langchain_google_genai.chat_models import ChatGoogleGenerativeAIError
 from openai import APIConnectionError, APIError, RateLimitError
 
@@ -18,6 +19,7 @@ _RETRYABLE = (
     RateLimitError,
     APIError,
     ChatGoogleGenerativeAIError,
+    ServerError,
     asyncio.TimeoutError,
 )
 
