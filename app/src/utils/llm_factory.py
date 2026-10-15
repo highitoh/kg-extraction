@@ -63,7 +63,7 @@ class LLMFactory:
     @staticmethod
     def create_llm(
         model: str = DEFAULT_LLM_MODEL,
-        temperature: float = 0.0,
+        temperature: float = 1.0,
         reasoning_effort: Optional[str] = None,
         timeout: float = 90.0,
     ) -> BaseChatModel:
@@ -73,7 +73,7 @@ class LLMFactory:
 
         Args:
             model: The model or deployment name to use
-            temperature: The temperature setting for the model (default: 0.0)
+            temperature: The temperature setting for the model (default: 1.0; Gemini 3 can loop below 1.0)
             reasoning_effort: Reasoning effort for this call, used when LLM_REASONING_EFFORT
                 is unset (default: None, which falls back to LLM_REASONING_EFFORT)
             timeout: The client-side request timeout in seconds (default: 90)

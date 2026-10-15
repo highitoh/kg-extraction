@@ -30,7 +30,7 @@ class FileTypeClassifier(Runnable):
         self,
         llm: BaseChatModel | None = None,
         model: str | None = None,
-        temperature: float = 0.0,
+        temperature: float = 1.0,
         log_dir: str = "/workspace/app/log/file_type_classifier",
     ):
         self.model = model
@@ -344,7 +344,7 @@ if __name__ == "__main__":
     print("FileTypeClassifier test starting...")
 
     # Create FileTypeClassifier instance
-    classifier = FileTypeClassifier(temperature=0.0)
+    classifier = FileTypeClassifier(temperature=1.0)
 
     try:
         # Execute test

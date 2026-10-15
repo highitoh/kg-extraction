@@ -25,7 +25,7 @@ class PropertyRanker(Runnable):
         self,
         llm: ChatOpenAI | None = None,
         model: str | None = None,
-        temperature: float = 0.0,
+        temperature: float = 1.0,
         max_concurrency: int = 8,
         progress: bool = True,
         log_dir: str = "/workspace/app/log/property_ranker",

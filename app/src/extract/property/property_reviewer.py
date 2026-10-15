@@ -17,7 +17,7 @@ class PropertyReviewer(Runnable):
     def __init__(
         self,
         model: str | None = None,
-        temperature: float = 0.0,
+        temperature: float = 1.0,
         max_concurrency: int = 8,
         progress: bool = True,
         log_dir: str = "/workspace/app/log/property_reviewer",

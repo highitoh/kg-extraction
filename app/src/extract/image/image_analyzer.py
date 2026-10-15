@@ -65,7 +65,7 @@ class ImageAnalyzer:
         self,
         llm: BaseChatModel | None = None,
         model: str | None = None,
-        temperature: float = 0.0,
+        temperature: float = 1.0,
         max_concurrency: int = 5,
         relevance_threshold: float | None = None,
         screen_width: int | None = None,

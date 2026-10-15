@@ -29,7 +29,7 @@ class ClassEditor(Runnable):
     def __init__(
         self,
         model: str | None = None,
-        temperature: float = 0.0,
+        temperature: float = 1.0,
         progress: bool = True,
         max_concurrency: int = 8,
         log_dir: str = "/workspace/app/log/class_editor",

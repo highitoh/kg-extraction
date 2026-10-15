@@ -66,7 +66,7 @@ class StrategyPlanner:
         else:
             self.previous_strategies = []
 
-        self.llm = LLMFactory.create_llm(model=model, temperature=0.0, timeout=300.0)
+        self.llm = LLMFactory.create_llm(model=model, temperature=1.0, timeout=300.0)
 
         # Load schema (path: /workspace/app/schemas/strategy-planner/)
         self.schemas_dir = Path(__file__).parent.parent.parent / "schemas" / "strategy-planner"

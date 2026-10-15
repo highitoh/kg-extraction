@@ -29,7 +29,7 @@ class KnowledgeValidator:
         self,
         project: str = "default",
         model: str | None = None,
-        temperature: float = 0.0,
+        temperature: float = 1.0,
         output_base_dir: str = "/workspace/app/output",
         max_concurrency: int = 4,
     ):

@@ -23,7 +23,7 @@ class IssueCategorizer:
     def __init__(
         self,
         model: str | None = None,
-        temperature: float = 0.0,
+        temperature: float = 1.0,
         output_base_dir: str = "/workspace/app/output/optimize",
         progress: bool = True,
     ):
