@@ -162,6 +162,13 @@ class ClassExtractor(Runnable):
                 source = li["source"]
                 file_id = li["file_id"]
                 class_iri = self._resolve_class_iri(view_type, c, metamodel)  # Implementation to return URI
+                if not class_iri:
+                    if self.progress:
+                        print(
+                            f"[ClassExtractor] Warning: Skipping '{label}': class '{c}' is not defined "
+                            f"for view '{view_type}'"
+                        )
+                    continue
 
                 # Ensure 1:1 correspondence between sources and file_ids
                 sources = [source]
