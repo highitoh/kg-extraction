@@ -74,6 +74,22 @@ def build_table_edges(structured_blocks: List[Dict[str, Any]]) -> List[Dict[str,
     return edges
 
 
+def render_table_context(block: Dict[str, Any]) -> str:
+    """Build the context text of a table block (section path / caption / surrounding window)."""
+    table = block.get("table", {})
+    parts = []
+    section_path = block.get("section_path", "")
+    if section_path:
+        parts.append(f"Section: {section_path}")
+    caption = table.get("caption")
+    if caption:
+        parts.append(f"Caption: {caption}")
+    window = block.get("context_window", "")
+    if window:
+        parts.append(f"Surrounding text: {window}")
+    return "\n".join(parts)
+
+
 if __name__ == "__main__":
     import json
 

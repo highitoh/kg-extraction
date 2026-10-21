@@ -32,6 +32,7 @@ from src.extract.core.nodes import (
     generate_outputs_node,
     merge_chunks_node,
     save_accumulated_knowledge_node,
+    screen_relevance_node,
     transform_to_chunks_node,
 )
 from src.extract.core.state import KnowledgeExtractionState
@@ -60,6 +61,8 @@ def create_knowledge_extraction_graph():
          transform_to_chunks     extract_images (parallel - image-to-text)
               ↓                       or extract_images_miro (Miro URL-only)
               └─→ merge_chunks ←───┘
+                       ↓
+                  screen_relevance (passes through without a project profile)
                        ↓
                   extract_views
                        ↓
@@ -101,6 +104,7 @@ def create_knowledge_extraction_graph():
     workflow.add_node("extract_images", extract_images_node)
     workflow.add_node("extract_images_miro", extract_images_miro_node)
     workflow.add_node("merge_chunks", merge_chunks_node)
+    workflow.add_node("screen_relevance", screen_relevance_node)
     workflow.add_node("extract_views", extract_views_node)
     workflow.add_node("extract_classes", extract_classes_node)
     workflow.add_node("extract_properties", extract_properties_node)
@@ -235,9 +239,10 @@ def create_knowledge_extraction_graph():
     workflow.add_edge("transform_to_chunks", "merge_chunks")
     workflow.add_edge("extract_images", "merge_chunks")
 
-    # Merged chunks → View extraction → Class extraction → Property extraction → Cleanup deleted →
-    # Accumulated save → Output generation
-    workflow.add_edge("merge_chunks", "extract_views")
+    # Merged chunks → Relevance screening → View extraction → Class extraction → Property extraction →
+    # Cleanup deleted → Accumulated save → Output generation
+    workflow.add_edge("merge_chunks", "screen_relevance")
+    workflow.add_edge("screen_relevance", "extract_views")
     workflow.add_edge("extract_views", "extract_classes")
     workflow.add_edge("extract_classes", "extract_properties")
     workflow.add_conditional_edges(

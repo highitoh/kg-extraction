@@ -1,0 +1,37 @@
+{
+  "$id": "https://github.com/highitoh/kg-extraction/schemas/project-profile/profile.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ProjectProfile",
+  "description": "What a project's own knowledge is about. Read from output/{project}/project_profile.json by the relevance screener, which drops content about other organizations and projects.",
+  "type": "object",
+  "properties": {
+    "description": {
+      "type": "string",
+      "minLength": 1,
+      "description": "One or two sentences on what the project does"
+    },
+    "products": {
+      "type": "array",
+      "description": "Products or services the project builds",
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Product name"
+          },
+          "aliases": {
+            "type": "array",
+            "items": {"type": "string", "minLength": 1},
+            "description": "Other names the materials use for the product (codenames, abbreviations)"
+          }
+        },
+        "required": ["name"],
+        "additionalProperties": false
+      }
+    }
+  },
+  "required": ["description", "products"],
+  "additionalProperties": false
+}

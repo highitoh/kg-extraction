@@ -15,6 +15,7 @@ from src.utils.llm_factory import LLMFactory
 from src.utils.llm_retry import call_with_retry
 from src.utils.logger import Logger
 from src.utils.prompt_utils import fill_prompt_template
+from src.utils.table_structure import render_table_context
 
 
 def llm_extractable_classes(metamodel: Dict[str, Any]) -> List[Dict[str, Any]]:
@@ -513,22 +514,6 @@ class ClassExtractor(Runnable):
         return ""
 
     @staticmethod
-    def _render_block_context(block: Dict[str, Any]) -> str:
-        """Build the [Context] text (section path / caption / surrounding window)."""
-        table = block.get("table", {})
-        parts = []
-        section_path = block.get("section_path", "")
-        if section_path:
-            parts.append(f"Section: {section_path}")
-        caption = table.get("caption")
-        if caption:
-            parts.append(f"Caption: {caption}")
-        window = block.get("context_window", "")
-        if window:
-            parts.append(f"Surrounding text: {window}")
-        return "\n".join(parts)
-
-    @staticmethod
     def _render_headers(row_headers: List[str], col_headers: List[str]) -> tuple[str, Dict[str, str]]:
         """Build [Headers] text and a {header_id: verbatim label} map."""
         header_map: Dict[str, str] = {}
@@ -583,7 +568,7 @@ class ClassExtractor(Runnable):
         if not header_map:
             return []
 
-        context_text = self._render_block_context(block)
+        context_text = render_table_context(block)
         grid_text = self._render_grid(col_headers, cells)
 
         prompt = fill_prompt_template(

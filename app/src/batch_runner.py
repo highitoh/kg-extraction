@@ -72,6 +72,9 @@ LOCK_MAX_WAIT_SECONDS = int(os.environ.get("LOCK_MAX_WAIT_SECONDS", "1800"))
 LOCK_POLL_SECONDS = 20
 LOCK_EXPIRY_SECONDS = 3 * 60 * 60  # longer than the 2h Batch job timeout
 
+# Project profile file name, as read by src/utils/project_profile.py
+PROFILE_FILENAME = "project_profile.json"
+
 # Working directories
 WORK_DIR = Path("/tmp/extraction")
 INPUT_DIR = WORK_DIR / "input"
@@ -634,7 +637,8 @@ def record_changeset(
         project=PROJECT,
         output_dir=str(output_dir),
         changeset_id=changeset_id,
-        source_sentences=result.get("sentences", []),
+        # Only the text the screener kept, so a dropped passage cannot explain a change
+        source_sentences=result.get("kept_sentences") or result.get("sentences", []),
         file_id=result.get("file_id", "unknown"),
     )
 
@@ -877,6 +881,17 @@ def main():
             logger.info("No existing knowledge.json found, starting fresh")
             knowledge_json_path.write_text('{"classes": [], "properties": []}')
 
+        # The workflow reads the project profile from the same directory; a project
+        # without one is extracted without relevance screening.
+        profile_path = output_dir / PROFILE_FILENAME
+        profile_s3_key = f"projects/{PROJECT}/{PROFILE_FILENAME}"
+        try:
+            s3.head_object(Bucket=BUCKET_NAME, Key=profile_s3_key)
+            download_from_s3(f"s3://{BUCKET_NAME}/{profile_s3_key}", profile_path)
+            logger.info("Downloaded project profile")
+        except Exception:
+            logger.info("No project profile found, extracting without relevance screening")
+
         # Keep the state this extraction starts from, so the changeset below
         # can diff against it once the extraction has overwritten it.
         previous_snapshot_id = latest_snapshot_id()
@@ -940,8 +955,9 @@ def main():
         update_progress(job_id, 85, "Uploading results to S3")
 
         output_prefix = f"projects/{PROJECT}/outputs"
+        # knowledge.json goes to its own key below; the profile is an input, not an output
         for output_file in output_dir.glob("*"):
-            if output_file.is_file() and output_file.name != "knowledge.json":
+            if output_file.is_file() and output_file.name not in ("knowledge.json", PROFILE_FILENAME):
                 upload_to_s3(output_file, f"{output_prefix}/{output_file.name}")
 
         if knowledge_json_path.exists():

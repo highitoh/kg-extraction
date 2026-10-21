@@ -112,6 +112,7 @@ The knowledge extraction system deploys as a hybrid serverless architecture on A
    - Acquires the per-project lock (serializes writers of knowledge.json)
    - Downloads file from S3 (URLs are passed through to the workflow)
    - Downloads knowledge.json (if exists)
+   - Downloads project_profile.json (if exists; enables relevance screening)
    - Calls extract_workflow.py
    - Uploads outputs and updated knowledge.json to S3
    - Creates snapshot (S3 + Snapshots table)
@@ -145,6 +146,7 @@ s3://{account_name}-kg-extraction-{env}/
 ├── projects/
 │   └── {project}/
 │       ├── knowledge.json          # Current accumulated knowledge
+│       ├── project_profile.json    # Optional, user-provided: what the project is about
 │       ├── outputs/                # Timestamped outputs
 │       │   ├── knowledge_graph_*.ttl
 │       │   ├── nodes.csv

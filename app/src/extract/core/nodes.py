@@ -16,6 +16,7 @@ from src.extract.image.sources import embedded_images, miro_rendered_regions, pd
 from src.extract.output.neo4j_csv_generator import Neo4jCSVGenerator
 from src.extract.output.turtle_generator import TurtleGenerator
 from src.extract.property.property_chain import create_property_chain
+from src.extract.relevance.relevance_screener import RelevanceScreener, is_image_chunk
 from src.extract.text.pdf_text_chain import PdfTextChain
 from src.extract.text.presentation_text_chain import PresentationTextChain
 from src.extract.view.view_chain import create_view_chain
@@ -172,29 +173,55 @@ def _create_chunks_by_file_id(sentences: List[Dict[str, Any]], fallback_file_id:
     knowledge should be attributed to (Miro regions). Keeping the file_id on the
     chunk lets downstream extraction record which part of the source a class came
     from, which is what makes replacing the knowledge of a single changed region
-    possible. A group that is too large is split with ChunkCreator.
+    possible.
+
+    Sentences are packed whole, since board items rarely end with punctuation;
+    board-item chunks keep them as "elements" for per-item relevance screening.
 
     Args:
         sentences: List of sentence dicts, each with an optional "file_id"
         fallback_file_id: file_id for sentences that carry none
 
     Returns:
-        List of {"text": str, "file_id": str}
+        List of {"text": str, "file_id": str}, plus "elements" and "title" for board items
     """
     from collections import defaultdict
 
     file_id_groups = defaultdict(list)
     for sentence in sentences:
         file_id = sentence.get("file_id") or fallback_file_id
-        file_id_groups[file_id].append(sentence["text"])
+        file_id_groups[file_id].append(sentence)
 
-    chunk_creator = ChunkCreator(chunk_mode="char", max_chars=2000, overlap_chars=100)
+    max_chars = 2000
+    chunk_creator = ChunkCreator(chunk_mode="char", max_chars=max_chars, overlap_chars=100)
     chunks = []
 
     for file_id in sorted(file_id_groups.keys()):
-        group_text = " ".join(file_id_groups[file_id])
-        for chunk_text in chunk_creator.create(group_text):
-            chunks.append({"text": chunk_text, "file_id": file_id})
+        group = file_id_groups[file_id]
+        # A frame's joined text (PDF+API mode) is no item, so it is left to sentence splitting downstream
+        is_items = all(s.get("metadata", {}).get("item_id") for s in group)
+        title = next((s["text"] for s in group if s.get("metadata", {}).get("item_type") == "frame"), "")
+
+        pieces = []
+        for s in group:
+            pieces.extend([s["text"]] if len(s["text"]) <= max_chars else chunk_creator.create(s["text"]))
+
+        packed = [[]]
+        packed_len = 0
+        for piece in pieces:
+            if packed[-1] and packed_len + len(piece) + 1 > max_chars:
+                packed.append([])
+                packed_len = 0
+            packed[-1].append(piece)
+            packed_len += len(piece) + 1
+
+        for chunk_pieces in packed:
+            chunk = {"text": " ".join(chunk_pieces), "file_id": file_id}
+            if is_items:
+                chunk["elements"] = chunk_pieces
+                if title:
+                    chunk["title"] = title
+            chunks.append(chunk)
 
     return chunks
 
@@ -1365,6 +1392,49 @@ def merge_chunks_node(state: KnowledgeExtractionState) -> KnowledgeExtractionSta
         state.setdefault("errors", [])
         state["errors"].append(f"Chunk merge failed: {e}")
         state["current_stage"] = "chunk_merge_failed"
+
+    return state
+
+
+def screen_relevance_node(state: KnowledgeExtractionState) -> KnowledgeExtractionState:
+    """
+    Node that drops the content that is not about the project, judged against the project profile
+    chunks, structured_blocks, project_profile -> chunks, structured_blocks, extracted_structure,
+    kept_sentences, screening
+
+    Runs before view extraction, so each judgment sees a whole region, chunk window
+    or table rather than isolated sentences. Without a project profile the state
+    passes through unchanged.
+    """
+    profile = state.get("project_profile")
+    if not profile:
+        print("[ScreenRelevanceNode] skipped: no project profile")
+        return state
+
+    try:
+        screener = RelevanceScreener(model=state.get("model"))
+        result = screener.invoke(
+            {
+                "profile": profile,
+                "source_type": state.get("source_type", ""),
+                "file_id": state.get("file_id", ""),
+                "chunks": state.get("chunks", []) or [],
+                "structured_blocks": state.get("structured_blocks", []) or [],
+            }
+        )
+
+        state["chunks"] = result["chunks"]
+        state["structured_blocks"] = result["structured_blocks"]
+        # Diagram edges come from image chunks only, so a dropped diagram takes its edges with it
+        state["extracted_structure"] = build_extracted_structure([c for c in result["chunks"] if is_image_chunk(c)])
+        state["kept_sentences"] = result["kept_sentences"]
+        state["screening"] = result["screening"]
+        state["current_stage"] = "relevance_screened"
+
+    except Exception as e:
+        state.setdefault("errors", [])
+        state["errors"].append(f"Relevance screening failed: {e}")
+        state["current_stage"] = "relevance_screening_failed"
 
     return state
 

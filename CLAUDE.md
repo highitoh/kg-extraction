@@ -191,6 +191,7 @@ Output files are managed by project, specified with the `--project` parameter.
 │   ├── knowledge.json                 # Accumulated knowledge (ACCEPT classes + valid properties)
 │   └── extraction_result_YYYYMMDD_HHMMSS.json
 ├── project1/                          # Custom project
+│   ├── project_profile.json           # Optional: what the project is about (relevance screening input)
 │   ├── knowledge_graph_YYYYMMDD_HHMMSS.ttl
 │   ├── nodes.csv
 │   ├── relationships.csv
@@ -205,6 +206,17 @@ Output files are managed by project, specified with the `--project` parameter.
 - **Neo4j CSV files**: `nodes.csv`, `relationships.csv` - CSV files for Neo4j import
 - **Knowledge JSON**: `knowledge.json` - Accumulated knowledge (lightweight version, used as input for next execution)
 - **Result JSON**: `extraction_result_YYYYMMDD_HHMMSS.json` - Complete processing results for each execution (with timestamp, for history/audit)
+
+### Project Profile (Relevance Screening)
+Optional. When present, the `screen_relevance` node drops content about other organizations or projects unless it states how this project relates to them.
+
+```json
+{"description": "What the project does", "products": [{"name": "ACME Analytics", "aliases": ["Orion"]}]}
+```
+- Schema: `schemas/project-profile/profile.schema.json`.
+- Applies from the next extraction; existing knowledge is not re-screened.
+- Dropped items: `screening.dropped` in `extraction_result_*.json`; logs: `log/relevance_screener/`.
+- AWS: `s3://{bucket}/projects/{project}/project_profile.json`.
 
 ## Snapshot Management
 

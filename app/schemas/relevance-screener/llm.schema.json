@@ -1,0 +1,34 @@
+{
+  "$id": "https://github.com/highitoh/kg-extraction/schemas/relevance-screener/llm.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "RelevanceScreenerLLMOutput",
+  "description": "LLM output schema for RelevanceScreener - one keep/drop judgment per element",
+  "type": "object",
+  "properties": {
+    "judgments": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Element ID from input CSV"
+          },
+          "label": {
+            "type": "string",
+            "enum": ["keep", "drop"],
+            "description": "keep when the element is about the project, drop otherwise"
+          },
+          "reason": {
+            "type": "string",
+            "description": "Brief reason for drop; empty for keep"
+          }
+        },
+        "required": ["id", "label", "reason"],
+        "additionalProperties": false
+      }
+    }
+  },
+  "required": ["judgments"],
+  "additionalProperties": false
+}

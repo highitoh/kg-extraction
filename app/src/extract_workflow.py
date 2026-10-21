@@ -18,6 +18,7 @@ from dotenv import load_dotenv
 from src.extract.core.graph import create_knowledge_extraction_graph
 from src.extract.core.state import KnowledgeExtractionState
 from src.utils.llm_factory import DEFAULT_REASONING_EFFORT, SUPPORTED_REASONING_EFFORTS
+from src.utils.project_profile import load_project_profile
 from src.utils.snapshot_manager import SnapshotManager
 
 # Load environment variables from .env file
@@ -83,6 +84,12 @@ def run_knowledge_extraction(
         "project": project,
         "errors": [],
     }
+
+    # Without a profile, relevance screening is skipped
+    project_profile = load_project_profile(output_dir, project)
+    if project_profile:
+        initial_state["project_profile"] = project_profile
+    print(f"Project profile: {'loaded' if project_profile else 'none'}")
 
     # If knowledge_json_path is provided, load it (for AWS Batch)
     if knowledge_json_path and os.path.exists(knowledge_json_path):
@@ -194,7 +201,8 @@ def _record_changeset(result: Dict[str, Any], project: str, output_dir: str, mod
         project=project,
         output_dir=output_dir,
         model=model,
-        source_sentences=result.get("sentences", []),
+        # Only the text the screener kept, so a dropped passage cannot explain a change
+        source_sentences=result.get("kept_sentences") or result.get("sentences", []),
         file_id=result.get("file_id", "unknown"),
     )
 

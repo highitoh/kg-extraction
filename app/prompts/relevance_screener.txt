@@ -1,0 +1,37 @@
+You are screening source material for the knowledge graph of one project. Decide for each element of the segment below whether it is knowledge about this project, adhering to the [Judgment Rules].
+
+[Project]
+<<PROJECT_PROFILE>>
+
+[Judgment Rules]
+- keep: The element is about this project: its products, its own activities and plans, its users and stakeholders, its requirements, features, components, data, or findings.
+- keep: The element states how this project relates to another organization, product, or project: an integration, a partnership, a dependency, or a comparison or differentiation (for example: "unlike Company X, we offer ...").
+- drop: The element is about a specific other organization, product, or project: its own products, services, features, activities, or results, without stating how this project relates to it (for example: a competitor's feature list, a case study of another company, a partner's own business).
+- An element is not dropped only because it does not name this project. General statements, definitions of terms, and sentence fragments are kept.
+- An element that gives the facts of a comparison stated in the elements around it (for example: another country's cost next to this project's) is part of that comparison and is kept.
+- Words such as "we", "our company", "this service", and their equivalents in other languages refer to whoever wrote that part of the material. Judge from the whole segment whom they refer to: in a pasted case study of another company, they refer to that company.
+- An element that names neither this project nor another party takes the subject of the segment or section it sits in.
+- Drop only when the element can be determined to be about another party. Otherwise, keep.
+
+[Segment Context]
+The frame title, section, or table context of the segment. It is given for reference and is not judged.
+<<SEGMENT_CONTEXT>>
+
+[Elements Format]
+CSV with columns: id, section, text
+- id: Element ID (e0, e1, ...)
+- section: The document section the element sits in (empty when unknown)
+- text: One element of the segment: a board item, a sentence, an image description, or a table outline
+
+[Output Format (JSON only)]
+{
+  "judgments": [
+    {"id": "e0", "label": "keep", "reason": ""},
+    {"id": "e1", "label": "drop", "reason": "reason"}
+  ]
+}
+- Return one judgment per element, in input order
+- reason: A brief reason for drop; an empty string for keep
+
+[Elements]
+<<ELEMENTS_CSV>>

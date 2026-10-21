@@ -36,6 +36,10 @@ class KnowledgeExtractionState(TypedDict, total=False):
     project: str  # Project name (output files classified by project)
     use_cache: Optional[bool]  # Reuse the source read cached under {output_dir}/{project}/cache/ (Miro)
 
+    # ========== Project Profile ==========
+    project_profile: Optional[Dict[str, Any]]  # {output_dir}/{project}/project_profile.json; absent when none
+    # profile: {"description": str, "products": [{"name": str, "aliases": List[str]}]}
+
     # ========== Intermediate Results: Text Extraction Stage ==========
     file_id: str  # Stable file ID
     file_name: str  # File name
@@ -105,8 +109,10 @@ class KnowledgeExtractionState(TypedDict, total=False):
     github_file_map: Optional[Dict[str, str]]  # Map file_id → file metadata for change tracking
 
     # ========== Intermediate Results: Chunk Splitting Stage ==========
-    chunks: List[Dict[str, str]]  # Text chunks
+    chunks: List[Dict[str, Any]]  # Text chunks
     # chunk: {"text": str}
+    # Miro chunks also carry "file_id" (region), "elements" (the board items packed into
+    # the chunk, URL-only mode) and "title" (the region's frame title, when it has one)
 
     # ========== Intermediate Results: Image Extraction Stage ==========
     image_chunks: List[Dict[str, Any]]  # Image descriptions as chunks (parallel to text chunks)
@@ -151,6 +157,18 @@ class KnowledgeExtractionState(TypedDict, total=False):
     #     "cells": List[List[str]],   # row-major; "" = empty cell
     #     "caption": Optional[str]
     #   }
+    # }
+
+    # ========== Intermediate Results: Relevance Screening Stage ==========
+    # Set only when a project profile is present
+    kept_sentences: List[Dict[str, Any]]  # Text elements the screener kept, in order ({"text": str})
+    screening: Dict[str, Any]  # Screening summary
+    # {
+    #   "segments": int,   # LLM judgments made (one per region, page window, image or table)
+    #   "elements": int,   # Elements judged (board items, sentences, images, tables)
+    #   "kept": int,
+    #   "unjudged": int,   # Elements the LLM returned no valid judgment for (kept)
+    #   "dropped": [{"file_id": str, "text": str, "reason": str}]
     # }
 
     # ========== Intermediate Results: View Extraction Stage ==========

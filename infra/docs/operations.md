@@ -678,6 +678,28 @@ aws ecr describe-images --repository-name kg-extraction-dev
    ```
 3. **No redeployment needed** (Batch jobs fetch secret at runtime)
 
+### Set a Project Profile
+
+A project profile tells extraction what the project is about, so content about
+competitors, partners' own offerings, or other projects is screened out (see
+the "Project Profile" section of the repository's `CLAUDE.md` for the format).
+
+1. **Write the profile** (validated against `app/schemas/project-profile/profile.schema.json`):
+   ```json
+   {
+     "description": "One or two sentences on what the project does",
+     "products": [{"name": "ACME Analytics", "aliases": ["Orion"]}]
+   }
+   ```
+2. **Upload it next to the project's knowledge.json**:
+   ```bash
+   aws s3 cp project_profile.json \
+     s3://{account_name}-kg-extraction-dev/projects/{project}/project_profile.json
+   ```
+3. **No redeployment needed**: the next extraction job downloads it. Delete the
+   object to turn screening off again. Knowledge accumulated before the upload is
+   not re-screened.
+
 ### Clean Up Old Data
 
 **Delete old input files** (automated via S3 lifecycle):
