@@ -76,7 +76,7 @@ class RelevanceScreener(Runnable):
     Output: {"chunks": [...], "structured_blocks": [...], "kept_sentences": [...], "screening": {...}}
 
     An element without a valid judgment is kept: screening never loses content
-    because of an unreadable answer.
+    because of an unreadable answer or a failed call.
     """
 
     def __init__(
@@ -271,7 +271,12 @@ class RelevanceScreener(Runnable):
             if not segment.elements:
                 return {}
             async with sem:
-                judged = await self._judge_segment(segment, profile_text)
+                try:
+                    judged = await self._judge_segment(segment, profile_text)
+                except Exception as e:
+                    # A failed call leaves the segment unjudged, so its elements are kept
+                    print(f"[RelevanceScreener] {segment.file_id or 'segment'} failed, keeping its elements: {e}")
+                    judged = {}
             async with lock:
                 counter += 1
                 if self.progress:
