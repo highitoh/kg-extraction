@@ -630,6 +630,7 @@ def record_changeset(
 
     sys.path.insert(0, str(Path(__file__).parent.parent))
     from src.utils.changeset_generator import generate_changeset
+    from src.utils.changeset_inputs import change_source_sentences
 
     generate_changeset(
         before_snapshot_id=before_snapshot_id,
@@ -637,8 +638,7 @@ def record_changeset(
         project=PROJECT,
         output_dir=str(output_dir),
         changeset_id=changeset_id,
-        # Only the text the screener kept, so a dropped passage cannot explain a change
-        source_sentences=result.get("kept_sentences") or result.get("sentences", []),
+        source_sentences=change_source_sentences(result),
         file_id=result.get("file_id", "unknown"),
     )
 

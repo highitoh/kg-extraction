@@ -16,6 +16,39 @@ did not themselves become knowledge.
 from typing import Any, Dict, List, Set
 
 
+def change_source_sentences(result: Dict[str, Any]) -> List[Dict[str, Any]]:
+    """Choose the sentences of an extraction that may explain its changes.
+
+    Only the text the screener kept, so a dropped passage cannot explain a
+    change. When the extraction recorded the board items added or edited since
+    the previous snapshot, only theirs: an untouched item read again with its
+    region would otherwise be taken as the reason for every edit around it.
+
+    Args:
+        result: Final state of the extraction
+
+    Returns:
+        Sentences for build_change_context()
+    """
+    kept = result.get("kept_sentences")
+    edited = result.get("edited_sentences")
+    if edited is None:
+        return kept or result.get("sentences", [])
+    if not kept:
+        return edited
+
+    kept_texts = [text for text in (_normalize(s.get("text", "")) for s in kept) if text]
+    dropped_texts = {_normalize(d.get("text", "")) for d in (result.get("screening") or {}).get("dropped", [])}
+    # Board items are screened one by one; PDF+URL mode splits a frame's text by sentence instead
+    return [
+        s
+        for s in edited
+        if (text := _normalize(s.get("text", "")))
+        and text not in dropped_texts
+        and any(k in text or text in k for k in kept_texts)
+    ]
+
+
 def build_change_context(
     diff: Dict[str, Any],
     sentences: List[Dict[str, Any]],

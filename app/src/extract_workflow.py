@@ -185,6 +185,7 @@ def _record_changeset(result: Dict[str, Any], project: str, output_dir: str, mod
     first snapshot and there is nothing to compare against.
     """
     from src.utils.changeset_generator import generate_changeset
+    from src.utils.changeset_inputs import change_source_sentences
     from src.utils.snapshot_repository import SnapshotRepository
 
     after_snapshot_id = result["snapshot"]["snapshot_id"]
@@ -201,8 +202,7 @@ def _record_changeset(result: Dict[str, Any], project: str, output_dir: str, mod
         project=project,
         output_dir=output_dir,
         model=model,
-        # Only the text the screener kept, so a dropped passage cannot explain a change
-        source_sentences=result.get("kept_sentences") or result.get("sentences", []),
+        source_sentences=change_source_sentences(result),
         file_id=result.get("file_id", "unknown"),
     )
 

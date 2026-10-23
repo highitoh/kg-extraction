@@ -604,6 +604,13 @@ def extract_text_miro_node(state: KnowledgeExtractionState) -> KnowledgeExtracti
                 board_id = parse_board_id_from_url(miro_url)
                 state["stale_file_ids"] = [f"miro:{board_id}:{region_id}" for region_id in sorted(changed_regions)]
 
+                # Only these can say why the knowledge changed; the rest of their regions is merely read again
+                state["edited_sentences"] = [
+                    {"text": item_text["text"], "metadata": item_text["metadata"]}
+                    for item_text in filtered_item_texts
+                    if item_text.get("text") and item_text["metadata"].get("item_id") in changed_ids
+                ]
+
                 item_texts = filtered_item_texts
             else:
                 print("[ExtractTextMiroNode] Could not load previous data, using full extraction")
@@ -1922,6 +1929,7 @@ def extract_text_miro_board_node(state: KnowledgeExtractionState) -> KnowledgeEx
     """
     try:
         from src.extract.miro.miro_board_text_extractor import extract_text_from_miro_board
+        from src.extract.miro.miro_item_analyzer import MiroItemAnalyzer
         from src.utils.source_change_detector import load_source_raw
 
         pdf_path = state["files"][0]["path"]
@@ -1950,6 +1958,11 @@ def extract_text_miro_board_node(state: KnowledgeExtractionState) -> KnowledgeEx
                     f"[ExtractTextMiroBoard] Changes detected: {len(new_ids)} new, {len(modified_ids)} modified, "
                     f"{len(deleted_ids)} deleted"
                 )
+
+                # Only these can say why the knowledge changed; the rest of their frames is merely read again
+                analyzer = MiroItemAnalyzer()
+                edited_items = [item for item in miro_raw_data["items"] if item["id"] in changed_ids]
+                state["edited_sentences"] = analyzer.to_item_texts(analyzer.analyze({"items": edited_items}))
 
                 # A Frame that merely lost a child looks untouched from the current
                 # board alone, so the containers the deleted items used to sit in
