@@ -55,6 +55,7 @@ class ClassConsolidator(Runnable):
         # Load prompt templates
         self.candidate_template = self._load_prompt_template("class_consolidator_candidates.txt")
         self.verify_template = self._load_prompt_template("class_consolidator_verify.txt")
+        self.cross_class_template = self._load_prompt_template("class_consolidator_cross_class.txt")
         # Load custom rules
         self.custom_rules = self._load_custom_rules()
 
@@ -216,6 +217,63 @@ class ClassConsolidator(Runnable):
 
         return output
 
+    def resolve_cross_class(self, classes: list, config=None) -> Dict[str, Any]:
+        """
+        Resolve classes that share a label but were extracted as different classes.
+
+        Runs after invoke() and match_against_existing(), which only consolidate within one
+        class_iri. Each same-label group spanning several class_iris is verified against its
+        source text: members that refer to the same thing are merged under the one class they
+        belong to. Groups made only of carried-over classes are left alone, and two carried-over
+        classes are never merged with each other.
+
+        Parameters
+        ----------
+        classes: list
+            Consolidated class instances; carried-over ones carry the _frozen_from_existing_accept flag
+
+        Returns
+        -------
+        output: ClassConsolidatorOutput
+            - classes: Class list with cross-class duplicates resolved
+        """
+        groups = self._find_cross_class_groups(classes)
+        if not groups:
+            return {"classes": classes}
+
+        if self.progress:
+            print(f"[ClassConsolidator cross-class] Resolving {len(groups)} labels extracted as several classes")
+
+        llm = self._create_llm()
+        results = asyncio.run(self._resolve_cross_class_parallel(llm, classes, groups))
+
+        # Each group's result takes the place of its first member
+        resolved_at = {}
+        grouped = set()
+        decisions = []
+        for indices, (resolved, decision) in zip(groups, results, strict=True):
+            resolved_at[indices[0]] = resolved
+            grouped.update(indices)
+            decisions.append(decision)
+
+        result_classes = []
+        for i, c in enumerate(classes):
+            if i in resolved_at:
+                result_classes.extend(resolved_at[i])
+            elif i not in grouped:
+                result_classes.append(c)
+
+        output = {"classes": result_classes}
+
+        if self.progress:
+            print(f"[ClassConsolidator cross-class] Completed: {len(classes)} -> {len(result_classes)} classes")
+
+        self.logger.save_log(
+            {**output, "decisions": decisions}, filename_prefix="class_consolidator_cross_class_output_"
+        )
+
+        return output
+
     def _group_classes_by_class_iri(self, classes: list) -> Dict[str, list]:
         """Group by class_iri"""
         class_groups = {}
@@ -234,6 +292,13 @@ class ClassConsolidator(Runnable):
             if cls.get("iri", "") == class_iri:
                 return cls.get("name", "unknown")
         return class_iri.split("#")[-1] if "#" in class_iri else class_iri
+
+    def _get_class_iri_from_name(self, class_name: str) -> str:
+        """Get class_iri from class name"""
+        for cls in self.metamodel.get("classes", []):
+            if cls.get("name", "") == class_name:
+                return cls.get("iri", "")
+        return ""
 
     async def _process_classes_parallel(self, class_groups: Dict[str, list], llm: Any) -> list:
         """Process class groups in parallel"""
@@ -571,6 +636,167 @@ class ClassConsolidator(Runnable):
         result_classes = [c for result in results for c in result]
 
         return result_classes
+
+    @staticmethod
+    def _find_cross_class_groups(classes: list) -> List[List[int]]:
+        """Indices of same-label classes spanning several class_iris, with at least one new class."""
+        by_label = {}
+        for i, c in enumerate(classes):
+            label = c.get("label", "")
+            if label:
+                by_label.setdefault(label, []).append(i)
+
+        groups = []
+        for indices in by_label.values():
+            members = [classes[i] for i in indices]
+            if len({c.get("class_iri", "") for c in members}) < 2:
+                continue
+            if all(c.get("_frozen_from_existing_accept") for c in members):
+                continue
+            groups.append(indices)
+        return groups
+
+    async def _resolve_cross_class_parallel(self, llm: Any, classes: list, groups: List[List[int]]) -> list:
+        """Verify and resolve the cross-class groups in parallel. Returns (classes, decision) per group."""
+        sem = asyncio.Semaphore(self.max_concurrency)
+        total = len(groups)
+        counter = 0
+        lock = asyncio.Lock()
+
+        async def _wrapped(indices: List[int]) -> tuple:
+            nonlocal counter
+            group_classes = [classes[i] for i in indices]
+            labels = [
+                f"{c.get('label', '')} [{self._get_class_name_from_iri(c.get('class_iri', ''))}]" for c in group_classes
+            ]
+            label = group_classes[0].get("label", "")
+
+            async with sem:
+                try:
+                    verified = await self._verify_cross_class(llm, group_classes)
+                except Exception as e:
+                    # A failed call leaves the group unresolved, so its members are kept as they are
+                    print(f"[ClassConsolidator cross-class] {label} failed, keeping its members: {e}")
+                    verified = None
+
+            resolved = list(group_classes)
+            if verified is not None:
+                resolved = []
+                for members, class_iri, reason in self._assemble_cross_class(group_classes, verified):
+                    resolved.extend(self._merge_cross_class(members, class_iri, reason))
+
+            async with lock:
+                counter += 1
+                if self.progress:
+                    print(
+                        f"[{counter}/{total}] ClassConsolidator cross-class: {label} "
+                        f"({len(group_classes)} -> {len(resolved)} classes)"
+                    )
+
+            return resolved, {"members": labels, "groups": verified}
+
+        return await asyncio.gather(*[_wrapped(indices) for indices in groups])
+
+    async def _verify_cross_class(self, llm: Any, group_classes: list) -> list | None:
+        """With the source text in view, split a same-label group into entities and give each one class.
+
+        Members are shown without their extracted class, which would otherwise be read as a reason to split.
+        """
+        class_iris = list(dict.fromkeys(c.get("class_iri", "") for c in group_classes))
+
+        schema = self._build_schema("cross-class.schema.json")
+        schema["properties"]["groups"]["items"]["properties"]["class_name"]["enum"] = [
+            self._get_class_name_from_iri(iri) for iri in class_iris
+        ]
+        llm_json = llm.bind(
+            response_format={
+                "type": "json_schema",
+                "json_schema": {"name": "class_consolidator_cross_class", "schema": schema},
+            }
+        )
+
+        prompt = fill_prompt_template(
+            self.cross_class_template,
+            class_definitions=self._build_class_definitions(class_iris),
+            member_list=self._build_member_list(group_classes),
+        )
+
+        response = await call_with_retry(
+            lambda: llm_json.ainvoke([HumanMessage(content=prompt)]),
+            timeout=90.0,
+            label="ClassConsolidator cross-class",
+        )
+
+        result_text = self._to_text(response.content)
+        try:
+            return json.loads(result_text).get("groups", [])
+        except json.JSONDecodeError:
+            if self.progress:
+                print(f"[ClassConsolidator cross-class] JSON parse error: {result_text}")
+            return None
+
+    def _build_class_definitions(self, class_iris: List[str]) -> str:
+        """Render each class's description, plus its prohibit rules that name another class in the group."""
+        classes_by_iri = {cls.get("iri", ""): cls for cls in self.metamodel.get("classes", [])}
+        names = [self._get_class_name_from_iri(iri) for iri in class_iris]
+
+        lines = []
+        for iri, name in zip(class_iris, names, strict=True):
+            cls = classes_by_iri.get(iri, {})
+            lines.append(f"- {name}: {cls.get('description', '')}")
+            others = [n for n in names if n != name]
+            for rule in cls.get("prohibit_rules", []):
+                if any(other in rule for other in others):
+                    lines.append(f"    {rule}")
+        return "\n".join(lines)
+
+    def _assemble_cross_class(self, group_classes: list, verified: list) -> list:
+        """Map a cross-class verify result onto class instances as (members, class_iri, reason).
+
+        A group whose class is not one of the group's classes, and members the result leaves
+        out, keep their own class and stay apart.
+        """
+        allowed = {c.get("class_iri", "") for c in group_classes}
+        out = []
+        seen = set()
+        for group in verified:
+            indices = self._take_unseen(group.get("indices"), len(group_classes), seen)
+            if not indices:
+                continue
+            class_iri = self._get_class_iri_from_name(group.get("class_name", ""))
+            if class_iri not in allowed:
+                for i in indices:
+                    out.append(([group_classes[i]], group_classes[i].get("class_iri", ""), "unknown class"))
+                continue
+            out.append(([group_classes[i] for i in indices], class_iri, group.get("reason", "")))
+        for i in range(len(group_classes)):
+            if i not in seen:
+                out.append(([group_classes[i]], group_classes[i].get("class_iri", ""), "not mentioned by verify"))
+        return out
+
+    def _merge_cross_class(self, members: list, class_iri: str, reason: str) -> list:
+        """Merge one verified entity under its decided class.
+
+        A carried-over member already of that class (else the first carried-over member) is the
+        merge base and keeps its ID; any other carried-over members are left as they are, since
+        two carried-over classes are never merged. An entity with no new member is left alone.
+        """
+        frozen = [m for m in members if m.get("_frozen_from_existing_accept")]
+        new = [m for m in members if not m.get("_frozen_from_existing_accept")]
+        if not new:
+            return list(members)
+        if len(members) == 1 and members[0].get("class_iri") == class_iri:
+            return list(members)
+
+        if frozen:
+            base = next((m for m in frozen if m.get("class_iri") == class_iri), frozen[0])
+            rest, untouched = new, [m for m in frozen if m is not base]
+        else:
+            base, rest, untouched = new[0], new[1:], []
+
+        # Set the class before merging so a non-frozen base gets its ID under the decided class
+        merged = self._merge_classes([{**base, "class_iri": class_iri}, *rest], base.get("label", ""), reason)
+        return [merged, *untouched]
 
     def _build_extraction_rules(self, class_iri: str) -> str:
         """

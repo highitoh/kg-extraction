@@ -1,0 +1,38 @@
+{
+  "$id": "https://github.com/highitoh/kg-extraction/schemas/class-consolidator/cross-class.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ClassConsolidatorCrossClassLLMOutput",
+  "type": "object",
+  "description": "LLM output schema for the ClassConsolidator cross-class pass: same-label members extracted as different classes, split into entities with one class each",
+  "properties": {
+    "groups": {
+      "type": "array",
+      "description": "List of groups, each one entity",
+      "items": {
+        "type": "object",
+        "properties": {
+          "indices": {
+            "type": "array",
+            "items": {
+              "type": "integer"
+            },
+            "minItems": 1,
+            "description": "Index list of members that refer to the same thing (0-indexed)"
+          },
+          "class_name": {
+            "type": "string",
+            "description": "Class the group belongs to; the allowed names are set per call from the classes in the group"
+          },
+          "reason": {
+            "type": "string",
+            "description": "Reason for the decision (for logging/debugging)"
+          }
+        },
+        "required": ["indices", "class_name", "reason"],
+        "additionalProperties": false
+      }
+    }
+  },
+  "required": ["groups"],
+  "additionalProperties": false
+}

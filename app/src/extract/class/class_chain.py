@@ -14,7 +14,8 @@ class ClassChainWithReview(Runnable):
       ClassExtractor -> ClassConsolidator -> ClassReviewer -> (ClassLabelCorrector -> ClassReviewer)*
 
     Loop logic:
-    - ClassConsolidator first consolidates similar labels
+    - ClassConsolidator first consolidates similar labels within each class, then resolves
+      same-label classes extracted as different classes into one class
     - ClassEditor corrects classes judged as REVIEW by ClassReviewer
     - After correction, ClassReviewer re-evaluates
     - Repeats until all become ACCEPT/REJECT or maximum iterations reached
@@ -49,8 +50,12 @@ class ClassChainWithReview(Runnable):
 
     @staticmethod
     def _is_frozen_unchanged(cls: Dict[str, Any]) -> bool:
-        """Return True for carry-over ACCEPT classes with unchanged label."""
-        return bool(cls.get("_frozen_from_existing_accept")) and cls.get("label") == cls.get("_frozen_label")
+        """Return True for carry-over ACCEPT classes with unchanged label and class."""
+        return (
+            bool(cls.get("_frozen_from_existing_accept"))
+            and cls.get("label") == cls.get("_frozen_label")
+            and cls.get("class_iri") == cls.get("_frozen_class_iri")
+        )
 
     @staticmethod
     def _merge_reviewed_classes(
@@ -96,6 +101,7 @@ class ClassChainWithReview(Runnable):
         for c in classes:
             c.pop("_frozen_from_existing_accept", None)
             c.pop("_frozen_label", None)
+            c.pop("_frozen_class_iri", None)
         return classes
 
     def invoke(self, input: Dict[str, Any], config=None) -> Dict[str, Any]:
@@ -141,6 +147,11 @@ class ClassChainWithReview(Runnable):
                 new_classes=result.get("classes", []), frozen_classes=existing_classes
             )
         # else: no existing classes, the consolidated result is final
+
+        # 3b. Resolve same-label classes extracted as different classes
+        if self.progress:
+            print("\n=== ClassConsolidator: Cross-Class ===")
+        result = self.consolidator.resolve_cross_class(result.get("classes", []))
 
         # 4. Execute ClassReviewer (initial)
         classes_before_review = result.get("classes", [])

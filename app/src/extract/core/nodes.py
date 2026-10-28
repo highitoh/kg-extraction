@@ -1502,9 +1502,10 @@ def extract_classes_node(state: KnowledgeExtractionState) -> KnowledgeExtraction
                             continue
                         c_copy = c.copy()
                         # Internal flags for ClassChain to skip re-review
-                        # when a carry-over ACCEPT class label remains unchanged.
+                        # when a carry-over ACCEPT class keeps its label and class.
                         c_copy["_frozen_from_existing_accept"] = True
                         c_copy["_frozen_label"] = c_copy.get("label", "")
+                        c_copy["_frozen_class_iri"] = c_copy.get("class_iri", "")
                         existing_classes.append(c_copy)
                     if existing_classes:
                         print(
@@ -1531,14 +1532,13 @@ def extract_classes_node(state: KnowledgeExtractionState) -> KnowledgeExtraction
 
         result = class_chain.invoke(input_data)
 
-        # Mark newly extracted classes (those NOT from existing_classes)
+        # Mark newly extracted classes (those NOT from existing_classes), and existing classes
+        # whose class changed, so their relations under the new class are extracted too.
         # This flag is used by PropertyExtractor to filter class pairs for incremental updates
-        existing_ids = {c.get("id") for c in existing_classes if c.get("id")}
+        existing_iri_by_id = {c.get("id"): c.get("class_iri") for c in existing_classes if c.get("id")}
         for cls in result["classes"]:
-            if cls.get("id") not in existing_ids:
-                cls["_is_new"] = True
-            else:
-                cls["_is_new"] = False
+            cid = cls.get("id")
+            cls["_is_new"] = cid not in existing_iri_by_id or existing_iri_by_id[cid] != cls.get("class_iri")
 
         # Store results in State
         state["classes"] = result["classes"]
