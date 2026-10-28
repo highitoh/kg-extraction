@@ -222,10 +222,11 @@ class ClassConsolidator(Runnable):
         Resolve classes that share a label but were extracted as different classes.
 
         Runs after invoke() and match_against_existing(), which only consolidate within one
-        class_iri. Each same-label group spanning several class_iris is verified against its
-        source text: members that refer to the same thing are merged under the one class they
-        belong to. Groups made only of carried-over classes are left alone, and two carried-over
-        classes are never merged with each other.
+        class_iri. Same-label classes spanning several class_iris are verified against their
+        source text, as long as at least one of them is new.
+
+        Members that refer to the same thing are merged into one class, carried-over ones
+        included. If any carried-over member is merged, the result keeps a carried-over ID.
 
         Parameters
         ----------
@@ -236,10 +237,11 @@ class ClassConsolidator(Runnable):
         -------
         output: ClassConsolidatorOutput
             - classes: Class list with cross-class duplicates resolved
+            - absorbed_ids: {carried-over class ID merged away: ID of the class it went into}
         """
         groups = self._find_cross_class_groups(classes)
         if not groups:
-            return {"classes": classes}
+            return {"classes": classes, "absorbed_ids": {}}
 
         if self.progress:
             print(f"[ClassConsolidator cross-class] Resolving {len(groups)} labels extracted as several classes")
@@ -251,10 +253,12 @@ class ClassConsolidator(Runnable):
         resolved_at = {}
         grouped = set()
         decisions = []
-        for indices, (resolved, decision) in zip(groups, results, strict=True):
+        absorbed_ids = {}
+        for indices, (resolved, decision, absorbed) in zip(groups, results, strict=True):
             resolved_at[indices[0]] = resolved
             grouped.update(indices)
             decisions.append(decision)
+            absorbed_ids.update(absorbed)
 
         result_classes = []
         for i, c in enumerate(classes):
@@ -263,7 +267,7 @@ class ClassConsolidator(Runnable):
             elif i not in grouped:
                 result_classes.append(c)
 
-        output = {"classes": result_classes}
+        output = {"classes": result_classes, "absorbed_ids": absorbed_ids}
 
         if self.progress:
             print(f"[ClassConsolidator cross-class] Completed: {len(classes)} -> {len(result_classes)} classes")
@@ -657,7 +661,7 @@ class ClassConsolidator(Runnable):
         return groups
 
     async def _resolve_cross_class_parallel(self, llm: Any, classes: list, groups: List[List[int]]) -> list:
-        """Verify and resolve the cross-class groups in parallel. Returns (classes, decision) per group."""
+        """Verify and resolve the cross-class groups in parallel. Returns (classes, decision, absorbed) per group."""
         sem = asyncio.Semaphore(self.max_concurrency)
         total = len(groups)
         counter = 0
@@ -680,10 +684,13 @@ class ClassConsolidator(Runnable):
                     verified = None
 
             resolved = list(group_classes)
+            absorbed = {}
             if verified is not None:
                 resolved = []
                 for members, class_iri, reason in self._assemble_cross_class(group_classes, verified):
-                    resolved.extend(self._merge_cross_class(members, class_iri, reason))
+                    merged, merged_away = self._merge_cross_class(members, class_iri, reason)
+                    resolved.extend(merged)
+                    absorbed.update(merged_away)
 
             async with lock:
                 counter += 1
@@ -693,7 +700,7 @@ class ClassConsolidator(Runnable):
                         f"({len(group_classes)} -> {len(resolved)} classes)"
                     )
 
-            return resolved, {"members": labels, "groups": verified}
+            return resolved, {"members": labels, "groups": verified}, absorbed
 
         return await asyncio.gather(*[_wrapped(indices) for indices in groups])
 
@@ -774,29 +781,28 @@ class ClassConsolidator(Runnable):
                 out.append(([group_classes[i]], group_classes[i].get("class_iri", ""), "not mentioned by verify"))
         return out
 
-    def _merge_cross_class(self, members: list, class_iri: str, reason: str) -> list:
-        """Merge one verified entity under its decided class.
+    def _merge_cross_class(self, members: list, class_iri: str, reason: str) -> tuple:
+        """Merge one verified entity under its decided class. Returns (classes, absorbed).
 
-        A carried-over member already of that class (else the first carried-over member) is the
-        merge base and keeps its ID; any other carried-over members are left as they are, since
-        two carried-over classes are never merged. An entity with no new member is left alone.
+        The merge base keeps its ID. It is the carried-over member already of the decided
+        class, or else the first carried-over member, or else the first member.
+        absorbed maps each other carried-over member's ID to the base's ID.
+        A carried-over member that is alone in its entity is left unchanged.
         """
         frozen = [m for m in members if m.get("_frozen_from_existing_accept")]
-        new = [m for m in members if not m.get("_frozen_from_existing_accept")]
-        if not new:
-            return list(members)
-        if len(members) == 1 and members[0].get("class_iri") == class_iri:
-            return list(members)
+        if len(members) == 1 and (frozen or members[0].get("class_iri") == class_iri):
+            return list(members), {}
 
         if frozen:
             base = next((m for m in frozen if m.get("class_iri") == class_iri), frozen[0])
-            rest, untouched = new, [m for m in frozen if m is not base]
         else:
-            base, rest, untouched = new[0], new[1:], []
+            base = members[0]
+        rest = [m for m in members if m is not base]
 
         # Set the class before merging so a non-frozen base gets its ID under the decided class
         merged = self._merge_classes([{**base, "class_iri": class_iri}, *rest], base.get("label", ""), reason)
-        return [merged, *untouched]
+        absorbed = {m["id"]: merged["id"] for m in frozen if m is not base}
+        return [merged], absorbed
 
     def _build_extraction_rules(self, class_iri: str) -> str:
         """

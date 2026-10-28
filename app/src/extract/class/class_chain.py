@@ -1,3 +1,4 @@
+import copy
 from typing import Any, Dict
 
 from langchain_core.runnables import Runnable
@@ -122,6 +123,7 @@ class ClassChainWithReview(Runnable):
         """
         # Get existing classes if available
         existing_classes = input.get("existing_classes", [])
+        loaded_existing = copy.deepcopy(existing_classes)
 
         # 1. Execute ClassExtractor
         if self.progress:
@@ -152,6 +154,7 @@ class ClassChainWithReview(Runnable):
         if self.progress:
             print("\n=== ClassConsolidator: Cross-Class ===")
         result = self.consolidator.resolve_cross_class(result.get("classes", []))
+        absorbed_ids = result.pop("absorbed_ids", {})
 
         # 4. Execute ClassReviewer (initial)
         classes_before_review = result.get("classes", [])
@@ -246,7 +249,16 @@ class ClassChainWithReview(Runnable):
         # 7. Drop REJECT classes so the chain output carries accepted classes only.
         accepted_classes = [c for c in final_classes if c.get("judgment") != "REJECT"]
 
-        result["classes"] = self._clear_internal_flags(accepted_classes)
+        # 8. An absorption stands only if its base was accepted; any other carried-over class
+        # missing from the output (rejected after a change, merged by the editor) comes back as loaded.
+        accepted_ids = {c.get("id") for c in accepted_classes}
+        absorbed_ids = {old: base for old, base in absorbed_ids.items() if base in accepted_ids}
+        restored = [c for c in loaded_existing if c.get("id") not in accepted_ids and c.get("id") not in absorbed_ids]
+        if restored and self.progress:
+            print(f"\n=== Restoring {len(restored)} carried-over classes missing from the output ===")
+
+        result["classes"] = self._clear_internal_flags(accepted_classes + restored)
+        result["absorbed_class_ids"] = absorbed_ids
 
         return result
 

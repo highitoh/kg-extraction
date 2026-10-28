@@ -21,6 +21,7 @@ from src.extract.text.pdf_text_chain import PdfTextChain
 from src.extract.text.presentation_text_chain import PresentationTextChain
 from src.extract.view.view_chain import create_view_chain
 from src.utils.chunk_creator import ChunkCreator
+from src.utils.id_generator import generate_property_id
 from src.utils.mermaid_parser import build_extracted_structure
 from src.utils.table_structure import build_table_edges
 
@@ -1475,6 +1476,110 @@ def extract_views_node(state: KnowledgeExtractionState) -> KnowledgeExtractionSt
     return state
 
 
+def _drop_stale_knowledge(knowledge: Dict[str, Any], stale_file_ids: Set[str]) -> Tuple[Dict[str, Any], List[str]]:
+    """Drop stale file_ids from each class, then the classes nothing else backs and their properties.
+
+    Returns the cleaned knowledge and the labels of the removed classes.
+    """
+    cleaned_classes = []
+    removed_class_ids = set()
+    removed_labels = []
+
+    for cls in knowledge.get("classes", []):
+        # Filter out stale file_ids (maintain alignment with sources)
+        filtered_pairs = [
+            (src, fid)
+            for src, fid in zip(cls.get("sources", []), cls.get("file_ids", []), strict=True)
+            if fid not in stale_file_ids
+        ]
+
+        if filtered_pairs:
+            # Class is still backed by a part of the source that did not change
+            new_sources, new_file_ids = zip(*filtered_pairs, strict=True)
+            cleaned_classes.append({**cls, "sources": list(new_sources), "file_ids": list(new_file_ids)})
+        else:
+            # Nothing backs this class any more → remove it. If the re-extraction
+            # still finds it, it comes back as a new class with a current file_id.
+            removed_class_ids.add(cls["id"])
+            removed_labels.append(cls.get("label", ""))
+
+    cleaned_properties = [
+        prop
+        for prop in knowledge.get("properties", [])
+        if prop["src_id"] not in removed_class_ids and prop["dest_id"] not in removed_class_ids
+    ]
+    return {"classes": cleaned_classes, "properties": cleaned_properties}, removed_labels
+
+
+def _load_existing_knowledge(state: KnowledgeExtractionState, log_prefix: str) -> Dict[str, Any]:
+    """
+    Load the project's knowledge.json, without the knowledge this incremental run invalidates.
+
+    Two kinds of knowledge go stale: what came from items that are gone from the
+    source, and what came from items being extracted again because they changed.
+    Both have to go before extraction carries the knowledge through the chains,
+    since knowledge.json is then written from what comes out of them.
+
+    The file_ids to drop are supplied by the extraction node, which knows how
+    file_ids are shaped for its source. An unreadable file raises, so the run
+    stops before knowledge.json is rewritten.
+    """
+    output_dir = state.get("output_dir", "/workspace/app/output")
+    project = state.get("project", "default")
+    knowledge_path = os.path.join(output_dir, project, "knowledge.json")
+
+    if not os.path.exists(knowledge_path):
+        return {"classes": [], "properties": []}
+
+    try:
+        with open(knowledge_path, "r", encoding="utf-8") as f:
+            knowledge = json.load(f)
+    except (OSError, json.JSONDecodeError) as e:
+        raise RuntimeError(f"Could not load existing knowledge from {knowledge_path}: {e}") from e
+
+    stale_file_ids = set(state.get("stale_file_ids") or [])
+    if state.get("incremental_mode") and stale_file_ids:
+        before = len(knowledge.get("properties", []))
+        knowledge, removed_labels = _drop_stale_knowledge(knowledge, stale_file_ids)
+        print(
+            f"{log_prefix} Dropped knowledge recorded against {len(stale_file_ids)} stale file_ids: "
+            f"{len(removed_labels)} classes {removed_labels}, {before - len(knowledge['properties'])} properties"
+        )
+    return knowledge
+
+
+def _remap_properties(properties: List[Dict[str, Any]], id_map: Dict[str, str]) -> List[Dict[str, Any]]:
+    """Point properties at the classes their src/dest were merged into, keeping one per ID.
+
+    A property whose src or dest changes gets the ID of its new triple; of several that
+    end up with one ID, the one with the highest strength is kept.
+    """
+    by_id = {}
+    for prop in properties:
+        src_id = id_map.get(prop["src_id"], prop["src_id"])
+        dest_id = id_map.get(prop["dest_id"], prop["dest_id"])
+        if (src_id, dest_id) != (prop["src_id"], prop["dest_id"]):
+            prop = {
+                **prop,
+                "id": generate_property_id(src_id, prop["property_iri"], dest_id),
+                "src_id": src_id,
+                "dest_id": dest_id,
+            }
+        kept = by_id.get(prop["id"])
+        if kept is None or prop.get("strength", 0) > kept.get("strength", 0):
+            by_id[prop["id"]] = prop
+    return list(by_id.values())
+
+
+def _merge_class_sources(into: Dict[str, Any], other: Dict[str, Any]) -> Dict[str, Any]:
+    """Copy of into with other's sources added, one per file_id (other's text wins on a shared file_id)."""
+    source_by_file_id = {}
+    for cls in (into, other):
+        for src, fid in zip(cls.get("sources", []), cls.get("file_ids", []), strict=True):
+            source_by_file_id[fid] = src
+    return {**into, "file_ids": list(source_by_file_id), "sources": list(source_by_file_id.values())}
+
+
 def extract_classes_node(state: KnowledgeExtractionState) -> KnowledgeExtractionState:
     """
     Node that extracts classes (including extraction, filtering, and merging)
@@ -1484,39 +1589,23 @@ def extract_classes_node(state: KnowledgeExtractionState) -> KnowledgeExtraction
     and merge with newly extracted classes
     """
     try:
-        # Load existing classes
+        # Load only ACCEPT'ed classes
         existing_classes = []
-        output_dir = state.get("output_dir", "/workspace/app/output")
-        project = state.get("project", "default")
-        extraction_result_path = os.path.join(output_dir, project, "knowledge.json")
-
-        if os.path.exists(extraction_result_path):
-            try:
-                with open(extraction_result_path, "r", encoding="utf-8") as f:
-                    previous_result = json.load(f)
-                    # Load only ACCEPT'ed classes
-                    all_existing_classes = previous_result.get("classes", [])
-                    existing_classes = []
-                    for c in all_existing_classes:
-                        if c.get("judgment") != "ACCEPT":
-                            continue
-                        c_copy = c.copy()
-                        # Internal flags for ClassChain to skip re-review
-                        # when a carry-over ACCEPT class keeps its label and class.
-                        c_copy["_frozen_from_existing_accept"] = True
-                        c_copy["_frozen_label"] = c_copy.get("label", "")
-                        c_copy["_frozen_class_iri"] = c_copy.get("class_iri", "")
-                        existing_classes.append(c_copy)
-                    if existing_classes:
-                        print(
-                            f"[ExtractClassesNode] Loaded {len(existing_classes)} existing ACCEPT'ed classes "
-                            f"from previous extraction"
-                        )
-            except (json.JSONDecodeError, KeyError) as e:
-                print(
-                    f"[ExtractClassesNode] Warning: Could not load existing classes from {extraction_result_path}: {e}"
-                )
-                existing_classes = []
+        for c in _load_existing_knowledge(state, "[ExtractClassesNode]").get("classes", []):
+            if c.get("judgment") != "ACCEPT":
+                continue
+            c_copy = c.copy()
+            # Internal flags for ClassChain to skip re-review
+            # when a carry-over ACCEPT class keeps its label and class.
+            c_copy["_frozen_from_existing_accept"] = True
+            c_copy["_frozen_label"] = c_copy.get("label", "")
+            c_copy["_frozen_class_iri"] = c_copy.get("class_iri", "")
+            existing_classes.append(c_copy)
+        if existing_classes:
+            print(
+                f"[ExtractClassesNode] Loaded {len(existing_classes)} existing ACCEPT'ed classes "
+                f"from previous extraction"
+            )
 
         class_chain = create_class_chain(model=state.get("model"))
 
@@ -1542,6 +1631,7 @@ def extract_classes_node(state: KnowledgeExtractionState) -> KnowledgeExtraction
 
         # Store results in State
         state["classes"] = result["classes"]
+        state["absorbed_class_ids"] = result.get("absorbed_class_ids", {})
         state["current_stage"] = "classes_extracted"
 
     except Exception as e:
@@ -1562,40 +1652,28 @@ def extract_properties_node(state: KnowledgeExtractionState) -> KnowledgeExtract
     and merge with newly extracted properties
     """
     try:
-        # Load existing properties
+        # Load only properties with strength > 0
         existing_properties = []
-        output_dir = state.get("output_dir", "/workspace/app/output")
-        project = state.get("project", "default")
-        extraction_result_path = os.path.join(output_dir, project, "knowledge.json")
+        for p in _load_existing_knowledge(state, "[ExtractPropertiesNode]").get("properties", []):
+            strength = p.get("strength", 0)
+            if strength <= 0:
+                continue
+            p_copy = p.copy()
+            # Internal flags for PropertyChain to skip re-review
+            # when carry-over properties keep the same strength after ranking.
+            p_copy["_frozen_from_existing_accept"] = True
+            p_copy["_frozen_strength"] = strength
+            existing_properties.append(p_copy)
+        if existing_properties:
+            print(
+                f"[ExtractPropertiesNode] Loaded {len(existing_properties)} existing properties "
+                f"(strength > 0) from previous extraction"
+            )
 
-        if os.path.exists(extraction_result_path):
-            try:
-                with open(extraction_result_path, "r", encoding="utf-8") as f:
-                    previous_result = json.load(f)
-                    # Load only properties with strength > 0
-                    all_existing_properties = previous_result.get("properties", [])
-                    existing_properties = []
-                    for p in all_existing_properties:
-                        strength = p.get("strength", 0)
-                        if strength <= 0:
-                            continue
-                        p_copy = p.copy()
-                        # Internal flags for PropertyChain to skip re-review
-                        # when carry-over properties keep the same strength after ranking.
-                        p_copy["_frozen_from_existing_accept"] = True
-                        p_copy["_frozen_strength"] = strength
-                        existing_properties.append(p_copy)
-                    if existing_properties:
-                        print(
-                            f"[ExtractPropertiesNode] Loaded {len(existing_properties)} existing properties "
-                            f"(strength > 0) from previous extraction"
-                        )
-            except (json.JSONDecodeError, KeyError) as e:
-                print(
-                    f"[ExtractPropertiesNode] Warning: Could not load existing properties from "
-                    f"{extraction_result_path}: {e}"
-                )
-                existing_properties = []
+        # Move the properties of carried-over classes merged away this run onto the class they went into
+        absorbed_class_ids = state.get("absorbed_class_ids") or {}
+        if absorbed_class_ids:
+            existing_properties = _remap_properties(existing_properties, absorbed_class_ids)
 
         property_chain = create_property_chain(model=state.get("model"), existing_properties=existing_properties)
 
@@ -1629,97 +1707,15 @@ def extract_properties_node(state: KnowledgeExtractionState) -> KnowledgeExtract
     return state
 
 
-def cleanup_stale_items_node(state: KnowledgeExtractionState) -> KnowledgeExtractionState:
-    """
-    Node that removes knowledge which the current incremental run invalidates.
-
-    Two kinds of knowledge go stale: what came from items that are gone from the
-    source, and what came from items being extracted again because they changed.
-    The second kind has to go before the merge, otherwise a class that the updated
-    content no longer supports would linger in knowledge.json forever.
-
-    The file_ids to drop are supplied by the extraction node, which knows how
-    file_ids are shaped for its source.
-    """
-    try:
-        # Only run in incremental mode
-        if not state.get("incremental_mode"):
-            return state
-
-        stale_file_ids = set(state.get("stale_file_ids") or [])
-        if not stale_file_ids:
-            return state
-
-        print(f"[CleanupStaleItems] Dropping knowledge recorded against {len(stale_file_ids)} file_ids")
-
-        # Load existing knowledge.json
-        output_dir = state.get("output_dir", "/workspace/app/output")
-        project = state.get("project", "default")
-        knowledge_path = os.path.join(output_dir, project, "knowledge.json")
-
-        if not os.path.exists(knowledge_path):
-            return state  # Nothing to clean up
-
-        with open(knowledge_path, "r", encoding="utf-8") as f:
-            knowledge = json.load(f)
-
-        # Clean up classes: drop the stale file_ids they were extracted from
-        cleaned_classes = []
-        removed_class_ids = set()
-
-        for cls in knowledge.get("classes", []):
-            file_ids = cls.get("file_ids", [])
-            sources = cls.get("sources", [])
-
-            # Filter out stale file_ids (maintain alignment with sources)
-            filtered_pairs = [
-                (src, fid) for src, fid in zip(sources, file_ids, strict=True) if fid not in stale_file_ids
-            ]
-
-            if filtered_pairs:
-                # Class is still backed by a part of the source that did not change
-                new_sources, new_file_ids = zip(*filtered_pairs, strict=True)
-                cls["sources"] = list(new_sources)
-                cls["file_ids"] = list(new_file_ids)
-                cleaned_classes.append(cls)
-            else:
-                # Nothing backs this class any more → remove it. If the re-extraction
-                # still finds it, the merge puts it back with a current file_id.
-                removed_class_ids.add(cls["id"])
-                print(f"[CleanupStaleItems] Removing class: {cls.get('label')} (no sources remain)")
-
-        # Clean up properties: remove those referencing removed classes
-        cleaned_properties = [
-            prop
-            for prop in knowledge.get("properties", [])
-            if prop["src_id"] not in removed_class_ids and prop["dest_id"] not in removed_class_ids
-        ]
-
-        # Save cleaned knowledge back
-        cleaned_knowledge = {"classes": cleaned_classes, "properties": cleaned_properties}
-
-        with open(knowledge_path, "w", encoding="utf-8") as f:
-            json.dump(cleaned_knowledge, f, ensure_ascii=False, indent=2)
-
-        print(
-            f"[CleanupStaleItems] Removed {len(removed_class_ids)} classes, "
-            f"{len(knowledge['properties']) - len(cleaned_properties)} properties"
-        )
-
-        state["current_stage"] = "stale_items_cleaned"
-
-    except Exception as e:
-        print(f"[CleanupStaleItems] Warning: Cleanup failed: {e}")
-        state.setdefault("errors", [])
-        state["errors"].append(f"Stale item cleanup failed: {e}")
-
-    return state
-
-
 def save_accumulated_knowledge_node(state: KnowledgeExtractionState) -> KnowledgeExtractionState:
     """
     Node that saves accumulated knowledge to knowledge.json
     Saves only ACCEPT'ed classes and properties with strength > 0
+
+    The state already holds the whole knowledge: everything in knowledge.json was loaded
+    as carried-over classes and properties and comes out of the chains with this run's
+    changes. So the file is written from the state alone, and what the run merged away
+    or invalidated is gone from it.
 
     This node executes before generate_outputs_node,
     making the latest accumulated knowledge available during output generation
@@ -1734,103 +1730,38 @@ def save_accumulated_knowledge_node(state: KnowledgeExtractionState) -> Knowledg
 
         knowledge_path = os.path.join(project_output_dir, "knowledge.json")
 
-        # Extract ACCEPT'ed classes and valid properties from current execution result
-        current_classes, current_properties = filter_accumulated_knowledge(
-            state.get("classes", []), state.get("properties", [])
-        )
+        classes, properties = filter_accumulated_knowledge(state.get("classes", []), state.get("properties", []))
 
-        # Load existing knowledge.json if it exists
-        existing_knowledge = {"classes": [], "properties": []}
-        if os.path.exists(knowledge_path):
-            try:
-                with open(knowledge_path, "r", encoding="utf-8") as f:
-                    existing_knowledge = json.load(f)
-            except (json.JSONDecodeError, KeyError) as e:
-                print(f"[Warning] Could not load existing knowledge.json: {e}")
+        # One record per ID, then one per (class_iri, label). A carried-over record is kept
+        # over a new one with the same key, and the other one's properties move to it.
+        by_id = {}
+        for cls in classes:
+            cid = cls.get("id")
+            by_id[cid] = _merge_class_sources(by_id[cid], cls) if cid in by_id else cls
 
-        # Merge classes (deduplicate/replace based on semantic key)
-        # Keep existing classes to record UUID mapping when UUIDs change
-        current_class_map = {(c.get("class_iri"), c.get("label")): c for c in current_classes}
-        existing_class_map = {(c.get("class_iri"), c.get("label")): c for c in existing_knowledge.get("classes", [])}
-        existing_key_by_id = {c.get("id"): key for key, c in existing_class_map.items()}
+        by_key = {}
+        merged_into = {}  # merged-away ID -> key of the record it went into
+        for cls in by_id.values():
+            key = (cls.get("class_iri"), cls.get("label"))
+            kept = by_key.get(key)
+            if kept is None:
+                by_key[key] = cls
+                continue
+            if kept.get("_is_new") and not cls.get("_is_new"):
+                kept, cls = cls, kept
+            by_key[key] = _merge_class_sources(kept, cls)
+            merged_into[cls["id"]] = key
+        merged_classes = list(by_key.values())
+        id_map = {old_id: by_key[key]["id"] for old_id, key in merged_into.items()}
 
-        # UUID mapping: old_uuid -> new_uuid (used when replacing classes)
-        uuid_map = {}
-        for key, new_class in current_class_map.items():
-            old_class = existing_class_map.get(key)
-            if not old_class:
-                # A carried-over class relabeled by consolidation keeps its ID
-                old_key = existing_key_by_id.get(new_class.get("id"))
-                if old_key:
-                    old_class = existing_class_map.pop(old_key, None)
-            if old_class:
-                # Merge file_ids from both sources
-                new_file_ids = new_class.get("file_ids", [])
-                old_file_ids = old_class.get("file_ids", [])
-                new_sources = new_class.get("sources", [])
-                old_sources = old_class.get("sources", [])
-
-                # Combine sources and file_ids
-                # Use dict to deduplicate by file_id while preserving source mapping
-                source_file_map = {}
-                for src, fid in zip(old_sources, old_file_ids, strict=True):
-                    source_file_map[fid] = src
-                for src, fid in zip(new_sources, new_file_ids, strict=True):
-                    source_file_map[fid] = src  # New sources override old if same file_id
-
-                # Rebuild arrays
-                merged_file_ids = list(source_file_map.keys())
-                merged_sources = [source_file_map[fid] for fid in merged_file_ids]
-
-                new_class["file_ids"] = merged_file_ids
-                new_class["sources"] = merged_sources
-
-                # Track UUID changes
-                if old_class.get("id") != new_class.get("id"):
-                    uuid_map[old_class["id"]] = new_class["id"]
-
-            existing_class_map[key] = new_class
-        # One record per ID; current records win over stale relabeled duplicates
-        merged_by_id = {c.get("id"): c for c in existing_class_map.values()}
-        merged_by_id.update({c.get("id"): c for c in current_class_map.values()})
-        merged_classes = list(merged_by_id.values())
-
-        # Remap property src_id/dest_id (handle class UUID changes)
-        def remap_property_ids(properties, uuid_mapping):
-            """Remap property src_id/dest_id to new UUIDs"""
-            remapped = []
-            for prop in properties:
-                p = prop.copy()
-                p["src_id"] = uuid_mapping.get(p["src_id"], p["src_id"])
-                p["dest_id"] = uuid_mapping.get(p["dest_id"], p["dest_id"])
-                remapped.append(p)
-            return remapped
-
-        # Remap UUIDs of existing properties
-        existing_properties = remap_property_ids(existing_knowledge.get("properties", []), uuid_map)
-        # Remap current properties as well (just in case)
-        current_properties = remap_property_ids(current_properties, uuid_map)
-
-        # Merge properties (deduplicate by ID, update strength)
-        existing_property_map = {p.get("id"): p for p in existing_properties}
-        for prop in current_properties:
-            prop_id = prop.get("id")
-            if prop_id in existing_property_map:
-                if prop.get("strength", 0) > existing_property_map[prop_id].get("strength", 0):
-                    existing_property_map[prop_id] = prop
-            else:
-                existing_property_map[prop_id] = prop
-        merged_properties = list(existing_property_map.values())
+        merged_properties = _remap_properties(properties, id_map)
 
         # Remove orphaned properties (those referencing non-existent classes)
         valid_class_ids = {c["id"] for c in merged_classes}
-        orphaned_count = 0
-        validated_properties = []
-        for prop in merged_properties:
-            if prop["src_id"] in valid_class_ids and prop["dest_id"] in valid_class_ids:
-                validated_properties.append(prop)
-            else:
-                orphaned_count += 1
+        validated_properties = [
+            p for p in merged_properties if p["src_id"] in valid_class_ids and p["dest_id"] in valid_class_ids
+        ]
+        orphaned_count = len(merged_properties) - len(validated_properties)
         merged_properties = validated_properties
 
         if orphaned_count > 0:

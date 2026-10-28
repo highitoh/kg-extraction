@@ -7,7 +7,6 @@ from langgraph.graph import END, StateGraph
 
 from src.extract.core.nodes import (
     classify_file_type_node,
-    cleanup_stale_items_node,
     detect_confluence_changes_node,
     detect_github_changes_node,
     detect_jira_changes_node,
@@ -40,7 +39,7 @@ from src.extract.core.state import KnowledgeExtractionState
 
 def route_after_properties(state: KnowledgeExtractionState) -> str:
     """Stop a failed run before it touches knowledge.json, so no snapshot or changeset is recorded."""
-    return END if state.get("errors") else "cleanup_stale_items"
+    return END if state.get("errors") else "save_accumulated_knowledge"
 
 
 def create_knowledge_extraction_graph():
@@ -70,8 +69,6 @@ def create_knowledge_extraction_graph():
                        ↓
                   extract_properties
                        ↓ (END if any stage recorded an error)
-                  cleanup_stale_items (incremental mode only)
-                       ↓
                   save_accumulated_knowledge
                        ↓
                   generate_outputs
@@ -108,7 +105,6 @@ def create_knowledge_extraction_graph():
     workflow.add_node("extract_views", extract_views_node)
     workflow.add_node("extract_classes", extract_classes_node)
     workflow.add_node("extract_properties", extract_properties_node)
-    workflow.add_node("cleanup_stale_items", cleanup_stale_items_node)
     workflow.add_node("save_accumulated_knowledge", save_accumulated_knowledge_node)
     workflow.add_node("generate_outputs", generate_outputs_node)
 
@@ -240,7 +236,7 @@ def create_knowledge_extraction_graph():
     workflow.add_edge("extract_images", "merge_chunks")
 
     # Merged chunks → Relevance screening → View extraction → Class extraction → Property extraction →
-    # Cleanup deleted → Accumulated save → Output generation
+    # Accumulated save → Output generation
     workflow.add_edge("merge_chunks", "screen_relevance")
     workflow.add_edge("screen_relevance", "extract_views")
     workflow.add_edge("extract_views", "extract_classes")
@@ -248,9 +244,8 @@ def create_knowledge_extraction_graph():
     workflow.add_conditional_edges(
         "extract_properties",
         route_after_properties,
-        {END: END, "cleanup_stale_items": "cleanup_stale_items"},
+        {END: END, "save_accumulated_knowledge": "save_accumulated_knowledge"},
     )
-    workflow.add_edge("cleanup_stale_items", "save_accumulated_knowledge")
     workflow.add_edge("save_accumulated_knowledge", "generate_outputs")
 
     # After output generation, end

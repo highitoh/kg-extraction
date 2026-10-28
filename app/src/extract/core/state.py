@@ -188,6 +188,7 @@ class KnowledgeExtractionState(TypedDict, total=False):
     #   "sources": List[str],   # Source sentences
     #   "file_ids": List[str]   # Source file IDs
     # }
+    absorbed_class_ids: Optional[Dict[str, str]]  # Carried-over class ID merged away -> ID it went into
 
     # ========== Intermediate Results: Property Extraction Stage ==========
     properties: List[Dict[str, Any]]  # Property (relationship) extraction results
