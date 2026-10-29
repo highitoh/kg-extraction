@@ -59,6 +59,15 @@ class ClassChainWithReview(Runnable):
         )
 
     @staticmethod
+    def _is_stale_unmatched(cls: Dict[str, Any]) -> bool:
+        """Return True for a match candidate that this run did not find again.
+
+        A match candidate is a loaded class that lost all of its sources to stale file_ids.
+        It has no sources until an extracted class is merged into it.
+        """
+        return "_stale_sources" in cls and not cls.get("sources")
+
+    @staticmethod
     def _merge_reviewed_classes(
         all_classes: list,
         reviewed_classes: list,
@@ -103,6 +112,7 @@ class ClassChainWithReview(Runnable):
             c.pop("_frozen_from_existing_accept", None)
             c.pop("_frozen_label", None)
             c.pop("_frozen_class_iri", None)
+            c.pop("_stale_sources", None)
         return classes
 
     def invoke(self, input: Dict[str, Any], config=None) -> Dict[str, Any]:
@@ -249,11 +259,23 @@ class ClassChainWithReview(Runnable):
         # 7. Drop REJECT classes so the chain output carries accepted classes only.
         accepted_classes = [c for c in final_classes if c.get("judgment") != "REJECT"]
 
-        # 8. An absorption stands only if its base was accepted; any other carried-over class
-        # missing from the output (rejected after a change, merged by the editor) comes back as loaded.
+        # 7b. Drop the match candidates that this run did not find again.
+        unmatched_stale = [c for c in accepted_classes if self._is_stale_unmatched(c)]
+        if unmatched_stale:
+            if self.progress:
+                print(f"\n=== Dropping {len(unmatched_stale)} match candidates not found again ===")
+            accepted_classes = [c for c in accepted_classes if not self._is_stale_unmatched(c)]
+
+        # 8. Keep an absorption only if the class it went into was accepted.
+        # A loaded class that is missing from the output (for example, rejected after a change,
+        # or merged by the editor) is restored as loaded. Match candidates are not restored.
         accepted_ids = {c.get("id") for c in accepted_classes}
         absorbed_ids = {old: base for old, base in absorbed_ids.items() if base in accepted_ids}
-        restored = [c for c in loaded_existing if c.get("id") not in accepted_ids and c.get("id") not in absorbed_ids]
+        restored = [
+            c
+            for c in loaded_existing
+            if c.get("id") not in accepted_ids and c.get("id") not in absorbed_ids and "_stale_sources" not in c
+        ]
         if restored and self.progress:
             print(f"\n=== Restoring {len(restored)} carried-over classes missing from the output ===")
 

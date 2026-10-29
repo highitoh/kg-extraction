@@ -470,7 +470,8 @@ class ClassConsolidator(Runnable):
         lines = []
         for i, cls in enumerate(classes):
             lines.append(f"{i}: {labels[i] if labels else cls.get('label', '')}")
-            sources = cls.get("sources") or []
+            # A match candidate has no sources, so show the old text it was extracted from
+            sources = cls.get("sources") or cls.get("_stale_sources") or []
             if isinstance(sources, str):
                 sources = [sources]
             if not sources:
@@ -536,6 +537,31 @@ class ClassConsolidator(Runnable):
             return [self._merge_classes(ordered, canonical_label, reason)]
         return [self._merge_classes(members, canonical_label, reason)]
 
+    def _merge_same_label(self, frozen_classes: list, new_classes: list) -> tuple:
+        """Merge each new class into the frozen class that has the same label.
+
+        The frozen class keeps its ID.
+        Returns (frozen classes after the merges, new classes with no same-label frozen class).
+        """
+        frozen_index = {}
+        for i, c in enumerate(frozen_classes):
+            frozen_index.setdefault(c.get("label", ""), i)
+
+        matched = {}
+        unmatched = []
+        for c in new_classes:
+            i = frozen_index.get(c.get("label", ""))
+            if i is None:
+                unmatched.append(c)
+            else:
+                matched.setdefault(i, []).append(c)
+
+        merged = list(frozen_classes)
+        for i, members in matched.items():
+            base = frozen_classes[i]
+            merged[i] = self._merge_classes([base, *members], base.get("label", ""), "same label as existing")
+        return merged, unmatched
+
     async def _match_against_existing_parallel(
         self, common_iris: set, new_by_iri: dict, frozen_by_iri: dict, llm: Any
     ) -> list:
@@ -584,7 +610,8 @@ class ClassConsolidator(Runnable):
         """
         Match new classes against the ones carried over from previous extractions.
 
-        Task for LLM: For each new class, determine if it matches any frozen class.
+        A new class with the same label as a frozen class is merged into it first.
+        Task for LLM: For each other new class, determine if it matches any frozen class.
         If match found, merge new into frozen. If not, keep new as standalone.
 
         Args:
@@ -596,6 +623,11 @@ class ClassConsolidator(Runnable):
         Returns:
             List of classes: frozen classes (with merged sources if matched) + unmatched new classes
         """
+        # Merge exact label matches without the LLM, so the result does not depend on the LLM
+        frozen_classes, new_classes = self._merge_same_label(frozen_classes, new_classes)
+        if not new_classes:
+            return frozen_classes
+
         # Build combined list: frozen first
         all_classes = frozen_classes + new_classes
 

@@ -1477,13 +1477,21 @@ def extract_views_node(state: KnowledgeExtractionState) -> KnowledgeExtractionSt
 
 
 def _drop_stale_knowledge(knowledge: Dict[str, Any], stale_file_ids: Set[str]) -> Tuple[Dict[str, Any], List[str]]:
-    """Drop stale file_ids from each class, then the classes nothing else backs and their properties.
+    """Remove the sources that come from stale file_ids.
 
-    Returns the cleaned knowledge and the labels of the removed classes.
+    If a class loses all of its sources, it is not deleted here. It becomes a
+    "match candidate", and its old sources are moved to _stale_sources.
+    - If this run extracts the same concept again, the new class is merged into
+      the candidate. The candidate keeps its ID.
+    - If not, the class chain deletes the candidate.
+    The properties of a match candidate are always removed. They are extracted
+    again from the current content.
+
+    Returns the cleaned knowledge and the labels of the match candidates.
     """
     cleaned_classes = []
-    removed_class_ids = set()
-    removed_labels = []
+    stale_class_ids = set()
+    stale_labels = []
 
     for cls in knowledge.get("classes", []):
         # Filter out stale file_ids (maintain alignment with sources)
@@ -1498,31 +1506,37 @@ def _drop_stale_knowledge(knowledge: Dict[str, Any], stale_file_ids: Set[str]) -
             new_sources, new_file_ids = zip(*filtered_pairs, strict=True)
             cleaned_classes.append({**cls, "sources": list(new_sources), "file_ids": list(new_file_ids)})
         else:
-            # Nothing backs this class any more → remove it. If the re-extraction
-            # still finds it, it comes back as a new class with a current file_id.
-            removed_class_ids.add(cls["id"])
-            removed_labels.append(cls.get("label", ""))
+            # No source is left. Keep the class only as a match candidate.
+            stale_class_ids.add(cls["id"])
+            stale_labels.append(cls.get("label", ""))
+            stale_sources = list(cls.get("sources", []))
+            cleaned_classes.append({**cls, "sources": [], "file_ids": [], "_stale_sources": stale_sources})
 
     cleaned_properties = [
         prop
         for prop in knowledge.get("properties", [])
-        if prop["src_id"] not in removed_class_ids and prop["dest_id"] not in removed_class_ids
+        if prop["src_id"] not in stale_class_ids and prop["dest_id"] not in stale_class_ids
     ]
-    return {"classes": cleaned_classes, "properties": cleaned_properties}, removed_labels
+    return {"classes": cleaned_classes, "properties": cleaned_properties}, stale_labels
 
 
 def _load_existing_knowledge(state: KnowledgeExtractionState, log_prefix: str) -> Dict[str, Any]:
     """
-    Load the project's knowledge.json, without the knowledge this incremental run invalidates.
+    Load the project's knowledge.json, and remove the knowledge that this incremental run makes stale.
 
-    Two kinds of knowledge go stale: what came from items that are gone from the
-    source, and what came from items being extracted again because they changed.
-    Both have to go before extraction carries the knowledge through the chains,
-    since knowledge.json is then written from what comes out of them.
+    Knowledge is stale when it came from:
+    - items that were deleted from the source, or
+    - items that changed and are extracted again in this run.
+    It must be removed here, before the chains run, because knowledge.json is
+    written from the output of the chains.
 
-    The file_ids to drop are supplied by the extraction node, which knows how
-    file_ids are shaped for its source. An unreadable file raises, so the run
-    stops before knowledge.json is rewritten.
+    A class that loses all of its sources is kept as a match candidate (see
+    _drop_stale_knowledge). This lets the class keep its ID when the changed
+    items still contain the same concept.
+
+    The extraction node sets stale_file_ids, because only that node knows the
+    file_id format of its source. If the file cannot be read, this function
+    raises an error, so the run stops before knowledge.json is overwritten.
     """
     output_dir = state.get("output_dir", "/workspace/app/output")
     project = state.get("project", "default")
@@ -1540,10 +1554,11 @@ def _load_existing_knowledge(state: KnowledgeExtractionState, log_prefix: str) -
     stale_file_ids = set(state.get("stale_file_ids") or [])
     if state.get("incremental_mode") and stale_file_ids:
         before = len(knowledge.get("properties", []))
-        knowledge, removed_labels = _drop_stale_knowledge(knowledge, stale_file_ids)
+        knowledge, stale_labels = _drop_stale_knowledge(knowledge, stale_file_ids)
         print(
             f"{log_prefix} Dropped knowledge recorded against {len(stale_file_ids)} stale file_ids: "
-            f"{len(removed_labels)} classes {removed_labels}, {before - len(knowledge['properties'])} properties"
+            f"{before - len(knowledge['properties'])} properties; {len(stale_labels)} classes kept only as "
+            f"match candidates {stale_labels}"
         )
     return knowledge
 
@@ -1606,6 +1621,8 @@ def extract_classes_node(state: KnowledgeExtractionState) -> KnowledgeExtraction
                 f"[ExtractClassesNode] Loaded {len(existing_classes)} existing ACCEPT'ed classes "
                 f"from previous extraction"
             )
+        # IDs of the match candidates (loaded classes that lost all of their sources)
+        stale_ids = {c.get("id") for c in existing_classes if "_stale_sources" in c}
 
         class_chain = create_class_chain(model=state.get("model"))
 
@@ -1621,17 +1638,23 @@ def extract_classes_node(state: KnowledgeExtractionState) -> KnowledgeExtraction
 
         result = class_chain.invoke(input_data)
 
-        # Mark newly extracted classes (those NOT from existing_classes), and existing classes
-        # whose class changed, so their relations under the new class are extracted too.
-        # This flag is used by PropertyExtractor to filter class pairs for incremental updates
+        # Set _is_new on the classes whose relations must be extracted in this run.
+        # PropertyExtractor only extracts relations for class pairs that include such a class.
+        # A class gets _is_new when:
+        # - it is not in existing_classes (a new class)
+        # - its class_iri is different from the loaded one
+        # - it is a match candidate that was found again (its properties were removed on load)
         existing_iri_by_id = {c.get("id"): c.get("class_iri") for c in existing_classes if c.get("id")}
         for cls in result["classes"]:
             cid = cls.get("id")
-            cls["_is_new"] = cid not in existing_iri_by_id or existing_iri_by_id[cid] != cls.get("class_iri")
+            cls["_is_new"] = (
+                cid not in existing_iri_by_id or existing_iri_by_id[cid] != cls.get("class_iri") or cid in stale_ids
+            )
 
         # Store results in State
         state["classes"] = result["classes"]
         state["absorbed_class_ids"] = result.get("absorbed_class_ids", {})
+        state["carried_over_class_ids"] = sorted(existing_iri_by_id)
         state["current_stage"] = "classes_extracted"
 
     except Exception as e:
@@ -1734,6 +1757,7 @@ def save_accumulated_knowledge_node(state: KnowledgeExtractionState) -> Knowledg
 
         # One record per ID, then one per (class_iri, label). A carried-over record is kept
         # over a new one with the same key, and the other one's properties move to it.
+        carried_over_ids = set(state.get("carried_over_class_ids") or [])
         by_id = {}
         for cls in classes:
             cid = cls.get("id")
@@ -1747,7 +1771,7 @@ def save_accumulated_knowledge_node(state: KnowledgeExtractionState) -> Knowledg
             if kept is None:
                 by_key[key] = cls
                 continue
-            if kept.get("_is_new") and not cls.get("_is_new"):
+            if kept.get("id") not in carried_over_ids and cls.get("id") in carried_over_ids:
                 kept, cls = cls, kept
             by_key[key] = _merge_class_sources(kept, cls)
             merged_into[cls["id"]] = key

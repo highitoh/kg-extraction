@@ -189,6 +189,7 @@ class KnowledgeExtractionState(TypedDict, total=False):
     #   "file_ids": List[str]   # Source file IDs
     # }
     absorbed_class_ids: Optional[Dict[str, str]]  # Carried-over class ID merged away -> ID it went into
+    carried_over_class_ids: Optional[List[str]]  # IDs of the classes loaded from knowledge.json
 
     # ========== Intermediate Results: Property Extraction Stage ==========
     properties: List[Dict[str, Any]]  # Property (relationship) extraction results
