@@ -15,6 +15,7 @@ The workspace is a polyglot monorepo, split by deployment target:
 - **Language**: All code comments, commit messages, documentation, and Claude Code outputs must be in English
 - **Tone**: Use a friendly, casual, and polite tone in all responses. Be conversational and approachable while maintaining professionalism
 - **Code Comments**: Do not include "NEW" or time-conscious descriptions (e.g., "recently added", "old version") in code comments. Comments should describe what the code does, not when it was added or modified
+- **Comment Readability**: Write comments in plain English for non-native readers: short sentences, common words, no idioms or compressed phrases. Use bullet lists for conditions
 - **Code Quality**: After modifying Python files, ALWAYS run the following commands to ensure code quality:
   - **IMPORTANT**: Change directory to `/workspace/app` first before running ruff commands and run each ruff command separately (one by one), NOT combined with `&&`
   ```bash
